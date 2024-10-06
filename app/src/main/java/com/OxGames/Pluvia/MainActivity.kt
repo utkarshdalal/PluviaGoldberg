@@ -12,6 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.OxGames.Pluvia.components.QrCodeImage
+import com.OxGames.Pluvia.components.QrLoginScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 class MainActivity : ComponentActivity() {
@@ -21,29 +23,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             PluviaTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                    QrCodeImage(content = "https://google.com", size = 256.dp)
+                    QrLoginScreen(innerPadding = innerPadding)
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PluviaTheme {
-        Greeting("Android")
     }
 }
