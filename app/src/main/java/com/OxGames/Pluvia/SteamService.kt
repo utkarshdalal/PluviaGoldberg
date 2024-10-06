@@ -6,14 +6,10 @@ import android.os.IBinder
 import android.util.Log
 import com.OxGames.Pluvia.enums.LoginResult
 import `in`.dragonbra.javasteam.enums.EResult
-import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
-import `in`.dragonbra.javasteam.steam.authentication.AuthenticationException
 import `in`.dragonbra.javasteam.steam.authentication.IChallengeUrlChanged
 import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
-import `in`.dragonbra.javasteam.steam.authentication.SteamAuthentication
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
-import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOnCallback
@@ -28,7 +24,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.Closeable
-import java.util.concurrent.CancellationException
 
 
 class SteamService : Service(), IChallengeUrlChanged {
@@ -43,7 +38,11 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private var _loginResult: LoginResult = LoginResult.Failed
 
+    private var retryAttempt = 0
+
     companion object {
+        const val MAX_RETRY_ATTEMPTS = 5
+
         // private var callbackHandler: Handler? = null
         var isConnecting: Boolean = false
             private set
@@ -61,6 +60,21 @@ class SteamService : Service(), IChallengeUrlChanged {
             private set
         var isRequestingAppInfo: Boolean = false
             private set
+
+        val onConnectedListeners: ArrayList<() -> Unit> = ArrayList()
+        fun addOnConnectedListener(listener: () -> Unit) {
+            onConnectedListeners.add(listener)
+        }
+        fun removeOnConnectedListener(listener: () -> Unit) {
+            onConnectedListeners.remove(listener)
+        }
+        fun clearOnConnectedListeners() {
+            onConnectedListeners.clear()
+        }
+        private fun fireOnConnectedListeners() {
+            for (listener in onConnectedListeners)
+                listener.invoke()
+        }
     }
 
     override fun onCreate() {
@@ -92,20 +106,17 @@ class SteamService : Service(), IChallengeUrlChanged {
         // is little or no sleep."
         // source: https://stackoverflow.com/a/59040920
         CoroutineScope(Dispatchers.IO).launch {
-            while (isRunning)
-                _callbackManager!!.runWaitCallbacks(1000L)
+            while (isRunning) {
+                // Log.d("SteamService", "runWaitCallbacks")
+                try {
+                    _callbackManager!!.runWaitCallbacks(1000L)
+                } catch (e: Exception) {
+                    Log.e("SteamService", "runWaitCallbacks failed: $e")
+                }
+            }
         }
-        // val callbackLoop = {
-        //     if (isRunning) {
-        //         _callbackManager!!.runWaitCallbacks()
-        //         callbackHandler!!.postDelayed({}, 1000L)
-        //     }
-        // }
-        // callbackHandler = Handler(mainLooper)
-        // callbackHandler!!.post(callbackLoop)
 
-        isConnecting = true
-        _steamClient!!.connect()
+        connectToSteam()
     }
 
     override fun onDestroy() {
@@ -117,6 +128,14 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     override fun onBind(p0: Intent?): IBinder? {
         return null
+    }
+
+    private fun connectToSteam() {
+        isConnecting = true
+        CoroutineScope(Dispatchers.Default).launch {
+            // this call errors out if run on the main thread
+            _steamClient!!.connect()
+        }
     }
 
     private suspend fun stop()
@@ -160,11 +179,16 @@ class SteamService : Service(), IChallengeUrlChanged {
         // personaStates.Clear()
 
         isDisconnecting = false
+        retryAttempt = 0
+
+        clearOnConnectedListeners()
     }
 
     private fun onConnected(callback: ConnectedCallback) {
         Log.d("SteamService", "Connected to Steam")
+        retryAttempt = 0
         isConnecting = false
+        fireOnConnectedListeners()
         // try {
         //     // get the authentication handler, which used for authenticating with Steam
         //     val auth = SteamAuthentication(_steamClient!!)
@@ -212,8 +236,14 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private fun onDisconnected(callback: DisconnectedCallback) {
         Log.d("SteamService", "Disconnected from Steam")
-
-        clearValues()
+        if (!isDisconnecting && retryAttempt < MAX_RETRY_ATTEMPTS) {
+            retryAttempt++
+            Log.d("SteamService", "Attempting to reconnect (retry $retryAttempt)")
+            connectToSteam()
+        } else {
+            clearValues()
+            stopSelf()
+        }
     }
 
     private fun onLoggedOn(callback: LoggedOnCallback) {
