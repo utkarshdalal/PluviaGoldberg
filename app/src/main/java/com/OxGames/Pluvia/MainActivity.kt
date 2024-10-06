@@ -22,21 +22,19 @@ import com.OxGames.Pluvia.components.LoadingScreen
 import com.OxGames.Pluvia.components.LoginScreen
 import com.OxGames.Pluvia.components.QrCodeImage
 import com.OxGames.Pluvia.components.QrLoginScreen
+import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 class MainActivity : ComponentActivity() {
-    var onConnectedCallback: (() -> Unit)? = null
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
         setContent {
             var isSteamConnected by remember { mutableStateOf(SteamService.isRunning) }
-            onConnectedCallback = {
+            SteamService.events.once<SteamEvent.Connected> {
                 isSteamConnected = true
             }
-            SteamService.addOnConnectedListener(onConnectedCallback!!)
             startSteamService()
 
             PluviaTheme {
@@ -52,7 +50,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        SteamService.removeOnConnectedListener(onConnectedCallback!!)
     }
 
     private fun startSteamService() {

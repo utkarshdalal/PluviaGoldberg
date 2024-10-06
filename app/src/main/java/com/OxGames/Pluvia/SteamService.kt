@@ -4,12 +4,18 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import com.OxGames.Pluvia.events.EventDispatcher
 import com.OxGames.Pluvia.enums.LoginResult
+import com.OxGames.Pluvia.events.SteamEvent
 import `in`.dragonbra.javasteam.enums.EResult
+import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
+import `in`.dragonbra.javasteam.steam.authentication.AuthenticationException
 import `in`.dragonbra.javasteam.steam.authentication.IChallengeUrlChanged
 import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
+import `in`.dragonbra.javasteam.steam.authentication.SteamAuthentication
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
+import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOnCallback
@@ -24,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.Closeable
+import kotlin.coroutines.cancellation.CancellationException
 
 
 class SteamService : Service(), IChallengeUrlChanged {
@@ -43,6 +50,9 @@ class SteamService : Service(), IChallengeUrlChanged {
     companion object {
         const val MAX_RETRY_ATTEMPTS = 5
 
+        private var instance: SteamService? = null
+        val events: EventDispatcher = EventDispatcher()
+
         // private var callbackHandler: Handler? = null
         var isConnecting: Boolean = false
             private set
@@ -61,24 +71,53 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isRequestingAppInfo: Boolean = false
             private set
 
-        val onConnectedListeners: ArrayList<() -> Unit> = ArrayList()
-        fun addOnConnectedListener(listener: () -> Unit) {
-            onConnectedListeners.add(listener)
-        }
-        fun removeOnConnectedListener(listener: () -> Unit) {
-            onConnectedListeners.remove(listener)
-        }
-        fun clearOnConnectedListeners() {
-            onConnectedListeners.clear()
-        }
-        private fun fireOnConnectedListeners() {
-            for (listener in onConnectedListeners)
-                listener.invoke()
+        suspend fun loginWithQr() {
+            CoroutineScope(Dispatchers.Default).launch {
+                try {
+                    // get the authentication handler, which used for authenticating with Steam
+                    val auth = SteamAuthentication(instance!!._steamClient!!)
+
+                    val authSession = auth.beginAuthSessionViaQR(AuthSessionDetails())
+
+                    // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
+                    // Note: Callback is below.
+                    authSession.challengeUrlChanged = instance
+
+                    // Draw current qr right away
+                    // drawQRCode(authSession)
+
+                    // Starting polling Steam for authentication response
+                    // This response is later used to log on to Steam after connecting
+                    // Note: This is blocking, it would be up to you to make it non-blocking for Java.
+                    // Note: Kotlin uses should use ".pollingWaitForResult()" as its a suspending function.
+                    val pollResponse = authSession.pollingWaitForResult()
+
+                    Log.d("SteamService", "Logging in ${pollResponse.accountName}...")
+
+                    val details = LogOnDetails()
+                    details.username = pollResponse.accountName
+                    details.accessToken = pollResponse.refreshToken
+
+                    // Set LoginID to a non-zero value if you have another client connected using the same account,
+                    // the same private ip, and same public ip.
+                    // details.loginID = 149
+
+                    instance!!._steamUser!!.logOn(details)
+                } catch (e: Exception) {
+                    when (e) {
+                        is AuthenticationException -> Log.e("SteamService", "An authentication error has occurred: $e")
+                        is CancellationException -> Log.e("SteamService", "A cancellation exception was raised (usually means a timeout occurred): $e")
+                        else -> Log.e("SteamService", "An error occurred when attempting to log in with a QR code: $e")
+                    }
+                    instance!!._steamUser!!.logOff()
+                }
+            }
         }
     }
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
 
         // to view log messages in logcat
         LogManager.addListener(DefaultLogListener())
@@ -181,57 +220,14 @@ class SteamService : Service(), IChallengeUrlChanged {
         isDisconnecting = false
         retryAttempt = 0
 
-        clearOnConnectedListeners()
+        events.clearAllListeners()
     }
 
     private fun onConnected(callback: ConnectedCallback) {
         Log.d("SteamService", "Connected to Steam")
         retryAttempt = 0
         isConnecting = false
-        fireOnConnectedListeners()
-        // try {
-        //     // get the authentication handler, which used for authenticating with Steam
-        //     val auth = SteamAuthentication(_steamClient!!)
-        //
-        //     val authSession = auth.beginAuthSessionViaQR(AuthSessionDetails())
-        //
-        //     // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
-        //     // Note: Callback is below.
-        //     authSession.challengeUrlChanged = this
-        //
-        //     // Draw current qr right away
-        //     // drawQRCode(authSession)
-        //
-        //     // Starting polling Steam for authentication response
-        //     // This response is later used to log on to Steam after connecting
-        //     // Note: This is blocking, it would be up to you to make it non-blocking for Java.
-        //     // Note: Kotlin uses should use ".pollingWaitForResult()" as its a suspending function.
-        //     val pollResponse = authSession.pollingWaitForResultCompat().get()
-        //
-        //     Log.d("SteamService", "Connected to Steam! Logging in " + pollResponse.accountName + "...")
-        //
-        //     val details: LogOnDetails = LogOnDetails()
-        //     details.username = pollResponse.accountName
-        //     details.accessToken = pollResponse.refreshToken
-        //
-        //     // Set LoginID to a non-zero value if you have another client connected using the same account,
-        //     // the same private ip, and same public ip.
-        //     details.loginID = 149
-        //
-        //     _steamUser!!.logOn(details)
-        // } catch (e: Exception) {
-        //     System.err.println(e.message)
-        //
-        //     if (e is AuthenticationException) {
-        //         Log.d("SteamService", "An Authentication error has occurred. " + e.message)
-        //     }
-        //
-        //     if (e is CancellationException) {
-        //         Log.d("SteamService", "An Cancellation exception was raised. Usually means a timeout occurred. " + e.message)
-        //     }
-        //
-        //     _steamUser!!.logOff()
-        // }
+        events.emit(SteamEvent.Connected)
     }
 
     private fun onDisconnected(callback: DisconnectedCallback) {
@@ -241,6 +237,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             Log.d("SteamService", "Attempting to reconnect (retry $retryAttempt)")
             connectToSteam()
         } else {
+            events.emit(SteamEvent.Disconnected)
             clearValues()
             stopSelf()
         }
@@ -262,6 +259,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
             _steamFriends!!.requestFriendInfo(_steamUser!!.steamID) // in order to get user avatar url and other info
             _loginResult = LoginResult.Success
+            events.emit(SteamEvent.LoggedIn(""))
         }
 
         isLoggingIn = false
@@ -275,5 +273,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     override fun onChanged(qrAuthSession: QrAuthSession?) {
         Log.d("SteamService", "QR code changed: ${qrAuthSession?.challengeUrl}")
+        if (qrAuthSession != null)
+            events.emit(SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl))
     }
 }
