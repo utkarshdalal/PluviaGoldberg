@@ -29,9 +29,22 @@ fun LoginScreen() {
     val context = LocalContext.current
     var isSteamConnected by remember { mutableStateOf(SteamService.isRunning) }
     var isUsernameLogin by remember { mutableStateOf(false) }
+    var isLoggingIn by remember { mutableStateOf(false) }
 
     SteamService.events.once<SteamEvent.Connected> { isSteamConnected = true }
     LaunchedEffect("") {
+        val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = { isLoggingIn = true }
+        var onEndLoggingIn: ((SteamEvent.LogonEnded) -> Unit)? = null
+        onEndLoggingIn = {
+            isLoggingIn = false
+            if (it.success) {
+                SteamService.events.off<SteamEvent.LogonStarted>(onLoggingIn)
+                SteamService.events.off<SteamEvent.LogonEnded>(onEndLoggingIn!!)
+            }
+        }
+        SteamService.events.on<SteamEvent.LogonStarted>(onLoggingIn)
+        SteamService.events.on<SteamEvent.LogonEnded>(onEndLoggingIn)
+
         if (!isSteamConnected) {
             val intent = Intent(context, SteamService::class.java)
             context.startService(intent)
@@ -52,7 +65,7 @@ fun LoginScreen() {
             )
         }
     ) { innerPadding ->
-        if (isSteamConnected) {
+        if (isSteamConnected && !isLoggingIn) {
             if (isUsernameLogin)
                 UserLoginScreen(
                     innerPadding,
