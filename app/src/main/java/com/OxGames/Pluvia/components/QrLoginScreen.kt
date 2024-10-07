@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -18,22 +20,30 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.events.SteamEvent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Composable
 fun QrLoginScreen(innerPadding: PaddingValues) {
     var url: String? by remember { mutableStateOf(null) }
-    SteamService.events.once<SteamEvent.LoggedIn> { event -> Log.d("QrLoginScreen", "Logged in as ${event.username}") }
-    SteamService.events.on<SteamEvent.QrChallengeReceived> { event -> url = event.challengeUrl }
+    var isFailed: Boolean by remember { mutableStateOf(false) }
+    var attemptNum: Int by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect("") {
-        SteamService.loginWithQr()
+    // launched effect makes it so that this only runs any time attemptNum changes
+    // without launched effect this block runs everytime a change happens to the ui
+    LaunchedEffect(attemptNum) {
+        Log.d("QrLoginScreen", "Starting QR authentication")
+        isFailed = false
+
+        val onQrChallengeReceived: (SteamEvent.QrChallengeReceived) -> Unit = { url = it.challengeUrl }
+        SteamService.events.on<SteamEvent.QrChallengeReceived>(onQrChallengeReceived)
+        SteamService.events.once<SteamEvent.QrAuthEnded> {
+            SteamService.events.off<SteamEvent.QrChallengeReceived>(onQrChallengeReceived)
+            isFailed = !it.success
+            url = null
+        }
+        SteamService.startLoginWithQr()
     }
 
-    if (url != null) {
-
+    if (url != null || isFailed) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -41,7 +51,10 @@ fun QrLoginScreen(innerPadding: PaddingValues) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            QrCodeImage(content = url!!, size = 256.dp)
+            if (isFailed)
+                ElevatedButton(onClick = { attemptNum++ }) { Text("Retry") }
+            else
+                QrCodeImage(content = url!!, size = 256.dp)
         }
     } else
         LoadingScreen(innerPadding)

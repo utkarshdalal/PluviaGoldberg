@@ -31,6 +31,11 @@ fun UserLoginScreen(innerPadding: PaddingValues, onLoginBtnClick: (username: Str
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
+    // Steam strips all non-ASCII characters from usernames and passwords
+    // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
+    // final String username = Utils.removeSpecialChars(usernameEditText.getText().toString()).trim();
+    // final String password = Utils.removeSpecialChars(passwordEditText.getText().toString()).trim();
+
     Column(
         modifier = Modifier
             .fillMaxSize()
