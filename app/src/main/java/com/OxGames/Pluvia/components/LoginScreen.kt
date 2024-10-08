@@ -21,27 +21,37 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.SteamEvent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen() {
     val context = LocalContext.current
-    var isSteamConnected by remember { mutableStateOf(SteamService.isRunning) }
     var isUsernameLogin by remember { mutableStateOf(false) }
-    var isLoggingIn by remember { mutableStateOf(false) }
+    var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
+    var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
 
-    SteamService.events.once<SteamEvent.Connected> { isSteamConnected = true }
     LaunchedEffect("") {
-        val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = { isLoggingIn = true }
+        val onSteamConnected: (SteamEvent.Connected) -> Unit = {
+            Log.d("LoginScreen", "Received is connected")
+            isSteamConnected = true
+        }
+        val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = {
+            Log.d("LoginScreen", "Received logon started")
+            isLoggingIn = true
+        }
         var onEndLoggingIn: ((SteamEvent.LogonEnded) -> Unit)? = null
         onEndLoggingIn = {
+            Log.d("LoginScreen", "Received logon ended")
             isLoggingIn = false
-            if (it.success) {
+            if (it.loginResult == LoginResult.Success) {
+                SteamService.events.off<SteamEvent.Connected>(onSteamConnected)
                 SteamService.events.off<SteamEvent.LogonStarted>(onLoggingIn)
                 SteamService.events.off<SteamEvent.LogonEnded>(onEndLoggingIn!!)
             }
         }
+        SteamService.events.on<SteamEvent.Connected>(onSteamConnected)
         SteamService.events.on<SteamEvent.LogonStarted>(onLoggingIn)
         SteamService.events.on<SteamEvent.LogonEnded>(onEndLoggingIn)
 
@@ -56,11 +66,12 @@ fun LoginScreen() {
             TopAppBar(
                 title = { Text("Pluvia") },
                 actions = {
-                    IconButton(onClick = {
-                        if (!isUsernameLogin)
-                            SteamService.stopLoginWithQr()
-                        isUsernameLogin = !isUsernameLogin
-                    }) { Icon(imageVector = if (isUsernameLogin) Icons.Filled.QrCode2 else Icons.Filled.Password, "Toggle login mode") }
+                    if (isSteamConnected && !isLoggingIn)
+                        IconButton(onClick = {
+                            if (!isUsernameLogin)
+                                SteamService.stopLoginWithQr()
+                            isUsernameLogin = !isUsernameLogin
+                        }) { Icon(imageVector = if (isUsernameLogin) Icons.Filled.QrCode2 else Icons.Filled.Password, "Toggle login mode") }
                 }
             )
         }

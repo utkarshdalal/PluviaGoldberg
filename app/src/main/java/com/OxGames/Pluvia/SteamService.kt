@@ -65,12 +65,16 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         var isConnecting: Boolean = false
             private set
-        var isDisconnecting: Boolean = false
+        var isStopping: Boolean = false
+            private set
+        var isConnected: Boolean = false
             private set
         var isRunning: Boolean = false
             private set
         var isLoggingIn: Boolean = false
             private set
+        // var isLoggingOut: Boolean = false
+        //     private set
         var isWaitingForQRAuth: Boolean = false
             private set
         var isReceivingLicenseList: Boolean = false
@@ -149,6 +153,28 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
         fun stopLoginWithQr() {
             isWaitingForQRAuth = false
+        }
+        fun logOut() {
+            CoroutineScope(Dispatchers.Default).launch {
+                isConnected = false
+                // isLoggingOut = true
+                performLogOffDuties()
+                val steamUser = instance!!._steamUser!!
+                steamUser.logOff()
+            }
+        }
+        private fun clearUserData() {
+            steamData.cellId = 0
+            steamData.accountName = null
+            steamData.accessToken = null
+            steamData.refreshToken = null
+            saveSteamData()
+            isLoggingIn = false
+        }
+        private fun performLogOffDuties() {
+            val username = steamData.accountName
+            clearUserData()
+            events.emit(SteamEvent.LoggedOut(username))
         }
     }
 
@@ -233,9 +259,9 @@ class SteamService : Service(), IChallengeUrlChanged {
     {
         Log.d("SteamService", "Stopping Steam service")
         if (_steamClient != null && _steamClient!!.isConnected) {
-            isDisconnecting = true
+            isStopping = true
             _steamClient!!.disconnect()
-            while (isDisconnecting)
+            while (isStopping)
                 delay(200L)
             // the reason we don't clearValues() here is because the onDisconnect
             // callback does it for us
@@ -246,8 +272,10 @@ class SteamService : Service(), IChallengeUrlChanged {
     {
         // _loginResult = LoginResult.Failed
         isRunning = false
+        isConnected = false
         isConnecting = false
         isLoggingIn = false
+        // isLoggingOut = false
         isWaitingForQRAuth = false
         isReceivingLicenseList = false
         isRequestingPkgInfo = false
@@ -269,7 +297,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         // appInfo.Clear()
         // personaStates.Clear()
 
-        isDisconnecting = false
+        isStopping = false
         retryAttempt = 0
 
         events.clearAllListeners()
@@ -298,10 +326,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         Log.d("SteamService", "Connected to Steam")
         retryAttempt = 0
         isConnecting = false
+        isConnected = true
         loadSteamData()
         if (steamData.accountName != null && steamData.refreshToken != null) {
             isLoggingIn = true
-            events.emit(SteamEvent.LogonStarted(steamData.accountName!!))
+            events.emit(SteamEvent.LogonStarted(steamData.accountName))
             _steamUser!!.logOn(LogOnDetails(
                 username = steamData.accountName!!,
                 accessToken = steamData.refreshToken,
@@ -316,9 +345,11 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private fun onDisconnected(callback: DisconnectedCallback) {
         Log.d("SteamService", "Disconnected from Steam")
-        if (!isDisconnecting && retryAttempt < MAX_RETRY_ATTEMPTS) {
+        isConnected = false
+        if (!isStopping && retryAttempt < MAX_RETRY_ATTEMPTS) {
             retryAttempt++
             Log.d("SteamService", "Attempting to reconnect (retry $retryAttempt)")
+            // isLoggingOut = false
             connectToSteam()
         } else {
             events.emit(SteamEvent.Disconnected)
@@ -329,37 +360,36 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private fun onLoggedOn(callback: LoggedOnCallback) {
         Log.d("SteamService", "Logged onto Steam: ${callback.result}")
-        val isSteamGuard = callback.result == EResult.AccountLogonDenied
-        val is2FA = callback.result == EResult.AccountLoginDeniedNeedTwoFactor
         var logonSucess = false
+        val username = steamData.accountName
 
-        if (is2FA)
-            _loginResult = LoginResult.TwoFactorCode
-        else if (isSteamGuard)
-            _loginResult = LoginResult.EmailAuth
-        else if (callback.result != EResult.OK)
-            _loginResult = LoginResult.Failed
-        else
-        {
-            logonSucess = true
-            // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
-            // servers from the Steam Directory.
-            steamData.cellId = callback.cellID
-            saveSteamData()
+        when (callback.result) {
+            EResult.AccountLogonDenied -> { _loginResult = LoginResult.EmailAuth }
+            EResult.AccountLoginDeniedNeedTwoFactor -> { _loginResult = LoginResult.TwoFactorCode }
+            EResult.OK -> {
+                logonSucess = true
+                // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
+                // servers from the Steam Directory.
+                steamData.cellId = callback.cellID
+                saveSteamData()
 
-            isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
-            _steamFriends!!.requestFriendInfo(_steamUser!!.steamID) // in order to get user avatar url and other info
-            _loginResult = LoginResult.Success
+                isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
+                _steamFriends!!.requestFriendInfo(_steamUser!!.steamID) // in order to get user avatar url and other info
+                _loginResult = LoginResult.Success
+            }
+            else -> {
+                clearUserData()
+                _loginResult = LoginResult.Failed
+            }
         }
 
-        events.emit(SteamEvent.LogonEnded(steamData.accountName ?: "", logonSucess))
+        events.emit(SteamEvent.LogonEnded(username, _loginResult))
         isLoggingIn = false
     }
 
     private fun onLoggedOff(callback: LoggedOffCallback) {
         Log.d("SteamService", "Logged off of Steam: ${callback.result}")
-
-        // isRunning = false
+        performLogOffDuties()
     }
 
     override fun onChanged(qrAuthSession: QrAuthSession?) {
