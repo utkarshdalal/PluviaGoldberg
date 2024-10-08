@@ -4,9 +4,11 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import com.OxGames.Pluvia.data.SteamData
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.EventDispatcher
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.utils.FileUtils
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
@@ -31,12 +33,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import java.io.Closeable
 import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileWriter
 import java.nio.file.Paths
-import java.util.Scanner
 import kotlin.io.path.pathString
 
 
@@ -47,9 +48,6 @@ class SteamService : Service(), IChallengeUrlChanged {
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
     // private var _steamContent = null // TODO: add SteamContent to Java SteamKit
-    private var _accountName: String? = null
-    private var _accessToken: String? = null
-    private var _refreshToken: String? = null
 
     private val _callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
@@ -61,7 +59,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         const val MAX_RETRY_ATTEMPTS = 5
         const val LOGIN_ID = 382945
 
-        private var cellID = 0
+        private var steamData: SteamData = SteamData()
         private var instance: SteamService? = null
         val events: EventDispatcher = EventDispatcher()
 
@@ -82,30 +80,21 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isRequestingAppInfo: Boolean = false
             private set
 
-        private fun saveStringToFile(path: String, data: String, errorTag: String? = null, errorMessage: ((e: Exception) -> String)? = null) {
-            try {
-                FileWriter(path).use { fw ->
-                    fw.write(data)
-                }
-            } catch (e: Exception) {
-                Log.e(errorTag ?: "FileError", errorMessage?.invoke(e) ?: "Could not write to $path: $e")
-            }
-        }
-        private fun getCellIdPath(): String {
-            return Paths.get(instance!!.cacheDir.path, "cellid.txt").pathString
-        }
         private fun getServerListPath(): String {
             return Paths.get(instance!!.cacheDir.path, "server_list.bin").pathString
         }
-        private fun getAccountNamePath(): String {
-            return Paths.get(instance!!.cacheDir.path, "account_name.txt").pathString
+        private fun getSteamDataPath(): String {
+            return Paths.get(instance!!.cacheDir.path, "steam_data.json").pathString
         }
-        private fun getAccessTokenPath(): String {
-            return Paths.get(instance!!.cacheDir.path, "access_token.txt").pathString
+        private fun loadSteamData() {
+            val steamDataStr: String? = FileUtils.readFileAsString(getSteamDataPath())
+            if (steamDataStr != null)
+                steamData = Json.decodeFromString<SteamData>(steamDataStr)
         }
-        private fun getRefreshTokenPath(): String {
-            return Paths.get(instance!!.cacheDir.path, "refresh_token.txt").pathString
+        private fun saveSteamData() {
+            FileUtils.writeStringToFile(Json.encodeToString(steamData), getSteamDataPath())
         }
+
         fun startLoginWithQr() {
             CoroutineScope(Dispatchers.IO).launch {
                 val steamClient = instance!!._steamClient
@@ -137,9 +126,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                     // there is a chance qr got cancelled and there is no authPollResult
                     if (authPollResult != null) {
-                        instance!!._accountName = authPollResult.accountName
-                        instance!!._accessToken = authPollResult.accessToken
-                        instance!!._refreshToken = authPollResult.refreshToken
+                        steamData.accountName = authPollResult.accountName
+                        steamData.accessToken = authPollResult.accessToken
+                        steamData.refreshToken = authPollResult.refreshToken
+                        saveSteamData()
 
                         isLoggingIn = true
                         steamUser.logOn(LogOnDetails(
@@ -172,26 +162,12 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!isRunning) {
-            // if we've previously connected and saved our cellid, load it.
-            val loginKeyFile = File(getCellIdPath())
-            Log.d("SteamService", "Checking for existence of: ${getCellIdPath()}")
-            if (loginKeyFile.exists()) {
-                try {
-                    Scanner(loginKeyFile).use { s ->
-                        cellID = s.nextLine().toInt()
-                    }
-                } catch (e: FileNotFoundException) {
-                    Log.e("SteamService", "Error parsing cellid from cellid.txt. Continuing with cellid 0.")
-                }
-                Log.d("SteamService", "Using persisted cell ID: $cellID")
-            } else {
-                Log.e("SteamService", "cellid file doesn't exist.")
-            }
+            loadSteamData()
 
             Log.d("SteamService", "Using server list path: ${getServerListPath()}")
             val configuration =
                 SteamConfiguration.create { iSteamConfigurationBuilder: ISteamConfigurationBuilder ->
-                    iSteamConfigurationBuilder.withCellID(cellID)
+                    iSteamConfigurationBuilder.withCellID(steamData.cellId)
                     iSteamConfigurationBuilder.withServerListProvider(FileServerListProvider(File(getServerListPath())))
                 }
 
@@ -299,39 +275,36 @@ class SteamService : Service(), IChallengeUrlChanged {
         events.clearAllListeners()
     }
 
-    private fun readFileAsString(path: String): String? {
-        var result: String? = null
-
-        val file = File(path)
-        Log.d("SteamService", "Checking for existence of: $path")
-        if (file.exists()) {
-            try {
-                Scanner(file).use { s ->
-                    result = s.nextLine()
-                }
-            } catch (e: FileNotFoundException) {
-                Log.e("SteamService", "Error parsing file $path")
-            }
-            Log.d("SteamService", "Successfully read contents of $path")
-        } else {
-            Log.e("SteamService", "File doesn't exist $path")
-        }
-        return result
-    }
+    // private fun readFileAsString(path: String): String? {
+    //     var result: String? = null
+    //
+    //     val file = File(path)
+    //     Log.d("SteamService", "Checking for existence of: $path")
+    //     if (file.exists()) {
+    //         try {
+    //             Scanner(file).use { s ->
+    //                 result = s.nextLine()
+    //             }
+    //         } catch (e: FileNotFoundException) {
+    //             Log.e("SteamService", "Error parsing file $path")
+    //         }
+    //         Log.d("SteamService", "Successfully read contents of $path")
+    //     } else {
+    //         Log.e("SteamService", "File doesn't exist $path")
+    //     }
+    //     return result
+    // }
     private fun onConnected(callback: ConnectedCallback) {
         Log.d("SteamService", "Connected to Steam")
         retryAttempt = 0
         isConnecting = false
-        // TODO: check if there is a remembered user and log them in
-        _accountName = readFileAsString(getAccountNamePath())
-        _accessToken = readFileAsString(getAccessTokenPath())
-        _refreshToken = readFileAsString(getRefreshTokenPath())
-        if (_accountName != null && _refreshToken != null) {
+        loadSteamData()
+        if (steamData.accountName != null && steamData.refreshToken != null) {
             isLoggingIn = true
-            events.emit(SteamEvent.LogonStarted(_accountName!!))
+            events.emit(SteamEvent.LogonStarted(steamData.accountName!!))
             _steamUser!!.logOn(LogOnDetails(
-                username = _accountName!!,
-                accessToken = _refreshToken,
+                username = steamData.accountName!!,
+                accessToken = steamData.refreshToken,
                 // Set LoginID to a non-zero value if you have another client connected using the same account,
                 // the same private ip, and same public ip.
                 // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
@@ -371,17 +344,15 @@ class SteamService : Service(), IChallengeUrlChanged {
             logonSucess = true
             // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
             // servers from the Steam Directory.
-            saveStringToFile(getCellIdPath(), java.lang.String.valueOf(callback.cellID), "SteamService") { "Failed to write cellId to file: $it" }
-            saveStringToFile(getAccountNamePath(), _accountName!!, "SteamService") { "Failed to write accountName to file: $it" }
-            saveStringToFile(getAccessTokenPath(), _accessToken!!, "SteamService") { "Failed to write accessToken to file: $it" }
-            saveStringToFile(getRefreshTokenPath(), _refreshToken!!, "SteamService") { "Failed to write refreshToken to file: $it" }
+            steamData.cellId = callback.cellID
+            saveSteamData()
 
             isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
             _steamFriends!!.requestFriendInfo(_steamUser!!.steamID) // in order to get user avatar url and other info
             _loginResult = LoginResult.Success
         }
 
-        events.emit(SteamEvent.LogonEnded(_accountName ?: "", logonSucess))
+        events.emit(SteamEvent.LogonEnded(steamData.accountName ?: "", logonSucess))
         isLoggingIn = false
     }
 
