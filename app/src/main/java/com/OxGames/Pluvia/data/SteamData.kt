@@ -12,5 +12,6 @@ data class SteamData(
     var cellId: Int = 0,
     var accountName: String? = null,
     var accessToken: String? = null,
-    var refreshToken: String? = null
+    var refreshToken: String? = null,
+    var password: String? = null
 )

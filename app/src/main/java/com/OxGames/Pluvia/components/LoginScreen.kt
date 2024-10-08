@@ -76,13 +76,9 @@ fun LoginScreen() {
             )
         }
     ) { innerPadding ->
-        if (isSteamConnected && !isLoggingIn) {
+        if (isSteamConnected) {
             if (isUsernameLogin)
-                UserLoginScreen(
-                    innerPadding,
-                    onLoginBtnClick = { username: String, password: String ->
-                        Log.d("LoginScreen", "Username: $username\nPassword: $password")
-                    })
+                UserLoginScreen(innerPadding)
             else
                 QrLoginScreen(innerPadding)
         } else

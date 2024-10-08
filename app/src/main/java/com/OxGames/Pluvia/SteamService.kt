@@ -9,6 +9,7 @@ import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.EventDispatcher
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
+import com.OxGames.Pluvia.utils.SteamUtils
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
@@ -99,11 +100,55 @@ class SteamService : Service(), IChallengeUrlChanged {
             FileUtils.writeStringToFile(Json.encodeToString(steamData), getSteamDataPath())
         }
 
+        private fun login(username: String, accessToken: String? = null, refreshToken: String? = null, password: String? = null, shouldRememberPassword: Boolean = false, twoFactorAuth: String? = null, emailAuth: String? = null) {
+            val steamUser = instance!!._steamUser!!
+
+            Log.d("SteamService", "Login Information\n\tUsername: $username\n\tAccessToken: $accessToken\n\tRefreshToken: $refreshToken\n\tPassword: $password\n\tShouldRememberPass: $shouldRememberPassword\n\tTwoFactorAuth: $twoFactorAuth\n\tEmailAuth: $emailAuth")
+
+            if ((password != null && shouldRememberPassword) || refreshToken != null) {
+                steamData.accountName = username
+                if (accessToken != null)
+                    steamData.accessToken = accessToken
+                if (refreshToken != null)
+                    steamData.refreshToken = refreshToken
+                if (password != null)
+                    steamData.password = password
+                saveSteamData()
+            }
+
+            isLoggingIn = true
+            events.emit(SteamEvent.LogonStarted(username))
+            steamUser.logOn(LogOnDetails(
+                // Steam strips all non-ASCII characters from usernames and passwords
+                // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
+                // more: https://github.com/winauth/winauth/issues/368#issuecomment-224631002
+                username = SteamUtils.removeSpecialChars(username).trim(),
+                password = if (password != null) SteamUtils.removeSpecialChars(password).trim() else null,
+                shouldRememberPassword = shouldRememberPassword,
+                twoFactorCode = twoFactorAuth,
+                authCode = emailAuth,
+                accessToken = refreshToken,
+                // Set LoginID to a non-zero value if you have another client connected using the same account,
+                // the same private ip, and same public ip.
+                // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
+                loginID = LOGIN_ID
+            ))
+        }
+        fun logOn(username: String, password: String, shouldRememberPassword: Boolean = false, twoFactorAuth: String? = null, emailAuth: String? = null) {
+            CoroutineScope(Dispatchers.Default).launch {
+                login(
+                    username = username,
+                    password = password,
+                    shouldRememberPassword = shouldRememberPassword,
+                    twoFactorAuth = twoFactorAuth,
+                    emailAuth = emailAuth
+                )
+            }
+        }
         fun startLoginWithQr() {
             CoroutineScope(Dispatchers.IO).launch {
                 val steamClient = instance!!._steamClient
-                val steamUser = instance!!._steamUser
-                if (steamClient != null && steamUser != null) {
+                if (steamClient != null) {
                     isWaitingForQRAuth = true
                     val authSession = steamClient.authentication.beginAuthSessionViaQR(AuthSessionDetails())
                     // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
@@ -130,20 +175,11 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                     // there is a chance qr got cancelled and there is no authPollResult
                     if (authPollResult != null) {
-                        steamData.accountName = authPollResult.accountName
-                        steamData.accessToken = authPollResult.accessToken
-                        steamData.refreshToken = authPollResult.refreshToken
-                        saveSteamData()
-
-                        isLoggingIn = true
-                        steamUser.logOn(LogOnDetails(
+                        login(
                             username = authPollResult.accountName,
-                            accessToken = authPollResult.refreshToken,
-                            // Set LoginID to a non-zero value if you have another client connected using the same account,
-                            // the same private ip, and same public ip.
-                            // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
-                            loginID = LOGIN_ID
-                        ))
+                            accessToken = authPollResult.accessToken,
+                            refreshToken = authPollResult.refreshToken
+                        )
                     }
                 } else {
                     Log.e("SteamService", "Could not start QR logon: Failed to connect to Steam")
@@ -168,6 +204,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             steamData.accountName = null
             steamData.accessToken = null
             steamData.refreshToken = null
+            steamData.password = null
             saveSteamData()
             isLoggingIn = false
         }
@@ -270,18 +307,17 @@ class SteamService : Service(), IChallengeUrlChanged {
     }
     private fun clearValues()
     {
-        // _loginResult = LoginResult.Failed
+        _loginResult = LoginResult.Failed
         isRunning = false
         isConnected = false
         isConnecting = false
         isLoggingIn = false
-        // isLoggingOut = false
         isWaitingForQRAuth = false
         isReceivingLicenseList = false
         isRequestingPkgInfo = false
         isRequestingAppInfo = false
 
-        // _steamData = null
+        steamData = SteamData()
         _steamClient = null
         _steamUser = null
         _steamApps = null
@@ -303,42 +339,19 @@ class SteamService : Service(), IChallengeUrlChanged {
         events.clearAllListeners()
     }
 
-    // private fun readFileAsString(path: String): String? {
-    //     var result: String? = null
-    //
-    //     val file = File(path)
-    //     Log.d("SteamService", "Checking for existence of: $path")
-    //     if (file.exists()) {
-    //         try {
-    //             Scanner(file).use { s ->
-    //                 result = s.nextLine()
-    //             }
-    //         } catch (e: FileNotFoundException) {
-    //             Log.e("SteamService", "Error parsing file $path")
-    //         }
-    //         Log.d("SteamService", "Successfully read contents of $path")
-    //     } else {
-    //         Log.e("SteamService", "File doesn't exist $path")
-    //     }
-    //     return result
-    // }
     private fun onConnected(callback: ConnectedCallback) {
         Log.d("SteamService", "Connected to Steam")
         retryAttempt = 0
         isConnecting = false
         isConnected = true
         loadSteamData()
-        if (steamData.accountName != null && steamData.refreshToken != null) {
-            isLoggingIn = true
-            events.emit(SteamEvent.LogonStarted(steamData.accountName))
-            _steamUser!!.logOn(LogOnDetails(
+        if (steamData.accountName != null && (steamData.refreshToken != null || steamData.password != null)) {
+            login(
                 username = steamData.accountName!!,
-                accessToken = steamData.refreshToken,
-                // Set LoginID to a non-zero value if you have another client connected using the same account,
-                // the same private ip, and same public ip.
-                // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
-                loginID = LOGIN_ID
-            ))
+                refreshToken = steamData.refreshToken,
+                password = steamData.password,
+                shouldRememberPassword = steamData.password != null
+            )
         }
         events.emit(SteamEvent.Connected)
     }
