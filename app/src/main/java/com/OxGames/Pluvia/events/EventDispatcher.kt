@@ -39,6 +39,12 @@ class EventDispatcher {
         listeners[eventClass]?.removeIf { it.toString() == listener.toString() }
     }
 
+    inline fun <reified E : Event> clearAllListenersOf() {
+        val currentKeys = listeners.keys.toList()
+        for (key in currentKeys)
+            if (key is E)
+                listeners.remove(key)
+    }
     fun clearAllListeners() {
         listeners.clear()
     }

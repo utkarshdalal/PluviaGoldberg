@@ -24,6 +24,7 @@ import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallb
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOnCallback
 import `in`.dragonbra.javasteam.steam.steamclient.SteamClient
 import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
+import `in`.dragonbra.javasteam.steam.steamclient.callbacks.CMListCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.ISteamConfigurationBuilder
@@ -62,7 +63,6 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         private var steamData: SteamData = SteamData()
         private var instance: SteamService? = null
-        val events: EventDispatcher = EventDispatcher()
 
         var isConnecting: Boolean = false
             private set
@@ -89,7 +89,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             return Paths.get(instance!!.cacheDir.path, "server_list.bin").pathString
         }
         private fun getSteamDataPath(): String {
-            return Paths.get(instance!!.cacheDir.path, "steam_data.json").pathString
+            return Paths.get(instance!!.dataDir.path, "steam_data.json").pathString
         }
         private fun loadSteamData() {
             val steamDataStr: String? = FileUtils.readFileAsString(getSteamDataPath())
@@ -105,19 +105,22 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             Log.d("SteamService", "Login Information\n\tUsername: $username\n\tAccessToken: $accessToken\n\tRefreshToken: $refreshToken\n\tPassword: $password\n\tShouldRememberPass: $shouldRememberPassword\n\tTwoFactorAuth: $twoFactorAuth\n\tEmailAuth: $emailAuth")
 
+            steamData.accountName = username
             if ((password != null && shouldRememberPassword) || refreshToken != null) {
-                steamData.accountName = username
-                if (accessToken != null)
-                    steamData.accessToken = accessToken
-                if (refreshToken != null)
-                    steamData.refreshToken = refreshToken
                 if (password != null)
                     steamData.password = password
-                saveSteamData()
+                if (accessToken != null) {
+                    steamData.password = null
+                    steamData.accessToken = accessToken
+                }
+                if (refreshToken != null) {
+                    steamData.password = null
+                    steamData.refreshToken = refreshToken
+                }
             }
 
             isLoggingIn = true
-            events.emit(SteamEvent.LogonStarted(username))
+            PluviaApp.events.emit(SteamEvent.LogonStarted(username))
             steamUser.logOn(LogOnDetails(
                 // Steam strips all non-ASCII characters from usernames and passwords
                 // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
@@ -153,7 +156,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     val authSession = steamClient.authentication.beginAuthSessionViaQR(AuthSessionDetails())
                     // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
                     authSession.challengeUrlChanged = instance
-                    events.emit(SteamEvent.QrChallengeReceived(authSession.challengeUrl))
+                    PluviaApp.events.emit(SteamEvent.QrChallengeReceived(authSession.challengeUrl))
 
                     Log.d("SteamService", "PollingInterval: ${authSession.pollingInterval.toLong()}")
                     var authPollResult: AuthPollResult? = null
@@ -171,7 +174,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         delay(authSession.pollingInterval.toLong())
                     }
                     isWaitingForQRAuth = false
-                    events.emit(SteamEvent.QrAuthEnded(authPollResult != null))
+                    PluviaApp.events.emit(SteamEvent.QrAuthEnded(authPollResult != null))
 
                     // there is a chance qr got cancelled and there is no authPollResult
                     if (authPollResult != null) {
@@ -183,7 +186,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     }
                 } else {
                     Log.e("SteamService", "Could not start QR logon: Failed to connect to Steam")
-                    events.emit(SteamEvent.QrAuthEnded(false))
+                    PluviaApp.events.emit(SteamEvent.QrAuthEnded(false))
                 }
             }
         }
@@ -211,7 +214,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         private fun performLogOffDuties() {
             val username = steamData.accountName
             clearUserData()
-            events.emit(SteamEvent.LoggedOut(username))
+            PluviaApp.events.emit(SteamEvent.LoggedOut(username))
         }
     }
 
@@ -246,6 +249,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             // subscribe to the callbacks we are interested in
             _callbackSubscriptions.add(_callbackManager!!.subscribe(ConnectedCallback::class.java, this::onConnected))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(DisconnectedCallback::class.java, this::onDisconnected))
+            _callbackSubscriptions.add(_callbackManager!!.subscribe(CMListCallback::class.java, this::onCMList))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOnCallback::class.java, this::onLoggedOn))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOffCallback::class.java, this::onLoggedOff))
 
@@ -336,7 +340,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         isStopping = false
         retryAttempt = 0
 
-        events.clearAllListeners()
+        PluviaApp.events.clearAllListenersOf<SteamEvent>()
     }
 
     private fun onConnected(callback: ConnectedCallback) {
@@ -344,18 +348,24 @@ class SteamService : Service(), IChallengeUrlChanged {
         retryAttempt = 0
         isConnecting = false
         isConnected = true
+        var isAutoLoggingIn = false
         loadSteamData()
-        if (steamData.accountName != null && (steamData.refreshToken != null || steamData.password != null)) {
-            login(
-                username = steamData.accountName!!,
-                refreshToken = steamData.refreshToken,
-                password = steamData.password,
-                shouldRememberPassword = steamData.password != null
-            )
+        if (_loginResult != LoginResult.TwoFactorCode && _loginResult != LoginResult.EmailAuth) {
+            if (steamData.accountName != null && (steamData.refreshToken != null || steamData.password != null)) {
+                isAutoLoggingIn = true
+                login(
+                    username = steamData.accountName!!,
+                    refreshToken = steamData.refreshToken,
+                    password = steamData.password,
+                    shouldRememberPassword = steamData.password != null
+                )
+            }
         }
-        events.emit(SteamEvent.Connected)
+        PluviaApp.events.emit(SteamEvent.Connected(isAutoLoggingIn))
     }
-
+    private fun onCMList(callback: CMListCallback) {
+        Log.d("SteamService", "CMListCallback:\nJobID: ${callback.jobID}\nServerList: ${callback.servers}")
+    }
     private fun onDisconnected(callback: DisconnectedCallback) {
         Log.d("SteamService", "Disconnected from Steam")
         isConnected = false
@@ -365,10 +375,17 @@ class SteamService : Service(), IChallengeUrlChanged {
             // isLoggingOut = false
             connectToSteam()
         } else {
-            events.emit(SteamEvent.Disconnected)
+            PluviaApp.events.emit(SteamEvent.Disconnected)
             clearValues()
             stopSelf()
         }
+    }
+
+    private fun reconnect() {
+        isConnected = false
+        isConnecting = true
+        PluviaApp.events.emit(SteamEvent.Disconnected)
+        _steamClient!!.disconnect()
     }
 
     private fun onLoggedOn(callback: LoggedOnCallback) {
@@ -377,8 +394,18 @@ class SteamService : Service(), IChallengeUrlChanged {
         val username = steamData.accountName
 
         when (callback.result) {
-            EResult.AccountLogonDenied -> { _loginResult = LoginResult.EmailAuth }
-            EResult.AccountLoginDeniedNeedTwoFactor -> { _loginResult = LoginResult.TwoFactorCode }
+            EResult.AccountLogonDenied -> {
+                _loginResult = LoginResult.EmailAuth
+                reconnect()
+            }
+            EResult.AccountLoginDeniedNeedTwoFactor -> {
+                _loginResult = LoginResult.TwoFactorCode
+                reconnect()
+            }
+            EResult.TryAnotherCM -> {
+                _loginResult = LoginResult.TryAgain
+                reconnect()
+            }
             EResult.OK -> {
                 logonSucess = true
                 // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
@@ -393,10 +420,11 @@ class SteamService : Service(), IChallengeUrlChanged {
             else -> {
                 clearUserData()
                 _loginResult = LoginResult.Failed
+                reconnect()
             }
         }
 
-        events.emit(SteamEvent.LogonEnded(username, _loginResult))
+        PluviaApp.events.emit(SteamEvent.LogonEnded(username, _loginResult))
         isLoggingIn = false
     }
 
@@ -408,6 +436,6 @@ class SteamService : Service(), IChallengeUrlChanged {
     override fun onChanged(qrAuthSession: QrAuthSession?) {
         Log.d("SteamService", "QR code changed: ${qrAuthSession?.challengeUrl}")
         if (qrAuthSession != null)
-            events.emit(SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl))
+            PluviaApp.events.emit(SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl))
     }
 }

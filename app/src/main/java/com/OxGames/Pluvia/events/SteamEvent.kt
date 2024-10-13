@@ -3,7 +3,7 @@ package com.OxGames.Pluvia.events
 import com.OxGames.Pluvia.enums.LoginResult
 
 sealed interface SteamEvent : Event {
-    data object Connected : SteamEvent
+    data class Connected(val isAutoLoggingIn: Boolean) : SteamEvent
     data object Disconnected : SteamEvent
     data class QrChallengeReceived(val challengeUrl: String) : SteamEvent
     data class QrAuthEnded(val success: Boolean) : SteamEvent
