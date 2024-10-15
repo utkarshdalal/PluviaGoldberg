@@ -5,8 +5,8 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import com.OxGames.Pluvia.data.SteamData
+import com.OxGames.Pluvia.data.UserData
 import com.OxGames.Pluvia.enums.LoginResult
-import com.OxGames.Pluvia.events.EventDispatcher
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
@@ -18,6 +18,7 @@ import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
@@ -29,6 +30,7 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.ISteamConfigurationBuilder
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
+import `in`.dragonbra.javasteam.types.SteamID
 import `in`.dragonbra.javasteam.util.log.DefaultLogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
 import kotlinx.coroutines.CoroutineScope
@@ -57,9 +59,13 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private var retryAttempt = 0
 
+    private val personaStates = mutableMapOf<Long, UserData>()
+
     companion object {
         const val MAX_RETRY_ATTEMPTS = 5
         const val LOGIN_ID = 382945
+        const val AVATAR_BASE_URL = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/"
+        const val MISSING_AVATAR_URL = "${AVATAR_BASE_URL}fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
 
         private var steamData: SteamData = SteamData()
         private var instance: SteamService? = null
@@ -74,6 +80,10 @@ class SteamService : Service(), IChallengeUrlChanged {
             private set
         var isLoggingIn: Boolean = false
             private set
+        val isLoggedIn: Boolean
+            get() {
+                return instance != null && instance!!._steamUser != null && instance!!._steamUser!!.steamID.isValid
+            }
         // var isLoggingOut: Boolean = false
         //     private set
         var isWaitingForQRAuth: Boolean = false
@@ -98,6 +108,45 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
         private fun saveSteamData() {
             FileUtils.writeStringToFile(Json.encodeToString(steamData), getSteamDataPath())
+        }
+
+        fun requestUserPersona() {
+            CoroutineScope(Dispatchers.Default).launch {
+                instance!!._steamFriends!!.requestFriendInfo(instance!!._steamUser!!.steamID) // in order to get user avatar url and other info
+            }
+        }
+        fun getUserSteamId(): SteamID? {
+            return instance!!._steamUser?.steamID
+        }
+        fun getPersonaStateOf(steamId: SteamID): UserData? {
+            return instance!!.personaStates[steamId.accountID]
+        }
+        // private fun getDefaultAvatarUrl(): String {
+        //     return AVATAR_BASE_URL + "fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" // default profile picture (question mark)
+        // }
+        // source: https://github.com/oxters168/ProjectDeagle/blob/48eeffbc8ff595b11d4cfecfb1b77cff17a6d179/Assets/Core/Scripts/SteamController.cs#L1321
+        @OptIn(ExperimentalStdlibApi::class)
+        private fun getAvatarURL(avatarHashBytes: ByteArray?): String {
+            // source: https://github.com/miranda-ng/miranda-ng/blob/a8a34efb4e37a417b5f87f8a973722100a57d7ef/protocols/Steam/src/api/friend.h#L22
+            // profile pic size options
+            // "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4.jpg",
+            // "avatarmedium": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4_medium.jpg",
+            // "avatarfull": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4_full.jpg"
+            // val unknownAvatarUrl: String = DEFAULT_AVATAR_URL
+            if (avatarHashBytes == null)
+                return MISSING_AVATAR_URL
+
+            // Getting hash as string
+            var avatarHash: String? = null
+            if (avatarHashBytes.isNotEmpty() && avatarHashBytes.any { it != 0.toByte() })
+                avatarHash = avatarHashBytes.toHexString(HexFormat.Default)
+
+            if (avatarHash.isNullOrEmpty() || avatarHash.all { it == '0' })
+                return MISSING_AVATAR_URL
+
+            // Making URL
+            val folder = avatarHash.substring(0, 2)
+            return "$AVATAR_BASE_URL$folder/${avatarHash}_full.jpg"
         }
 
         private fun login(username: String, accessToken: String? = null, refreshToken: String? = null, password: String? = null, shouldRememberPassword: Boolean = false, twoFactorAuth: String? = null, emailAuth: String? = null) {
@@ -252,6 +301,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             _callbackSubscriptions.add(_callbackManager!!.subscribe(CMListCallback::class.java, this::onCMList))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOnCallback::class.java, this::onLoggedOn))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOffCallback::class.java, this::onLoggedOff))
+            _callbackSubscriptions.add(_callbackManager!!.subscribe(PersonaStatesCallback::class.java, this::onPersonaStateReceived))
 
             isRunning = true
 
@@ -335,7 +385,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         // packageInfo.Clear()
         // appInfo.Clear()
-        // personaStates.Clear()
+        personaStates.clear()
 
         isStopping = false
         retryAttempt = 0
@@ -414,7 +464,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                 saveSteamData()
 
                 isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
-                _steamFriends!!.requestFriendInfo(_steamUser!!.steamID) // in order to get user avatar url and other info
                 _loginResult = LoginResult.Success
             }
             else -> {
@@ -437,5 +486,31 @@ class SteamService : Service(), IChallengeUrlChanged {
         Log.d("SteamService", "QR code changed: ${qrAuthSession?.challengeUrl}")
         if (qrAuthSession != null)
             PluviaApp.events.emit(SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl))
+    }
+
+    private fun onPersonaStateReceived(callback: PersonaStatesCallback) {
+        Log.d("SteamService", "Persona state received: ${callback.name}")
+        personaStates[callback.friendID.accountID] = UserData(
+            statusFlags = callback.statusFlags,
+            friendID = callback.friendID,
+            state = callback.state,
+            stateFlags = callback.stateFlags,
+            gameAppID = callback.gameAppID,
+            gameID = callback.gameID,
+            gameName = callback.gameName,
+            gameServerIP = callback.gameServerIP,
+            gameServerPort = callback.gameServerPort,
+            queryPort = callback.queryPort,
+            sourceSteamID = callback.sourceSteamID,
+            gameDataBlob = callback.gameDataBlob,
+            name = callback.name,
+            avatarUrl = getAvatarURL(callback.avatarHash),
+            lastLogOff = callback.lastLogOff,
+            lastLogOn = callback.lastLogOn,
+            clanRank = callback.clanRank,
+            clanTag = callback.clanTag,
+            onlineSessionInstances = callback.onlineSessionInstances,
+        )
+        PluviaApp.events.emit(SteamEvent.PersonaStateReceived(callback.friendID))
     }
 }

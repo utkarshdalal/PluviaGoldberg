@@ -9,13 +9,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.LifecycleOwner
 import com.OxGames.Pluvia.PluviaApp
+import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 @Composable
 fun PluviaMain(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current) {
-    var isLoggedIn by remember { mutableStateOf(false) }
+    var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
     DisposableEffect(lifecycleOwner) {
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = { isLoggedIn = it.loginResult == LoginResult.Success }
         val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = { isLoggedIn = false }
