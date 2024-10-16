@@ -10,137 +10,80 @@ import java.util.Date
 import java.util.EnumSet
 
 data class UserData(
-    //
-    // Summary:
-    //     Gets the status flags. This shows what has changed.
-    //
-    // Value:
-    //     The status flags.
-    var statusFlags: EnumSet<EClientPersonaStateFlag>,
-    //
-    // Summary:
-    //     Gets the friend ID.
-    //
-    // Value:
-    //     The friend ID.
-    var friendID: SteamID,
-    //
-    // Summary:
-    //     Gets the state.
-    //
-    // Value:
-    //     The state.
-    var state: EPersonaState,
-    //
-    // Summary:
-    //     Gets the state flags.
-    //
-    // Value:
-    //     The state flags.
-    var stateFlags: EnumSet<EPersonaStateFlag>,
-    //
-    // Summary:
-    //     Gets the game app ID.
-    //
-    // Value:
-    //     The game app ID.
-    var gameAppID: Int,
-    //
-    // Summary:
-    //     Gets the game ID.
-    //
-    // Value:
-    //     The game ID.
-    var gameID: GameID,
-    //
-    // Summary:
-    //     Gets the name of the game.
-    //
-    // Value:
-    //     The name of the game.
-    var gameName: String,
-    //
-    // Summary:
-    //     Gets the game server IP.
-    //
-    // Value:
-    //     The game server IP.
-    var gameServerIP: InetAddress,
-    //
-    // Summary:
-    //     Gets the game server port.
-    //
-    // Value:
-    //     The game server port.
-    var gameServerPort: Int,
-    //
-    // Summary:
-    //     Gets the query port.
-    //
-    // Value:
-    //     The query port.
-    var queryPort: Int,
-    //
-    // Summary:
-    //     Gets the source steam ID.
-    //
-    // Value:
-    //     The source steam ID.
-    var sourceSteamID: SteamID,
-    //
-    // Summary:
-    //     Gets the game data blob.
-    //
-    // Value:
-    //     The game data blob.
-    var gameDataBlob: ByteArray,
-    //
-    // Summary:
-    //     Gets the name.
-    //
-    // Value:
-    //     The name.
-    var name: String,
-    //
-    // Summary:
-    //     Gets the avatar hash.
-    //
-    // Value:
-    //     The avatar hash.
-    var avatarUrl: String,
-    //
-    // Summary:
-    //     Gets the last log off.
-    //
-    // Value:
-    //     The last log off.
-    var lastLogOff: Date,
-    //
-    // Summary:
-    //     Gets the last log on.
-    //
-    // Value:
-    //     The last log on.
-    var lastLogOn: Date,
-    //
-    // Summary:
-    //     Gets the clan rank.
-    //
-    // Value:
-    //     The clan rank.
-    var clanRank: Int,
-    //
-    // Summary:
-    //     Gets the clan tag.
-    //
-    // Value:
-    //     The clan tag.
-    var clanTag: String,
-    //
-    // Summary:
-    //     Gets the online session instances.
-    //
-    // Value:
-    //     The online session instances.
-    var onlineSessionInstances: Int,
+    /**
+     * Gets the status flags. This shows what has changed.
+     */
+    val statusFlags: EnumSet<EClientPersonaStateFlag>,
+    /**
+     * Gets the friend ID.
+     */
+    val friendID: SteamID,
+    /**
+     * Gets the state.
+     */
+    val state: EPersonaState,
+    /**
+     * Gets the state flags.
+     */
+    val stateFlags: EnumSet<EPersonaStateFlag>,
+    /**
+     * Gets the game app ID.
+     */
+    val gameAppID: Int,
+    /**
+     * Gets the game ID.
+     */
+    val gameID: GameID,
+    /**
+     * Gets the name of the game.
+     */
+    val gameName: String,
+    /**
+     * Gets the game server IP.
+     */
+    val gameServerIP: InetAddress,
+    /**
+     * Gets the game server port.
+     */
+    val gameServerPort: Int,
+    /**
+     * Gets the query port.
+     */
+    val queryPort: Int,
+    /**
+     * Gets the source steam ID.
+     */
+    val sourceSteamID: SteamID,
+    /**
+     * Gets the game data blob.
+     */
+    val gameDataBlob: ByteArray,
+    /**
+     * Gets the name.
+     */
+    val name: String,
+    /**
+     * Gets the avatar hash.
+     */
+    val avatarUrl: String,
+    /**
+     * Gets the last log off.
+     */
+    val lastLogOff: Date,
+    /**
+     * Gets the last log on.
+     */
+    val lastLogOn: Date,
+    /**
+     * Gets the clan rank.
+     */
+    val clanRank: Int,
+    /**
+     * Gets the clan tag.
+     */
+    val clanTag: String,
+    /**
+     * Gets the online session instances.
+     */
+    val onlineSessionInstances: Int,
 )

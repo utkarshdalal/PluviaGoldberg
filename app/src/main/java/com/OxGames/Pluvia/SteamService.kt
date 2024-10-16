@@ -4,9 +4,19 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.data.ConfigInfo
+import com.OxGames.Pluvia.data.DepotInfo
+import com.OxGames.Pluvia.data.LaunchInfo
+import com.OxGames.Pluvia.data.ManifestInfo
+import com.OxGames.Pluvia.data.PackageInfo
 import com.OxGames.Pluvia.data.SteamData
 import com.OxGames.Pluvia.data.UserData
+import com.OxGames.Pluvia.enums.AppType
+import com.OxGames.Pluvia.enums.ControllerSupport
 import com.OxGames.Pluvia.enums.LoginResult
+import com.OxGames.Pluvia.enums.OS
+import com.OxGames.Pluvia.enums.ReleaseState
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
@@ -16,7 +26,10 @@ import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
 import `in`.dragonbra.javasteam.steam.authentication.IChallengeUrlChanged
 import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
+import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
+import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
@@ -30,6 +43,7 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.ISteamConfigurationBuilder
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
+import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
 import `in`.dragonbra.javasteam.util.log.DefaultLogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
@@ -42,6 +56,7 @@ import kotlinx.serialization.json.Json
 import java.io.Closeable
 import java.io.File
 import java.nio.file.Paths
+import java.util.EnumSet
 import kotlin.io.path.pathString
 
 
@@ -59,6 +74,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private var retryAttempt = 0
 
+    private val packageInfo = mutableMapOf<Int, PackageInfo>()
+    private val appInfo = mutableMapOf<Int, AppInfo>()
     private val personaStates = mutableMapOf<Long, UserData>()
 
     companion object {
@@ -66,6 +83,9 @@ class SteamService : Service(), IChallengeUrlChanged {
         const val LOGIN_ID = 382945
         const val AVATAR_BASE_URL = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/"
         const val MISSING_AVATAR_URL = "${AVATAR_BASE_URL}fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
+        const val INVALID_APP_ID: Int = Int.MAX_VALUE
+        const val INVALID_DEPOT_ID: Int = Int.MAX_VALUE
+        const val INVALID_MANIFEST_ID: Long = Long.MAX_VALUE
 
         private var steamData: SteamData = SteamData()
         private var instance: SteamService? = null
@@ -121,6 +141,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun getPersonaStateOf(steamId: SteamID): UserData? {
             return instance!!.personaStates[steamId.accountID]
         }
+
+        fun getAppList(filter: EnumSet<AppType>): List<AppInfo> {
+            return instance!!.appInfo.values.filter { filter.contains(it.type) }
+        }
         // private fun getDefaultAvatarUrl(): String {
         //     return AVATAR_BASE_URL + "fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" // default profile picture (question mark)
         // }
@@ -147,6 +171,19 @@ class SteamService : Service(), IChallengeUrlChanged {
             // Making URL
             val folder = avatarHash.substring(0, 2)
             return "$AVATAR_BASE_URL$folder/${avatarHash}_full.jpg"
+        }
+
+        fun printAllKeyValues(parent: KeyValue, depth: Int = 0) {
+            var tabString = ""
+            for (i in 0..depth)
+                tabString += "\t"
+            if (parent.children.isNotEmpty()) {
+                Log.d("SteamService", "$tabString${parent.name}")
+                for (child in parent.children)
+                    printAllKeyValues(child, depth + 1)
+            } else {
+                Log.d("SteamService", "$tabString${parent.name}: ${parent.value}")
+            }
         }
 
         private fun login(username: String, accessToken: String? = null, refreshToken: String? = null, password: String? = null, shouldRememberPassword: Boolean = false, twoFactorAuth: String? = null, emailAuth: String? = null) {
@@ -302,6 +339,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOnCallback::class.java, this::onLoggedOn))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOffCallback::class.java, this::onLoggedOff))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(PersonaStatesCallback::class.java, this::onPersonaStateReceived))
+            _callbackSubscriptions.add(_callbackManager!!.subscribe(LicenseListCallback::class.java, this::onLicenseList))
+            _callbackSubscriptions.add(_callbackManager!!.subscribe(PICSProductInfoCallback::class.java, this::onPICSProductInfo))
 
             isRunning = true
 
@@ -383,8 +422,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         _callbackSubscriptions.clear()
         _callbackManager = null
 
-        // packageInfo.Clear()
-        // appInfo.Clear()
+        packageInfo.clear()
+        appInfo.clear()
         personaStates.clear()
 
         isStopping = false
@@ -512,5 +551,175 @@ class SteamService : Service(), IChallengeUrlChanged {
             onlineSessionInstances = callback.onlineSessionInstances,
         )
         PluviaApp.events.emit(SteamEvent.PersonaStateReceived(callback.friendID))
+    }
+
+    private fun onLicenseList(callback: LicenseListCallback) {
+        Log.d("SteamService", "Received License List ${callback.result}")
+        if (callback.result == EResult.OK) {
+            for (license in callback.licenseList) {
+                packageInfo[license.packageID] = PackageInfo(
+                    packageId = license.packageID,
+                    ownerAccountId = license.ownerAccountID,
+                    lastChangeNumber = license.lastChangeNumber,
+                    accessToken = license.accessToken,
+                    territoryCode = license.territoryCode,
+                    licenseFlags = license.licenseFlags,
+                    licenseType = license.licenseType,
+                    paymentMethod = license.paymentMethod,
+                    purchaseCountryCode = license.purchaseCode,
+
+                    appIds = IntArray(0),
+                    depotIds = IntArray(0),
+                )
+            }
+
+            isRequestingPkgInfo = true
+            _steamApps!!.picsGetProductInfo(emptyList(), callback.licenseList.map { PICSRequest(it.packageID, it.accessToken) })
+        }
+        isReceivingLicenseList = false
+    }
+    private fun onPICSProductInfo(callback: PICSProductInfoCallback) {
+        // Log.d("SteamService", "Received PICSProductInfo")
+        if (callback.packages.isNotEmpty()) {
+            for (pkg in callback.packages.values) {
+                // Log.d("SteamService", "Received pkg ${pkg.id}")
+                if (packageInfo.contains(pkg.id)) {
+                    packageInfo[pkg.id]!!.appIds = pkg.keyValues["appids"].children.map { it.asInteger() }.toIntArray()
+                    packageInfo[pkg.id]!!.depotIds = pkg.keyValues["depoids"].children.map { it.asInteger() }.toIntArray()
+                }
+            }
+
+            isRequestingPkgInfo = false
+            isRequestingAppInfo = true
+            _steamApps!!.picsGetProductInfo(packageInfo.values.flatMap { it.appIds.asIterable() }.map { PICSRequest(it) }, emptyList())
+        }
+        if (callback.apps.isNotEmpty()) {
+            val toOsList: (String?) -> EnumSet<OS> = {
+                val osses = EnumSet.noneOf(OS::class.java)
+                osses.addAll((it ?: "none").split(',').filter { it.isNotEmpty() }.map { OS.valueOf(it.trim()) })
+                osses
+            }
+            for (app in callback.apps.values) {
+                // Log.d("SteamService", "Received app ${app.id}")
+                val pkg: PackageInfo
+                val appDepots = mutableMapOf<Int, DepotInfo>()
+                if (packageInfo.values.any { it.appIds.contains(app.id) }) {
+                    pkg = packageInfo.values.first { it.appIds.contains(app.id) }
+                    for (depotId in pkg.depotIds) {
+                        val generateManifest: (List<KeyValue>) -> Map<String, ManifestInfo> = {
+                            val output = mutableMapOf<String, ManifestInfo>()
+                            for (manifest in it) {
+                                output[manifest.name] = ManifestInfo(
+                                    name = manifest.name,
+                                    gid = manifest["gid"].asLong(),
+                                    size = manifest["size"].asLong(),
+                                    download = manifest["download"].asLong(),
+                                )
+                            }
+                            output
+                        }
+                        val currentDepot = app.keyValues["depots"]["$depotId"]
+                        val manifests = generateManifest(currentDepot["manifests"].children)
+                        val encryptedManifests = generateManifest(currentDepot["encryptedManifests"].children)
+
+                        appDepots[depotId] = DepotInfo(
+                            depotId = depotId,
+                            depotFromApp = currentDepot["depotfromapp"].asInteger(INVALID_APP_ID),
+                            sharedInstall = currentDepot["sharedinstall"].asBoolean(),
+                            osList = toOsList(currentDepot["config"]["oslist"].value),
+                            manifests = manifests,
+                            encryptedManifests = encryptedManifests,
+                        )
+                    }
+                } else {
+                    Log.e("SteamService", "App(${app.id}) did not belong to any package")
+                    continue
+                }
+
+                val launchConfigs = app.keyValues["config"]["launch"].children
+                appInfo[app.id] = AppInfo(
+                    appId = app.id,
+                    packageId = pkg.packageId,
+                    depots = appDepots,
+                    name = app.keyValues["common"]["name"].value ?: "",
+                    type = AppType.valueOf(app.keyValues["common"]["type"].value?.lowercase() ?: "invalid"),
+                    osList = toOsList(app.keyValues["common"]["oslist"].value),
+                    releaseState = ReleaseState.valueOf(app.keyValues["common"]["releasestate"].value ?: "released"),
+                    metacriticScore = app.keyValues["common"]["metacritic_score"].asByte(),
+                    metacriticFullUrl = app.keyValues["common"]["metacritic_fullurl"].value ?: "",
+                    logoHash = app.keyValues["common"]["logo"].value ?: "",
+                    logoSmallHash = app.keyValues["common"]["logo_small"].value ?: "",
+                    iconHash = app.keyValues["common"]["icon"].value ?: "",
+                    clientIconHash = app.keyValues["common"]["clienticon"].value ?: "",
+                    clientTgaHash = app.keyValues["common"]["clienttga"].value ?: "",
+                    primaryGenre = app.keyValues["common"]["primary_genre"].asBoolean(),
+                    reviewScore = app.keyValues["common"]["review_score"].asByte(),
+                    reviewPercentage = app.keyValues["common"]["review_percentage"].asByte(),
+                    controllerSupport = ControllerSupport.valueOf(app.keyValues["common"]["controller_support"].value ?: "none"),
+
+                    demoOfAppId = app.keyValues["common"]["extended"]["demoofappid"].asInteger(),
+                    developer = app.keyValues["common"]["extended"]["developer"].value ?: "",
+                    publisher = app.keyValues["common"]["extended"]["publisher"].value ?: "",
+                    homepageUrl = app.keyValues["common"]["extended"]["homepage"].value ?: "",
+                    gameManualUrl = app.keyValues["common"]["extended"]["gamemanualurl"].value ?: "",
+                    loadAllBeforeLaunch = app.keyValues["common"]["extended"]["loadallbeforelaunch"].asBoolean(),
+                    // dlcAppIds = (app.keyValues["common"]["extended"]["listofdlc"].value).Split(",").Select(uint.Parse).ToArray(),
+                    dlcAppIds = IntArray(0),
+                    isFreeApp = app.keyValues["common"]["extended"]["isfreeapp"].asBoolean(),
+                    dlcForAppId = app.keyValues["common"]["extended"]["dlcforappid"].asInteger(),
+                    mustOwnAppToPurchase = app.keyValues["common"]["extended"]["mustownapptopurchase"].asInteger(),
+                    dlcAvailableOnStore = app.keyValues["common"]["extended"]["dlcavailableonstore"].asBoolean(),
+                    optionalDlc = app.keyValues["common"]["extended"]["optionaldlc"].asBoolean(),
+                    gameDir = app.keyValues["common"]["extended"]["gamedir"].value ?: "",
+                    installScript = app.keyValues["common"]["extended"]["installscript"].value ?: "",
+                    noServers = app.keyValues["common"]["extended"]["noservers"].asBoolean(),
+                    order = app.keyValues["common"]["extended"]["order"].asBoolean(),
+                    primaryCache = app.keyValues["common"]["extended"]["primarycache"].asInteger(),
+                    // validOSList = app.keyValues["common"]["extended"]["validoslist"].value!.Split(",").Select(Enum.Parse<OS>).Aggregate((os1, os2) => os1 | os2),
+                    validOSList = EnumSet.of<OS>(OS.none),
+                    thirdPartyCdKey = app.keyValues["common"]["extended"]["thirdpartycdkey"].asBoolean(),
+                    visibleOnlyWhenInstalled = app.keyValues["common"]["extended"]["visibleonlywheninstalled"].asBoolean(),
+                    visibleOnlyWhenSubscribed = app.keyValues["common"]["extended"]["visibleonlywhensubscribed"].asBoolean(),
+                    launchEulaUrl = app.keyValues["common"]["extended"]["launcheula"].value ?: "",
+
+                    requireDefaultInstallFolder = app.keyValues["common"]["config"]["requiredefaultinstallfolder"].asBoolean(),
+                    contentType = app.keyValues["common"]["config"]["contentType"].asInteger(),
+                    installDir = app.keyValues["common"]["config"]["installdir"].value ?: "",
+                    useLaunchCmdLine = app.keyValues["common"]["config"]["uselaunchcommandline"].asBoolean(),
+                    launchWithoutWorkshopUpdates = app.keyValues["common"]["config"]["launchwithoutworkshopupdates"].asBoolean(),
+                    useMms = app.keyValues["common"]["config"]["usemms"].asBoolean(),
+                    installScriptSignature = app.keyValues["common"]["config"]["installscriptsignature"].value ?: "",
+                    installScriptOverride = app.keyValues["common"]["config"]["installscriptoverride"].asBoolean(),
+
+                    config = ConfigInfo(
+                        installDir = app.keyValues["config"]["installdir"].value ?: "",
+                        launch = launchConfigs.map {
+                            LaunchInfo(
+                                executable = it["executable"].value ?: "",
+                                description = it["description"].value ?: "",
+                                type = it["type"].value ?: "",
+                                configOS = toOsList(it["config"]["oslist"].value),
+                            )
+                        }.toTypedArray(),
+                        steamControllerTemplateIndex = app.keyValues["config"]["steamcontrollertemplateindex"].asInteger(),
+                        steamControllerTouchTemplateIndex = app.keyValues["config"]["steamcontrollertouchtemplateindex"].asInteger(),
+                    ),
+                )
+
+                // // bool isBaba = app.ID == 736260;
+                // bool isHades = app.ID == 1145360;
+                // // bool isCS2 = app.ID == 730;
+                // // bool isPsuedo = app.ID == 2365810;
+                // if (isHades)
+                // {
+                // 	Console.WriteLine($"{app.ID}: {app.KeyValues["common"]["name"].Value}");
+                // 	PrintAllKeyValues(app.KeyValues);
+                // 	if (TryGetPackageInfoForApp(app.ID, out var pkgInfo))
+                // 		PrintAllKeyValues(pkgInfo.original);
+                // }
+            }
+            isRequestingAppInfo = false
+            PluviaApp.events.emit(SteamEvent.AppInfoReceived)
+        }
     }
 }

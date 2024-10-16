@@ -1,12 +1,21 @@
 package com.OxGames.Pluvia.components
 
 import android.util.Log
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Logout
@@ -38,8 +47,11 @@ import androidx.lifecycle.LifecycleOwner
 import coil3.compose.AsyncImage
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.events.SteamEvent
 import kotlinx.coroutines.launch
+import java.util.EnumSet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +63,7 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var profilePicUrl by remember { mutableStateOf<String>(SteamService.MISSING_AVATAR_URL) }
+    var appsList by remember { mutableStateOf<List<AppInfo>>(SteamService.getAppList(EnumSet.of(AppType.game))) }
 
     DisposableEffect(lifecycleOwner) {
         val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = {
@@ -60,12 +73,18 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
                 profilePicUrl = persona.avatarUrl
             }
         }
+        val onAppInfoReceived: (SteamEvent.AppInfoReceived) -> Unit = {
+            appsList = SteamService.getAppList(EnumSet.of(AppType.game))
+            Log.d("LoggedInScreen", "Updating games list with ${appsList.count()} item(s)")
+        }
         PluviaApp.events.on<SteamEvent.PersonaStateReceived>(onPersonaStateReceived)
+        PluviaApp.events.on<SteamEvent.AppInfoReceived>(onAppInfoReceived)
 
         SteamService.requestUserPersona()
 
         onDispose {
             PluviaApp.events.off<SteamEvent.PersonaStateReceived>(onPersonaStateReceived)
+            PluviaApp.events.off<SteamEvent.AppInfoReceived>(onAppInfoReceived)
         }
     }
 
@@ -73,6 +92,7 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
+                Spacer(Modifier.weight(1f))
                 NavigationDrawerItem(
                     icon = { Icon(imageVector = Icons.Filled.Logout, "Log out") },
                     label = { Text("Log out") },
@@ -111,15 +131,45 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
                 )
             }
         ) { innerPadding ->
-            Column(
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
             ) {
-                Text("Logged in")
+                items(appsList) {
+                    AppItem(
+                        appInfo = it,
+                        onClick = {
+                            Log.d("LoggedInScreen", "Clicked on ${it.name}")
+                            // TODO: go to app
+                        }
+                    )
+                }
             }
         }
+    }
+}
+
+@Composable
+fun AppItem(appInfo: AppInfo, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(48.dp)
+            .clickable(onClick = onClick),
+        horizontalArrangement = Arrangement.Start,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AsyncImage(
+            model = appInfo.iconUrl,
+            contentDescription = "App icon",
+            modifier = Modifier
+                .aspectRatio(1f)
+                .fillMaxHeight()
+                .padding(8.dp)
+                .clip(CircleShape)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(appInfo.name)
     }
 }

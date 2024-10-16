@@ -12,4 +12,5 @@ sealed interface SteamEvent : Event {
     data class LogonEnded(val username: String?, val loginResult: LoginResult) : SteamEvent
     data class LoggedOut(val username: String?) : SteamEvent
     data class PersonaStateReceived(val steamId: SteamID) : SteamEvent
+    data object AppInfoReceived : SteamEvent
 }

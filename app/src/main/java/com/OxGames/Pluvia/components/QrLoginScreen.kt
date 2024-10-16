@@ -64,6 +64,7 @@ fun QrLoginScreen(
             PluviaApp.events.off<SteamEvent.LogonEnded>(onLogonEnded)
             PluviaApp.events.off<SteamEvent.QrChallengeReceived>(onQrChallengeReceived)
             PluviaApp.events.off<SteamEvent.QrAuthEnded>(onQrAuthEnded)
+            SteamService.stopLoginWithQr()
         }
     }
 
