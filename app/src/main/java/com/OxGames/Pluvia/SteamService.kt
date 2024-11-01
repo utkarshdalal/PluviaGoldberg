@@ -21,15 +21,19 @@ import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
 import `in`.dragonbra.javasteam.enums.EResult
+import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
 import `in`.dragonbra.javasteam.steam.authentication.IChallengeUrlChanged
 import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
+import `in`.dragonbra.javasteam.steam.contentdownloader.ContentDownloader
+import `in`.dragonbra.javasteam.steam.contentdownloader.FileManifestProvider
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamcontent.SteamContent
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
@@ -38,7 +42,7 @@ import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallb
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOnCallback
 import `in`.dragonbra.javasteam.steam.steamclient.SteamClient
 import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
-import `in`.dragonbra.javasteam.steam.steamclient.callbacks.CMListCallback
+// import `in`.dragonbra.javasteam.steam.steamclient.callbacks.CMListCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.ISteamConfigurationBuilder
@@ -49,7 +53,9 @@ import `in`.dragonbra.javasteam.util.log.DefaultLogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -66,7 +72,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     private var _steamUser: SteamUser? = null
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
-    // private var _steamContent = null // TODO: add SteamContent to Java SteamKit
+    private var _steamContent: SteamContent? = null // TODO: add SteamContent to Java SteamKit
 
     private val _callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
@@ -87,8 +93,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         const val INVALID_DEPOT_ID: Int = Int.MAX_VALUE
         const val INVALID_MANIFEST_ID: Long = Long.MAX_VALUE
 
-        private var steamData: SteamData = SteamData()
+        private var steamData: SteamData? = null
         private var instance: SteamService? = null
+
+        private val downloadJobs = mutableMapOf<Int, Job>()
 
         var isConnecting: Boolean = false
             private set
@@ -118,13 +126,27 @@ class SteamService : Service(), IChallengeUrlChanged {
         private fun getServerListPath(): String {
             return Paths.get(instance!!.cacheDir.path, "server_list.bin").pathString
         }
+        private fun getDepotManifestsPath(): String {
+            return Paths.get(instance!!.cacheDir.path, "depot_manifests.zip").pathString
+        }
         private fun getSteamDataPath(): String {
             return Paths.get(instance!!.dataDir.path, "steam_data.json").pathString
+        }
+        private fun getDefaultAppInstallPath(): String {
+            return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+        }
+        private fun getDefaultAppStagingPath(): String {
+            return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
         }
         private fun loadSteamData() {
             val steamDataStr: String? = FileUtils.readFileAsString(getSteamDataPath())
             if (steamDataStr != null)
                 steamData = Json.decodeFromString<SteamData>(steamDataStr)
+            else
+                steamData = SteamData(
+                    appInstallPath = getDefaultAppInstallPath(),
+                    appStagingPath = getDefaultAppStagingPath()
+                )
         }
         private fun saveSteamData() {
             FileUtils.writeStringToFile(Json.encodeToString(steamData), getSteamDataPath())
@@ -144,6 +166,32 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun getAppList(filter: EnumSet<AppType>): List<AppInfo> {
             return instance!!.appInfo.values.filter { filter.contains(it.type) }
+        }
+
+        fun getPkgInfoOf(appId: Int): PackageInfo? {
+            return instance!!.packageInfo.values.firstOrNull {
+                // Log.d("SteamService", "Pkg (${it.packageId}) apps: ${it.appIds.joinToString(",")}")
+                it.appIds.contains(appId)
+            }
+        }
+
+        fun downloadApp(appId: Int, depotId: Int, branch: String) {
+            if (downloadJobs.contains(appId))
+                return
+
+            val downloadJob = CoroutineScope(Dispatchers.IO).launch {
+                ContentDownloader(instance!!._steamClient!!).downloadApp(
+                    appId,
+                    depotId,
+                    steamData!!.appInstallPath,
+                    steamData!!.appStagingPath,
+                    branch,
+                    onDownloadProgress = {},
+                    parentScope = coroutineContext.job as CoroutineScope
+                ).await()
+                downloadJobs.remove(appId)
+            }
+            downloadJobs[appId] = downloadJob
         }
         // private fun getDefaultAvatarUrl(): String {
         //     return AVATAR_BASE_URL + "fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" // default profile picture (question mark)
@@ -191,17 +239,17 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             Log.d("SteamService", "Login Information\n\tUsername: $username\n\tAccessToken: $accessToken\n\tRefreshToken: $refreshToken\n\tPassword: $password\n\tShouldRememberPass: $shouldRememberPassword\n\tTwoFactorAuth: $twoFactorAuth\n\tEmailAuth: $emailAuth")
 
-            steamData.accountName = username
+            steamData!!.accountName = username
             if ((password != null && shouldRememberPassword) || refreshToken != null) {
                 if (password != null)
-                    steamData.password = password
+                    steamData!!.password = password
                 if (accessToken != null) {
-                    steamData.password = null
-                    steamData.accessToken = accessToken
+                    steamData!!.password = null
+                    steamData!!.accessToken = accessToken
                 }
                 if (refreshToken != null) {
-                    steamData.password = null
-                    steamData.refreshToken = refreshToken
+                    steamData!!.password = null
+                    steamData!!.refreshToken = refreshToken
                 }
             }
 
@@ -289,16 +337,16 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
         private fun clearUserData() {
-            steamData.cellId = 0
-            steamData.accountName = null
-            steamData.accessToken = null
-            steamData.refreshToken = null
-            steamData.password = null
+            steamData!!.cellId = 0
+            steamData!!.accountName = null
+            steamData!!.accessToken = null
+            steamData!!.refreshToken = null
+            steamData!!.password = null
             saveSteamData()
             isLoggingIn = false
         }
         private fun performLogOffDuties() {
-            val username = steamData.accountName
+            val username = steamData!!.accountName
             clearUserData()
             PluviaApp.events.emit(SteamEvent.LoggedOut(username))
         }
@@ -319,8 +367,10 @@ class SteamService : Service(), IChallengeUrlChanged {
             Log.d("SteamService", "Using server list path: ${getServerListPath()}")
             val configuration =
                 SteamConfiguration.create { iSteamConfigurationBuilder: ISteamConfigurationBuilder ->
-                    iSteamConfigurationBuilder.withCellID(steamData.cellId)
+                    iSteamConfigurationBuilder.withProtocolTypes(ProtocolTypes.WEB_SOCKET)
+                    iSteamConfigurationBuilder.withCellID(steamData!!.cellId)
                     iSteamConfigurationBuilder.withServerListProvider(FileServerListProvider(File(getServerListPath())))
+                    iSteamConfigurationBuilder.withManifestProvider(FileManifestProvider(File(getDepotManifestsPath())))
                 }
 
             // create our steam client instance
@@ -335,7 +385,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             // subscribe to the callbacks we are interested in
             _callbackSubscriptions.add(_callbackManager!!.subscribe(ConnectedCallback::class.java, this::onConnected))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(DisconnectedCallback::class.java, this::onDisconnected))
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(CMListCallback::class.java, this::onCMList))
+            // _callbackSubscriptions.add(_callbackManager!!.subscribe(CMListCallback::class.java, this::onCMList))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOnCallback::class.java, this::onLoggedOn))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOffCallback::class.java, this::onLoggedOff))
             _callbackSubscriptions.add(_callbackManager!!.subscribe(PersonaStatesCallback::class.java, this::onPersonaStateReceived))
@@ -410,12 +460,15 @@ class SteamService : Service(), IChallengeUrlChanged {
         isRequestingPkgInfo = false
         isRequestingAppInfo = false
 
-        steamData = SteamData()
+        steamData = SteamData(
+            appInstallPath = getDefaultAppInstallPath(),
+            appStagingPath = getDefaultAppStagingPath()
+        )
         _steamClient = null
         _steamUser = null
         _steamApps = null
         _steamFriends = null
-        // _steamContent = null
+        _steamContent = null
 
         for (subscription in _callbackSubscriptions)
             subscription.close()
@@ -440,21 +493,21 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isAutoLoggingIn = false
         loadSteamData()
         if (_loginResult != LoginResult.TwoFactorCode && _loginResult != LoginResult.EmailAuth) {
-            if (steamData.accountName != null && (steamData.refreshToken != null || steamData.password != null)) {
+            if (steamData!!.accountName != null && (steamData!!.refreshToken != null || steamData!!.password != null)) {
                 isAutoLoggingIn = true
                 login(
-                    username = steamData.accountName!!,
-                    refreshToken = steamData.refreshToken,
-                    password = steamData.password,
-                    shouldRememberPassword = steamData.password != null
+                    username = steamData!!.accountName!!,
+                    refreshToken = steamData!!.refreshToken,
+                    password = steamData!!.password,
+                    shouldRememberPassword = steamData!!.password != null
                 )
             }
         }
         PluviaApp.events.emit(SteamEvent.Connected(isAutoLoggingIn))
     }
-    private fun onCMList(callback: CMListCallback) {
-        Log.d("SteamService", "CMListCallback:\nJobID: ${callback.jobID}\nServerList: ${callback.servers}")
-    }
+    // private fun onCMList(callback: CMListCallback) {
+    //     Log.d("SteamService", "CMListCallback:\nJobID: ${callback.jobID}\nServerList: ${callback.servers}")
+    // }
     private fun onDisconnected(callback: DisconnectedCallback) {
         Log.d("SteamService", "Disconnected from Steam")
         isConnected = false
@@ -480,7 +533,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     private fun onLoggedOn(callback: LoggedOnCallback) {
         Log.d("SteamService", "Logged onto Steam: ${callback.result}")
         var logonSucess = false
-        val username = steamData.accountName
+        val username = steamData!!.accountName
 
         when (callback.result) {
             EResult.AccountLogonDenied -> {
@@ -499,7 +552,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 logonSucess = true
                 // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
                 // servers from the Steam Directory.
-                steamData.cellId = callback.cellID
+                steamData!!.cellId = callback.cellID
                 saveSteamData()
 
                 isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
@@ -585,7 +638,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // Log.d("SteamService", "Received pkg ${pkg.id}")
                 if (packageInfo.contains(pkg.id)) {
                     packageInfo[pkg.id]!!.appIds = pkg.keyValues["appids"].children.map { it.asInteger() }.toIntArray()
-                    packageInfo[pkg.id]!!.depotIds = pkg.keyValues["depoids"].children.map { it.asInteger() }.toIntArray()
+                    packageInfo[pkg.id]!!.depotIds = pkg.keyValues["depotids"].children.map { it.asInteger() }.toIntArray()
                 }
             }
 

@@ -53,7 +53,12 @@ android {
 
 dependencies {
     implementation(libs.zxing)
-    implementation(libs.steamkit)
+    // implementation(libs.steamkit)
+    implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
+    implementation(libs.protobuf.java) // only needed when building JavaSteam manually
+    implementation(libs.commons.lang3) // only needed when building JavaSteam manually
+    implementation(libs.xz) // only needed when building JavaSteam manually
+    implementation(libs.kotlin.coroutines)
     implementation(libs.spongycastle)
     implementation(libs.coil.compose)
     implementation(libs.coil.network)

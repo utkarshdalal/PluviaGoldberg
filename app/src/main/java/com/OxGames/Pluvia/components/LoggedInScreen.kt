@@ -18,8 +18,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -49,6 +53,7 @@ import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.enums.AppType
+import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.events.SteamEvent
 import kotlinx.coroutines.launch
 import java.util.EnumSet
@@ -92,6 +97,22 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
+                NavigationDrawerItem(
+                    icon = { Icon(imageVector = Icons.Outlined.ViewList, "Library") },
+                    label = { Text("Library") },
+                    selected = false,
+                    onClick = {
+                        // TODO: navigate to library
+                    }
+                )
+                NavigationDrawerItem(
+                    icon = { Icon(imageVector = Icons.Filled.Download, "Downloads") },
+                    label = { Text("Downloads") },
+                    selected = false,
+                    onClick = {
+                        // TODO: navigate to downloads
+                    }
+                )
                 Spacer(Modifier.weight(1f))
                 NavigationDrawerItem(
                     icon = { Icon(imageVector = Icons.Filled.Logout, "Log out") },
@@ -141,6 +162,17 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
                         appInfo = it,
                         onClick = {
                             Log.d("LoggedInScreen", "Clicked on ${it.name}")
+                            val appInfo = it
+                            val pkgInfo = SteamService.getPkgInfoOf(it.appId)
+                            Log.d("LoggedInScreen", "Pkg (${pkgInfo?.packageId}) depot ids: ${pkgInfo?.depotIds?.joinToString(",")}")
+                            val depotId = pkgInfo?.depotIds?.firstOrNull {
+                                Log.d("LoggedInScreen", "Depot ($it) OSList: " + appInfo.depots[it]?.osList?.toString())
+                                appInfo.depots[it]?.osList?.contains(OS.windows) == true
+                            }
+                            if (depotId != null)
+                                SteamService.downloadApp(appInfo.appId, depotId, "public")
+                            else
+                                Log.e("LoggedInScreen", "Failed to download app (${appInfo.appId}), could not find appropriate depot")
                             // TODO: go to app
                         }
                     )
