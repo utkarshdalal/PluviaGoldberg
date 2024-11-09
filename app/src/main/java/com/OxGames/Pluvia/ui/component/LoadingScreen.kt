@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.components
+package com.OxGames.Pluvia.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,11 +11,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
 @Composable
-fun LoadingScreen(innerPadding: PaddingValues) {
+fun LoadingScreen() {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding),
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

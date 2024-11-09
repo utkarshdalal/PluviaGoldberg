@@ -6,7 +6,7 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.OxGames.Pluvia.components.PluviaMain
+import com.OxGames.Pluvia.ui.component.PluviaMain
 import com.OxGames.Pluvia.events.AndroidEvent
 
 class MainActivity : ComponentActivity() {

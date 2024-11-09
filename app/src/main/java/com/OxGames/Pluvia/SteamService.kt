@@ -29,6 +29,7 @@ import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
 import `in`.dragonbra.javasteam.steam.contentdownloader.ContentDownloader
 import `in`.dragonbra.javasteam.steam.contentdownloader.FileManifestProvider
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
+import `in`.dragonbra.javasteam.steam.discovery.ServerQuality
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
@@ -42,7 +43,6 @@ import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallb
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOnCallback
 import `in`.dragonbra.javasteam.steam.steamclient.SteamClient
 import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
-// import `in`.dragonbra.javasteam.steam.steamclient.callbacks.CMListCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.ISteamConfigurationBuilder
@@ -85,13 +85,14 @@ class SteamService : Service(), IChallengeUrlChanged {
     private val personaStates = mutableMapOf<Long, UserData>()
 
     companion object {
-        const val MAX_RETRY_ATTEMPTS = 5
+        const val MAX_RETRY_ATTEMPTS = 20
         const val LOGIN_ID = 382945
         const val AVATAR_BASE_URL = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/"
         const val MISSING_AVATAR_URL = "${AVATAR_BASE_URL}fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
         const val INVALID_APP_ID: Int = Int.MAX_VALUE
         const val INVALID_DEPOT_ID: Int = Int.MAX_VALUE
         const val INVALID_MANIFEST_ID: Long = Long.MAX_VALUE
+        private val PROTOCOL_TYPES = EnumSet.of(ProtocolTypes.TCP, ProtocolTypes.UDP)
 
         private var steamData: SteamData? = null
         private var instance: SteamService? = null
@@ -127,7 +128,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             return Paths.get(instance!!.cacheDir.path, "server_list.bin").pathString
         }
         private fun getDepotManifestsPath(): String {
-            return Paths.get(instance!!.cacheDir.path, "depot_manifests.zip").pathString
+            return Paths.get(instance!!.dataDir.path, "Steam", "depot_manifests.zip").pathString
         }
         private fun getSteamDataPath(): String {
             return Paths.get(instance!!.dataDir.path, "steam_data.json").pathString
@@ -176,22 +177,26 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun downloadApp(appId: Int, depotId: Int, branch: String) {
-            if (downloadJobs.contains(appId))
+            if (downloadJobs.contains(appId)) {
+                Log.e("SteamService", "Could not start new download job for $appId since one already exists")
                 return
+            }
 
-            val downloadJob = CoroutineScope(Dispatchers.IO).launch {
-                ContentDownloader(instance!!._steamClient!!).downloadApp(
-                    appId,
-                    depotId,
-                    steamData!!.appInstallPath,
-                    steamData!!.appStagingPath,
-                    branch,
-                    onDownloadProgress = {},
-                    parentScope = coroutineContext.job as CoroutineScope
-                ).await()
+            downloadJobs[appId] = CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    ContentDownloader(instance!!._steamClient!!).downloadApp(
+                        appId,
+                        depotId,
+                        steamData!!.appInstallPath,
+                        steamData!!.appStagingPath,
+                        branch,
+                        // maxDownloads = 1,
+                        onDownloadProgress = {},
+                        parentScope = coroutineContext.job as CoroutineScope
+                    ).await()
+                } finally {}
                 downloadJobs.remove(appId)
             }
-            downloadJobs[appId] = downloadJob
         }
         // private fun getDefaultAvatarUrl(): String {
         //     return AVATAR_BASE_URL + "fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" // default profile picture (question mark)
@@ -367,7 +372,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             Log.d("SteamService", "Using server list path: ${getServerListPath()}")
             val configuration =
                 SteamConfiguration.create { iSteamConfigurationBuilder: ISteamConfigurationBuilder ->
-                    iSteamConfigurationBuilder.withProtocolTypes(ProtocolTypes.WEB_SOCKET)
+                    iSteamConfigurationBuilder.withProtocolTypes(PROTOCOL_TYPES)
                     iSteamConfigurationBuilder.withCellID(steamData!!.cellId)
                     iSteamConfigurationBuilder.withServerListProvider(FileServerListProvider(File(getServerListPath())))
                     iSteamConfigurationBuilder.withManifestProvider(FileManifestProvider(File(getDepotManifestsPath())))
@@ -432,6 +437,21 @@ class SteamService : Service(), IChallengeUrlChanged {
         CoroutineScope(Dispatchers.Default).launch {
             // this call errors out if run on the main thread
             _steamClient!!.connect()
+
+            delay(5000)
+            if (!isConnected) {
+                Log.w("SteamService", "Failed to connect to Steam, marking endpoint bad and force disconnecting")
+                try {
+                    _steamClient!!.servers.tryMark(_steamClient!!.currentEndpoint, PROTOCOL_TYPES, ServerQuality.BAD)
+                } catch(e: Exception) {
+                    Log.e("SteamService", "Failed to mark endpoint as bad: $e")
+                }
+                try {
+                    _steamClient!!.disconnect()
+                } catch (e: Exception) {
+                    Log.e("SteamService", "There was an issue when disconnecting: $e")
+                }
+            }
         }
     }
 
@@ -555,6 +575,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                 steamData!!.cellId = callback.cellID
                 saveSteamData()
 
+                // retrieve persona data of logged in user
+                getUserSteamId()?.also { steamId ->
+                    _steamFriends?.apply {
+                        requestFriendInfo(steamId)
+                    }
+                }
                 isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
                 _loginResult = LoginResult.Success
             }

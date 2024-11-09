@@ -1,14 +1,9 @@
-package com.OxGames.Pluvia.components
+package com.OxGames.Pluvia.ui.component
 
 import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Password
-import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -67,27 +62,27 @@ fun LoginScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current) {
         }
     }
 
-    Scaffold(modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Pluvia") },
-                // actions = {
-                //     if (isSteamConnected && !isLoggingIn)
-                //         IconButton(onClick = {
-                //             if (!isUsernameLogin)
-                //                 SteamService.stopLoginWithQr()
-                //             isUsernameLogin = !isUsernameLogin
-                //         }) { Icon(imageVector = if (isUsernameLogin) Icons.Filled.QrCode2 else Icons.Filled.Password, "Toggle login mode") }
-                // }
-            )
-        }
-    ) { innerPadding ->
-        if (isSteamConnected) {
-            // if (isUsernameLogin)
-            //     UserLoginScreen(innerPadding)
-            // else
-                QrLoginScreen(innerPadding)
-        } else
-            LoadingScreen(innerPadding)
-    }
+    // Scaffold(modifier = Modifier.fillMaxSize(),
+    //     topBar = {
+    //         TopAppBar(
+    //             title = { Text("Pluvia") },
+    //             // actions = {
+    //             //     if (isSteamConnected && !isLoggingIn)
+    //             //         IconButton(onClick = {
+    //             //             if (!isUsernameLogin)
+    //             //                 SteamService.stopLoginWithQr()
+    //             //             isUsernameLogin = !isUsernameLogin
+    //             //         }) { Icon(imageVector = if (isUsernameLogin) Icons.Filled.QrCode2 else Icons.Filled.Password, "Toggle login mode") }
+    //             // }
+    //         )
+    //     }
+    // ) { innerPadding ->
+    //     if (isSteamConnected) {
+    //         // if (isUsernameLogin)
+    //         //     UserLoginScreen(innerPadding)
+    //         // else
+    //             QrLoginScreen(innerPadding)
+    //     } else
+    //         LoadingScreen()
+    // }
 }

@@ -1,5 +1,8 @@
 package com.OxGames.Pluvia.events
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
 // written by Claude 3.5
@@ -50,14 +53,16 @@ class EventDispatcher {
     }
 
     inline fun <reified E : Event> emit(event: E) {
-        val eventClass = E::class
-        listeners[eventClass]?.let { eventListeners ->
-            // Create a new list for iteration to avoid concurrent modification
-            eventListeners.toList().forEach { eventListener ->
-                eventListener.listener(event)
+        CoroutineScope(Dispatchers.Main).launch {
+            val eventClass = E::class
+            listeners[eventClass]?.let { eventListeners ->
+                // Create a new list for iteration to avoid concurrent modification
+                eventListeners.toList().forEach { eventListener ->
+                    eventListener.listener(event)
+                }
+                // Remove one-time listeners after execution
+                eventListeners.removeIf { it.once }
             }
-            // Remove one-time listeners after execution
-            eventListeners.removeIf { it.once }
         }
     }
 }

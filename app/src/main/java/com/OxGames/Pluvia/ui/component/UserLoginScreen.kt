@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.components
+package com.OxGames.Pluvia.ui.component
 
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,34 +40,49 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.ui.model.UserLoginViewModel
 
 @Composable
 fun UserLoginScreen(
-    innerPadding: PaddingValues,
+    userLoginViewModel: UserLoginViewModel,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
+    var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
-    var loginResult by remember { mutableStateOf(LoginResult.Failed) }
-    val username = remember { mutableStateOf("") }
-    val password = remember { mutableStateOf("") }
-    val rememberMe = remember { mutableStateOf(false) }
+    // var loginResult by remember { mutableStateOf(LoginResult.Failed) }
 
     DisposableEffect(lifecycleOwner) {
-        val onLogonStarted: (SteamEvent.LogonStarted) -> Unit = { isLoggingIn = true }
+        val onSteamConnected: (SteamEvent.Connected) -> Unit = {
+            Log.d("UserLoginScreen", "Received is connected")
+            isLoggingIn = it.isAutoLoggingIn
+            isSteamConnected = true
+        }
+        val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
+            Log.d("UserLoginScreen", "Received disconnected from Steam")
+            isSteamConnected = false
+        }
+        val onLogonStarted: (SteamEvent.LogonStarted) -> Unit = {
+            isLoggingIn = true
+        }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
             Log.d("UserLoginScreen", "Received login result: ${it.loginResult}")
-            loginResult = it.loginResult
+            userLoginViewModel.loginResult = it.loginResult
             isLoggingIn = false
         }
         val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
             if (!isLoggingIn)
-                loginResult = LoginResult.Failed
+                userLoginViewModel.loginResult = LoginResult.Failed
         }
+
+        PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
+        PluviaApp.events.on<SteamEvent.Disconnected>(onSteamDisconnected)
         PluviaApp.events.on<SteamEvent.LogonStarted>(onLogonStarted)
         PluviaApp.events.on<SteamEvent.LogonEnded>(onLogonEnded)
         PluviaApp.events.on<AndroidEvent.BackPressed>(onBackPressed)
 
         onDispose {
+            PluviaApp.events.off<SteamEvent.Connected>(onSteamConnected)
+            PluviaApp.events.off<SteamEvent.Disconnected>(onSteamDisconnected)
             PluviaApp.events.off<SteamEvent.LogonStarted>(onLogonStarted)
             PluviaApp.events.off<SteamEvent.LogonEnded>(onLogonEnded)
             PluviaApp.events.off<AndroidEvent.BackPressed>(onBackPressed)
@@ -77,55 +91,28 @@ fun UserLoginScreen(
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(innerPadding),
+            .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (!isLoggingIn && loginResult != LoginResult.TryAgain) {
-            when (loginResult) {
-                LoginResult.TwoFactorCode -> TwoFactorAuth(
-                    authMsg = "Please enter the two factor authentication code found in the Steam Authenticator app",
-                    onLoginBtnClick = {
-                        SteamService.logOn(
-                            username = username.value,
-                            password = password.value,
-                            shouldRememberPassword = rememberMe.value,
-                            twoFactorAuth = it
-                        )
-                    }
-                )
-                LoginResult.EmailAuth -> TwoFactorAuth(
-                    authMsg = "Please enter the two factor authentication code sent to your email",
-                    onLoginBtnClick = {
-                        SteamService.logOn(
-                            username = username.value,
-                            password = password.value,
-                            shouldRememberPassword = rememberMe.value,
-                            emailAuth = it
-                        )
-                    }
-                )
-                else -> UsernamePassword(
-                    username = username,
-                    password = password,
-                    rememberMe = rememberMe,
-                    onLoginBtnClick = {
-                        SteamService.logOn(
-                            username = username.value,
-                            password = password.value,
-                            shouldRememberPassword = rememberMe.value
-                        )
-                    }
-                )
-            }
+        if (isSteamConnected && !isLoggingIn && userLoginViewModel.loginResult != LoginResult.TryAgain) {
+           UsernamePassword(
+               userLoginViewModel = userLoginViewModel,
+               onLoginBtnClick = {
+                   SteamService.logOn(
+                       username = userLoginViewModel.username,
+                       password = userLoginViewModel.password,
+                       shouldRememberPassword = userLoginViewModel.rememberPass
+                   )
+               }
+           )
         } else
-            LoadingScreen(innerPadding)
+            LoadingScreen()
     }
 }
 
 @Composable
-fun UsernamePassword(username: MutableState<String>, password: MutableState<String>, rememberMe: MutableState<Boolean>, onLoginBtnClick: () -> Unit) {
+fun UsernamePassword(userLoginViewModel: UserLoginViewModel, onLoginBtnClick: () -> Unit) {
     var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
@@ -136,17 +123,17 @@ fun UsernamePassword(username: MutableState<String>, password: MutableState<Stri
         verticalArrangement = Arrangement.Center,
     ) {
         TextField(
-            value = username.value,
+            value = userLoginViewModel.username,
             singleLine = true,
-            onValueChange = { username.value = it },
+            onValueChange = { userLoginViewModel.username = it },
             label = { Text("Username") }
         )
         TextField(
-            value = password.value,
+            value = userLoginViewModel.password,
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            onValueChange = { password.value = it },
+            onValueChange = { userLoginViewModel.password = it },
             label = { Text("Password") },
             trailingIcon = {
                 val image = if (passwordVisible)
@@ -169,36 +156,12 @@ fun UsernamePassword(username: MutableState<String>, password: MutableState<Stri
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = rememberMe.value,
-                    onCheckedChange = { rememberMe.value = it },
+                    checked = userLoginViewModel.rememberPass,
+                    onCheckedChange = { userLoginViewModel.rememberPass = it },
                 )
                 Text("Remember me")
             }
             ElevatedButton(onClick = onLoginBtnClick) { Text("Login") }
         }
-    }
-}
-
-@Composable
-fun TwoFactorAuth(authMsg: String, onLoginBtnClick: (String) -> Unit) {
-    var authCode by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .width(256.dp)
-            .height(IntrinsicSize.Max),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(authMsg)
-        Spacer(modifier = Modifier.height(16.dp))
-        TextField(
-            value = authCode,
-            singleLine = true,
-            onValueChange = { authCode = it },
-            label = { Text("Auth Code") }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        ElevatedButton(onClick = { onLoginBtnClick(authCode) }) { Text("Login") }
     }
 }

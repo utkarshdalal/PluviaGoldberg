@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.components
+package com.OxGames.Pluvia.ui.component
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image

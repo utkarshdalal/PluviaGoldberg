@@ -1,29 +1,18 @@
-package com.OxGames.Pluvia.components
+package com.OxGames.Pluvia.ui.component
 
 import android.util.Log
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.ViewList
-import androidx.compose.material.icons.outlined.Download
 import androidx.compose.material.icons.outlined.ViewList
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -42,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -53,10 +41,15 @@ import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.enums.AppType
-import com.OxGames.Pluvia.enums.OS
+import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.ui.data.NavScreen
+import com.OxGames.Pluvia.ui.enums.NavType
+import com.OxGames.Pluvia.ui.enums.ScreenType
+import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import kotlinx.coroutines.launch
 import java.util.EnumSet
+import java.util.concurrent.LinkedBlockingDeque
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,6 +63,27 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
     var profilePicUrl by remember { mutableStateOf<String>(SteamService.MISSING_AVATAR_URL) }
     var appsList by remember { mutableStateOf<List<AppInfo>>(SteamService.getAppList(EnumSet.of(AppType.game))) }
 
+    var currentScreen by remember {
+        mutableStateOf(NavScreen(PluviaScreen.Library, ScreenType.ROOT, EnumSet.of(NavType.MENU)))
+    }
+    val screenHistory = LinkedBlockingDeque<NavScreen>()
+
+    val gotoScreen: (screen: NavScreen) -> Unit = {
+        if (it.screenType == ScreenType.ROOT) {
+            screenHistory.clear()
+        } else {
+            screenHistory.put(currentScreen)
+        }
+        currentScreen = it
+    }
+    val goBack: () -> Unit = {
+        if (screenHistory.isNotEmpty()) {
+            currentScreen = screenHistory.pop()
+        } else {
+            // TODO: log out prompt
+        }
+    }
+
     DisposableEffect(lifecycleOwner) {
         val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = {
             val persona = SteamService.getPersonaStateOf(it.steamId)
@@ -82,19 +96,30 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
             appsList = SteamService.getAppList(EnumSet.of(AppType.game))
             Log.d("LoggedInScreen", "Updating games list with ${appsList.count()} item(s)")
         }
+        val onGotoAppScreen: (AndroidEvent.GotoAppScreen) -> Unit = {
+            gotoScreen(NavScreen(PluviaScreen.App, ScreenType.END, EnumSet.of(NavType.BACK)))
+        }
+        val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
+            goBack()
+        }
         PluviaApp.events.on<SteamEvent.PersonaStateReceived>(onPersonaStateReceived)
         PluviaApp.events.on<SteamEvent.AppInfoReceived>(onAppInfoReceived)
+        PluviaApp.events.on<AndroidEvent.GotoAppScreen>(onGotoAppScreen)
+        PluviaApp.events.on<AndroidEvent.BackPressed>(onBackPressed)
 
         SteamService.requestUserPersona()
 
         onDispose {
             PluviaApp.events.off<SteamEvent.PersonaStateReceived>(onPersonaStateReceived)
             PluviaApp.events.off<SteamEvent.AppInfoReceived>(onAppInfoReceived)
+            PluviaApp.events.off<AndroidEvent.GotoAppScreen>(onGotoAppScreen)
+            PluviaApp.events.off<AndroidEvent.BackPressed>(onBackPressed)
         }
     }
 
     ModalNavigationDrawer(
-        drawerState = drawerState,
+        drawerState = if (currentScreen.hasMenu) drawerState else DrawerState(DrawerValue.Closed),
+        gesturesEnabled = currentScreen.hasMenu,
         drawerContent = {
             ModalDrawerSheet {
                 NavigationDrawerItem(
@@ -152,56 +177,10 @@ fun LoggedInScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current)
                 )
             }
         ) { innerPadding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            ) {
-                items(appsList) {
-                    AppItem(
-                        appInfo = it,
-                        onClick = {
-                            Log.d("LoggedInScreen", "Clicked on ${it.name}")
-                            val appInfo = it
-                            val pkgInfo = SteamService.getPkgInfoOf(it.appId)
-                            Log.d("LoggedInScreen", "Pkg (${pkgInfo?.packageId}) depot ids: ${pkgInfo?.depotIds?.joinToString(",")}")
-                            val depotId = pkgInfo?.depotIds?.firstOrNull {
-                                Log.d("LoggedInScreen", "Depot ($it) OSList: " + appInfo.depots[it]?.osList?.toString())
-                                appInfo.depots[it]?.osList?.contains(OS.windows) == true
-                            }
-                            if (depotId != null)
-                                SteamService.downloadApp(appInfo.appId, depotId, "public")
-                            else
-                                Log.e("LoggedInScreen", "Failed to download app (${appInfo.appId}), could not find appropriate depot")
-                            // TODO: go to app
-                        }
-                    )
-                }
-            }
+            // LibraryScreen(
+            //     innerPadding = innerPadding,
+            //     appsList = appsList
+            // )
         }
-    }
-}
-
-@Composable
-fun AppItem(appInfo: AppInfo, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(48.dp)
-            .clickable(onClick = onClick),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        AsyncImage(
-            model = appInfo.iconUrl,
-            contentDescription = "App icon",
-            modifier = Modifier
-                .aspectRatio(1f)
-                .fillMaxHeight()
-                .padding(8.dp)
-                .clip(CircleShape)
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(appInfo.name)
     }
 }

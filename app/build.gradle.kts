@@ -58,6 +58,9 @@ dependencies {
     implementation(libs.protobuf.java) // only needed when building JavaSteam manually
     implementation(libs.commons.lang3) // only needed when building JavaSteam manually
     implementation(libs.xz) // only needed when building JavaSteam manually
+    implementation(libs.commons.validator) // only needed when building JavaSteam manually (should crash without it, but I don't on some devices)
+
+    implementation(libs.navigation.compose)
     implementation(libs.kotlin.coroutines)
     implementation(libs.spongycastle)
     implementation(libs.coil.compose)

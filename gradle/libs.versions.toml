@@ -12,11 +12,13 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.5"
 activityCompose = "1.9.2"
-composeBom = "2023.08.00"
+composeBom = "2024.10.01"
 json = "1.7.1"
 coil = "3.0.0-rc01"
 xz = "1.10"
 coroutines = "1.9.0"
+commons-validator = "1.9.0"
+navigation-compose = "2.8.3"
 
 [libraries]
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
@@ -25,6 +27,8 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
 zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
+commons-validator = { group = "commons-validator", name = "commons-validator", version.ref = "commons-validator" }
 #steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }

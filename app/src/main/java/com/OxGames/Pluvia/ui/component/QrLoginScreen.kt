@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.components
+package com.OxGames.Pluvia.ui.component
 
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +27,6 @@ import com.OxGames.Pluvia.events.SteamEvent
 
 @Composable
 fun QrLoginScreen(
-    innerPadding: PaddingValues,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
     var url: String? by remember { mutableStateOf(null) }
@@ -71,8 +70,7 @@ fun QrLoginScreen(
     if ((url != null || isFailed) && !isLoggingIn) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+                .fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -82,5 +80,5 @@ fun QrLoginScreen(
                 QrCodeImage(content = url!!, size = 256.dp)
         }
     } else
-        LoadingScreen(innerPadding)
+        LoadingScreen()
 }
