@@ -7,13 +7,19 @@ import android.util.Log
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.data.ConfigInfo
 import com.OxGames.Pluvia.data.DepotInfo
+import com.OxGames.Pluvia.data.DownloadInfo
 import com.OxGames.Pluvia.data.LaunchInfo
+import com.OxGames.Pluvia.data.LibraryAssetsInfo
+import com.OxGames.Pluvia.data.LibraryCapsuleInfo
+import com.OxGames.Pluvia.data.LibraryHeroInfo
+import com.OxGames.Pluvia.data.LibraryLogoInfo
 import com.OxGames.Pluvia.data.ManifestInfo
 import com.OxGames.Pluvia.data.PackageInfo
 import com.OxGames.Pluvia.data.SteamData
 import com.OxGames.Pluvia.data.UserData
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
+import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.ReleaseState
@@ -63,6 +69,7 @@ import java.io.Closeable
 import java.io.File
 import java.nio.file.Paths
 import java.util.EnumSet
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.pathString
 
 
@@ -80,9 +87,9 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private var retryAttempt = 0
 
-    private val packageInfo = mutableMapOf<Int, PackageInfo>()
-    private val appInfo = mutableMapOf<Int, AppInfo>()
-    private val personaStates = mutableMapOf<Long, UserData>()
+    private val packageInfo = ConcurrentHashMap<Int, PackageInfo>()
+    private val appInfo = ConcurrentHashMap<Int, AppInfo>()
+    private val personaStates = ConcurrentHashMap<Long, UserData>()
 
     companion object {
         const val MAX_RETRY_ATTEMPTS = 20
@@ -97,7 +104,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         private var steamData: SteamData? = null
         private var instance: SteamService? = null
 
-        private val downloadJobs = mutableMapOf<Int, Job>()
+        private val downloadJobs = ConcurrentHashMap<Int, DownloadInfo>()
 
         var isConnecting: Boolean = false
             private set
@@ -153,48 +160,78 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun requestUserPersona() {
             CoroutineScope(Dispatchers.Default).launch {
-                instance!!._steamFriends!!.requestFriendInfo(instance!!._steamUser!!.steamID) // in order to get user avatar url and other info
+                getUserSteamId()?.let {
+                    instance?._steamFriends?.requestFriendInfo(it) // in order to get user avatar url and other info
+                }
             }
         }
         fun getUserSteamId(): SteamID? {
-            return instance!!._steamUser?.steamID
+            return instance?._steamUser?.steamID
         }
         fun getPersonaStateOf(steamId: SteamID): UserData? {
-            return instance!!.personaStates[steamId.accountID]
+            return instance?.personaStates?.get(steamId.accountID)
         }
 
         fun getAppList(filter: EnumSet<AppType>): List<AppInfo> {
-            return instance!!.appInfo.values.filter { filter.contains(it.type) }
+            return instance?.appInfo?.values?.filter { filter.contains(it.type) } ?: emptyList()
         }
 
         fun getPkgInfoOf(appId: Int): PackageInfo? {
-            return instance!!.packageInfo.values.firstOrNull {
+            return instance?.packageInfo?.values?.firstOrNull {
                 // Log.d("SteamService", "Pkg (${it.packageId}) apps: ${it.appIds.joinToString(",")}")
                 it.appIds.contains(appId)
             }
         }
+        fun getAppInfoOf(appId: Int): AppInfo? {
+            return instance?.appInfo?.values?.firstOrNull {
+                it.appId == appId
+            }
+        }
+        fun getAppDownloadInfo(appId: Int): DownloadInfo? {
+            return downloadJobs.get(appId)
+        }
 
-        fun downloadApp(appId: Int, depotId: Int, branch: String) {
+        fun downloadApp(appId: Int): DownloadInfo? {
+            val appInfo = getAppInfoOf(appId)
+            val pkgInfo = getPkgInfoOf(appId)
+            val depotId = pkgInfo?.depotIds?.firstOrNull {
+                appInfo?.depots[it]?.osList?.contains(OS.windows) == true
+            }
+            return if (depotId != null) {
+                appInfo?.appId?.let {
+                    downloadApp(it, depotId, "public")
+                }
+            }
+            else {
+                Log.e("SteamService", "Failed to download app (${appInfo?.appId}), could not find appropriate depot")
+                null
+            }
+        }
+        fun downloadApp(appId: Int, depotId: Int, branch: String): DownloadInfo? {
             if (downloadJobs.contains(appId)) {
                 Log.e("SteamService", "Could not start new download job for $appId since one already exists")
-                return
+                return getAppDownloadInfo(appId)
             }
 
-            downloadJobs[appId] = CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    ContentDownloader(instance!!._steamClient!!).downloadApp(
-                        appId,
-                        depotId,
-                        steamData!!.appInstallPath,
-                        steamData!!.appStagingPath,
-                        branch,
-                        // maxDownloads = 1,
-                        onDownloadProgress = {},
-                        parentScope = coroutineContext.job as CoroutineScope
-                    ).await()
-                } finally {}
-                downloadJobs.remove(appId)
+            val downloadInfo = DownloadInfo().also { downloadInfo ->
+                downloadInfo.setDownloadJob(CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        ContentDownloader(instance!!._steamClient!!).downloadApp(
+                            appId,
+                            depotId,
+                            steamData!!.appInstallPath,
+                            steamData!!.appStagingPath,
+                            branch,
+                            // maxDownloads = 1,
+                            onDownloadProgress = { downloadInfo.setProgress(it) },
+                            parentScope = coroutineContext.job as CoroutineScope
+                        ).await()
+                    } finally {}
+                    downloadJobs.remove(appId)
+                })
             }
+            downloadJobs.put(appId, downloadInfo)
+            return downloadInfo
         }
         // private fun getDefaultAvatarUrl(): String {
         //     return AVATAR_BASE_URL + "fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" // default profile picture (question mark)
@@ -574,11 +611,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 saveSteamData()
 
                 // retrieve persona data of logged in user
-                getUserSteamId()?.also { steamId ->
-                    _steamFriends?.apply {
-                        requestFriendInfo(steamId)
-                    }
-                }
+                requestUserPersona()
                 isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
                 _loginResult = LoginResult.Success
             }
@@ -606,7 +639,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private fun onPersonaStateReceived(callback: PersonaStatesCallback) {
         Log.d("SteamService", "Persona state received: ${callback.name}")
-        personaStates[callback.friendID.accountID] = UserData(
+        personaStates.put(callback.friendID.accountID, UserData(
             statusFlags = callback.statusFlags,
             friendID = callback.friendID,
             state = callback.state,
@@ -626,7 +659,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             clanRank = callback.clanRank,
             clanTag = callback.clanTag,
             onlineSessionInstances = callback.onlineSessionInstances,
-        )
+        ))
         PluviaApp.events.emit(SteamEvent.PersonaStateReceived(callback.friendID))
     }
 
@@ -634,7 +667,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         Log.d("SteamService", "Received License List ${callback.result}")
         if (callback.result == EResult.OK) {
             for (license in callback.licenseList) {
-                packageInfo[license.packageID] = PackageInfo(
+                packageInfo.put(license.packageID, PackageInfo(
                     packageId = license.packageID,
                     ownerAccountId = license.ownerAccountID,
                     lastChangeNumber = license.lastChangeNumber,
@@ -647,7 +680,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                     appIds = IntArray(0),
                     depotIds = IntArray(0),
-                )
+                ))
             }
 
             isRequestingPkgInfo = true
@@ -660,15 +693,15 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (callback.packages.isNotEmpty()) {
             for (pkg in callback.packages.values) {
                 // Log.d("SteamService", "Received pkg ${pkg.id}")
-                if (packageInfo.contains(pkg.id)) {
-                    packageInfo[pkg.id]!!.appIds = pkg.keyValues["appids"].children.map { it.asInteger() }.toIntArray()
-                    packageInfo[pkg.id]!!.depotIds = pkg.keyValues["depotids"].children.map { it.asInteger() }.toIntArray()
+                packageInfo.get(pkg.id)?.let {
+                    it.appIds = pkg.keyValues["appids"].children.map { it.asInteger() }.toIntArray()
+                    it.depotIds = pkg.keyValues["depotids"].children.map { it.asInteger() }.toIntArray()
                 }
             }
 
             isRequestingPkgInfo = false
             isRequestingAppInfo = true
-            _steamApps!!.picsGetProductInfo(packageInfo.values.flatMap { it.appIds.asIterable() }.map { PICSRequest(it) }, emptyList())
+            _steamApps?.picsGetProductInfo(packageInfo.values.flatMap { it.appIds.asIterable() }.map { PICSRequest(it) }, emptyList())
         }
         if (callback.apps.isNotEmpty()) {
             val toOsList: (String?) -> EnumSet<OS> = {
@@ -713,8 +746,19 @@ class SteamService : Service(), IChallengeUrlChanged {
                     continue
                 }
 
+                val toLangImgMap: (List<KeyValue>) -> Map<Language, String> = { keyValues ->
+                    keyValues.map {
+                        val language: Language = try {
+                            Language.valueOf(it.name)
+                        } catch(_: Exception) {
+                            Log.d("SteamService", "Language ${it.name} does not exist in enum")
+                            Language.unknown
+                        }
+                        Pair(language, it.value)
+                    }.filter { it.first != Language.unknown }.toMap()
+                }
                 val launchConfigs = app.keyValues["config"]["launch"].children
-                appInfo[app.id] = AppInfo(
+                appInfo.put(app.id, AppInfo(
                     appId = app.id,
                     packageId = pkg.packageId,
                     depots = appDepots,
@@ -729,6 +773,20 @@ class SteamService : Service(), IChallengeUrlChanged {
                     iconHash = app.keyValues["common"]["icon"].value ?: "",
                     clientIconHash = app.keyValues["common"]["clienticon"].value ?: "",
                     clientTgaHash = app.keyValues["common"]["clienttga"].value ?: "",
+                    libraryAssets = LibraryAssetsInfo(
+                        libraryCapsule = LibraryCapsuleInfo(
+                            image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image"].children),
+                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image2x"].children)
+                        ),
+                        libraryHero = LibraryHeroInfo(
+                            image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_hero"]["image"].children),
+                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_hero"]["image2x"].children)
+                        ),
+                        libraryLogo = LibraryLogoInfo(
+                            image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_logo"]["image"].children),
+                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_logo"]["image2x"].children)
+                        )
+                    ),
                     primaryGenre = app.keyValues["common"]["primary_genre"].asBoolean(),
                     reviewScore = app.keyValues["common"]["review_score"].asByte(),
                     reviewPercentage = app.keyValues["common"]["review_percentage"].asByte(),
@@ -781,18 +839,18 @@ class SteamService : Service(), IChallengeUrlChanged {
                         steamControllerTemplateIndex = app.keyValues["config"]["steamcontrollertemplateindex"].asInteger(),
                         steamControllerTouchTemplateIndex = app.keyValues["config"]["steamcontrollertouchtemplateindex"].asInteger(),
                     ),
-                )
+                ))
 
-                // // bool isBaba = app.ID == 736260;
-                // bool isHades = app.ID == 1145360;
-                // // bool isCS2 = app.ID == 730;
-                // // bool isPsuedo = app.ID == 2365810;
-                // if (isHades)
-                // {
-                // 	Console.WriteLine($"{app.ID}: {app.KeyValues["common"]["name"].Value}");
-                // 	PrintAllKeyValues(app.KeyValues);
-                // 	if (TryGetPackageInfoForApp(app.ID, out var pkgInfo))
-                // 		PrintAllKeyValues(pkgInfo.original);
+                // // val isBaba = app.id == 736260
+                // val isHades = app.id == 1145360
+                // // val isCS2 = app.id == 730
+                // // val isPsuedo = app.id == 2365810
+                // if (isHades) {
+                // 	Log.d("SteamService", "${app.id}: ${app.keyValues["common"]["name"].value}");
+                // 	printAllKeyValues(app.keyValues)
+                // 	// getPkgInfoOf(app.id)?.let {
+                // 	// 	printAllKeyValues(it.original)
+                //     // }
                 // }
             }
             isRequestingAppInfo = false

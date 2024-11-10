@@ -17,12 +17,12 @@ import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.enums.AppType
-import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.events.SteamEvent
 import java.util.EnumSet
 
 @Composable
 fun LibraryScreen(
+    onAppClick: (appId: Int) -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
     var appsList by remember { mutableStateOf<List<AppInfo>>(SteamService.getAppList(EnumSet.of(AppType.game))) }
@@ -48,16 +48,7 @@ fun LibraryScreen(
             AppItem(
                 appInfo = it,
                 onClick = {
-                    val appInfo = it
-                    val pkgInfo = SteamService.getPkgInfoOf(it.appId)
-                    val depotId = pkgInfo?.depotIds?.firstOrNull {
-                        appInfo.depots[it]?.osList?.contains(OS.windows) == true
-                    }
-                    if (depotId != null)
-                        SteamService.downloadApp(appInfo.appId, depotId, "public")
-                    else
-                        Log.e("LoggedInScreen", "Failed to download app (${appInfo.appId}), could not find appropriate depot")
-                    // TODO: go to app
+                    onAppClick(it.appId)
                 }
             )
         }

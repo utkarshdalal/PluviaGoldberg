@@ -104,6 +104,7 @@ fun PluviaMain(
     // var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
     var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
     var profilePicUrl by remember { mutableStateOf<String>(SteamService.MISSING_AVATAR_URL) }
+    var appId by remember { mutableStateOf(SteamService.INVALID_APP_ID) }
 
     DisposableEffect(lifecycleOwner) {
         val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
@@ -218,7 +219,12 @@ fun PluviaMain(
                 modifier = Modifier.fillMaxSize(),
                 topBar = {
                     TopAppBar(
-                        title = { Text(stringResource(currentScreen.title)) },
+                        title = {
+                            val title = if (currentScreen == PluviaScreen.App) {
+                                SteamService.getAppInfoOf(appId)?.name
+                            } else { null } ?: stringResource(currentScreen.title)
+                            Text(title)
+                        },
                         navigationIcon = {
                             if (currentScreen.hasMenu) {
                                 IconButton(onClick = {
@@ -269,10 +275,18 @@ fun PluviaMain(
                         TwoFactorAuthScreen(userLoginViewModel)
                     }
                     composable(route = PluviaScreen.Library.name) {
-                        LibraryScreen()
+                        LibraryScreen(
+                            onAppClick = {
+                                appId = it
+                                navController.navigate(PluviaScreen.App.name)
+                            }
+                        )
                     }
                     composable(route = PluviaScreen.Downloads.name) {
                         DownloadsScreen()
+                    }
+                    composable(route = PluviaScreen.App.name) {
+                        AppScreen(appId)
                     }
                 }
             }

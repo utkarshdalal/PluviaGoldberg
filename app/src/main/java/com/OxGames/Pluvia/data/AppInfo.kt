@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.data
 
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
+import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.ReleaseState
 import java.util.EnumSet
@@ -30,9 +31,7 @@ data class AppInfo(
     val clientIconUrl: String = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/$appId/$clientIconHash.ico",
     val clientTgaHash: String, // https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/{appId}/{clientTgaHash}.tga
     val clientTgaUrl: String = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/$appId/$clientTgaHash.tga",
-    // source: https://github.com/Nemirtingas/games-infos/blob/3915100198bac34553b3c862f9e295d277f5520a/steam_retriever/Program.cs#L589C43-L589C89
-    // [common][small_capsule]: https://cdn.akamai.steamstatic.com/steam/apps/{appId}/{small_capsule}.jpg
-    // [common][header_image]: https://cdn.akamai.steamstatic.com/steam/apps/{appId}/{header_image}.jpg
+    val libraryAssets: LibraryAssetsInfo,
     val primaryGenre: Boolean,
     val reviewScore: Byte,
     val reviewPercentage: Byte,
@@ -73,4 +72,39 @@ data class AppInfo(
     val installScriptOverride: Boolean,
 
     val config: ConfigInfo,
-)
+) {
+    // source: https://github.com/Nemirtingas/games-infos/blob/3915100198bac34553b3c862f9e295d277f5520a/steam_retriever/Program.cs#L589C43-L589C89
+    fun getCapsuleUrl(language: Language = Language.english, large: Boolean = false): String? {
+        return if (large) {
+            libraryAssets.libraryCapsule.image2x[language]?.let {
+                "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+            }
+        } else {
+            libraryAssets.libraryCapsule.image[language]?.let {
+                "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+            }
+        }
+    }
+    fun getHeroUrl(language: Language = Language.english, large: Boolean = false): String? {
+        return if (large) {
+            libraryAssets.libraryHero.image2x[language]?.let {
+                "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+            }
+        } else {
+            libraryAssets.libraryHero.image[language]?.let {
+                "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+            }
+        }
+    }
+    fun getLogoUrl(language: Language = Language.english, large: Boolean = false): String? {
+        return if (large) {
+            libraryAssets.libraryLogo.image2x[language]?.let {
+                "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+            }
+        } else {
+            libraryAssets.libraryLogo.image[language]?.let {
+                "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+            }
+        }
+    }
+}

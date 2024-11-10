@@ -1,0 +1,557 @@
+1145360: Hades
+	appinfo
+		appid: 1145360
+		common
+			name: Hades
+			type: Game
+			releasestate: released
+			logo: 79416954db9fc5d5079c26839a77cd35b09e1608
+			logo_small: 79416954db9fc5d5079c26839a77cd35b09e1608_thumb
+			clienticon: c2af83dde08c0636a1cd511abd0f9290913e6249
+			clienttga: 6642ee1a6cb185960399b36b66640af8f7511863
+			icon: 8a3fca36a00883e8066263ad35dd15d77a1f9abc
+			oslist: windows,macos
+			osarch: 
+			osextended: macos64
+			languages
+				english: 1
+				german: 1
+				french: 1
+				italian: 1
+				koreana: 1
+				spanish: 1
+				schinese: 1
+				russian: 1
+				japanese: 1
+				polish: 1
+				brazilian: 1
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1644969600
+				tested_build_id: 7490665
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+					4
+						display: 1
+						token: #SteamDeckVerified_TestResult_ExternalControllersNotSupportedPrimaryPlayer
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 1
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: proton-stable
+					requires_h264: 0
+			metacritic_name: Hades
+			controller_support: full
+			small_capsule
+				english: capsule_231x87.jpg
+				schinese: capsule_231x87_schinese.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: BottomCenter
+					width_pct: 93.1193955338336
+					height_pct: 37.97697084170876
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+					image2x
+						english: library_hero_2x.jpg
+				library_logo
+					logo_position
+						pinned_position: BottomCenter
+						width_pct: 93.1193955338336
+						height_pct: 37.97697084170876
+					image
+						english: logo.png
+					image2x
+						english: logo_2x.png
+			store_asset_mtime: 1679345331
+			associations
+				0
+					type: developer
+					name: Supergiant Games
+				1
+					type: publisher
+					name: Supergiant Games
+				2
+					type: franchise
+					name: Supergiant Games
+				3
+					type: franchise
+					name: Hades
+			primary_genre: 1
+			genres
+				0: 1
+				1: 23
+				2: 3
+			category
+				category_2: 1
+				category_28: 1
+				category_13: 1
+				category_23: 1
+				category_41: 1
+				category_42: 1
+				category_43: 1
+				category_29: 1
+				category_22: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+					full_audio: true
+					subtitles: true
+				french
+					supported: true
+					subtitles: true
+				italian
+					supported: true
+					subtitles: true
+				german
+					supported: true
+					subtitles: true
+				spanish
+					supported: true
+					subtitles: true
+				koreana
+					supported: true
+					subtitles: true
+				brazilian
+					supported: true
+					subtitles: true
+				russian
+					supported: true
+					subtitles: true
+				schinese
+					supported: true
+					subtitles: true
+				polish
+					supported: true
+					subtitles: true
+				japanese
+					supported: true
+					subtitles: true
+			steam_release_date: 1600353456
+			metacritic_score: 93
+			metacritic_fullurl: https://www.metacritic.com/game/pc/hades?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 1145360
+			store_tags
+				0: 42804
+				1: 3959
+				2: 1646
+				3: 492
+				4: 16094
+				5: 19
+				6: 1716
+				7: 1756
+				8: 4182
+				9: 122
+				10: 1742
+				11: 1720
+				12: 4711
+				13: 5851
+				14: 4026
+				15: 4231
+				16: 6815
+				17: 4166
+				18: 1759
+				19: 44868
+			review_score: 9
+			review_percentage: 98
+		extended
+			developer: Supergiant Games
+			publisher: Supergiant Games
+			homepage: http://www.supergiantgames.com
+		config
+			installdir: Hades
+			launch
+				0
+					executable: x64\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false
+					workingdir: x64\
+					type: option1
+					config
+						oslist: windows
+						osarch: 64
+					description_loc
+						english: Hades (DirectX - Default)
+					description: Hades (DirectX - Default)
+				1
+					executable: x86\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false
+					workingdir: x86\
+					description: 32-bit
+					type: default
+					config
+						oslist: windows
+						osarch: 32
+				2
+					executable: Debug\x64\Hades.exe
+					arguments: /c=..\..\ /steampowered /DirectLoadShell=true /DebugMessages=true /DebugKeysEnabled=true /UnsafeDebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /AllowHardQuit=false /UseInternalBugReporter=true /UseDevSaves=true /CopyDragAndDroppedSaves=true /LiveCreateTextures=false /DebugLogSounds=false /MaxDevSaves=3000 /AutoReportAsserts=false /AutoDeleteExtraDevSaves=false /AutoDownloadSavePath=blank /AttachDxDiagToBugReports=false /AuthBasecampOnStartup=true /DisableAnalyticsInDebug=true
+					workingdir: Debug\x64\
+					description: Debug
+					type: option1
+					config
+						oslist: windows
+						osarch: 64
+						betakey: nightly-qa
+				3
+					executable: Debug\x86\Hades.exe
+					arguments: /c=..\..\ /steampowered /DirectLoadShell=true /DebugMessages=true /DebugKeysEnabled=true /UnsafeDebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /AllowHardQuit=false /UseInternalBugReporter=true /UseDevSaves=true /CopyDragAndDroppedSaves=true /LiveCreateTextures=false /DebugLogSounds=false /MaxDevSaves=3000 /AutoReportAsserts=false /AutoDeleteExtraDevSaves=false /AutoDownloadSavePath=blank /AttachDxDiagToBugReports=false /AuthBasecampOnStartup=true /DisableAnalyticsInDebug=true
+					workingdir: Debug\x86\
+					description: Debug x86
+					type: option1
+					config
+						oslist: windows
+						betakey: nightly-qa
+				4
+					executable: Debug\x64\Hades.exe
+					arguments: /c=..\..\ /steampowered /DirectLoadShell=true /DebugMessages=true /DebugKeysEnabled=true /UnsafeDebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /AllowHardQuit=false /UseInternalBugReporter=true /UseDevSaves=true /CopyDragAndDroppedSaves=true /LiveCreateTextures=false /DebugLogSounds=false /MaxDevSaves=3000 /AutoReportAsserts=false /AutoDeleteExtraDevSaves=false /AutoDownloadSavePath=blank /AttachDxDiagToBugReports=false /AuthBasecampOnStartup=true /DisableAnalyticsInDebug=true
+					workingdir: Debug\x64\
+					description: Debug
+					type: option1
+					config
+						oslist: windows
+						osarch: 64
+						betakey: prev-nightly
+				5
+					executable: Debug\x86\Hades.exe
+					arguments: /c=..\..\ /steampowered /DirectLoadShell=true /DebugMessages=true /DebugKeysEnabled=true /UnsafeDebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /AllowHardQuit=false /UseInternalBugReporter=true /UseDevSaves=true /CopyDragAndDroppedSaves=true /LiveCreateTextures=false /DebugLogSounds=false /MaxDevSaves=3000 /AutoReportAsserts=false /AutoDeleteExtraDevSaves=false /AutoDownloadSavePath=blank /AttachDxDiagToBugReports=false /AuthBasecampOnStartup=true /DisableAnalyticsInDebug=true
+					workingdir: Debug\x86\
+					description: Debug
+					type: option1
+					config
+						oslist: windows
+						osarch: 32
+						betakey: prev-nightly
+				6
+					executable: Release\x64\Hades.exe
+					arguments: /c=..\..\ /steampowered /DirectLoadShell=true /DebugMessages=true /DebugKeysEnabled=true /UnsafeDebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /AllowHardQuit=false /UseInternalBugReporter=true /UseDevSaves=true /CopyDragAndDroppedSaves=true /LiveCreateTextures=false /DebugLogSounds=false /MaxDevSaves=3000 /AutoReportAsserts=false /AutoDeleteExtraDevSaves=false /AutoDownloadSavePath=blank /AttachDxDiagToBugReports=false /AuthBasecampOnStartup=true /DisableAnalyticsInDebug=true
+					workingdir: Release\x64\
+					description: Release
+					type: option2
+					config
+						oslist: windows
+						osarch: 64
+						betakey: nightly-qa
+				7
+					executable: x64\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false
+					workingdir: x64\
+					description: Ship
+					type: option3
+					config
+						oslist: windows
+						osarch: 64
+						betakey: nightly-qa
+				8
+					executable: x64\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false
+					workingdir: x64\
+					description: Play Hades
+					type: default
+					config
+						oslist: windows
+						osarch: 64
+						betakey: techbeta
+				9
+					executable: ./Game.macOS.app/Contents/MacOS/Game.macOS
+					arguments: /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /UseDevSaves=false /UseInternalBugReporter=false /LiveCreateTextures=false
+					type: default
+					config
+						oslist: macos
+				10
+					executable: Debug\x64Vk\Hades.exe
+					arguments: /c=..\..\ /steampowered /DirectLoadShell=true /DebugMessages=true /DebugKeysEnabled=true /UnsafeDebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /AllowHardQuit=false /UseInternalBugReporter=true /UseDevSaves=true /CopyDragAndDroppedSaves=true /LiveCreateTextures=false /DebugLogSounds=false /MaxDevSaves=3000 /AutoReportAsserts=false /AutoDeleteExtraDevSaves=false /AutoDownloadSavePath=blank /AttachDxDiagToBugReports=false /AuthBasecampOnStartup=true /DisableAnalyticsInDebug=true
+					workingdir: Debug\x64\
+					description: Vulkan Debug
+					type: none
+					config
+						oslist: windows
+						osarch: 64
+						betakey: nightly-qa
+				11
+					executable: Release\x64Vk\Hades.exe
+					arguments: /c=..\..\ /steampowered /DirectLoadShell=true /DebugMessages=true /DebugKeysEnabled=true /UnsafeDebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /AllowHardQuit=false /UseInternalBugReporter=true /UseDevSaves=true /CopyDragAndDroppedSaves=true /LiveCreateTextures=false /DebugLogSounds=false /MaxDevSaves=3000 /AutoReportAsserts=false /AutoDeleteExtraDevSaves=false /AutoDownloadSavePath=blank /AttachDxDiagToBugReports=false /AuthBasecampOnStartup=true /DisableAnalyticsInDebug=true
+					workingdir: Release\x64Vk\
+					description: Vulkan Release
+					type: none
+					config
+						oslist: windows
+						osarch: 64
+						betakey: nightly-qa
+				12
+					executable: x64Vk\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false
+					workingdir: x64Vk\
+					description: Vulkan Ship
+					type: none
+					config
+						oslist: windows
+						osarch: 64
+						betakey: nightly-qa
+				13
+					executable: x64Vk\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false /UseNativeGaInput=true /UseNativeGaInputNoControllers=false
+					workingdir: x64Vk\
+					type: option2
+					config
+						oslist: windows
+						osarch: 64
+						steamdeck: 0
+					description_loc
+						english: Hades (Vulkan)
+					description: Hades (Vulkan)
+				14
+					executable: x86\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false /UseNativeGaInput=true /UseNativeGaInputNoControllers=false /UseSwapEffectDiscard=true /UseAnalytics=false
+					workingdir: x86\
+					type: option3
+					config
+						oslist: windows
+						osarch: 64
+						steamdeck: 0
+					description_loc
+						english: Hades (32-bit)
+					description: Hades (32-bit)
+				15
+					executable: x64Vk\Hades.exe
+					arguments: /c=..\ /steampowered /DirectLoadShell=true /DebugMessages=false /DebugKeysEnabled=false /ShowFPS=false /PerfDashWarnings=false /VerboseScriptLogging=false /UnsafeDebugKeysEnabled=false /LiveCreateTextures=false
+					workingdir: x64Vk\
+					type: option3
+					config
+						oslist: windows
+						osarch: 64
+						steamdeck: 1
+					description_loc
+						english: Hades (Vulkan - Steam Deck)
+					description: Hades (Vulkan - Steam Deck)
+			steamcontrollertouchtemplateindex: 1
+			steamcontrollertouchconfigdetails
+				2077467018
+					controller_type: controller_mobile_touch
+					enabled_branches: default
+					use_action_block: false
+			steamcontrollertemplateindex: 4
+		depots
+			baselanguages: 
+			228988
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			229006
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			1145361
+				config
+					oslist: windows
+					language: 
+				manifests
+					public
+						gid: 5173085471687919135
+						size: 11406885121
+						download: 10694072752
+				encryptedmanifests
+					beta
+						gid: 84599F3EEB539BAF0FCC778537C5E97B
+						size: 5238FCF9958C1F0BD876A5FCC0B983B4
+						download: 3C334F53E3B4FE665065A37E51CDBA86
+					nightly-qa
+						gid: 77A70F5167999C8999C1F293895A2C4A
+						size: 5D409347B5C8AFADB38A088B0CFA0379
+						download: 3368E809AF29D4C62175F457D12588CD
+					prev-nightly
+						gid: D5997FE9A24CF26E7269E9E532E6D264
+						size: A2FFD3B42C517EAD6100D1DF554AC935
+						download: 536133CD07419C802F53723F75E9EFB2
+					testbranch
+						gid: C9312D39F2B034304EACAA5073F0EE42
+						size: 9EABE5E39982E113186C46A0724FEC61
+						download: 450BA3C8624C5800B1453529733F8446
+					testinput
+						gid: 0B7D7B8A4D0F6546DA640C405696677A
+						size: B4D9CB5787CF7452A192A6937183AE49
+						download: 245E162F8C6B008769C97946D72FA6F3
+					testronic
+						gid: 06A2905567A1505943ECF760AB7B2C21
+						size: 41C4BF6B6D23763EBDD8571A0FC9FA6B
+						download: B875FCC6396C9F97A615B2D2D198D91C
+			1145362
+				config
+					oslist: windows
+					language: 
+				manifests
+					public
+						gid: 2889773819291646530
+						size: 2096171605
+						download: 282712720
+				encryptedmanifests
+					beta
+						gid: 78F18683848E8839735B4295B121E714
+						size: 3E33930C0216DE80E04D94A890273743
+						download: 31D63BD23E19824302E293FC48B2B717
+					nightly-qa
+						gid: 11DDCD9C69747B2AFDFAC5EB5A588329
+						size: F95A38828E0BFCB6811FE3F500CCC597
+						download: 325559D0BC815B58810AD639CA918317
+					prev-nightly
+						gid: 403BCF70E95C00D5A9415E8AB99D6290
+						size: 96E69CB4C1715018AD66F41666886F4C
+						download: 7FCB56BC5AE0BD8128E3608D07B1B1EA
+					testbranch
+						gid: 267F6935DED496957708D6247B5AA7CA
+						size: 6012B4711D607E24763083269E4CF0EE
+						download: 4D017AAB55B1A5AD4E90E5A3544F7B2F
+					testinput
+						gid: F9341B89444CAAEB238E1AD9A2E088A0
+						size: C2FA8108CF09C985F8BAF2871E076B70
+						download: 5C1168D6607332F54D310C8455E3277F
+					testronic
+						gid: 7FF5C9A530B834CD22B8F6820F4B9D88
+						size: 1F3E4498630AB6288D7865AAF3784A65
+						download: E51CC71C00F3BB07DCE6777AE97D0564
+			1145363
+				config
+					oslist: windows
+					language: 
+				manifests
+					public
+						gid: 2572656066874346283
+						size: 492759128
+						download: 78070992
+				encryptedmanifests
+					beta
+						gid: DA9B647EE937F446024C4C71259B06FA
+						size: CD9FFED274E9C1CA07EB788BA42A8932
+						download: B66A79BAAF1AB5356AE12EA33CEADE31
+					nightly-qa
+						gid: 08B62D9108BA5836DD8743188FAF122F
+						size: 1AC066CC89D4EC63D1D598F0BD42F71A
+						download: 3CEB2A3599FA2E7753FC64127ED6D0F3
+					prev-nightly
+						gid: 12237F4040A398D41FF6A8D9872E9383
+						size: E391F59F65613931A557489F99071C57
+						download: E7109C2F8254A15FD0192FF8A80CDE27
+					testbranch
+						gid: C307383CAAF3037689659EB729059699
+						size: 6C37632EE3D272A0E66856CFF4BA895B
+						download: 826E402C5FDA0CF751D932597FACCBB8
+					testinput
+						gid: 1C3789DF31DEFD29E23ACB329AE7A99A
+						size: 34812F8C7001961CE757E56EB410CD2C
+						download: 200EB2CF29BA61A66202F15A72FA0ED4
+					testronic
+						gid: 7C1FD823C4CB320F2C2797EFDBCC8AD4
+						size: 12E8B0AFC14FAA6D33F1AC2DBB2ABADE
+						download: E0889F24501D265D9DB20C61652A4427
+			1145364
+				config
+					oslist: macos
+					osarch: 64
+					language: 
+				manifests
+					public
+						gid: 6896671991921324741
+						size: 11477880344
+						download: 10705927552
+				encryptedmanifests
+					beta
+						gid: 5A8308D6F17E138142C47A42B6612512
+						size: ADEB9D2D8206867DF176D9CB9334385A
+						download: EFA1C07A7276289AEF8D3B58A16F4C9E
+					nightly-qa
+						gid: 1B4CAE5A9DB0E4E930C914CED7EC2C27
+						size: BE3C774E5C1621B08E6B4DBF3256F922
+						download: 7DC1B5930B2ACC763AC8BE407E8E1444
+					prev-nightly
+						gid: 188F7E866ABC37ED14AD10324B8A9BD8
+						size: 6979765ACDA7CB6C0F06CC4AB93B2B4C
+						download: 1D1AD54C2D391A3EA6136B14E4381182
+					testbranch
+						gid: 91C5CDC83A6959A4E53E1EDB582E4880
+						size: 7441BBBC80A55CE2FF9A4D77600AFD89
+						download: 89296B7B4373DFEA496D62FB7C00113B
+					testinput
+						gid: 39C43A9BD64D7FE8FF54D41DD70D547D
+						size: 7A208C913881CDB8861CBA670F136552
+						download: 78B07085F83D921E9CD30B4269CFB738
+					testronic
+						gid: 2D864D61EF29B20A78269C2A3654B65E
+						size: 35369CA1A3AF1473788C27111330BFDC
+						download: F54E73BC7B23D46F4B407FF5DA432D8F
+			branches
+				public
+					buildid: 10929685
+					timeupdated: 1681309217
+				beta
+					buildid: 5529978
+					pwdrequired: 1
+					timeupdated: 1599804842
+				nightly-qa
+					buildid: 10929685
+					pwdrequired: 1
+					timeupdated: 1680630892
+				prev-nightly
+					buildid: 8186986
+					pwdrequired: 1
+					timeupdated: 1644586660
+				testbranch
+					buildid: 7612839
+					pwdrequired: 1
+					timeupdated: 1635374555
+				testinput
+					buildid: 8206730
+					pwdrequired: 1
+					timeupdated: 1644953620
+				testronic
+					buildid: 8180076
+					pwdrequired: 1
+					timeupdated: 1644517001
+		ufs
+			quota: 62914560
+			maxnumfiles: 20
+			savefiles
+				0
+					root: WinMyDocuments
+					path: Saved Games/Hades
+					pattern: Profile*.sav
+			rootoverrides
+				1
+					root: WinMyDocuments
+					os: MacOS
+					oscompare: =
+					useinstead: MacAppSupport
+					pathtransforms
+						0
+							find: Saved Games/Hades
+							replace: Supergiant Games/Hades

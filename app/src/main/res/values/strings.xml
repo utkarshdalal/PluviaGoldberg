@@ -9,4 +9,6 @@
     <string name="steam_auth_msg">Please enter the two factor authentication code found in the Steam Authenticator app</string>
     <string name="email_2fa_msg">Please enter the two factor authentication code sent to your email</string>
     <string name="other_2fa_msg">Please enter the two factor authentication code</string>
+    <string name="header_img_desc">App header image</string>
+    <string name="download_app">Download</string>
 </resources>
