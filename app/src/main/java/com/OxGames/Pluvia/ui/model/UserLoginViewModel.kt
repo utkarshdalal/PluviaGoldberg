@@ -11,30 +11,30 @@ import kotlinx.coroutines.flow.update
 class UserLoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow(UserLoginState())
     val loginState: StateFlow<UserLoginState> = _loginState.asStateFlow()
-    
-    var username: String
-        get() = _loginState.value.username
-        set(value) = _loginState.update { currentState ->
-            currentState.copy(username = value)
+
+    fun setUsername(username: String) {
+        _loginState.update { currentState ->
+            currentState.copy(username = username)
         }
-    var password: String
-        get() = _loginState.value.password
-        set(value) = _loginState.update { currentState ->
-            currentState.copy(password = value)
+    }
+    fun setPassword(password: String) {
+        _loginState.update { currentState ->
+            currentState.copy(password = password)
         }
-    var rememberPass: Boolean
-        get() = _loginState.value.rememberPass
-        set(value) = _loginState.update { currentState ->
-            currentState.copy(rememberPass = value)
+    }
+    fun setRememberPass(rememberPass: Boolean) {
+        _loginState.update { currentState ->
+            currentState.copy(rememberPass = rememberPass)
         }
-    var twoFactorCode: String
-        get() = _loginState.value.twoFactorCode
-        set(value) = _loginState.update { currentState ->
-            currentState.copy(twoFactorCode = value)
+    }
+    fun setTwoFactorCode(twoFactorCode: String) {
+        _loginState.update { currentState ->
+            currentState.copy(twoFactorCode = twoFactorCode)
         }
-    var loginResult: LoginResult
-        get() = _loginState.value.loginResult
-        set(value) = _loginState.update { currentState ->
-            currentState.copy(loginResult = value)
+    }
+    fun setLoginResult(loginResult: LoginResult) {
+        _loginState.update { currentState ->
+            currentState.copy(loginResult = loginResult)
         }
+    }
 }

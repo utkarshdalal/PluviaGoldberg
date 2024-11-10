@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,7 +38,8 @@ fun TwoFactorAuthScreen(
     userLoginViewModel: UserLoginViewModel,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
-    var authCode by remember { mutableStateOf("") }
+    // var authCode by remember { mutableStateOf("") }
+    val userLoginState by userLoginViewModel.loginState.collectAsState()
 
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
@@ -58,12 +60,12 @@ fun TwoFactorAuthScreen(
         }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
             Log.d("TwoFactorAuthScreen", "Received login result: ${it.loginResult}")
-            userLoginViewModel.loginResult = it.loginResult
+            userLoginViewModel.setLoginResult(it.loginResult)
             isLoggingIn = false
         }
         val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
             if (!isLoggingIn)
-                userLoginViewModel.loginResult = LoginResult.Failed
+                userLoginViewModel.setLoginResult(LoginResult.Failed)
         }
 
         PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
@@ -88,9 +90,9 @@ fun TwoFactorAuthScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (isSteamConnected && !isLoggingIn && userLoginViewModel.loginResult != LoginResult.TryAgain) {
+        if (isSteamConnected && !isLoggingIn && userLoginState.loginResult != LoginResult.Success) {
             Text(
-                when (userLoginViewModel.loginResult) {
+                when (userLoginState.loginResult) {
                     LoginResult.EmailAuth -> stringResource(R.string.email_2fa_msg)
                     LoginResult.TwoFactorCode -> stringResource(R.string.steam_auth_msg)
                     else -> stringResource(R.string.other_2fa_msg)
@@ -98,27 +100,29 @@ fun TwoFactorAuthScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
             TextField(
-                value = authCode,
+                value = userLoginState.twoFactorCode,
                 singleLine = true,
-                onValueChange = { authCode = it },
+                onValueChange = { userLoginViewModel.setTwoFactorCode(it) },
                 label = { Text("Auth Code") }
             )
             Spacer(modifier = Modifier.height(16.dp))
             ElevatedButton(onClick = {
-                if (userLoginViewModel.loginResult == LoginResult.EmailAuth) {
-                    SteamService.logOn(
-                        username = userLoginViewModel.username,
-                        password = userLoginViewModel.password,
-                        shouldRememberPassword = userLoginViewModel.rememberPass,
-                        emailAuth = userLoginViewModel.twoFactorCode
-                    )
-                } else {
-                    SteamService.logOn(
-                        username = userLoginViewModel.username,
-                        password = userLoginViewModel.password,
-                        shouldRememberPassword = userLoginViewModel.rememberPass,
-                        twoFactorAuth = userLoginViewModel.twoFactorCode
-                    )
+                if (userLoginState.twoFactorCode.isNotEmpty()) {
+                    if (userLoginState.loginResult == LoginResult.EmailAuth) {
+                            SteamService.logOn(
+                                username = userLoginState.username,
+                                password = userLoginState.password,
+                                shouldRememberPassword = userLoginState.rememberPass,
+                                emailAuth = userLoginState.twoFactorCode
+                            )
+                    } else {
+                        SteamService.logOn(
+                            username = userLoginState.username,
+                            password = userLoginState.password,
+                            shouldRememberPassword = userLoginState.rememberPass,
+                            twoFactorAuth = userLoginState.twoFactorCode
+                        )
+                    }
                 }
             }) { Text("Login") }
         } else

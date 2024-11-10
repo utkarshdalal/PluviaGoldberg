@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -71,6 +73,8 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
     var bitmap by remember(content) {
         mutableStateOf<Bitmap?>(null)
     }
+    val bgColor = MaterialTheme.colorScheme.background.toArgb()
+    val onBgColor = MaterialTheme.colorScheme.onBackground.toArgb()
 
     LaunchedEffect(bitmap) {
         if (bitmap != null) return@LaunchedEffect
@@ -108,7 +112,7 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
             for (x in 0 until matrixWidth) {
                 for (y in 0 until matrixHeight) {
                     val shouldColorPixel = bitmapMatrix?.get(x, y) ?: false
-                    val pixelColor = if (shouldColorPixel) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+                    val pixelColor = if (shouldColorPixel) onBgColor else bgColor
 
                     pixels[y * matrixWidth + x] = pixelColor
                 }

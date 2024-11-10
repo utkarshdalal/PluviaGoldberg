@@ -110,9 +110,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isLoggingIn: Boolean = false
             private set
         val isLoggedIn: Boolean
-            get() {
-                return instance != null && instance!!._steamUser != null && instance!!._steamUser!!.steamID.isValid
-            }
+            get() = instance?._steamClient?.steamID?.run { isValid == true } == true
         // var isLoggingOut: Boolean = false
         //     private set
         var isWaitingForQRAuth: Boolean = false
@@ -565,7 +563,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 reconnect()
             }
             EResult.TryAnotherCM -> {
-                _loginResult = LoginResult.TryAgain
+                // _loginResult = LoginResult.TryAgain
                 reconnect()
             }
             EResult.OK -> {

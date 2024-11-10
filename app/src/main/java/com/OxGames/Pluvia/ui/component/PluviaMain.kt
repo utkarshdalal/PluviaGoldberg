@@ -52,6 +52,7 @@ import coil3.compose.AsyncImage
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
+import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
@@ -77,6 +78,11 @@ fun PluviaMain(
     val currentScreen = PluviaScreen.valueOf(
         backStackEntry?.destination?.route ?: PluviaScreen.LoginUser.name
     )
+    val hasBack: () -> Boolean = {
+        Log.d("PluviaMain", "Checking for back: ${navController.previousBackStackEntry?.destination?.route}")
+        // backStackEntry?.destination?.parent?.route != null
+        navController.previousBackStackEntry?.destination?.route != null
+    }
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val toggleDrawer: () -> Unit = {
@@ -100,6 +106,14 @@ fun PluviaMain(
     var profilePicUrl by remember { mutableStateOf<String>(SteamService.MISSING_AVATAR_URL) }
 
     DisposableEffect(lifecycleOwner) {
+        val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
+            if (hasBack()) {
+                // TODO: check if back leads to log out and present confidence modal
+                navController.popBackStack()
+            } else {
+                // TODO: quit app?
+            }
+        }
         val onSteamConnected: (SteamEvent.Connected) -> Unit = {
             Log.d("PluviaMain", "Received is connected")
             // isLoggingIn = it.isAutoLoggingIn
@@ -120,14 +134,11 @@ fun PluviaMain(
 
             when (it.loginResult) {
                 LoginResult.Success -> {
+                    // TODO: add preference for first screen on login
                     Log.d("PluviaMain", "Navigating to library")
                     navController.navigate(PluviaScreen.Library.name)
-                } // TODO: add preference for first screen on login
-                LoginResult.EmailAuth -> {
-                    Log.d("PluviaMain", "Navigating to email auth")
-                    navController.navigate(PluviaScreen.LoginTwoFactor.name)
                 }
-                LoginResult.TwoFactorCode -> {
+                LoginResult.EmailAuth, LoginResult.TwoFactorCode -> {
                     Log.d("PluviaMain", "Navigating to 2fa")
                     navController.navigate(PluviaScreen.LoginTwoFactor.name)
                 }
@@ -148,6 +159,7 @@ fun PluviaMain(
             }
         }
 
+        PluviaApp.events.on<AndroidEvent.BackPressed>(onBackPressed)
         PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
         PluviaApp.events.on<SteamEvent.Disconnected>(onSteamDisconnected)
         // PluviaApp.events.on<SteamEvent.LogonStarted>(onLoggingIn)
@@ -161,6 +173,7 @@ fun PluviaMain(
         }
 
         onDispose {
+            PluviaApp.events.off<AndroidEvent.BackPressed>(onBackPressed)
             PluviaApp.events.off<SteamEvent.Connected>(onSteamConnected)
             PluviaApp.events.off<SteamEvent.Disconnected>(onSteamDisconnected)
             // PluviaApp.events.off<SteamEvent.LogonStarted>(onLoggingIn)
@@ -211,7 +224,7 @@ fun PluviaMain(
                                 IconButton(onClick = {
                                     toggleDrawer()
                                 }) { Icon(imageVector = Icons.Filled.Menu, "Open menu") }
-                            } else if (backStackEntry?.destination?.parent?.route != null) {
+                            } else if (hasBack()) {
                                 // only if we don't have a menu and there is a parent route
                                 IconButton(onClick = {
                                     navController.popBackStack()
@@ -244,10 +257,13 @@ fun PluviaMain(
                         .padding(innerPadding)
                 ) {
                     composable(route = PluviaScreen.LoginUser.name) {
-                        UserLoginScreen(userLoginViewModel)
+                        UserLoginScreen(
+                            userLoginViewModel = userLoginViewModel,
+                            gotoQrClicked = { navController.navigate(PluviaScreen.LoginQR.name) }
+                        )
                     }
                     composable(route = PluviaScreen.LoginQR.name) {
-                        QrLoginScreen()
+                        QrLoginScreen(userLoginViewModel)
                     }
                     composable(route = PluviaScreen.LoginTwoFactor.name) {
                         TwoFactorAuthScreen(userLoginViewModel)

@@ -24,14 +24,17 @@ import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.ui.model.UserLoginViewModel
 
 @Composable
 fun QrLoginScreen(
+    userLoginViewModel: UserLoginViewModel,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
     var url: String? by remember { mutableStateOf(null) }
     var isFailed: Boolean by remember { mutableStateOf(false) }
     var attemptNum: Int by remember { mutableIntStateOf(0) }
+    var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
 
     DisposableEffect(lifecycleOwner, key2 = attemptNum) {
@@ -40,9 +43,17 @@ fun QrLoginScreen(
         isLoggingIn = SteamService.isLoggingIn
 
         // TODO: revisit this to make sure all looks correct
+        val onSteamConnected: (SteamEvent.Connected) -> Unit = {
+            isLoggingIn = it.isAutoLoggingIn
+            isSteamConnected = true
+        }
+        val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
+            isSteamConnected = false
+        }
         val onLogonStarted: (SteamEvent.LogonStarted) -> Unit = { isLoggingIn = true }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
             isLoggingIn = false
+            userLoginViewModel.setLoginResult(it.loginResult)
             if (it.loginResult != LoginResult.Success)
                 SteamService.startLoginWithQr()
         }
@@ -51,6 +62,9 @@ fun QrLoginScreen(
             isFailed = !it.success
             url = null
         }
+
+        PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
+        PluviaApp.events.on<SteamEvent.Disconnected>(onSteamDisconnected)
         PluviaApp.events.on<SteamEvent.LogonStarted>(onLogonStarted)
         PluviaApp.events.on<SteamEvent.LogonEnded>(onLogonEnded)
         PluviaApp.events.on<SteamEvent.QrChallengeReceived>(onQrChallengeReceived)
@@ -59,6 +73,8 @@ fun QrLoginScreen(
             SteamService.startLoginWithQr()
 
         onDispose {
+            PluviaApp.events.off<SteamEvent.Connected>(onSteamConnected)
+            PluviaApp.events.off<SteamEvent.Disconnected>(onSteamDisconnected)
             PluviaApp.events.off<SteamEvent.LogonStarted>(onLogonStarted)
             PluviaApp.events.off<SteamEvent.LogonEnded>(onLogonEnded)
             PluviaApp.events.off<SteamEvent.QrChallengeReceived>(onQrChallengeReceived)
@@ -67,7 +83,7 @@ fun QrLoginScreen(
         }
     }
 
-    if ((url != null || isFailed) && !isLoggingIn) {
+    if (isSteamConnected && (url != null || isFailed) && !isLoggingIn) {
         Column(
             modifier = Modifier
                 .fillMaxSize(),

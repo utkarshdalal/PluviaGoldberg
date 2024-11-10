@@ -2,12 +2,15 @@ package com.OxGames.Pluvia.ui.component
 
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -17,12 +20,14 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,16 +45,19 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
 
 @Composable
 fun UserLoginScreen(
     userLoginViewModel: UserLoginViewModel,
+    gotoQrClicked: () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
     // var loginResult by remember { mutableStateOf(LoginResult.Failed) }
+    val userLoginState by userLoginViewModel.loginState.collectAsState()
 
     DisposableEffect(lifecycleOwner) {
         val onSteamConnected: (SteamEvent.Connected) -> Unit = {
@@ -66,12 +74,12 @@ fun UserLoginScreen(
         }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
             Log.d("UserLoginScreen", "Received login result: ${it.loginResult}")
-            userLoginViewModel.loginResult = it.loginResult
+            userLoginViewModel.setLoginResult(it.loginResult)
             isLoggingIn = false
         }
         val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
             if (!isLoggingIn)
-                userLoginViewModel.loginResult = LoginResult.Failed
+                userLoginViewModel.setLoginResult(LoginResult.Failed)
         }
 
         PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
@@ -89,23 +97,31 @@ fun UserLoginScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
-            .fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .fillMaxSize()
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
     ) {
-        if (isSteamConnected && !isLoggingIn && userLoginViewModel.loginResult != LoginResult.TryAgain) {
-           UsernamePassword(
-               userLoginViewModel = userLoginViewModel,
-               onLoginBtnClick = {
-                   SteamService.logOn(
-                       username = userLoginViewModel.username,
-                       password = userLoginViewModel.password,
-                       shouldRememberPassword = userLoginViewModel.rememberPass
-                   )
-               }
-           )
+        if (isSteamConnected && !isLoggingIn && userLoginState.loginResult != LoginResult.Success) {
+            UsernamePassword(
+                userLoginViewModel = userLoginViewModel,
+                onLoginBtnClick = {
+                    if (userLoginState.username.isNotEmpty() && userLoginState.password.isNotEmpty()) {
+                        SteamService.logOn(
+                            username = userLoginState.username,
+                            password = userLoginState.password,
+                            shouldRememberPassword = userLoginState.rememberPass
+                        )
+                    }
+                }
+            )
+            FloatingActionButton(
+                modifier = Modifier.align(Alignment.BottomStart),
+                onClick = gotoQrClicked
+            ) {
+                Icon(PluviaScreen.LoginQR.icon, "Go to QR login screen")
+            }
         } else
             LoadingScreen()
     }
@@ -114,6 +130,7 @@ fun UserLoginScreen(
 @Composable
 fun UsernamePassword(userLoginViewModel: UserLoginViewModel, onLoginBtnClick: () -> Unit) {
     var passwordVisible by remember { mutableStateOf(false) }
+    val userLoginState by userLoginViewModel.loginState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -123,17 +140,17 @@ fun UsernamePassword(userLoginViewModel: UserLoginViewModel, onLoginBtnClick: ()
         verticalArrangement = Arrangement.Center,
     ) {
         TextField(
-            value = userLoginViewModel.username,
+            value = userLoginState.username,
             singleLine = true,
-            onValueChange = { userLoginViewModel.username = it },
+            onValueChange = { userLoginViewModel.setUsername(it) },
             label = { Text("Username") }
         )
         TextField(
-            value = userLoginViewModel.password,
+            value = userLoginState.password,
             singleLine = true,
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            onValueChange = { userLoginViewModel.password = it },
+            onValueChange = { userLoginViewModel.setPassword(it) },
             label = { Text("Password") },
             trailingIcon = {
                 val image = if (passwordVisible)
@@ -156,8 +173,8 @@ fun UsernamePassword(userLoginViewModel: UserLoginViewModel, onLoginBtnClick: ()
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = userLoginViewModel.rememberPass,
-                    onCheckedChange = { userLoginViewModel.rememberPass = it },
+                    checked = userLoginState.rememberPass,
+                    onCheckedChange = { userLoginViewModel.setRememberPass(it) },
                 )
                 Text("Remember me")
             }
