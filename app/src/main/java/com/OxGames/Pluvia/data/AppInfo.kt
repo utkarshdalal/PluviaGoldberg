@@ -5,7 +5,9 @@ import com.OxGames.Pluvia.enums.ControllerSupport
 import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.ReleaseState
+import java.nio.file.Files
 import java.util.EnumSet
+import kotlin.io.path.Path
 
 data class AppInfo(
     val appId: Int,
@@ -31,6 +33,8 @@ data class AppInfo(
     val clientIconUrl: String = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/$appId/$clientIconHash.ico",
     val clientTgaHash: String, // https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/{appId}/{clientTgaHash}.tga
     val clientTgaUrl: String = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/$appId/$clientTgaHash.tga",
+    val smallCapsule: Map<Language, String>,
+    val headerImage: Map<Language, String>,
     val libraryAssets: LibraryAssetsInfo,
     val primaryGenre: Boolean,
     val reviewScore: Byte,
@@ -74,6 +78,16 @@ data class AppInfo(
     val config: ConfigInfo,
 ) {
     // source: https://github.com/Nemirtingas/games-infos/blob/3915100198bac34553b3c862f9e295d277f5520a/steam_retriever/Program.cs#L589C43-L589C89
+    fun getSmallCapsuleUrl(language: Language = Language.english): String? {
+        return smallCapsule[language]?.let {
+            "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+        }
+    }
+    fun getHeaderImageUrl(language: Language = Language.english): String? {
+        return headerImage[language]?.let {
+            "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
+        }
+    }
     fun getCapsuleUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryCapsule.image2x[language]?.let {

@@ -59,7 +59,6 @@ import `in`.dragonbra.javasteam.util.log.DefaultLogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
@@ -67,6 +66,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.Closeable
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.EnumSet
 import java.util.concurrent.ConcurrentHashMap
@@ -189,6 +189,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
         fun getAppDownloadInfo(appId: Int): DownloadInfo? {
             return downloadJobs.get(appId)
+        }
+        fun isAppInstalled(appId: Int): Boolean {
+            return getAppInfoOf(appId)?.let {
+                Files.exists(Paths.get(steamData?.appInstallPath ?: "", it.config.installDir))
+            } == true
         }
 
         fun downloadApp(appId: Int): DownloadInfo? {
@@ -773,6 +778,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                     iconHash = app.keyValues["common"]["icon"].value ?: "",
                     clientIconHash = app.keyValues["common"]["clienticon"].value ?: "",
                     clientTgaHash = app.keyValues["common"]["clienttga"].value ?: "",
+                    smallCapsule = toLangImgMap(app.keyValues["common"]["small_capsule"].children),
+                    headerImage = toLangImgMap(app.keyValues["common"]["header_image"].children),
                     libraryAssets = LibraryAssetsInfo(
                         libraryCapsule = LibraryCapsuleInfo(
                             image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image"].children),

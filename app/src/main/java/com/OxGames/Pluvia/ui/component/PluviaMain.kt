@@ -31,6 +31,7 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,8 +80,6 @@ fun PluviaMain(
         backStackEntry?.destination?.route ?: PluviaScreen.LoginUser.name
     )
     val hasBack: () -> Boolean = {
-        Log.d("PluviaMain", "Checking for back: ${navController.previousBackStackEntry?.destination?.route}")
-        // backStackEntry?.destination?.parent?.route != null
         navController.previousBackStackEntry?.destination?.route != null
     }
 
@@ -104,7 +103,7 @@ fun PluviaMain(
     // var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
     var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
     var profilePicUrl by remember { mutableStateOf<String>(SteamService.MISSING_AVATAR_URL) }
-    var appId by remember { mutableStateOf(SteamService.INVALID_APP_ID) }
+    var appId by remember { mutableIntStateOf(SteamService.INVALID_APP_ID) }
 
     DisposableEffect(lifecycleOwner) {
         val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {

@@ -1,12 +1,12 @@
 package com.OxGames.Pluvia.ui.component
 
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -40,11 +40,14 @@ fun AppScreen(
 ) {
     var downloadInfo by remember { mutableStateOf<DownloadInfo?>(SteamService.getAppDownloadInfo(appId)) }
     var downloadProgress by remember { mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f) }
+    var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
 
     DisposableEffect(downloadInfo) {
-        Log.d("AppScreen", "Found download info $downloadInfo")
         val onDownloadProgress: (Float) -> Unit = {
+            if (it >= 1f) {
+                isInstalled = SteamService.isAppInstalled(appId)
+            }
             downloadProgress = it
         }
 
@@ -64,30 +67,47 @@ fun AppScreen(
             modifier = Modifier.fillMaxWidth()
         )
         Row(
-            modifier = Modifier.padding(horizontal = 4.dp)
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .wrapContentHeight()
         ) {
             Button(
                 shape = RoundedCornerShape(8.dp),
                 enabled = !isDownloading(),
                 onClick = {
-                    downloadProgress = 0f
-                    downloadInfo = SteamService.downloadApp(appId)
-                    Log.d("AppScreen", "Started app download $downloadInfo")
+                    if (!isInstalled) {
+                        downloadProgress = 0f
+                        downloadInfo = SteamService.downloadApp(appId)
+                    } else {
+                        // TODO: run the app
+                    }
                 }
-            ) { Text(stringResource(R.string.download_app)) }
-            if (isDownloading()) {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 4.dp)
-                        .align(Alignment.CenterVertically),
-                    progress = { downloadProgress }
+            ) {
+                Text(
+                    if (isInstalled)
+                        stringResource(R.string.run_app)
+                    else
+                        stringResource(R.string.download_app)
                 )
+            }
+            if (isDownloading()) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .weight(1f)
+                        .padding(4.dp)
+                ) {
+                    Text(
+                        modifier = Modifier.align(Alignment.End),
+                        text = "${(downloadProgress * 100f).toInt()}%"
+                    )
+                    LinearProgressIndicator(progress = { downloadProgress })
+                }
             } else {
                 Spacer(Modifier.weight(1f))
             }
             IconButton(onClick = {
-
+                // TODO: add options menu
             }) { Icon(Icons.Filled.MoreVert, "Options") }
         }
     }
