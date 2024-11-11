@@ -36,6 +36,7 @@ import com.OxGames.Pluvia.data.DownloadInfo
 @Composable
 fun AppScreen(
     appId: Int,
+    onClickPlay: () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
     var downloadInfo by remember { mutableStateOf<DownloadInfo?>(SteamService.getAppDownloadInfo(appId)) }
@@ -79,7 +80,7 @@ fun AppScreen(
                         downloadProgress = 0f
                         downloadInfo = SteamService.downloadApp(appId)
                     } else {
-                        // TODO: run the app
+                        onClickPlay()
                     }
                 }
             ) {

@@ -49,6 +49,12 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 }
 
 dependencies {
@@ -59,6 +65,9 @@ dependencies {
     implementation(libs.commons.lang3) // only needed when building JavaSteam manually
     implementation(libs.xz) // only needed when building JavaSteam manually
     implementation(libs.commons.validator) // only needed when building JavaSteam manually (should crash without it, but I don't on some devices)
+
+    implementation(libs.apache.compress) // for winlator
+    implementation(libs.android.preferences) // for winlator
 
     implementation(libs.navigation.compose)
     implementation(libs.kotlin.coroutines)

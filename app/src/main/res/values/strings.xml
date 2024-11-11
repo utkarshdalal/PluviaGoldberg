@@ -12,4 +12,11 @@
     <string name="header_img_desc">App header image</string>
     <string name="download_app">Download</string>
     <string name="run_app">Play</string>
+
+    <!--Winlator-->
+    <string name="copy">Copy</string>
+    <string name="stability">Stability</string>
+    <string name="compatibility">Compatibility</string>
+    <string name="intermediate">Intermediate</string>
+    <string name="performance">Performance</string>
 </resources>

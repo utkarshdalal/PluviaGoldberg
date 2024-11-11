@@ -34,6 +34,10 @@ enum class PluviaScreen(@StringRes val title: Int, val icon: ImageVector) {
     App(
         title = R.string.unknown_app,
         icon = Icons.Filled.QuestionMark
+    ),
+    XServer(
+        title = R.string.unknown_app,
+        icon = Icons.Filled.QuestionMark
     );
 
     val menuNavRoutes: Array<PluviaScreen>?

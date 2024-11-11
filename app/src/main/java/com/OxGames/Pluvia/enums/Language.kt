@@ -15,5 +15,15 @@ enum class Language {
     polish,
     brazilian,
     latam,
+    vietnamese,
+    portuguese,
+    danish,
+    dutch,
+    swedish,
+    norwegian,
+    finnish,
+    turkish,
+    thai,
+    czech,
     unknown
 }
