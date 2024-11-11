@@ -30,6 +30,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -99,6 +100,8 @@ fun PluviaMain(
         }
     }
 
+    var topAppBarVisible by remember { mutableStateOf(true) }
+
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     // var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
     var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
@@ -106,6 +109,9 @@ fun PluviaMain(
     var appId by remember { mutableIntStateOf(SteamService.INVALID_APP_ID) }
 
     DisposableEffect(lifecycleOwner) {
+        val onHideAppBar: (AndroidEvent.HideAppBar) -> Unit = {
+            topAppBarVisible = false
+        }
         val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
             if (hasBack()) {
                 // TODO: check if back leads to log out and present confidence modal
@@ -159,6 +165,7 @@ fun PluviaMain(
             }
         }
 
+        PluviaApp.events.on<AndroidEvent.HideAppBar>(onHideAppBar)
         PluviaApp.events.on<AndroidEvent.BackPressed>(onBackPressed)
         PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
         PluviaApp.events.on<SteamEvent.Disconnected>(onSteamDisconnected)
@@ -173,6 +180,7 @@ fun PluviaMain(
         }
 
         onDispose {
+            PluviaApp.events.off<AndroidEvent.HideAppBar>(onHideAppBar)
             PluviaApp.events.off<AndroidEvent.BackPressed>(onBackPressed)
             PluviaApp.events.off<SteamEvent.Connected>(onSteamConnected)
             PluviaApp.events.off<SteamEvent.Disconnected>(onSteamDisconnected)
@@ -181,6 +189,14 @@ fun PluviaMain(
             PluviaApp.events.off<SteamEvent.LoggedOut>(onLoggedOut)
             PluviaApp.events.off<SteamEvent.PersonaStateReceived>(onPersonaStateReceived)
         }
+    }
+
+    LaunchedEffect(currentScreen) {
+        // do the following each time we navigate to a new screen
+        // reset top app bar visibility
+        topAppBarVisible = true
+        // reset system ui visibility
+        PluviaApp.events.emit(AndroidEvent.SetSystemUI(true))
     }
 
     PluviaTheme {
@@ -217,41 +233,43 @@ fun PluviaMain(
             Scaffold(
                 modifier = Modifier.fillMaxSize(),
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            val title = if (currentScreen == PluviaScreen.App) {
-                                SteamService.getAppInfoOf(appId)?.name
-                            } else { null } ?: stringResource(currentScreen.title)
-                            Text(title)
-                        },
-                        navigationIcon = {
-                            if (currentScreen.hasMenu) {
-                                IconButton(onClick = {
-                                    toggleDrawer()
-                                }) { Icon(imageVector = Icons.Filled.Menu, "Open menu") }
-                            } else if (hasBack()) {
-                                // only if we don't have a menu and there is a parent route
-                                IconButton(onClick = {
-                                    navController.popBackStack()
-                                }) { Icon(imageVector = Icons.Filled.ArrowBack, "Go back") }
-                            }
-                        },
-                        actions = {
-                            if (isLoggedIn) {
-                                Box(modifier = Modifier
-                                    .height(topAppBarHeight)
-                                ) {
-                                    AsyncImage(
-                                        model = profilePicUrl,
-                                        contentDescription = "Profile picture",
-                                        modifier = Modifier
-                                            .padding(8.dp)
-                                            .clip(CircleShape)
-                                    )
+                    if (topAppBarVisible) {
+                        TopAppBar(
+                            title = {
+                                val title = if (currentScreen == PluviaScreen.App) {
+                                    SteamService.getAppInfoOf(appId)?.name
+                                } else { null } ?: stringResource(currentScreen.title)
+                                Text(title)
+                            },
+                            navigationIcon = {
+                                if (currentScreen.hasMenu) {
+                                    IconButton(onClick = {
+                                        toggleDrawer()
+                                    }) { Icon(imageVector = Icons.Filled.Menu, "Open menu") }
+                                } else if (hasBack()) {
+                                    // only if we don't have a menu and there is a parent route
+                                    IconButton(onClick = {
+                                        navController.popBackStack()
+                                    }) { Icon(imageVector = Icons.Filled.ArrowBack, "Go back") }
+                                }
+                            },
+                            actions = {
+                                if (isLoggedIn) {
+                                    Box(modifier = Modifier
+                                        .height(topAppBarHeight)
+                                    ) {
+                                        AsyncImage(
+                                            model = profilePicUrl,
+                                            contentDescription = "Profile picture",
+                                            modifier = Modifier
+                                                .padding(8.dp)
+                                                .clip(CircleShape)
+                                        )
+                                    }
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             ) { innerPadding ->
                 NavHost(
@@ -285,7 +303,13 @@ fun PluviaMain(
                         DownloadsScreen()
                     }
                     composable(route = PluviaScreen.App.name) {
-                        AppScreen(appId)
+                        AppScreen(
+                            appId = appId,
+                            onClickPlay = { navController.navigate(PluviaScreen.XServer.name) }
+                        )
+                    }
+                    composable(route = PluviaScreen.XServer.name) {
+                        XServerScreen()
                     }
                 }
             }

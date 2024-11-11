@@ -19,6 +19,8 @@ xz = "1.10"
 coroutines = "1.9.0"
 commons-validator = "1.9.0"
 navigation-compose = "2.8.3"
+apache-compress = "1.27.1"
+android-preferences = "1.2.1"
 
 [libraries]
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
@@ -26,6 +28,8 @@ coil-network = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", versi
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+apache-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "apache-compress" }
+android-preferences = { group = "androidx.preference", name = "preference-ktx", version.ref = "android-preferences" }
 zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
 commons-validator = { group = "commons-validator", name = "commons-validator", version.ref = "commons-validator" }
