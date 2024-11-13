@@ -1,25 +1,30 @@
 package com.OxGames.Pluvia.ui.component
 
+import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.events.AndroidEvent
+import com.OxGames.Pluvia.ui.enums.Orientation
 import com.winlator.container.Container
 import com.winlator.widget.XServerView
 import com.winlator.winhandler.WinHandler
 import com.winlator.xserver.ScreenInfo
 import com.winlator.xserver.XServer
+import java.util.EnumSet
 
 @Composable
 fun XServerScreen(lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current) {
-    val context = LocalContext.current
-    PluviaApp.events.emit(AndroidEvent.HideAppBar)
-    PluviaApp.events.emit(AndroidEvent.SetSystemUI(false))
+    // Log.d("XServerScreen", "Starting up XServer")
+    PluviaApp.events.emit(AndroidEvent.SetAppBarVisibility(false))
+    PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(false))
+    PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(
+        EnumSet.of(Orientation.LANDSCAPE, Orientation.REVERSE_LANDSCAPE)) // TOOD: add option for user to pick
+    )
 
     val screenSize = Container.DEFAULT_SCREEN_SIZE
 

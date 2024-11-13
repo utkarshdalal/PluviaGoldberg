@@ -9,7 +9,7 @@ import kotlin.reflect.KClass
 sealed interface Event
 
 class EventDispatcher {
-    val listeners = mutableMapOf<KClass<out Event>, MutableList<EventListener<Event>>>()
+    val listeners = mutableMapOf<KClass<out Event>, MutableList<Pair<String, EventListener<Event>>>>()
 
     class EventListener<E : Event>(
         val listener: (E) -> Unit,
@@ -29,17 +29,20 @@ class EventDispatcher {
         once: Boolean
     ) {
         val eventClass = E::class
-        val typedListener = EventListener<Event>({ event ->
+        val typedListener = Pair(listener.toString(), EventListener<Event>({ event ->
             if (event is E) {
                 listener(event)
             }
-        }, once)
+        }, once))
         listeners.getOrPut(eventClass) { mutableListOf() }.add(typedListener)
     }
 
     inline fun <reified E : Event> off(noinline listener: (E) -> Unit) {
         val eventClass = E::class
-        listeners[eventClass]?.removeIf { it.toString() == listener.toString() }
+        listeners[eventClass]?.removeIf {
+            // Log.d("EventDispatcher", "Removing if ${it.first} == $listener")
+            it.first == listener.toString()
+        }
     }
 
     inline fun <reified E : Event> clearAllListenersOf() {
@@ -53,15 +56,16 @@ class EventDispatcher {
     }
 
     inline fun <reified E : Event> emit(event: E) {
+        // Launch on the main thread
         CoroutineScope(Dispatchers.Main).launch {
             val eventClass = E::class
             listeners[eventClass]?.let { eventListeners ->
                 // Create a new list for iteration to avoid concurrent modification
                 eventListeners.toList().forEach { eventListener ->
-                    eventListener.listener(event)
+                    eventListener.second.listener(event)
                 }
                 // Remove one-time listeners after execution
-                eventListeners.removeIf { it.once }
+                eventListeners.removeIf { it.second.once }
             }
         }
     }
