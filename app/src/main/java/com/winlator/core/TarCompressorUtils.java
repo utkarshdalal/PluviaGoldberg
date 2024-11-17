@@ -2,6 +2,7 @@ package com.winlator.core;
 
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 
 import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.ArchiveOutputStream;
@@ -35,7 +36,9 @@ public abstract class TarCompressorUtils {
             }
             tar.closeArchiveEntry();
         }
-        catch (Exception e) {}
+        catch (Exception e) {
+            Log.e("TarCompressorUtils", "Failed to add file: " + e);
+        }
     }
 
     private static void addLinkFile(ArchiveOutputStream tar, File file, String entryName) {
@@ -45,7 +48,9 @@ public abstract class TarCompressorUtils {
             tar.putArchiveEntry(entry);
             tar.closeArchiveEntry();
         }
-        catch (Exception e) {}
+        catch (Exception e) {
+            Log.e("TarCompressorUtils", "Failed to add link file: " + e);
+        }
     }
 
     private static void addDirectory(ArchiveOutputStream tar, File folder, String basePath) throws IOException {
@@ -91,7 +96,9 @@ public abstract class TarCompressorUtils {
             }
             tar.finish();
         }
-        catch (IOException e) {}
+        catch (IOException e) {
+            Log.e("TarCompressorUtils", "Failed to compress: " + e);
+        }
     }
 
     public static boolean extract(Type type, Context context, String assetFile, File destination) {

@@ -1,6 +1,7 @@
 package com.winlator.container;
 
 import android.os.Environment;
+import android.util.Log;
 
 import com.winlator.box86_64.Box86_64Preset;
 import com.winlator.core.EnvVars;
@@ -225,7 +226,9 @@ public class Container {
             }
             else extraData.remove(name);
         }
-        catch (JSONException e) {}
+        catch (JSONException e) {
+            Log.e("Container", "Failed to put extra: " + e);
+        }
     }
 
     public String getWineVersion() {
@@ -310,7 +313,9 @@ public class Container {
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
         }
-        catch (JSONException e) {}
+        catch (JSONException e) {
+            Log.e("Container", "Failed to save data: " + e);
+        }
     }
 
     public void loadData(JSONObject data) throws JSONException {
@@ -442,7 +447,9 @@ public class Container {
 
             data.put("wincomponents", result);
         }
-        catch (JSONException e) {}
+        catch (JSONException e) {
+            Log.e("Container", "Failed to check obsolete or missing properties: " + e);
+        }
     }
 
     public static String getFallbackCPUList() {

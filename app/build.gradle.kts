@@ -8,6 +8,7 @@ plugins {
 android {
     namespace = "com.OxGames.Pluvia"
     compileSdk = 34
+    ndkVersion = "22.1.7171670"
 
     defaultConfig {
         applicationId = "com.OxGames.Pluvia"
@@ -16,19 +17,28 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        ndk {
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
+        }
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        proguardFiles(
+            // getDefaultProguardFile("proguard-android-optimize.txt"),
+            getDefaultProguardFile("proguard-android.txt"),
+            "proguard-rules.pro"
+        )
     }
 
     buildTypes {
+        debug {
+            isMinifyEnabled = false
+        }
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
     }
     compileOptions {
@@ -64,9 +74,11 @@ dependencies {
     implementation(libs.protobuf.java) // only needed when building JavaSteam manually
     implementation(libs.commons.lang3) // only needed when building JavaSteam manually
     implementation(libs.xz) // only needed when building JavaSteam manually
+    implementation(libs.commons.io) // only needed when building JavaSteam manually
     implementation(libs.commons.validator) // only needed when building JavaSteam manually (should crash without it, but I don't on some devices)
 
     implementation(libs.apache.compress) // for winlator
+    implementation("com.github.luben:zstd-jni:1.5.2-3@aar") // for winlator
     implementation(libs.android.preferences) // for winlator
 
     implementation(libs.navigation.compose)

@@ -2,6 +2,7 @@ package com.winlator.container;
 
 import android.content.Context;
 import android.os.Handler;
+import android.util.Log;
 
 // import com.winlator.R;
 import com.OxGames.Pluvia.R;
@@ -20,6 +21,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class ContainerManager {
     private final ArrayList<Container> containers = new ArrayList<>();
@@ -59,7 +61,9 @@ public class ContainerManager {
                 }
             }
         }
-        catch (JSONException e) {}
+        catch (JSONException e) {
+            Log.e("ContainerManager", "Failed to load containers: " + e);
+        }
     }
 
     public void activateContainer(Container container) {
@@ -75,6 +79,9 @@ public class ContainerManager {
             final Container container = createContainer(data);
             handler.post(() -> callback.call(container));
         });
+    }
+    public Future<Container> createContainerFuture(final JSONObject data) {
+        return Executors.newSingleThreadExecutor().submit(() -> createContainer(data));
     }
 
     public void duplicateContainerAsync(Container container, Runnable callback) {
@@ -93,7 +100,7 @@ public class ContainerManager {
         });
     }
 
-    private Container createContainer(JSONObject data) {
+    public Container createContainer(JSONObject data) {
         try {
             int id = maxContainerId + 1;
             data.put("id", id);
@@ -118,7 +125,9 @@ public class ContainerManager {
             containers.add(container);
             return container;
         }
-        catch (JSONException e) {}
+        catch (JSONException e) {
+            Log.e("ContainerManager", "Failed to create container: " + e);
+        }
         return null;
     }
 

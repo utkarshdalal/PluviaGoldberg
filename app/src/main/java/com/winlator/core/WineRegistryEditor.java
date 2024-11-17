@@ -1,5 +1,7 @@
 package com.winlator.core;
 
+import android.util.Log;
+
 import com.winlator.math.Mathf;
 
 import java.io.BufferedReader;
@@ -44,7 +46,9 @@ public class WineRegistryEditor implements Closeable {
             try {
                 cloneFile.createNewFile();
             }
-            catch (IOException e) {}
+            catch (IOException e) {
+                Log.e("WineRegistryEditor", "Failed to set up editor: " + e);
+            }
         }
         else FileUtils.copy(file, cloneFile);
     }
@@ -121,7 +125,9 @@ public class WineRegistryEditor implements Closeable {
             while ((length = reader.read(buffer)) != -1) writer.write(buffer, 0, length);
             success = true;
         }
-        catch (IOException e) {}
+        catch (IOException e) {
+            Log.e("WineRegistryEditor", "Failed to create key: " + e);
+        }
 
         if (success) {
             modified = true;
@@ -194,7 +200,9 @@ public class WineRegistryEditor implements Closeable {
             reader.skip(valueLocation.start);
             success = reader.read(buffer) == buffer.length;
         }
-        catch (IOException e) {}
+        catch (IOException e) {
+            Log.e("WineRegistryEditor", "Failed to get raw value: " + e);
+        }
         return success ? unescape(new String(buffer)) : null;
     }
 
@@ -236,7 +244,9 @@ public class WineRegistryEditor implements Closeable {
             while ((length = reader.read(buffer)) != -1) writer.write(buffer, 0, length);
             success = true;
         }
-        catch (IOException e) {}
+        catch (IOException e) {
+            Log.e("WineRegistryEditor", "Failed to set raw value: " + e);
+        }
 
         if (success) {
             modified = true;
@@ -296,7 +306,9 @@ public class WineRegistryEditor implements Closeable {
             while ((length = reader.read(buffer)) != -1) writer.write(buffer, 0, length);
             success = true;
         }
-        catch (IOException e) {}
+        catch (IOException e) {
+            Log.e("WineRegistryEditor", "Failed to remove region: " + e);
+        }
 
         if (success) {
             modified = true;

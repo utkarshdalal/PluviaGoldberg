@@ -7,6 +7,7 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.util.Log;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -83,6 +84,15 @@ public abstract class FileUtils {
     }
 
     public static boolean writeString(File file, String data) {
+        try {
+            if (!file.exists()) {
+                file.getParentFile().mkdirs();
+                file.createNewFile();
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
         try (BufferedWriter bw = new BufferedWriter(new FileWriter(file))) {
             bw.write(data);
             bw.flush();
@@ -103,7 +113,9 @@ public abstract class FileUtils {
             (new File(linkFile)).delete();
             Os.symlink(linkTarget, linkFile);
         }
-        catch (ErrnoException e) {}
+        catch (ErrnoException e) {
+            Log.e("FileUtils", "Failed to symlink: " + e);
+        }
     }
 
     public static boolean isSymlink(File file) {
@@ -193,7 +205,9 @@ public abstract class FileUtils {
                     else copy(context, relativePath, dstFile);
                 }
             }
-            catch (IOException e) {}
+            catch (IOException e) {
+                Log.e("FileUtils", "Failed to copy directory: " + e);
+            }
         }
         else {
             if (dstFile.isDirectory()) dstFile = new File(dstFile, FileUtils.getName(assetFile));
@@ -203,7 +217,9 @@ public abstract class FileUtils {
                  BufferedOutputStream outStream = new BufferedOutputStream(new FileOutputStream(dstFile), StreamUtils.BUFFER_SIZE)) {
                 StreamUtils.copy(inStream, outStream);
             }
-            catch (IOException e) {}
+            catch (IOException e) {
+                Log.e("FileUtils", "Failed to copy file: " + e);
+            }
         }
     }
 
@@ -242,7 +258,9 @@ public abstract class FileUtils {
         try {
             Os.chmod(file.getAbsolutePath(), mode);
         }
-        catch (ErrnoException e) {}
+        catch (ErrnoException e) {
+            Log.e("FileUtils", "Failed to chmod " + file.getAbsolutePath() + ": " + e);
+        }
     }
 
     public static File createTempFile(File parent, String prefix) {
@@ -349,7 +367,9 @@ public abstract class FileUtils {
                 result = !line.isEmpty() ? Integer.parseInt(line) : 0;
             }
         }
-        catch (Exception e) {}
+        catch (Exception e) {
+            Log.e("FileUtils", "Failed to read int: " + e);
+        }
         return result;
     }
 
