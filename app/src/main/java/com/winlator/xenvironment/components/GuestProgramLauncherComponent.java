@@ -3,6 +3,7 @@ package com.winlator.xenvironment.components;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Process;
+import android.util.Log;
 
 import androidx.preference.PreferenceManager;
 
@@ -32,18 +33,22 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
 
     @Override
     public void start() {
+        // Log.d("GuestProgramLauncherComponent", "Starting...");
         synchronized (lock) {
             stop();
             extractBox86_64Files();
             pid = execGuestProgram();
+            Log.d("GuestProgramLauncherComponent", "Process " + pid + " started");
         }
     }
 
     @Override
     public void stop() {
+        // Log.d("GuestProgramLauncherComponent", "Stopping...");
         synchronized (lock) {
             if (pid != -1) {
                 Process.killProcess(pid);
+                Log.d("GuestProgramLauncherComponent", "Stopped process " + pid);
                 pid = -1;
             }
         }
@@ -106,11 +111,18 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     }
 
     private int execGuestProgram() {
+        Log.d("GuestProgramLauncherComponent", "Executing guest program");
         Context context = environment.getContext();
         ImageFs imageFs = environment.getImageFs();
         File rootDir = imageFs.getRootDir();
         File tmpDir = environment.getTmpDir();
         String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
+        // File nativeLibs = new File(nativeLibraryDir);
+        // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + nativeLibs.exists());
+        // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " is directory: " + nativeLibs.isDirectory());
+        // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " contains: " + Arrays.toString(nativeLibs.listFiles()));
+        // nativeLibraryDir = nativeLibraryDir.replace("arm64", "arm64-v8a");
+        // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + (new File(nativeLibraryDir)).exists());
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         boolean enableBox86_64Logs = preferences.getBoolean("enable_box86_64_logs", false);
@@ -134,6 +146,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         boolean bindSHM = envVars.get("WINEESYNC").equals("1");
 
         String command = nativeLibraryDir+"/libproot.so";
+        // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + "/libproot.so exists: " + (new File(nativeLibraryDir + "/libproot.so")).exists());
         command += " --kill-on-exit";
         command += " --rootfs="+rootDir;
         command += " --cwd="+ImageFs.HOME_PATH;

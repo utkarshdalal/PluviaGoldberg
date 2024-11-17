@@ -2,6 +2,7 @@ package com.winlator.xenvironment.components;
 
 import android.content.Context;
 import android.os.Process;
+import android.util.Log;
 
 import com.winlator.core.AppUtils;
 import com.winlator.core.FileUtils;
@@ -23,6 +24,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
 
     @Override
     public void start() {
+        Log.d("PulseAudioComponent", "Starting...");
         synchronized (lock) {
             stop();
             pid = execPulseAudio();
@@ -31,6 +33,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
 
     @Override
     public void stop() {
+        Log.d("PulseAudioComponent", "Stopping...");
         synchronized (lock) {
             if (pid != -1) {
                 Process.killProcess(pid);
@@ -42,6 +45,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
     private int execPulseAudio() {
         Context context = environment.getContext();
         String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
+        // nativeLibraryDir = nativeLibraryDir.replace("arm64", "arm64-v8a");
         File workingDir = new File(context.getFilesDir(), "/pulseaudio");
         if (!workingDir.isDirectory()) {
             workingDir.mkdirs();

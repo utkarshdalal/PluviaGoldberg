@@ -1,5 +1,7 @@
 package com.winlator.xenvironment.components;
 
+import android.util.Log;
+
 import androidx.annotation.Keep;
 
 import com.winlator.renderer.GLRenderer;
@@ -32,6 +34,7 @@ public class VirGLRendererComponent extends EnvironmentComponent implements Conn
 
     @Override
     public void start() {
+        Log.d("VirGLRendererComponent", "Starting...");
         if (connector != null) return;
         connector = new XConnectorEpoll(socketConfig, this, this);
         connector.start();
@@ -39,6 +42,7 @@ public class VirGLRendererComponent extends EnvironmentComponent implements Conn
 
     @Override
     public void stop() {
+        Log.d("VirGLRendererComponent", "Stopping...");
         if (connector != null) {
             connector.stop();
             connector = null;
@@ -52,6 +56,7 @@ public class VirGLRendererComponent extends EnvironmentComponent implements Conn
 
     @Keep
     private long getSharedEGLContext() {
+        Log.d("VirGLRendererComponent", "Calling getSharedEGLContext");
         if (sharedEGLContextPtr != 0) return sharedEGLContextPtr;
         final Thread thread = Thread.currentThread();
         try {
@@ -70,6 +75,7 @@ public class VirGLRendererComponent extends EnvironmentComponent implements Conn
         catch (Exception e) {
             return 0;
         }
+        Log.d("VirGLRendererComponent", "Finished getSharedEGLContext");
         return sharedEGLContextPtr;
     }
 
@@ -81,20 +87,25 @@ public class VirGLRendererComponent extends EnvironmentComponent implements Conn
 
     @Override
     public void handleNewConnection(Client client) {
+        Log.d("VirGLRendererComponent", "Calling handleNewConnection");
         getSharedEGLContext();
         long clientPtr = handleNewConnection(client.clientSocket.fd);
         client.setTag(clientPtr);
+        Log.d("VirGLRendererComponent", "Finished handleNewConnection");
     }
 
     @Override
     public boolean handleRequest(Client client) throws IOException {
+        Log.d("VirGLRendererComponent", "Calling handleRequest");
         long clientPtr = (long)client.getTag();
         handleRequest(clientPtr);
+        Log.d("VirGLRendererComponent", "Finished handleRequest");
         return true;
     }
 
     @Keep
     private void flushFrontbuffer(int drawableId, int framebuffer) {
+        Log.d("VirGLRendererComponent", "Calling flushFrontbuffer");
         Drawable drawable = xServer.drawableManager.getDrawable(drawableId);
         if (drawable == null) return;
 
@@ -106,6 +117,7 @@ public class VirGLRendererComponent extends EnvironmentComponent implements Conn
 
         Runnable onDrawListener = drawable.getOnDrawListener();
         if (onDrawListener != null) onDrawListener.run();
+        Log.d("VirGLRendererComponent", "Finished flushFrontbuffer");
     }
 
     private native long handleNewConnection(int fd);

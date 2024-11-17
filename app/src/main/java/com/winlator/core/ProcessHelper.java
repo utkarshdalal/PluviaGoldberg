@@ -1,6 +1,7 @@
 package com.winlator.core;
 
 import android.os.Process;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -9,6 +10,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.Executors;
 
 public abstract class ProcessHelper {
@@ -40,6 +42,7 @@ public abstract class ProcessHelper {
     public static int exec(String command, String[] envp, File workingDir, Callback<Integer> terminationCallback) {
         int pid = -1;
         try {
+            Log.d("ProcessHelper", "Executing: " + Arrays.toString(splitCommand(command)) + ", " + Arrays.toString(envp) + ", " + workingDir);
             java.lang.Process process = Runtime.getRuntime().exec(splitCommand(command), envp, workingDir);
             Field pidField = process.getClass().getDeclaredField("pid");
             pidField.setAccessible(true);
@@ -53,7 +56,9 @@ public abstract class ProcessHelper {
 
             if (terminationCallback != null) createWaitForThread(process, terminationCallback);
         }
-        catch (Exception e) {}
+        catch (Exception e) {
+            Log.e("ProcessHelper", "Failed to execute command: " + e);
+        }
         return pid;
     }
 
@@ -70,7 +75,9 @@ public abstract class ProcessHelper {
                     }
                 }
             }
-            catch (IOException e) {}
+            catch (IOException e) {
+                Log.e("ProcessHelper", "Error on debug thread: " + e);
+            }
         });
     }
 
@@ -80,7 +87,9 @@ public abstract class ProcessHelper {
                 int status = process.waitFor();
                 terminationCallback.call(status);
             }
-            catch (InterruptedException e) {}
+            catch (InterruptedException e) {
+                Log.e("ProcessHelper", "Error while waiting for thread: " + e);
+            }
         });
     }
 

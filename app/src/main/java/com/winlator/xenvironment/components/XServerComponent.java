@@ -1,5 +1,7 @@
 package com.winlator.xenvironment.components;
 
+import android.util.Log;
+
 import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xconnector.XConnectorEpoll;
 import com.winlator.xconnector.UnixSocketConfig;
@@ -19,6 +21,7 @@ public class XServerComponent extends EnvironmentComponent {
 
     @Override
     public void start() {
+        Log.d("XServerComponent", "Starting...");
         if (connector != null) return;
         connector = new XConnectorEpoll(socketConfig, new XClientConnectionHandler(xServer), new XClientRequestHandler());
         connector.setInitialInputBufferCapacity(262144);
@@ -28,6 +31,7 @@ public class XServerComponent extends EnvironmentComponent {
 
     @Override
     public void stop() {
+        Log.d("XServerComponent", "Stopping...");
         if (connector != null) {
             connector.stop();
             connector = null;

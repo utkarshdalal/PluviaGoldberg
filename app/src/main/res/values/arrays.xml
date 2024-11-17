@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="dxvk_version_entries">
+        <item>0.96</item>
+        <item>1.10.3 (Default)</item>
+        <item>2.3.1</item>
+    </string-array>
+</resources>

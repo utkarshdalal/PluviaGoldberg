@@ -1,5 +1,7 @@
 package com.winlator.core;
 
+import android.util.Log;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 
@@ -33,7 +35,9 @@ public abstract class ArrayUtils {
             try {
                 stringArray[i] = data.getString(i);
             }
-            catch (JSONException e) {}
+            catch (JSONException e) {
+                Log.e("ArrayUtils", "Failed to create string array from json data: " + e);
+            }
         }
         return stringArray;
     }

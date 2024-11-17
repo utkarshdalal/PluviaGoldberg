@@ -2,6 +2,7 @@ package com.winlator.container;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 
 import com.winlator.core.FileUtils;
 import com.winlator.core.StringUtils;
@@ -64,7 +65,9 @@ public class Shortcut {
                     try {
                         extraData.put(key, value);
                     }
-                    catch (JSONException e) {}
+                    catch (JSONException e) {
+                        Log.e("Shortcut", "Failed to put extra data: " + e);
+                    }
                 }
             }
         }
@@ -98,7 +101,9 @@ public class Shortcut {
             }
             else extraData.remove(name);
         }
-        catch (JSONException e) {}
+        catch (JSONException e) {
+            Log.e("Shortcut", "Failed to put extra: " + e);
+        }
     }
 
     public void saveData() {
@@ -116,7 +121,9 @@ public class Shortcut {
                 try {
                     content += key + "=" + extraData.getString(key) + "\n";
                 }
-                catch (JSONException e) {}
+                catch (JSONException e) {
+                    Log.e("Shortcut", "Failed to save extra data: " + e);
+                }
             }
         }
 

@@ -1,5 +1,6 @@
 package com.winlator.xconnector;
 
+import android.util.Log;
 import android.util.SparseArray;
 
 import androidx.annotation.Keep;
@@ -73,14 +74,19 @@ public class XConnectorEpoll implements Runnable {
             try {
                 epollThread.join();
             }
-            catch (InterruptedException e) {}
+            catch (InterruptedException e) {
+                Log.e("XConnectorEpoll", "Failed to stop: " + e);
+            }
         }
         epollThread = null;
     }
 
     @Override
     public void run() {
-        while (running && doEpollIndefinitely(epollFd, serverFd, !multithreadedClients));
+        Log.d("XConnectorEpoll", "Starting indefinite epoll");
+        while (running && doEpollIndefinitely(epollFd, serverFd, !multithreadedClients))
+            Log.d("XConnectorEpoll", "Polled");
+        Log.d("XConnectorEpoll", "Shutting down");
         shutdown();
     }
 
@@ -137,7 +143,9 @@ public class XConnectorEpoll implements Runnable {
                     try {
                         client.pollThread.join();
                     }
-                    catch (InterruptedException e) {}
+                    catch (InterruptedException e) {
+                        Log.e("XConnectorEpoll", "Failed to join client poll thread: " + e);
+                    }
                 }
 
                 client.pollThread = null;
@@ -200,7 +208,9 @@ public class XConnectorEpoll implements Runnable {
             data.asLongBuffer().put(1);
             (new ClientSocket(shutdownFd)).write(data);
         }
-        catch (IOException e) {}
+        catch (IOException e) {
+            Log.e("XConnectorEpoll", "Failed to shutdown: " + e);
+        }
     }
 
     public static native void closeFd(int fd);

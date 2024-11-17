@@ -1,5 +1,6 @@
 package com.winlator.winhandler;
 
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
@@ -7,6 +8,7 @@ import android.view.MotionEvent;
 import com.winlator.core.StringUtils;
 // import com.winlator.inputcontrols.ControlsProfile;
 // import com.winlator.inputcontrols.ExternalController;
+import com.winlator.widget.XServerView;
 import com.winlator.xserver.XServer;
 
 import java.io.IOException;
@@ -42,9 +44,16 @@ public class WinHandler {
     // private final XServerDisplayActivity activity;
     private final List<Integer> gamepadClients = new CopyOnWriteArrayList<>();
 
+    private final XServer xServer;
+    private final XServerView xServerView;
+
     // public WinHandler(XServerDisplayActivity activity) {
     //     this.activity = activity;
     // }
+    public WinHandler(XServer xServer, XServerView xServerView) {
+        this.xServer = xServer;
+        this.xServerView = xServerView;
+    }
 
     private boolean sendPacket(int port) {
         try {
@@ -191,6 +200,7 @@ public class WinHandler {
     }
 
     private void startSendThread() {
+        Log.d("WinHandler", "Starting send thread...");
         Executors.newSingleThreadExecutor().execute(() -> {
             while (running) {
                 synchronized (actions) {
@@ -198,13 +208,16 @@ public class WinHandler {
                     try {
                         actions.wait();
                     }
-                    catch (InterruptedException e) {}
+                    catch (InterruptedException e) {
+                        Log.e("WinHandler", "Sent action was interrupted: " + e);
+                    }
                 }
             }
         });
     }
 
     public void stop() {
+        Log.d("WinHandler", "Stopping...");
         running = false;
 
         if (socket != null) {
@@ -218,8 +231,10 @@ public class WinHandler {
     }
 
     private void handleRequest(byte requestCode, final int port) {
+        Log.d("WinHandler", "Handling request: " + requestCode);
         switch (requestCode) {
             case RequestCodes.INIT: {
+                Log.d("WinHandler", "Request was init");
                 initReceived = true;
 
                 synchronized (actions) {
@@ -228,6 +243,7 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_PROCESS: {
+                Log.d("WinHandler", "Request was get process");
                 if (onGetProcessInfoListener == null) return;
                 receiveData.position(receiveData.position() + 4);
                 int numProcesses = receiveData.getShort();
@@ -245,6 +261,7 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_GAMEPAD: {
+                Log.d("WinHandler", "Request was get gamepad");
                 // boolean isXInput = receiveData.get() == 1;
                 // boolean notify = receiveData.get() == 1;
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
@@ -279,6 +296,7 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_GAMEPAD_STATE: {
+                Log.d("WinHandler", "Request was get gamepad state");
                 // int gamepadId = receiveData.getInt();
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
                 // boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
@@ -304,23 +322,27 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.RELEASE_GAMEPAD: {
+                Log.d("WinHandler", "Request was release gamepad");
                 // currentController = null;
                 // gamepadClients.clear();
                 break;
             }
             case RequestCodes.CURSOR_POS_FEEDBACK: {
-                // short x = receiveData.getShort();
-                // short y = receiveData.getShort();
+                Log.d("WinHandler", "Request was cursor pos feedback");
+                short x = receiveData.getShort();
+                short y = receiveData.getShort();
                 // XServer xServer = activity.getXServer();
-                // xServer.pointer.setX(x);
-                // xServer.pointer.setY(y);
+                xServer.pointer.setX(x);
+                xServer.pointer.setY(y);
                 // activity.getXServerView().requestRender();
+                xServerView.requestRender();
                 break;
             }
         }
     }
 
-    public void start() {
+    public void  start() {
+        Log.d("WinHandler", "Starting...");
         try {
             localhost = InetAddress.getLocalHost();
         }
@@ -328,7 +350,9 @@ public class WinHandler {
             try {
                 localhost = InetAddress.getByName("127.0.0.1");
             }
-            catch (UnknownHostException ex) {}
+            catch (UnknownHostException ex) {
+                Log.e("WinHandler", "Failed to get local host address: " + e);
+            }
         }
 
         running = true;
@@ -340,7 +364,9 @@ public class WinHandler {
                 socket.bind(new InetSocketAddress((InetAddress)null, SERVER_PORT));
 
                 while (running) {
+                    Log.d("WinHandler", "Waiting for packet...");
                     socket.receive(receivePacket);
+                    Log.d("WinHandler", "Received packet, handling request...");
 
                     synchronized (actions) {
                         receiveData.rewind();
@@ -349,8 +375,12 @@ public class WinHandler {
                     }
                 }
             }
-            catch (IOException e) {}
+            catch (IOException e) {
+                Log.e("WinHandler", "Failed to start: " + e);
+                e.printStackTrace();
+            }
         });
+        Log.d("WinHandler", "Finished start up");
     }
 
     public void sendGamepadState() {
