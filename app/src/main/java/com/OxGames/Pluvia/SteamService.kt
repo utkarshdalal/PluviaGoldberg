@@ -22,6 +22,7 @@ import com.OxGames.Pluvia.enums.ControllerSupport
 import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.OS
+import com.OxGames.Pluvia.enums.OSArch
 import com.OxGames.Pluvia.enums.ReleaseState
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
@@ -720,11 +721,6 @@ class SteamService : Service(), IChallengeUrlChanged {
             _steamApps?.picsGetProductInfo(packageInfo.values.flatMap { it.appIds.asIterable() }.map { PICSRequest(it) }, emptyList())
         }
         if (callback.apps.isNotEmpty()) {
-            val toOsList: (String?) -> EnumSet<OS> = {
-                val osses = EnumSet.noneOf(OS::class.java)
-                osses.addAll((it ?: "none").split(',').filter { it.isNotEmpty() }.map { OS.valueOf(it.trim()) })
-                osses
-            }
             for (app in callback.apps.values) {
                 // Log.d("SteamService", "Received app ${app.id}")
                 val pkg: PackageInfo
@@ -752,7 +748,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             depotId = depotId,
                             depotFromApp = currentDepot["depotfromapp"].asInteger(INVALID_APP_ID),
                             sharedInstall = currentDepot["sharedinstall"].asBoolean(),
-                            osList = toOsList(currentDepot["config"]["oslist"].value),
+                            osList = OS.from(currentDepot["config"]["oslist"].value),
                             manifests = manifests,
                             encryptedManifests = encryptedManifests,
                         )
@@ -780,7 +776,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     depots = appDepots,
                     name = app.keyValues["common"]["name"].value ?: "",
                     type = AppType.valueOf(app.keyValues["common"]["type"].value?.lowercase() ?: "invalid"),
-                    osList = toOsList(app.keyValues["common"]["oslist"].value),
+                    osList = OS.from(app.keyValues["common"]["oslist"].value),
                     releaseState = ReleaseState.valueOf(app.keyValues["common"]["releasestate"].value ?: "released"),
                     metacriticScore = app.keyValues["common"]["metacritic_score"].asByte(),
                     metacriticFullUrl = app.keyValues["common"]["metacritic_fullurl"].value ?: "",
@@ -849,9 +845,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                         launch = launchConfigs.map {
                             LaunchInfo(
                                 executable = it["executable"].value ?: "",
+                                workingDir = it["workingdir"].value ?: "",
                                 description = it["description"].value ?: "",
                                 type = it["type"].value ?: "",
-                                configOS = toOsList(it["config"]["oslist"].value),
+                                configOS = OS.from(it["config"]["oslist"].value),
+                                configArch = OSArch.from(it["config"]["osarch"].value)
                             )
                         }.toTypedArray(),
                         steamControllerTemplateIndex = app.keyValues["config"]["steamcontrollertemplateindex"].asInteger(),
@@ -860,10 +858,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 ))
 
                 // // val isBaba = app.id == 736260
-                // val isHades = app.id == 1145360
+                // val isNoita = app.id == 881100
+                // // val isHades = app.id == 1145360
                 // // val isCS2 = app.id == 730
                 // // val isPsuedo = app.id == 2365810
-                // if (isHades) {
+                // if (isNoita) {
                 // 	Log.d("SteamService", "${app.id}: ${app.keyValues["common"]["name"].value}");
                 // 	printAllKeyValues(app.keyValues)
                 // 	// getPkgInfoOf(app.id)?.let {

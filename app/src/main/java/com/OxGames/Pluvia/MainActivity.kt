@@ -53,7 +53,8 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        // Log.d("MainActivity$index", "onDestroy")
+        Log.d("MainActivity$index", "onDestroy")
+        PluviaApp.events.emit(AndroidEvent.ActivityDestroyed)
         PluviaApp.events.off<AndroidEvent.SetSystemUIVisibility>(onSetSystemUi)
         PluviaApp.events.off<AndroidEvent.StartOrientator>(onStartOrientator)
         PluviaApp.events.off<AndroidEvent.SetAllowedOrientation>(onSetAllowedOrientation)

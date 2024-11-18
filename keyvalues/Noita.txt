@@ -1,0 +1,324 @@
+881100: Noita
+	appinfo
+		appid: 881100
+		common
+			name: Noita
+			type: Game
+			releasestate: released
+			clienticon: fec1e7340fa24130e3199829c9a6ef92b38c3daf
+			clienttga: d2e3c3d3a5059347b2e421bf7bf22c6646178890
+			icon: a21dbd1d3bd01f0a688f2d7029978d5cdbe14e74
+			logo: 174adb45224f09711f1f4c1389e256bf415f0753
+			logo_small: 174adb45224f09711f1f4c1389e256bf415f0753_thumb
+			oslist: windows
+			osarch: 
+			languages
+				english: 1
+				german: 1
+				french: 1
+				italian: 1
+				koreana: 1
+				spanish: 1
+				schinese: 1
+				russian: 1
+				japanese: 1
+				polish: 1
+				brazilian: 1
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1644969600
+				tested_build_id: 6590931
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: proton-stable
+					requires_h264: 0
+			controller_support: partial
+			small_capsule
+				english: capsule_231x87.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: CenterCenter
+					width_pct: 48.08406155452593
+					height_pct: 76.39134473541472
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+				library_logo
+					logo_position
+						pinned_position: CenterCenter
+						width_pct: 48.08406155452593
+						height_pct: 76.39134473541472
+					image
+						english: logo.png
+			store_asset_mtime: 1671799118
+			associations
+				0
+					type: developer
+					name: Nolla Games
+				1
+					type: publisher
+					name: Nolla Games
+			primary_genre: 1
+			genres
+				0: 1
+				1: 25
+				2: 23
+				3: 3
+				4: 28
+			category
+				category_2: 1
+				category_22: 1
+				category_18: 1
+				category_23: 1
+				category_30: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+				french
+					supported: true
+				german
+					supported: true
+				spanish
+					supported: true
+				japanese
+					supported: true
+				koreana
+					supported: true
+				brazilian
+					supported: true
+				russian
+					supported: true
+				schinese
+					supported: true
+				italian
+					supported: true
+				polish
+					supported: true
+			steam_release_date: 1602781320
+			community_visible_stats: 1
+			workshop_visible: 1
+			community_hub_visible: 1
+			gameid: 881100
+			store_tags
+				0: 3968
+				1: 4026
+				2: 1716
+				3: 3964
+				4: 1720
+				5: 492
+				6: 1695
+				7: 3871
+				8: 3810
+				9: 1759
+				10: 19
+				11: 42804
+				12: 5765
+				13: 122
+				14: 5379
+				15: 3959
+				16: 5923
+				17: 16094
+				18: 4106
+				19: 1702
+			review_score: 9
+			review_percentage: 95
+		extended
+			absolutemousecoordinates: 0
+			remoteplaytogethertestingbranches: noitadev2
+			developer: Nolla Games
+			publisher: Nolla Games
+			homepage: http://noitagame.com
+		config
+			installdir: Noita
+			launch
+				0
+					executable: noita.exe
+					description: Starts the game (normally)
+					type: default
+			steamcontrollertouchtemplateindex: 1
+			steamcontrollertouchconfigdetails
+				2272446934
+					controller_type: controller_mobile_touch
+					enabled_branches: default
+					use_action_block: false
+		depots
+			228985
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			881101
+				config
+					oslist: windows
+				manifests
+					public
+						gid: 7283186044798058701
+						size: 1639152947
+						download: 1390939952
+					update_20240214
+						gid: 4378454801227783404
+						size: 1449796874
+						download: 1222559424
+					noitabeta
+						gid: 8864724755035096208
+						size: 1639152953
+						download: 1390939840
+				encryptedmanifests
+					noitadev2
+						gid: B6B911D517BC85A8B4F0196934E804B4
+						size: 7B86E2687C5853DF62C49B70130458BE
+						download: C2BBFE4673F26D7F9CB5B03F91DD9821
+					noitasecretbeta
+						gid: 3BA8F3085E86DA7AE29701FC2510711E
+						size: D540F86E5217C34B9FD23001DC6BEC9B
+						download: 289CF21B04C72D1D4A782FDED492BA34
+					noitadev
+						gid: 7A819B94FC5D20EA3120DA8A4CAEF996
+						size: 714A8D4050AF19478846AF0915A62D06
+						download: 76DFF27541608B9965622BA8487321C1
+			workshopdepot: 881100
+			branches
+				public
+					buildid: 15345724
+					timeupdated: 1723489981
+				noitadev2
+					buildid: 13974401
+					pwdrequired: 1
+					timeupdated: 1712426436
+				noitasecretbeta
+					buildid: 10656369
+					pwdrequired: 1
+					timeupdated: 1677600587
+				update_20240214
+					buildid: 13451050
+					description: Older version of Noita (to help with your old save games)
+					timeupdated: 1712588301
+				noitabeta
+					buildid: 15345458
+					description: Beta branch
+					timeupdated: 1723487530
+				noitadev
+					buildid: 15345724
+					pwdrequired: 1
+					timeupdated: 1723488902
+		ufs
+			quota: 1000000000
+			maxnumfiles: 10000
+			savefiles
+				1
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save01
+					pattern: *
+					platforms
+						1: Windows
+					recursive: 1
+				2
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save02
+					pattern: *
+					platforms
+						1: Windows
+					recursive: 1
+				3
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save00/world
+					pattern: *
+					platforms
+						1: Windows
+					recursive: 1
+				4
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save00/persistent
+					pattern: *
+					platforms
+						1: Windows
+				5
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save00/stats
+					pattern: *
+					platforms
+						1: Windows
+				6
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save00
+					pattern: *
+					platforms
+						1: Windows
+				7
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save00/persistent/bones_new
+					pattern: *
+					platforms
+						1: Windows
+				8
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save00/persistent/flags
+					pattern: *
+					platforms
+						1: Windows
+				9
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save00/persistent/orbs_new
+					pattern: *
+					platforms
+						1: Windows
+				10
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save03
+					pattern: *
+					platforms
+						1: Windows
+					recursive: 1
+				11
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save04
+					pattern: *
+					platforms
+						1: Windows
+					recursive: 1
+				12
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save05
+					pattern: *
+					platforms
+						1: Windows
+					recursive: 1
+				13
+					root: WinAppDataLocalLow
+					path: Nolla_Games_Noita/save06
+					pattern: *
+					platforms
+						1: Windows
+					recursive: 1

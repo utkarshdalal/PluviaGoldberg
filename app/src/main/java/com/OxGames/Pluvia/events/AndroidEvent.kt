@@ -9,4 +9,5 @@ interface AndroidEvent : Event {
     data class SetSystemUIVisibility(val visible: Boolean) : AndroidEvent
     data class SetAllowedOrientation(val orientations: EnumSet<Orientation>) : AndroidEvent
     data object StartOrientator : AndroidEvent
+    data object ActivityDestroyed : AndroidEvent
 }
