@@ -9,6 +9,7 @@ import com.winlator.core.WineInfo
 
 data class XServerState(
     // val envVars: EnvVars = EnvVars(),
+    var winStarted: Boolean = false,
     val dxwrapper: String = Container.DEFAULT_DXWRAPPER,
     var shortcut: Shortcut? = null,
     var onExtractFileListener: OnExtractFileListener? = null,

@@ -84,8 +84,8 @@ public class XConnectorEpoll implements Runnable {
     @Override
     public void run() {
         Log.d("XConnectorEpoll", "Starting indefinite epoll");
-        while (running && doEpollIndefinitely(epollFd, serverFd, !multithreadedClients))
-            Log.d("XConnectorEpoll", "Polled");
+        while (running && doEpollIndefinitely(epollFd, serverFd, !multithreadedClients));
+            // Log.d("XConnectorEpoll", "Polled");
         Log.d("XConnectorEpoll", "Shutting down");
         shutdown();
     }
@@ -124,6 +124,7 @@ public class XConnectorEpoll implements Runnable {
             else requestHandler.handleRequest(client);
         }
         catch (IOException e) {
+            Log.e("XConnectorEpoll", "IOException occured while handling existing connection: " + e);
             killConnection(client);
         }
     }

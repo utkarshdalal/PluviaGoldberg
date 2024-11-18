@@ -15,6 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.lifecycle.LifecycleOwner
 import androidx.preference.PreferenceManager
 import com.OxGames.Pluvia.PluviaApp
@@ -46,6 +49,7 @@ import com.winlator.core.TarCompressorUtils
 import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineStartMenuCreator
 import com.winlator.core.WineThemeManager
+import com.winlator.inputhandler.TouchMouse
 import com.winlator.xconnector.UnixSocketConfig
 import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xenvironment.XEnvironment
@@ -68,6 +72,7 @@ import java.io.File
 import java.util.concurrent.Future
 
 @Composable
+@OptIn(ExperimentalComposeUiApi::class)
 fun XServerScreen(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     // xServerViewModel: XServerViewModel = viewModel()
@@ -123,6 +128,11 @@ fun XServerScreen(
         Log.d("XServerScreen", "Remembering xEnvironment as $result")
         result
     }
+    var touchMouse by remember {
+        val result = mutableStateOf<TouchMouse?>(null)
+        Log.d("XServerScreen", "Remembering touchMouse as $result")
+        result
+    }
 
     LaunchedEffect(lifecycleOwner) {
         // CoroutineScope(Dispatchers.IO).launch {
@@ -135,6 +145,15 @@ fun XServerScreen(
             if (!generateWinePrefix) {
                 containerManager = ContainerManager(context)
                 container = containerManager.getContainerById(containerId) ?: createContainer(containerManager, xServerState.value.wineInfo).get()
+                val currentDrives = container.drives
+                val babaPath = "D:/data/data/com.OxGames.Pluvia/Steam/steamapps/common/Baba_Is_You"
+                if (!currentDrives.contains(babaPath)) {
+                    // val withHades = currentDrives + babaPath
+                    container.drives = babaPath
+                    container.saveData()
+                }
+                // WineStartMenuCreator.createMenuEntry(container.desktopDir, "Baba Is You", "D:/Baba Is You.exe")
+                Log.d("XServerScreen", "Before: $currentDrives, after: ${container.drives}")
                 containerManager.activateContainer(container)
 
                 val winePrefixNeedsUpdate = container.getExtra("wineprefixNeedsUpdate") == "t"
@@ -218,32 +237,32 @@ fun XServerScreen(
 
             // val xServer = XServer(ScreenInfo(screenSize))
             // xServer.winHandler = winHandler
-            val winStarted: BooleanArray = BooleanArray(1) { false }
+            // val winStarted: BooleanArray = BooleanArray(1) { false }
 
             xServer.windowManager.addOnWindowModificationListener(object: WindowManager.OnWindowModificationListener {
                 override fun onUpdateWindowContent(window: Window) {
-                    Log.d("XServerScreen", "onUpdateWindowContent")
-                    if (!winStarted[0] && window.isApplicationWindow()) {
+                    // Log.d("XServerScreen", "onUpdateWindowContent")
+                    if (!xServerState.value.winStarted && window.isApplicationWindow()) {
                         xServerView?.renderer?.setCursorVisible(true)
                         // TODO: close pre-loading dialog
-                        winStarted[0] = true
+                        xServerState.value.winStarted = true
                     }
 
                     // if (window.id == frameRatingWindowId) frameRating.update()
                 }
 
                 override fun onModifyWindowProperty(window: Window, property: Property) {
-                    Log.d("XServerScreen", "onModifyWindowProperty")
+                    // Log.d("XServerScreen", "onModifyWindowProperty")
                     // changeFrameRatingVisibility(window, property)
                 }
 
                 override fun onMapWindow(window: Window) {
-                    Log.d("XServerScreen", "onMapWindow")
+                    // Log.d("XServerScreen", "onMapWindow")
                     assignTaskAffinity(window, xServer.winHandler, taskAffinityMask, taskAffinityMaskWoW64)
                 }
 
                 override fun onUnmapWindow(window: Window) {
-                    Log.d("XServerScreen", "onUnmapWindow")
+                    // Log.d("XServerScreen", "onUnmapWindow")
                     // changeFrameRatingVisibility(window, null)
                 }
             })
@@ -251,7 +270,12 @@ fun XServerScreen(
     }
 
     AndroidView(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInteropFilter {
+                touchMouse?.onTouchEvent(it)
+                true
+            },
         factory = { context ->
             // Creates view
             Log.d("XServerScreen", "Creating XServerView")
@@ -262,9 +286,10 @@ fun XServerScreen(
                     .apply {
                         xServerView = this
                         val renderer = this.renderer
-                        // renderer.isCursorVisible = false
+                        renderer.isCursorVisible = false
                         xServer.renderer = renderer
                         xServer.winHandler = WinHandler(xServer, this)  // TODO: fix communication which used to be via activity
+                        touchMouse = TouchMouse(xServer)
                         // if (shortcut != null) {
                         //     if (shortcut.getExtra("forceFullscreen", "0").equals("1")) renderer.forceFullscreenWMClass =
                         //         shortcut.wmClass
@@ -497,6 +522,7 @@ private fun getWineStartCommand(container: Container, shortcut: Shortcut?): Stri
     val tempDir = File(container.rootDir, ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
 
+    // var args = "\"D:/Baba Is You.exe\""
     var args = ""
     if (shortcut != null) {
         var execArgs = shortcut.getExtra("execArgs")

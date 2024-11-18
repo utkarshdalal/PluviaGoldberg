@@ -293,6 +293,12 @@ public class WinHandler {
                 //
                 //     sendPacket(port);
                 // });
+                addAction(() -> {
+                    sendData.rewind();
+                    sendData.put(RequestCodes.GET_GAMEPAD);
+                    sendData.putInt(0);
+                    sendPacket(port);
+                });
                 break;
             }
             case RequestCodes.GET_GAMEPAD_STATE: {
@@ -319,6 +325,12 @@ public class WinHandler {
                 //
                 //     sendPacket(port);
                 // });
+                addAction(() -> {
+                    sendData.rewind();
+                    sendData.put(RequestCodes.GET_GAMEPAD_STATE);
+                    sendData.put((byte)0);
+                    sendPacket(port);
+                });
                 break;
             }
             case RequestCodes.RELEASE_GAMEPAD: {
