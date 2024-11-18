@@ -1,0 +1,336 @@
+736260: Baba Is You
+	appinfo
+		appid: 736260
+		common
+			name: Baba Is You
+			type: Game
+			releasestate: released
+			oslist: windows,macos,linux
+			osarch: 
+			icon: 9b9e1838838c21ee443359efe30b6a56cf0531dd
+			logo: a97ae34ad600f214ddf374d2690400f084dfc7e8
+			logo_small: a97ae34ad600f214ddf374d2690400f084dfc7e8_thumb
+			clienticon: c5119a21b0672889b1669e98d916d1a36ef24b82
+			clienttga: cc8f70cd885c278bb6f352d7d1850ae554388687
+			clienticns: 30562875b4236c386230dcb98d4be89db3d93bed
+			linuxclienticon: 98f1a878b55d72b91abe526562099cb6a377a322
+			languages
+				english: 1
+				german: 1
+				french: 1
+				italian: 1
+				koreana: 1
+				spanish: 1
+				thai: 1
+				japanese: 1
+				portuguese: 1
+				polish: 1
+				dutch: 1
+				norwegian: 1
+				czech: 1
+				turkish: 1
+				brazilian: 1
+				vietnamese: 1
+			osextended: macos64
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1646092800
+				tested_build_id: 8245402
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: native
+					requires_h264: 0
+			metacritic_name: Baba Is You
+			controllertagwizard: 1
+			controller_support: partial
+			small_capsule
+				english: capsule_231x87.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: BottomLeft
+					width_pct: 60.735122520420056
+					height_pct: 46.200427451911644
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+				library_logo
+					logo_position
+						pinned_position: BottomLeft
+						width_pct: 60.735122520420056
+						height_pct: 46.200427451911644
+					image
+						english: logo.png
+			store_asset_mtime: 1561409835
+			associations
+				0
+					type: developer
+					name: Hempuli Oy
+				1
+					type: publisher
+					name: Hempuli Oy
+			primary_genre: 23
+			genres
+				0: 23
+			category
+				category_2: 1
+				category_23: 1
+				category_22: 1
+				category_41: 1
+				category_42: 1
+				category_43: 1
+				category_18: 1
+				category_55: 1
+				category_56: 1
+				category_57: 1
+				category_58: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+				spanish
+					supported: true
+				koreana
+					supported: true
+				norwegian
+					supported: true
+				polish
+					supported: true
+				thai
+					supported: true
+				french
+					supported: true
+				italian
+					supported: true
+				dutch
+					supported: true
+				japanese
+					supported: true
+				portuguese
+					supported: true
+				brazilian
+					supported: true
+				turkish
+					supported: true
+				vietnamese
+					supported: true
+				german
+					supported: true
+				czech
+					supported: true
+				tchinese
+					supported: true
+			steam_release_date: 1552492800
+			metacritic_score: 87
+			metacritic_fullurl: https://www.metacritic.com/game/pc/baba-is-you?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 736260
+			store_tags
+				0: 1664
+				1: 492
+				2: 4026
+				3: 4182
+				4: 6129
+				5: 3964
+				6: 4726
+				7: 5432
+				8: 3871
+				9: 1730
+				10: 1756
+				11: 4094
+				12: 597
+				13: 8122
+				14: 4791
+				15: 4004
+				16: 9
+				17: 4166
+				18: 1710
+				19: 4136
+			review_score: 9
+			review_percentage: 97
+		extended
+			developer: Hempuli Oy
+			publisher: Hempuli Oy
+			homepage: http://www.hempuli.com/Baba/
+		config
+			installdir: Baba Is You
+			launch
+				0
+					executable: Baba Is You.exe
+					description: Launch the game
+					type: default
+					config
+						oslist: windows
+				1
+					executable: Baba Is You.app\Contents\MacOS\Chowdren
+					type: default
+					config
+						oslist: macos
+				2
+					executable: run.sh
+					type: none
+					config
+						oslist: linux
+			steamcontrollertemplateindex: 4
+			steamcontrollertouchtemplateindex: 1
+			steamcontrollertouchconfigdetails
+				1865290976
+					controller_type: controller_mobile_touch
+					enabled_branches: default
+					use_action_block: false
+		depots
+			baselanguages: english,french,italian,koreana,spanish,thai,japanese,portuguese,polish,dutch,norwegian,czech,turkish,brazilian,vietnamese
+			736261
+				config
+					oslist: windows
+					language: 
+				manifests
+					public
+						gid: 8815489357607334049
+						size: 111328718
+						download: 86655056
+					beta_unstable
+						gid: 8815489357607334049
+						size: 111328718
+						download: 86655056
+					betatest
+						gid: 8815489357607334049
+						size: 111328718
+						download: 86655056
+					old-editor
+						gid: 6127475361698596653
+						size: 78763709
+						download: 67695024
+				encryptedmanifests
+					staging
+						gid: 1FA4DC790A0EF765AA47653773E1C024
+						size: 104BA65AFF34C7B2801E78F152A51F42
+						download: D4CFCC0CE98CA616BC545A969273DE8F
+			736262
+				config
+					oslist: macos
+					language: 
+				manifests
+					public
+						gid: 2616255736580287154
+						size: 109964067
+						download: 85838944
+					beta_unstable
+						gid: 2616255736580287154
+						size: 109964067
+						download: 85838944
+					betatest
+						gid: 2616255736580287154
+						size: 109964067
+						download: 85838944
+					old-editor
+						gid: 1507283872335196204
+						size: 81304205
+						download: 67672128
+				encryptedmanifests
+					staging
+						gid: E17784511FFAC1B0C0C7155C9A5AB5F9
+						size: 3E6767AD0D78FD458E3B38654CB4DDC9
+						download: 3E7D8F2E5EA3E0223F2EA2E0C0A2FE93
+			736263
+				config
+					oslist: linux
+					language: 
+				manifests
+					public
+						gid: 416776647528072709
+						size: 124697966
+						download: 88605472
+					beta_unstable
+						gid: 416776647528072709
+						size: 124697966
+						download: 88605472
+					betatest
+						gid: 416776647528072709
+						size: 124697966
+						download: 88605472
+					old-editor
+						gid: 5585993388077991206
+						size: 86419625
+						download: 69514928
+				encryptedmanifests
+					staging
+						gid: F5C05E36F1E28D63D12BF91A2733456A
+						size: C112AB2634F877A7F79DB35F4085715B
+						download: 73E7F672CEAE8D696CFF44A884E4B4D4
+			hasdepotsindlc: 1
+			branches
+				public
+					buildid: 12486530
+					timeupdated: 1697843769
+				beta_unstable
+					buildid: 12486530
+					timeupdated: 1697843752
+				betatest
+					buildid: 12486530
+					timeupdated: 1697843761
+				old-editor
+					buildid: 4067217
+					timeupdated: 1573509793
+				staging
+					buildid: 12486530
+					pwdrequired: 1
+					timeupdated: 1697750035
+		ufs
+			quota: 5000000
+			maxnumfiles: 50
+			savefiles
+				0
+					root: WinAppDataRoaming
+					path: Baba_Is_You
+					pattern: *
+			rootoverrides
+				0
+					root: WinAppDataRoaming
+					os: Linux
+					oscompare: =
+					useinstead: LinuxXdgDataHome
+					pathtransforms
+						0
+							find: Baba_Is_You
+							replace: Baba_Is_You
+				1
+					root: WinAppDataRoaming
+					os: MacOS
+					oscompare: =
+					useinstead: MacAppSupport
+					pathtransforms
+						0
+							find: Baba_Is_You
+							replace: Baba_Is_You

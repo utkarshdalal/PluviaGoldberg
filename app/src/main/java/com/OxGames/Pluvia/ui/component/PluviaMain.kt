@@ -347,7 +347,7 @@ fun PluviaMain(
                         )
                     }
                     composable(route = PluviaScreen.XServer.name) {
-                        XServerScreen()
+                        XServerScreen(appId = appId)
                     }
                 }
             }

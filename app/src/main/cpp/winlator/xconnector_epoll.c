@@ -10,6 +10,7 @@
 #include <malloc.h>
 #include <jni.h>
 #include <android/log.h>
+#include <android/fdsan.h>
 
 #define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "System.out", __VA_ARGS__);
 #define MAX_EVENTS 10
@@ -58,6 +59,12 @@ JNIEXPORT jboolean JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_doEpollIndefinitely(JNIEnv *env, jobject obj,
                                                                  jint epollFd, jint serverFd,
                                                                  jboolean addClientToEpoll) {
+    int auto fdsan_level = android_fdsan_get_error_level();
+    if (fdsan_level != ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS) {
+        printf("Setting fdsan error level")
+        android_fdsan_set_error_level(ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS);
+    }
+
     jclass cls = (*env)->GetObjectClass(env, obj);
     jmethodID handleNewConnection = (*env)->GetMethodID(env, cls, "handleNewConnection", "(I)V");
     jmethodID handleExistingConnection = (*env)->GetMethodID(env, cls, "handleExistingConnection", "(I)V");

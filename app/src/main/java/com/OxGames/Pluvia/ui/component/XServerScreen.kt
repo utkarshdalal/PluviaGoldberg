@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
@@ -16,12 +17,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.lifecycle.LifecycleOwner
 import androidx.preference.PreferenceManager
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.R
+import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.enums.OS
+import com.OxGames.Pluvia.enums.OSArch
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.data.XServerState
 import com.winlator.box86_64.Box86_64Preset
@@ -75,6 +78,7 @@ import java.util.concurrent.Future
 @OptIn(ExperimentalComposeUiApi::class)
 fun XServerScreen(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    appId: Int
     // xServerViewModel: XServerViewModel = viewModel()
 ) {
     Log.d("XServerScreen", "Starting up XServerScreen")
@@ -134,6 +138,33 @@ fun XServerScreen(
         result
     }
 
+    val appDirPath = SteamService.getAppDirPath(appId)
+    val appLocalExe = SteamService.getAppInfoOf(appId)?.let { appInfo ->
+        appInfo.config.launch.firstOrNull { launchInfo ->
+            // since configOS was unreliable and configArch was even more unreliable
+            launchInfo.executable.endsWith(".exe")
+        }?.let { launchInfo ->
+            val exe = if (launchInfo.executable.contains("\\")) {
+                launchInfo.executable.substring(launchInfo.executable.lastIndexOf("\\") + 1)
+            } else {
+                launchInfo.executable
+            }
+            Pair(launchInfo.workingDir, exe)
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val onActivityDestroyed: (AndroidEvent.ActivityDestroyed) -> Unit = {
+            exit(xServer.winHandler, xEnvironment)
+        }
+
+        PluviaApp.events.on<AndroidEvent.ActivityDestroyed>(onActivityDestroyed)
+
+        onDispose {
+            PluviaApp.events.off<AndroidEvent.ActivityDestroyed>(onActivityDestroyed)
+        }
+    }
+
     LaunchedEffect(lifecycleOwner) {
         // CoroutineScope(Dispatchers.IO).launch {
             val imageFsInstallSuccess = ImageFsInstaller.installIfNeededFuture(context).get()
@@ -146,7 +177,7 @@ fun XServerScreen(
                 containerManager = ContainerManager(context)
                 container = containerManager.getContainerById(containerId) ?: createContainer(containerManager, xServerState.value.wineInfo).get()
                 val currentDrives = container.drives
-                val babaPath = "D:/data/data/com.OxGames.Pluvia/Steam/steamapps/common/Baba_Is_You"
+                val babaPath = "D:$appDirPath"
                 if (!currentDrives.contains(babaPath)) {
                     // val withHades = currentDrives + babaPath
                     container.drives = babaPath
@@ -290,6 +321,7 @@ fun XServerScreen(
                         xServer.renderer = renderer
                         xServer.winHandler = WinHandler(xServer, this)  // TODO: fix communication which used to be via activity
                         touchMouse = TouchMouse(xServer)
+                        renderer.setUnviewableWMClasses("explorer.exe")
                         // if (shortcut != null) {
                         //     if (shortcut.getExtra("forceFullscreen", "0").equals("1")) renderer.forceFullscreenWMClass =
                         //         shortcut.wmClass
@@ -353,6 +385,7 @@ fun XServerScreen(
                     envVars,
                     generateWinePrefix,
                     container,
+                    appLocalExe,
                     xServerState.value.shortcut,
                     xServer,
                     imageFs,
@@ -438,6 +471,7 @@ private fun setupXEnvironment(
     envVars: EnvVars,
     generateWinePrefix: Boolean,
     container: Container?,
+    appLocalExe: Pair<String, String>?,
     shortcut: Shortcut?,
     xServer: XServer,
     imageFs: ImageFs,
@@ -462,7 +496,7 @@ private fun setupXEnvironment(
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
 
         val wow64Mode = container.isWoW64Mode
-        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand(container, shortcut)
+        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand(container, appLocalExe)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
@@ -499,7 +533,7 @@ private fun setupXEnvironment(
     }
 
     guestProgramLauncherComponent.envVars = envVars
-    // guestProgramLauncherComponent.setTerminationCallback { status -> exit() } // TODO: turn this into an event
+    guestProgramLauncherComponent.setTerminationCallback { status -> exit(xServer.winHandler, environment) } // TODO: turn this into an event
     environment.addComponent(guestProgramLauncherComponent)
 
     if (generateWinePrefix)
@@ -518,40 +552,46 @@ private fun setupXEnvironment(
     xServerState.value = xServerState.value.copy(dxwrapperConfig = null)
     return environment
 }
-private fun getWineStartCommand(container: Container, shortcut: Shortcut?): String {
+private fun getWineStartCommand(container: Container, appLocalExe: Pair<String, String>?): String {
     val tempDir = File(container.rootDir, ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
 
-    // var args = "\"D:/Baba Is You.exe\""
-    var args = ""
-    if (shortcut != null) {
-        var execArgs = shortcut.getExtra("execArgs")
-        execArgs = if (!execArgs.isEmpty()) " $execArgs" else ""
-
-        if (shortcut.path.endsWith(".lnk")) {
-            args += "\""+shortcut.path+"\""+execArgs
-        }
-        else {
-            val exeDir = FileUtils.getDirname(shortcut.path)
-            var filename = FileUtils.getName(shortcut.path)
-            val dotIndex: Int = filename.lastIndexOf(".")
-            val spaceIndex: Int = filename.indexOf(" ", dotIndex)
-            if (dotIndex != -1 && spaceIndex != -1) {
-                execArgs = filename.substring(spaceIndex+1)+execArgs
-                filename = filename.substring(0, spaceIndex)
-            }
-            args += "/dir "+exeDir.replace(" ", "\\ ")+" \""+filename+"\""+execArgs
-        }
+    Log.d("XServerScreen", "Converting $appLocalExe to wine start command")
+    var args = if (appLocalExe != null) {
+        "/dir D:/${appLocalExe.first} \"${appLocalExe.second}\""
+    } else {
+        "\"wfm.exe\""
     }
-    else args += "\"wfm.exe\""
+    // var args = ""
+    // if (shortcut != null) {
+    //     var execArgs = shortcut.getExtra("execArgs")
+    //     execArgs = if (!execArgs.isEmpty()) " $execArgs" else ""
+    //
+    //     if (shortcut.path.endsWith(".lnk")) {
+    //         args += "\""+shortcut.path+"\""+execArgs
+    //     }
+    //     else {
+    //         val exeDir = FileUtils.getDirname(shortcut.path)
+    //         var filename = FileUtils.getName(shortcut.path)
+    //         val dotIndex: Int = filename.lastIndexOf(".")
+    //         val spaceIndex: Int = filename.indexOf(" ", dotIndex)
+    //         if (dotIndex != -1 && spaceIndex != -1) {
+    //             execArgs = filename.substring(spaceIndex+1)+execArgs
+    //             filename = filename.substring(0, spaceIndex)
+    //         }
+    //         args += "/dir "+exeDir.replace(" ", "\\ ")+" \""+filename+"\""+execArgs
+    //     }
+    // }
+    // else args += "\"wfm.exe\""
 
     return "winhandler.exe $args"
 }
-// private void exit() {
-//     winHandler.stop()
-//     if (environment != null) environment.stopEnvironmentComponents()
-//     AppUtils.restartApplication(this)
-// }
+private fun exit(winHandler: WinHandler, environment: XEnvironment?) {
+    Log.d("XServerScreen", "Exit called")
+    winHandler.stop()
+    environment?.stopEnvironmentComponents()
+    // AppUtils.restartApplication(this)
+}
 
 private fun generateWineprefix(
     context: Context,
