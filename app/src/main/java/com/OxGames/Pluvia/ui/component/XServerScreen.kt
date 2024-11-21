@@ -2,7 +2,6 @@ package com.OxGames.Pluvia.ui.component
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.drawable.ColorDrawable
 import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -18,16 +17,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.lifecycle.LifecycleOwner
 import androidx.preference.PreferenceManager
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
-import com.OxGames.Pluvia.enums.OS
-import com.OxGames.Pluvia.enums.OSArch
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.data.XServerState
 import com.OxGames.Pluvia.ui.enums.Orientation
@@ -56,7 +52,8 @@ import com.winlator.core.TarCompressorUtils
 import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineStartMenuCreator
 import com.winlator.core.WineThemeManager
-import com.winlator.inputhandler.TouchMouse
+import com.winlator.inputcontrols.ExternalController
+import com.winlator.inputcontrols.TouchMouse
 import com.winlator.xconnector.UnixSocketConfig
 import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xenvironment.XEnvironment
@@ -162,11 +159,23 @@ fun XServerScreen(
         val onActivityDestroyed: (AndroidEvent.ActivityDestroyed) -> Unit = {
             exit(xServer.winHandler, xEnvironment)
         }
+        val onKeyEvent: (AndroidEvent.KeyEvent) -> Boolean = {
+            Log.d("XServerScreen", "dispatchKeyEvent(${it.event.keyCode}):\n${it.event}")
+            true
+        }
+        val onMotionEvent: (AndroidEvent.MotionEvent) -> Boolean = {
+            Log.d("XServerScreen", "dispatchGenericMotionEvent(${it.event?.deviceId}:${it.event?.device?.name}):\n${it.event}")
+            true
+        }
 
-        PluviaApp.events.on<AndroidEvent.ActivityDestroyed>(onActivityDestroyed)
+        PluviaApp.events.on<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
+        PluviaApp.events.on<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
+        PluviaApp.events.on<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
 
         onDispose {
-            PluviaApp.events.off<AndroidEvent.ActivityDestroyed>(onActivityDestroyed)
+            PluviaApp.events.off<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
+            PluviaApp.events.off<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
+            PluviaApp.events.off<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
         }
     }
 
@@ -309,6 +318,7 @@ fun XServerScreen(
         modifier = Modifier
             .fillMaxSize()
             .pointerInteropFilter {
+                // Log.d("XServerScreen", "PointerInteropFilter: $it")
                 touchMouse?.onTouchEvent(it)
                 true
             },

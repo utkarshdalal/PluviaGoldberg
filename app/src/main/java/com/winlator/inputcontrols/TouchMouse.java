@@ -1,4 +1,4 @@
-package com.winlator.inputhandler;
+package com.winlator.inputcontrols;
 
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;

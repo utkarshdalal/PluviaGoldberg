@@ -1,9 +1,11 @@
 package com.OxGames.Pluvia
 
+import android.annotation.SuppressLint
 import android.content.res.Configuration
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.OrientationEventListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -42,9 +44,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // startOrientator() // causes memory leak since activity restarted every orientation change
-        PluviaApp.events.on<AndroidEvent.SetSystemUIVisibility>(onSetSystemUi)
-        PluviaApp.events.on<AndroidEvent.StartOrientator>(onStartOrientator)
-        PluviaApp.events.on<AndroidEvent.SetAllowedOrientation>(onSetAllowedOrientation)
+        PluviaApp.events.on<AndroidEvent.SetSystemUIVisibility, Unit>(onSetSystemUi)
+        PluviaApp.events.on<AndroidEvent.StartOrientator, Unit>(onStartOrientator)
+        PluviaApp.events.on<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
 
         enableEdgeToEdge()
         setContent { PluviaMain() }
@@ -55,21 +57,37 @@ class MainActivity : ComponentActivity() {
 
         Log.d("MainActivity$index", "onDestroy")
         PluviaApp.events.emit(AndroidEvent.ActivityDestroyed)
-        PluviaApp.events.off<AndroidEvent.SetSystemUIVisibility>(onSetSystemUi)
-        PluviaApp.events.off<AndroidEvent.StartOrientator>(onStartOrientator)
-        PluviaApp.events.off<AndroidEvent.SetAllowedOrientation>(onSetAllowedOrientation)
+        PluviaApp.events.off<AndroidEvent.SetSystemUIVisibility, Unit>(onSetSystemUi)
+        PluviaApp.events.off<AndroidEvent.StartOrientator, Unit>(onStartOrientator)
+        PluviaApp.events.off<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
     }
 
-    // override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-    //     return super.dispatchKeyEvent(event)
+    // override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+    //     // Log.d("MainActivity$index", "onKeyDown($keyCode):\n$event")
+    //     if (keyCode == KeyEvent.KEYCODE_BACK) {
+    //         PluviaApp.events.emit(AndroidEvent.BackPressed)
+    //         return true
+    //     }
+    //     return super.onKeyDown(keyCode, event)
     // }
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        Log.d("MainActivity$index", "onKeyDown($keyCode):\n$event")
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            PluviaApp.events.emit(AndroidEvent.BackPressed)
-            return true
+
+    @SuppressLint("RestrictedApi")
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // Log.d("MainActivity$index", "dispatchKeyEvent(${event.keyCode}):\n$event")
+        var eventDispatched = PluviaApp.events.emit(AndroidEvent.KeyEvent(event)) { it.any { it } } == true
+        if (!eventDispatched) {
+            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+                PluviaApp.events.emit(AndroidEvent.BackPressed)
+                eventDispatched = true
+            }
         }
-        return super.onKeyDown(keyCode, event)
+        return if (!eventDispatched) super.dispatchKeyEvent(event) else true
+    }
+
+    override fun dispatchGenericMotionEvent(ev: MotionEvent?): Boolean {
+        // Log.d("MainActivity$index", "dispatchGenericMotionEvent(${ev?.deviceId}:${ev?.device?.name}):\n$ev")
+        val eventDispatched = PluviaApp.events.emit(AndroidEvent.MotionEvent(ev)) { it.any { it } } == true
+        return if (!eventDispatched) super.dispatchGenericMotionEvent(ev) else true
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

@@ -33,10 +33,10 @@ fun LibraryScreen(
             Log.d("LibraryScreen", "Updating games list with ${appsList.count()} item(s)")
         }
 
-        PluviaApp.events.on<SteamEvent.AppInfoReceived>(onAppInfoReceived)
+        PluviaApp.events.on<SteamEvent.AppInfoReceived, Unit>(onAppInfoReceived)
 
         onDispose {
-            PluviaApp.events.off<SteamEvent.AppInfoReceived>(onAppInfoReceived)
+            PluviaApp.events.off<SteamEvent.AppInfoReceived, Unit>(onAppInfoReceived)
         }
     }
 
