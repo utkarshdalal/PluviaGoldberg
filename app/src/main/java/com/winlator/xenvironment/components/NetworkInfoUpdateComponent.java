@@ -53,7 +53,11 @@ public class NetworkInfoUpdateComponent extends EnvironmentComponent {
     public void stop() {
         Log.d("NetworkInfoUpdateComponent", "Stopping...");
         if (broadcastReceiver != null) {
-            environment.getContext().unregisterReceiver(broadcastReceiver);
+            try {
+                environment.getContext().unregisterReceiver(broadcastReceiver);
+            } catch(Exception e) {
+                Log.e("NetworkInfoUpdateComponent", "Failed to unregister broadcast receiver: " + e);
+            }
             broadcastReceiver = null;
         }
     }

@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.component
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.drawable.ColorDrawable
 import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -17,6 +18,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.lifecycle.LifecycleOwner
 import androidx.preference.PreferenceManager
@@ -27,6 +30,7 @@ import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.OSArch
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.data.XServerState
+import com.OxGames.Pluvia.ui.enums.Orientation
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
@@ -72,6 +76,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
+import java.util.EnumSet
 import java.util.concurrent.Future
 
 @Composable
@@ -86,9 +91,9 @@ fun XServerScreen(
 
     PluviaApp.events.emit(AndroidEvent.SetAppBarVisibility(false))
     PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(false))
-    // PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(
-    //     EnumSet.of(Orientation.LANDSCAPE, Orientation.REVERSE_LANDSCAPE)) // TOOD: add option for user to pick
-    // )
+    PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(
+        EnumSet.of(Orientation.LANDSCAPE, Orientation.REVERSE_LANDSCAPE)) // TOOD: add option for user to pick
+    )
 
     ProcessHelper.addDebugCallback(object: Callback<String> {
         override fun call(outputLine: String?) {
@@ -310,25 +315,22 @@ fun XServerScreen(
         factory = { context ->
             // Creates view
             Log.d("XServerScreen", "Creating XServerView")
-            // if (xServerView != null) {
-            //     xServerView!!
-            // } else {
-                XServerView(context, xServer)
-                    .apply {
-                        xServerView = this
-                        val renderer = this.renderer
-                        renderer.isCursorVisible = false
-                        xServer.renderer = renderer
-                        xServer.winHandler = WinHandler(xServer, this)  // TODO: fix communication which used to be via activity
-                        touchMouse = TouchMouse(xServer)
-                        renderer.setUnviewableWMClasses("explorer.exe")
-                        // if (shortcut != null) {
-                        //     if (shortcut.getExtra("forceFullscreen", "0").equals("1")) renderer.forceFullscreenWMClass =
-                        //         shortcut.wmClass
-                        //     renderer.setUnviewableWMClasses("explorer.exe")
-                        // }
-                    }
-            // }
+            XServerView(context, xServer).apply {
+                xServerView = this
+                // this.background = ColorDrawable(Color.Green.toArgb())
+                val renderer = this.renderer
+                renderer.isCursorVisible = false
+                xServer.renderer = renderer
+                xServer.winHandler = WinHandler(xServer, this)  // TODO: fix communication which used to be via activity
+                touchMouse = TouchMouse(xServer)
+                renderer.setUnviewableWMClasses("explorer.exe")
+                // TODO: set wmclass of appId to be fullscreen
+                // if (shortcut != null) {
+                //     if (shortcut.getExtra("forceFullscreen", "0").equals("1")) renderer.forceFullscreenWMClass =
+                //         shortcut.wmClass
+                //     renderer.setUnviewableWMClasses("explorer.exe")
+                // }
+            }
         },
         update = { view ->
             // View's been inflated or state read in this block has been updated

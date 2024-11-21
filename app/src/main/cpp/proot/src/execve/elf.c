@@ -51,7 +51,9 @@ int open_elf(const char *t_path, ElfHeader *elf_header)
 	 * Read the ELF header.
 	 */
 
+    printf("Elf open");
 	fd = open(t_path, O_RDONLY);
+    printf("Elf open end");
 	if (fd < 0)
 		return -errno;
 
@@ -81,7 +83,9 @@ int open_elf(const char *t_path, ElfHeader *elf_header)
 end:
 	/* Delayed error handling.  */
 	if (status < 0) {
+        printf("Elf close %d", fd);
 		close(fd);
+        printf("Elf close %d done", fd);
 		return status;
 	}
 

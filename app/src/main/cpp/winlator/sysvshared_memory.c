@@ -15,10 +15,24 @@
 
 #define __u32 uint32_t
 #include <linux/ashmem.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 #define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "System.out", __VA_ARGS__);
 
 static int ashmemCreateRegion(const char* name, int64_t size) {
+//    // Create /dev directory if it doesn't exist
+//    if (mkdir("/dev", 0777) < 0 && errno != EEXIST) {
+//        // Handle error, but ignore if directory already exists
+//        perror("Failed to create /dev directory");
+//        return -1;
+//    }
+//
+//    int fd = open("/dev/ashmem", O_RDWR | O_CREAT, 0777);
+//    if (fd < 0) {
+//        perror("Failed to open /dev/ashmem");
+//        return -1;
+//    }
     int fd = open("/dev/ashmem", O_RDWR);
     if (fd < 0) return -1;
 
@@ -34,7 +48,9 @@ static int ashmemCreateRegion(const char* name, int64_t size) {
 
     return fd;
 error:
+    printf("SysVSharedMemory close %d", fd);
     close(fd);
+    printf("SysVSharedMemory close %d done", fd);
     return -1;
 }
 
@@ -73,14 +89,18 @@ Java_com_winlator_sysvshm_SysVSharedMemory_createMemoryFd(JNIEnv *env, jclass ob
                                                           jint size) {
     const char *namePtr = (*env)->GetStringUTFChars(env, name, 0);
 
+    printf("SysVSharedMemory2 memfd_create");
     int fd = memfd_create(namePtr, MFD_ALLOW_SEALING);
+    printf("SysVSharedMemory2 memfd_create done");
     (*env)->ReleaseStringUTFChars(env, name, namePtr);
 
     if (fd < 0) return -1;
 
     int res = ftruncate(fd, size);
     if (res < 0) {
+        printf("SysVSharedMemory2 close %d", fd);
         close(fd);
+        printf("SysVSharedMemory2 close %d done", fd);
         return -1;
     }
 

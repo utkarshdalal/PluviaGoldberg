@@ -55,7 +55,9 @@ int virgl_server_new_shm(uint32_t handle, size_t size)
 
    ret = ftruncate(fd, size);
    if (ret < 0) {
+       printf("VirGLServerShm close %d", fd);
       close(fd);
+       printf("VirGLServerShm close %d done", fd);
       return -errno;
    }
 

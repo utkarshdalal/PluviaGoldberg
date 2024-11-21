@@ -81,7 +81,7 @@ class MainActivity : ComponentActivity() {
         // Log.d("MainActivity$index", "Orientator starting up")
         val orientationEventListener = object : OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
-                currentOrientationChangeValue = orientation
+                currentOrientationChangeValue = if (orientation != ORIENTATION_UNKNOWN) orientation else currentOrientationChangeValue
                 setOrientationTo(currentOrientationChangeValue, availableOrientations)
             }
         }
@@ -116,7 +116,9 @@ class MainActivity : ComponentActivity() {
         }
         val nearest = distances.sortedBy { it.second }.first()
         // set the requested orientation to the nearest if it is not already as long as it is nearer than what is currently set
-        if (requestedOrientation != nearest.first.activityInfoValue && distances.firstOrNull { it.first.activityInfoValue == requestedOrientation }?.second != nearest.second) {
+        val currentOrientationDist = distances.firstOrNull { it.first.activityInfoValue == requestedOrientation }?.second ?: Int.MAX_VALUE
+        if (requestedOrientation != nearest.first.activityInfoValue && currentOrientationDist > nearest.second) {
+            Log.d("MainActivity", "$adjustedOrientation => currentOrientation(${Orientation.fromActivityInfoValue(requestedOrientation)}) != nearestOrientation(${nearest.first}) && currentDistance($currentOrientationDist) > nearestDistance(${nearest.second})")
             requestedOrientation = nearest.first.activityInfoValue
         }
     }

@@ -16,13 +16,58 @@
 #define MAX_EVENTS 10
 #define MAX_FDS 32
 
+#define MAX_TRACKED_FDS 1024  // Adjust based on your needs
+
+typedef struct {
+    int fd;
+    bool is_owned;
+} FdTracker;
+
+static FdTracker fd_tracking[MAX_TRACKED_FDS] = {0};
+
 struct epoll_event events[MAX_EVENTS];
+
+// Call this when you first obtain/create a file descriptor
+void trackFd(jint fd) {
+    for (int i = 0; i < MAX_TRACKED_FDS; i++) {
+        if (fd_tracking[i].fd == 0) {
+            fd_tracking[i].fd = fd;
+            fd_tracking[i].is_owned = true;
+            break;
+        }
+    }
+}
+void closeFd(jint fd) {
+    bool can_close = false;
+
+    // Find and check ownership
+    for (int i = 0; i < MAX_TRACKED_FDS; i++) {
+        if (fd_tracking[i].fd == fd) {
+            if (fd_tracking[i].is_owned) {
+                can_close = true;
+                // Mark as no longer owned
+                fd_tracking[i].fd = 0;
+                fd_tracking[i].is_owned = false;
+            }
+            break;
+        }
+    }
+
+    if (can_close) {
+        printf("XConnectorEpoll2 close %d", fd);
+        close(fd);
+        printf("XConnectorEpoll2 close %d done", fd);
+    } else {
+        printf("XConnectorEpoll2 attempted to close unowned fd %d", fd);
+    }
+}
 
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createAFUnixSocket(JNIEnv *env, jobject obj,
                                                                 jstring path) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (fd < 0) return -1;
+    trackFd(fd);
 
     struct sockaddr_un serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
@@ -41,18 +86,26 @@ Java_com_winlator_xconnector_XConnectorEpoll_createAFUnixSocket(JNIEnv *env, job
 
     return fd;
     error:
-    close(fd);
+    closeFd(fd);
+//    printf("XConnectorEpoll close %d", fd);
+//    close(fd);
+//    printf("XConnectorEpoll close %d done", fd);
     return -1;
 }
 
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createEpollFd(JNIEnv *env, jobject obj) {
-    return epoll_create(MAX_EVENTS);
+    int fd = epoll_create(MAX_EVENTS);
+    trackFd(fd);
+    return fd;
 }
 
 JNIEXPORT void JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_closeFd(JNIEnv *env, jobject obj, jint fd) {
-    close(fd);
+    closeFd(fd);
+//    printf("XConnectorEpoll2 close %d", fd);
+//    close(fd);
+//    printf("XConnectorEpoll2 close %d done", fd);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -74,6 +127,7 @@ Java_com_winlator_xconnector_XConnectorEpoll_doEpollIndefinitely(JNIEnv *env, jo
         if (events[i].data.fd == serverFd) {
             int clientFd = accept(serverFd, NULL, NULL);
             if (clientFd >= 0) {
+                trackFd(clientFd);
                 if (addClientToEpoll) {
                     struct epoll_event event;
                     event.data.fd = clientFd;
@@ -127,7 +181,9 @@ Java_com_winlator_xconnector_ClientSocket_write(JNIEnv *env, jobject obj, jint f
 
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createEventFd(JNIEnv *env, jobject obj) {
-    return eventfd(0, EFD_NONBLOCK);
+    int fd = eventfd(0, EFD_NONBLOCK);
+    trackFd(fd);
+    return fd;
 }
 
 JNIEXPORT jint JNICALL

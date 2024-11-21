@@ -167,7 +167,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
         fun getUserSteamId(): SteamID? {
-            return instance?._steamUser?.steamID
+            return instance?._steamClient?.steamID
         }
         fun getPersonaStateOf(steamId: SteamID): UserData? {
             return instance?.personaStates?.get(steamId.accountID)
