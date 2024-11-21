@@ -554,7 +554,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         isStopping = false
         retryAttempt = 0
 
-        PluviaApp.events.clearAllListenersOf<SteamEvent>()
+        PluviaApp.events.clearAllListenersOf<SteamEvent<Any>>()
     }
 
     private fun onConnected(callback: ConnectedCallback) {

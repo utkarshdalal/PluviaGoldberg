@@ -82,18 +82,18 @@ fun UserLoginScreen(
                 userLoginViewModel.setLoginResult(LoginResult.Failed)
         }
 
-        PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
-        PluviaApp.events.on<SteamEvent.Disconnected>(onSteamDisconnected)
-        PluviaApp.events.on<SteamEvent.LogonStarted>(onLogonStarted)
-        PluviaApp.events.on<SteamEvent.LogonEnded>(onLogonEnded)
-        PluviaApp.events.on<AndroidEvent.BackPressed>(onBackPressed)
+        PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
+        PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
+        PluviaApp.events.on<SteamEvent.LogonStarted, Unit>(onLogonStarted)
+        PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
+        PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
 
         onDispose {
-            PluviaApp.events.off<SteamEvent.Connected>(onSteamConnected)
-            PluviaApp.events.off<SteamEvent.Disconnected>(onSteamDisconnected)
-            PluviaApp.events.off<SteamEvent.LogonStarted>(onLogonStarted)
-            PluviaApp.events.off<SteamEvent.LogonEnded>(onLogonEnded)
-            PluviaApp.events.off<AndroidEvent.BackPressed>(onBackPressed)
+            PluviaApp.events.off<SteamEvent.Connected, Unit>(onSteamConnected)
+            PluviaApp.events.off<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
+            PluviaApp.events.off<SteamEvent.LogonStarted, Unit>(onLogonStarted)
+            PluviaApp.events.off<SteamEvent.LogonEnded, Unit>(onLogonEnded)
+            PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
         }
     }
 

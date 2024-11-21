@@ -1,43 +1,41 @@
 package com.OxGames.Pluvia.events
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlin.reflect.KClass
 
-// written by Claude 3.5
-sealed interface Event
+// written with the help of Claude 3.5
+sealed interface Event<T>
 
 class EventDispatcher {
-    val listeners = mutableMapOf<KClass<out Event>, MutableList<Pair<String, EventListener<Event>>>>()
+    val listeners = mutableMapOf<KClass<out Event<*>>, MutableList<Pair<String, EventListener<Event<*>, *>>>>()
 
-    class EventListener<E : Event>(
-        val listener: (E) -> Unit,
+    open class EventListener<E : Event<T>, T>(
+        val listener: (E) -> T,
         val once: Boolean = false
     )
 
-    inline fun <reified E : Event> on(noinline listener: (E) -> Unit) {
-        addListener(listener, false)
+    inline fun <reified E : Event<T>, T> on(noinline listener: (E) -> T) {
+        addListener<E, T>(listener, false)
     }
 
-    inline fun <reified E : Event> once(noinline listener: (E) -> Unit) {
-        addListener(listener, true)
+    inline fun <reified E : Event<T>, T> once(noinline listener: (E) -> T) {
+        addListener<E, T>(listener, true)
     }
 
-    inline fun <reified E : Event> addListener(
-        noinline listener: (E) -> Unit,
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified E : Event<T>, T> addListener(
+        noinline listener: (E) -> T,
         once: Boolean
     ) {
         val eventClass = E::class
-        val typedListener = Pair(listener.toString(), EventListener<Event>({ event ->
-            if (event is E) {
-                listener(event)
-            }
+        val typedListener = Pair(listener.toString(), EventListener<Event<T>, T>({ event ->
+            // Log.d("EventDispatcher", "Dispatching event $event to $listener")
+            listener(event as E)
         }, once))
-        listeners.getOrPut(eventClass) { mutableListOf() }.add(typedListener)
+        // Log.d("EventDispatcher", "Putting $typedListener in $eventClass")
+        listeners.getOrPut(eventClass) { mutableListOf() }.add(typedListener as Pair<String, EventListener<Event<*>, *>>)
     }
 
-    inline fun <reified E : Event> off(noinline listener: (E) -> Unit) {
+    inline fun <reified E : Event<T>, T> off(noinline listener: (E) -> T) {
         val eventClass = E::class
         listeners[eventClass]?.removeIf {
             // Log.d("EventDispatcher", "Removing if ${it.first} == $listener")
@@ -45,7 +43,7 @@ class EventDispatcher {
         }
     }
 
-    inline fun <reified E : Event> clearAllListenersOf() {
+    inline fun <reified E : Event<*>> clearAllListenersOf() {
         val currentKeys = listeners.keys.toList()
         for (key in currentKeys)
             if (key is E)
@@ -55,18 +53,17 @@ class EventDispatcher {
         listeners.clear()
     }
 
-    inline fun <reified E : Event> emit(event: E) {
-        // Launch on the main thread
-        CoroutineScope(Dispatchers.Main).launch {
-            val eventClass = E::class
-            listeners[eventClass]?.let { eventListeners ->
-                // Create a new list for iteration to avoid concurrent modification
-                eventListeners.toList().forEach { eventListener ->
-                    eventListener.second.listener(event)
-                }
-                // Remove one-time listeners after execution
-                eventListeners.removeIf { it.second.once }
-            }
+    inline fun <reified E : Event<T>, reified T> emit(event: E, noinline resultAggregator: ((Array<T>) -> T)? = null): T? {
+        val eventClass = E::class
+        // Log.d("EventDispatcher", "Emitting $eventClass")
+        return listeners[eventClass]?.let { eventListeners ->
+            // Create a new list for iteration to avoid concurrent modification
+            val results = eventListeners.toList().map { eventListener ->
+                eventListener.second.listener(event) as T
+            }.toTypedArray()
+            // Remove one-time listeners after execution
+            eventListeners.removeIf { it.second.once }
+            resultAggregator?.let { it(results) }
         }
     }
 }

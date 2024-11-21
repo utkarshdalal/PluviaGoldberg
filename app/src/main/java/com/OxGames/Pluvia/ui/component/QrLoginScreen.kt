@@ -63,22 +63,22 @@ fun QrLoginScreen(
             url = null
         }
 
-        PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
-        PluviaApp.events.on<SteamEvent.Disconnected>(onSteamDisconnected)
-        PluviaApp.events.on<SteamEvent.LogonStarted>(onLogonStarted)
-        PluviaApp.events.on<SteamEvent.LogonEnded>(onLogonEnded)
-        PluviaApp.events.on<SteamEvent.QrChallengeReceived>(onQrChallengeReceived)
-        PluviaApp.events.on<SteamEvent.QrAuthEnded>(onQrAuthEnded)
+        PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
+        PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
+        PluviaApp.events.on<SteamEvent.LogonStarted, Unit>(onLogonStarted)
+        PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
+        PluviaApp.events.on<SteamEvent.QrChallengeReceived, Unit>(onQrChallengeReceived)
+        PluviaApp.events.on<SteamEvent.QrAuthEnded, Unit>(onQrAuthEnded)
         if (!isLoggingIn)
             SteamService.startLoginWithQr()
 
         onDispose {
-            PluviaApp.events.off<SteamEvent.Connected>(onSteamConnected)
-            PluviaApp.events.off<SteamEvent.Disconnected>(onSteamDisconnected)
-            PluviaApp.events.off<SteamEvent.LogonStarted>(onLogonStarted)
-            PluviaApp.events.off<SteamEvent.LogonEnded>(onLogonEnded)
-            PluviaApp.events.off<SteamEvent.QrChallengeReceived>(onQrChallengeReceived)
-            PluviaApp.events.off<SteamEvent.QrAuthEnded>(onQrAuthEnded)
+            PluviaApp.events.off<SteamEvent.Connected, Unit>(onSteamConnected)
+            PluviaApp.events.off<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
+            PluviaApp.events.off<SteamEvent.LogonStarted, Unit>(onLogonStarted)
+            PluviaApp.events.off<SteamEvent.LogonEnded, Unit>(onLogonEnded)
+            PluviaApp.events.off<SteamEvent.QrChallengeReceived, Unit>(onQrChallengeReceived)
+            PluviaApp.events.off<SteamEvent.QrAuthEnded, Unit>(onQrAuthEnded)
             SteamService.stopLoginWithQr()
         }
     }

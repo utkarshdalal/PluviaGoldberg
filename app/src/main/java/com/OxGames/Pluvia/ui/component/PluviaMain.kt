@@ -59,6 +59,8 @@ import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.EnumSet
 
@@ -179,21 +181,23 @@ fun PluviaMain(
         //     isLoggingIn = true
         // }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
-            Log.d("PluviaMain", "Received logon ended")
-            // isLoggingIn = false
-            isLoggedIn = it.loginResult == LoginResult.Success
+            CoroutineScope(Dispatchers.Main).launch {
+                Log.d("PluviaMain", "Received logon ended")
+                // isLoggingIn = false
+                isLoggedIn = it.loginResult == LoginResult.Success
 
-            when (it.loginResult) {
-                LoginResult.Success -> {
-                    // TODO: add preference for first screen on login
-                    Log.d("PluviaMain", "Navigating to library")
-                    navController.navigate(PluviaScreen.Library.name)
+                when (it.loginResult) {
+                    LoginResult.Success -> {
+                        // TODO: add preference for first screen on login
+                        Log.d("PluviaMain", "Navigating to library")
+                        navController.navigate(PluviaScreen.Library.name)
+                    }
+                    LoginResult.EmailAuth, LoginResult.TwoFactorCode -> {
+                        Log.d("PluviaMain", "Navigating to 2fa")
+                        navController.navigate(PluviaScreen.LoginTwoFactor.name)
+                    }
+                    else -> { Log.d("PluviaMain", "Received non-result: ${it.loginResult}") }
                 }
-                LoginResult.EmailAuth, LoginResult.TwoFactorCode -> {
-                    Log.d("PluviaMain", "Navigating to 2fa")
-                    navController.navigate(PluviaScreen.LoginTwoFactor.name)
-                }
-                else -> { Log.d("PluviaMain", "Received non-result: ${it.loginResult}") }
             }
         }
         val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
@@ -210,14 +214,14 @@ fun PluviaMain(
             }
         }
 
-        PluviaApp.events.on<AndroidEvent.SetAppBarVisibility>(onHideAppBar)
-        PluviaApp.events.on<AndroidEvent.BackPressed>(onBackPressed)
-        PluviaApp.events.on<SteamEvent.Connected>(onSteamConnected)
-        PluviaApp.events.on<SteamEvent.Disconnected>(onSteamDisconnected)
-        // PluviaApp.events.on<SteamEvent.LogonStarted>(onLoggingIn)
-        PluviaApp.events.on<SteamEvent.LogonEnded>(onLogonEnded)
-        PluviaApp.events.on<SteamEvent.LoggedOut>(onLoggedOut)
-        PluviaApp.events.on<SteamEvent.PersonaStateReceived>(onPersonaStateReceived)
+        PluviaApp.events.on<AndroidEvent.SetAppBarVisibility, Unit>(onHideAppBar)
+        PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
+        PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
+        PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
+        // PluviaApp.events.on<SteamEvent.LogonStarte, Unitd>(onLoggingIn)
+        PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
+        PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
+        PluviaApp.events.on<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)
 
         if (!isSteamConnected) {
             val intent = Intent(context, SteamService::class.java)
@@ -225,14 +229,14 @@ fun PluviaMain(
         }
 
         onDispose {
-            PluviaApp.events.off<AndroidEvent.SetAppBarVisibility>(onHideAppBar)
-            PluviaApp.events.off<AndroidEvent.BackPressed>(onBackPressed)
-            PluviaApp.events.off<SteamEvent.Connected>(onSteamConnected)
-            PluviaApp.events.off<SteamEvent.Disconnected>(onSteamDisconnected)
-            // PluviaApp.events.off<SteamEvent.LogonStarted>(onLoggingIn)
-            PluviaApp.events.off<SteamEvent.LogonEnded>(onLogonEnded)
-            PluviaApp.events.off<SteamEvent.LoggedOut>(onLoggedOut)
-            PluviaApp.events.off<SteamEvent.PersonaStateReceived>(onPersonaStateReceived)
+            PluviaApp.events.off<AndroidEvent.SetAppBarVisibility, Unit>(onHideAppBar)
+            PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
+            PluviaApp.events.off<SteamEvent.Connected, Unit>(onSteamConnected)
+            PluviaApp.events.off<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
+            // PluviaApp.events.off<SteamEvent.LogonStarte, Unitd>(onLoggingIn)
+            PluviaApp.events.off<SteamEvent.LogonEnded, Unit>(onLogonEnded)
+            PluviaApp.events.off<SteamEvent.LoggedOut, Unit>(onLoggedOut)
+            PluviaApp.events.off<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)
         }
     }
 
