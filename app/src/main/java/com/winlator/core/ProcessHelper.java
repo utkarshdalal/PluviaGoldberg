@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public abstract class ProcessHelper {
@@ -44,6 +45,22 @@ public abstract class ProcessHelper {
         try {
             Log.d("ProcessHelper", "Executing: " + Arrays.toString(splitCommand(command)) + ", " + Arrays.toString(envp) + ", " + workingDir);
             java.lang.Process process = Runtime.getRuntime().exec(splitCommand(command), envp, workingDir);
+            // ProcessBuilder builder = new ProcessBuilder()
+            //         .command(splitCommand(command))
+            //         .directory(workingDir)
+            //         .inheritIO();
+            // // Add environment variables
+            // if (envp != null) {
+            //     Map<String, String> environment = builder.environment();
+            //     for (String entry : envp) {
+            //         String[] parts = entry.split("=", 2);
+            //         if (parts.length == 2) {
+            //             environment.put(parts[0], parts[1]);
+            //         }
+            //     }
+            // }
+            // java.lang.Process process = builder.start();
+
             Field pidField = process.getClass().getDeclaredField("pid");
             pidField.setAccessible(true);
             pid = pidField.getInt(process);
