@@ -160,12 +160,16 @@ fun XServerScreen(
             exit(xServer.winHandler, xEnvironment)
         }
         val onKeyEvent: (AndroidEvent.KeyEvent) -> Boolean = {
-            Log.d("XServerScreen", "dispatchKeyEvent(${it.event.keyCode}):\n${it.event}")
-            true
+            // Log.d("XServerScreen", "dispatchKeyEvent(${it.event.keyCode}):\n${it.event}")
+            if (ExternalController.isGameController(it.event.device)) {
+                xServer.winHandler.onKeyEvent(it.event)
+            } else false
         }
         val onMotionEvent: (AndroidEvent.MotionEvent) -> Boolean = {
-            Log.d("XServerScreen", "dispatchGenericMotionEvent(${it.event?.deviceId}:${it.event?.device?.name}):\n${it.event}")
-            true
+            // Log.d("XServerScreen", "dispatchGenericMotionEvent(${it.event?.deviceId}:${it.event?.device?.name}):\n${it.event}")
+            if (ExternalController.isGameController(it.event?.device)) {
+                xServer.winHandler.onGenericMotionEvent(it.event)
+            } else false
         }
 
         PluviaApp.events.on<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
