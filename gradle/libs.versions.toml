@@ -1,63 +1,82 @@
 [versions]
-agp = "8.7.0"
-zxing = "3.5.1"
-#steamkit = "1.5.1"
-protobuf = "4.28.2"
-commons-lang3 = "3.17.0"
-spongycastle = "1.58.0.0"
-kotlin = "2.0.20"
-coreKtx = "1.13.1"
-junit = "4.13.2"
-junitVersion = "1.2.1"
-espressoCore = "3.6.1"
-lifecycleRuntimeKtx = "2.8.5"
-activityCompose = "1.9.2"
-composeBom = "2024.10.01"
-json = "1.7.1"
-coil = "3.0.0-rc01"
-xz = "1.10"
-coroutines = "1.9.0"
-commons-validator = "1.9.0"
-navigation-compose = "2.8.3"
-apache-compress = "1.20"
-android-preferences = "1.2.1"
-commons-io = "2.17.0"
+activityCompose = "1.9.3" # https://mvnrepository.com/artifact/androidx.activity/activity-compose
+agp = "8.7.2" # https://mvnrepository.com/artifact/com.android.application/com.android.application.gradle.plugin
+android-preferences = "1.2.1" # https://mvnrepository.com/artifact/androidx.preference/preference-ktx
+apache-compress = "1.27.1" # https://mvnrepository.com/artifact/org.apache.commons/commons-compress
+coil = "3.0.0-rc01" # https://mvnrepository.com/artifact/io.coil-kt/coil-compose
+commons-io = "2.17.0" # https://mvnrepository.com/artifact/commons-io/commons-io
+commons-lang3 = "3.17.0" # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+commons-validator = "1.9.0" # https://mvnrepository.com/artifact/commons-validator/commons-validator
+composeBom = "2024.11.00" # https://mvnrepository.com/artifact/androidx.compose/compose-bom
+coreKtx = "1.13.1" # https://mvnrepository.com/artifact/androidx.core/core-ktx
+coroutines = "1.9.0" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+espressoCore = "3.6.1" # https://mvnrepository.com/artifact/androidx.test.espresso/espresso-core
+json = "1.7.3" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json
+junit = "4.13.2" # https://mvnrepository.com/artifact/junit/junit
+junitVersion = "1.2.1" # https://mvnrepository.com/artifact/androidx.test.ext/junit
+kotlin = "2.0.21" # https://mvnrepository.com/artifact/org.jetbrains.kotlin.android/org.jetbrains.kotlin.android.gradle.plugin
+lifecycleRuntimeKtx = "2.8.7" # https://mvnrepository.com/artifact/androidx.lifecycle/lifecycle-runtime-ktx
+navigation-compose = "2.8.4" # https://mvnrepository.com/artifact/androidx.navigation/navigation-compose
+protobuf = "4.28.2" # https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
+spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongycastle/prov
+steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
+xz = "1.10" # https://mvnrepository.com/artifact/org.tukaani/xz
+zxing = "3.5.1" # https://mvnrepository.com/artifact/com.google.zxing/core
 
 [libraries]
-coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
-coil-network = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
-commons-io = { group = "commons-io", name = "commons-io", version.ref = "commons-io" }
-xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
-apache-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "apache-compress" }
 android-preferences = { group = "androidx.preference", name = "preference-ktx", version.ref = "android-preferences" }
-zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
-commons-validator = { group = "commons-validator", name = "commons-validator", version.ref = "commons-validator" }
-#steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
-protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
-spongycastle = { group = "com.madgag.spongycastle", name = "prov", version.ref = "spongycastle" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-jetbrains-kotlinx-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "json" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
+androidx-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
+androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
-androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
+apache-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "apache-compress" }
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
+coil-network = { group = "io.coil-kt.coil3", name = "coil-network-okhttp", version.ref = "coil" }
+commons-io = { group = "commons-io", name = "commons-io", version.ref = "commons-io" }
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+commons-validator = { group = "commons-validator", name = "commons-validator", version.ref = "commons-validator" }
+jetbrains-kotlinx-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "json" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+spongycastle = { group = "com.madgag.spongycastle", name = "prov", version.ref = "spongycastle" }
+steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
+xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 jetbrains-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 jetbrains-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+[bundles]
+commons = [
+    "commons-io",
+    "commons-lang3",
+    "commons-validator"
+]
+coil = [
+    "coil-compose",
+    "coil-network"
+]
+compose = [
+    "androidx-material3",
+    "androidx-ui",
+    "androidx-material-icons",
+    "androidx-activity-compose",
+    "androidx-ui-graphics",
+    "navigation-compose",
+]
