@@ -683,9 +683,11 @@ class SteamService : Service(), IChallengeUrlChanged {
     private fun onLicenseList(callback: LicenseListCallback) {
         Log.d("SteamService", "Received License List ${callback.result}")
         if (callback.result == EResult.OK) {
-            for (license in callback.licenseList) {
+            for (i in callback.licenseList.indices) {
+                val license = callback.licenseList[i]
                 packageInfo.put(license.packageID, PackageInfo(
                     packageId = license.packageID,
+                    receiveIndex = i,
                     ownerAccountId = license.ownerAccountID,
                     lastChangeNumber = license.lastChangeNumber,
                     accessToken = license.accessToken,
@@ -721,7 +723,9 @@ class SteamService : Service(), IChallengeUrlChanged {
             _steamApps?.picsGetProductInfo(packageInfo.values.flatMap { it.appIds.asIterable() }.map { PICSRequest(it) }, emptyList())
         }
         if (callback.apps.isNotEmpty()) {
-            for (app in callback.apps.values) {
+            val apps = callback.apps.values.toTypedArray()
+            for (i in apps.indices) {
+                val app = apps[i]
                 // Log.d("SteamService", "Received app ${app.id}")
                 val pkg: PackageInfo
                 val appDepots = mutableMapOf<Int, DepotInfo>()
@@ -772,6 +776,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val launchConfigs = app.keyValues["config"]["launch"].children
                 appInfo.put(app.id, AppInfo(
                     appId = app.id,
+                    receiveIndex = packageInfo.values
+                        .filter { it.receiveIndex < pkg.receiveIndex }
+                        .fold(initial = 0) { accum, pkgInfo -> accum + pkgInfo.appIds.size } + i,
                     packageId = pkg.packageId,
                     depots = appDepots,
                     name = app.keyValues["common"]["name"].value ?: "",

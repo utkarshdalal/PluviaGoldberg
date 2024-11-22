@@ -11,6 +11,7 @@ import kotlin.io.path.Path
 
 data class AppInfo(
     val appId: Int,
+    val receiveIndex: Int,
     val packageId: Int,
 
     val depots: Map<Int, DepotInfo>,
