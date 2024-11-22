@@ -4,6 +4,7 @@ import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import org.json.JSONArray;
@@ -118,6 +119,11 @@ public class ExternalController {
     public boolean equals(@Nullable Object obj) {
         return obj instanceof ExternalController ? ((ExternalController)obj).id.equals(this.id) : super.equals(obj);
     }
+    @NonNull
+    @Override
+    public String toString() {
+        return getDeviceId() + " | " + getName();
+    }
 
     private void processJoystickInput(MotionEvent event, int historyPos) {
         state.thumbLX = getCenteredAxis(event, MotionEvent.AXIS_X, historyPos);
@@ -137,8 +143,8 @@ public class ExternalController {
     }
 
     private void processTriggerButton(MotionEvent event) {
-        state.setPressed(IDX_BUTTON_L2, event.getAxisValue(MotionEvent.AXIS_LTRIGGER) == 1.0f || event.getAxisValue(MotionEvent.AXIS_BRAKE) == 1.0f);
-        state.setPressed(IDX_BUTTON_R2, event.getAxisValue(MotionEvent.AXIS_RTRIGGER) == 1.0f || event.getAxisValue(MotionEvent.AXIS_GAS) == 1.0f);
+        state.setPressed(IDX_BUTTON_L2, event.getAxisValue(MotionEvent.AXIS_LTRIGGER) > 0.33f || event.getAxisValue(MotionEvent.AXIS_BRAKE) > 0.33f);
+        state.setPressed(IDX_BUTTON_R2, event.getAxisValue(MotionEvent.AXIS_RTRIGGER) > 0.33f || event.getAxisValue(MotionEvent.AXIS_GAS) > 0.33f);
     }
 
     public boolean updateStateFromMotionEvent(MotionEvent event) {

@@ -8,6 +8,7 @@ import android.view.MotionEvent;
 import com.winlator.core.StringUtils;
 // import com.winlator.inputcontrols.ControlsProfile;
 // import com.winlator.inputcontrols.ExternalController;
+import com.winlator.inputcontrols.ExternalController;
 import com.winlator.widget.XServerView;
 import com.winlator.xserver.XServer;
 
@@ -38,7 +39,7 @@ public class WinHandler {
     private boolean initReceived = false;
     private boolean running = false;
     private OnGetProcessInfoListener onGetProcessInfoListener;
-    // private ExternalController currentController;
+    private ExternalController currentController;
     private InetAddress localhost;
     private byte dinputMapperType = DINPUT_MAPPER_TYPE_XINPUT;
     // private final XServerDisplayActivity activity;
@@ -204,8 +205,10 @@ public class WinHandler {
         Executors.newSingleThreadExecutor().execute(() -> {
             while (running) {
                 synchronized (actions) {
+                    // Log.d("WinHandler", "Running actions until empty");
                     while (initReceived && !actions.isEmpty()) actions.poll().run();
                     try {
+                        // Log.d("WinHandler", "Waiting for actions");
                         actions.wait();
                     }
                     catch (InterruptedException e) {
@@ -231,7 +234,7 @@ public class WinHandler {
     }
 
     private void handleRequest(byte requestCode, final int port) {
-        Log.d("WinHandler", "Handling request: " + requestCode);
+        // Log.d("WinHandler", "Handling request: " + requestCode);
         switch (requestCode) {
             case RequestCodes.INIT: {
                 Log.d("WinHandler", "Request was init");
@@ -261,7 +264,7 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_GAMEPAD: {
-                Log.d("WinHandler", "Request was get gamepad");
+                // Log.d("WinHandler", "Request was get gamepad");
                 // boolean isXInput = receiveData.get() == 1;
                 // boolean notify = receiveData.get() == 1;
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
@@ -293,10 +296,35 @@ public class WinHandler {
                 //
                 //     sendPacket(port);
                 // });
+                boolean notify = receiveData.get() == 1;
+
+                if (currentController == null || !currentController.isConnected()) {
+                    currentController = ExternalController.getController(0);
+                    // currentController = ExternalController.getGameController(0);
+                    Log.d("WinHandler", "Setting current external controller to " + currentController);
+                }
+
+                final boolean enabled = currentController != null;
+
+                if (enabled && notify) {
+                    // Log.d("WinHandler", "Creating gamepad client on port " + port + " if not already existing");
+                    if (!gamepadClients.contains(port)) gamepadClients.add(port);
+                }
+                else gamepadClients.remove(Integer.valueOf(port));
+
                 addAction(() -> {
                     sendData.rewind();
                     sendData.put(RequestCodes.GET_GAMEPAD);
-                    sendData.putInt(0);
+
+                    if (enabled) {
+                        sendData.putInt(currentController.getDeviceId());
+                        sendData.put(dinputMapperType);
+                        byte[] bytes = (currentController.getName()).getBytes();
+                        sendData.putInt(bytes.length);
+                        sendData.put(bytes);
+                    }
+                    else sendData.putInt(0);
+
                     sendPacket(port);
                 });
                 break;
@@ -325,18 +353,29 @@ public class WinHandler {
                 //
                 //     sendPacket(port);
                 // });
+                int gamepadId = receiveData.getInt();
+                final boolean enabled = currentController != null;
+
+                if (currentController != null && currentController.getDeviceId() != gamepadId) currentController = null;
+
                 addAction(() -> {
                     sendData.rewind();
                     sendData.put(RequestCodes.GET_GAMEPAD_STATE);
-                    sendData.put((byte)0);
+                    sendData.put((byte)(enabled ? 1 : 0));
+
+                    if (enabled) {
+                        sendData.putInt(gamepadId);
+                        currentController.state.writeTo(sendData);
+                    }
+
                     sendPacket(port);
                 });
                 break;
             }
             case RequestCodes.RELEASE_GAMEPAD: {
                 Log.d("WinHandler", "Request was release gamepad");
-                // currentController = null;
-                // gamepadClients.clear();
+                currentController = null;
+                gamepadClients.clear();
                 break;
             }
             case RequestCodes.CURSOR_POS_FEEDBACK: {
@@ -376,9 +415,9 @@ public class WinHandler {
                 socket.bind(new InetSocketAddress((InetAddress)null, SERVER_PORT));
 
                 while (running) {
-                    Log.d("WinHandler", "Waiting for packet...");
+                    // Log.d("WinHandler", "Waiting for packet...");
                     socket.receive(receivePacket);
-                    Log.d("WinHandler", "Received packet, handling request...");
+                    // Log.d("WinHandler", "Received packet, handling request...");
 
                     synchronized (actions) {
                         receiveData.rewind();
@@ -418,31 +457,51 @@ public class WinHandler {
         //         sendPacket(port);
         //     });
         // }
+        // Log.d("WinHandler", "Setting up send gamepad state packet");
+        if (!initReceived || gamepadClients.isEmpty()) return;
+        final boolean enabled = currentController != null;
+
+        for (final int port : gamepadClients) {
+            // Log.d("WinHandler", "Creating send gamepad state packet action for gamepad client on port " + port);
+            addAction(() -> {
+                sendData.rewind();
+                sendData.put(RequestCodes.GET_GAMEPAD_STATE);
+                sendData.put((byte)(enabled ? 1 : 0));
+
+                if (enabled) {
+                    sendData.putInt(currentController.getDeviceId());
+                    currentController.state.writeTo(sendData);
+                }
+
+                // Log.d("WinHandler", "Sending gamepad state packet");
+                sendPacket(port);
+            });
+        }
     }
 
     public boolean onGenericMotionEvent(MotionEvent event) {
         boolean handled = false;
-        // if (currentController != null && currentController.getDeviceId() == event.getDeviceId()) {
-        //     handled = currentController.updateStateFromMotionEvent(event);
-        //     if (handled) sendGamepadState();
-        // }
+        if (currentController != null && currentController.getDeviceId() == event.getDeviceId()) {
+            handled = currentController.updateStateFromMotionEvent(event);
+            if (handled) sendGamepadState();
+        }
         return handled;
     }
 
     public boolean onKeyEvent(KeyEvent event) {
         boolean handled = false;
-        // if (currentController != null && currentController.getDeviceId() == event.getDeviceId() && event.getRepeatCount() == 0) {
-        //     int action = event.getAction();
-        //
-        //     if (action == KeyEvent.ACTION_DOWN) {
-        //         handled = currentController.updateStateFromKeyEvent(event);
-        //     }
-        //     else if (action == KeyEvent.ACTION_UP) {
-        //         handled = currentController.updateStateFromKeyEvent(event);
-        //     }
-        //
-        //     if (handled) sendGamepadState();
-        // }
+        if (currentController != null && currentController.getDeviceId() == event.getDeviceId() && event.getRepeatCount() == 0) {
+            int action = event.getAction();
+
+            if (action == KeyEvent.ACTION_DOWN) {
+                handled = currentController.updateStateFromKeyEvent(event);
+            }
+            else if (action == KeyEvent.ACTION_UP) {
+                handled = currentController.updateStateFromKeyEvent(event);
+            }
+
+            if (handled) sendGamepadState();
+        }
         return handled;
     }
 
@@ -454,7 +513,7 @@ public class WinHandler {
         this.dinputMapperType = dinputMapperType;
     }
 
-    // public ExternalController getCurrentController() {
-    //     return currentController;
-    // }
+    public ExternalController getCurrentController() {
+        return currentController;
+    }
 }
