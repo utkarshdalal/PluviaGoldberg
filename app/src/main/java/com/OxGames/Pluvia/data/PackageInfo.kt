@@ -8,6 +8,7 @@ import java.util.EnumSet
 data class PackageInfo(
     // val original: KeyValue,
     val packageId: Int,
+    val receiveIndex: Int,
     val ownerAccountId: Int,
     val lastChangeNumber: Int,
     val accessToken: Long,
