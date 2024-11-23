@@ -1,7 +1,5 @@
 # Android Studio
-.idea/
-.idea/workspace.xml
-.idea/misc.xml
+.idea
 *.iml
 
 # Gradle files
