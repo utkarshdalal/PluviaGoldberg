@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -72,6 +73,19 @@ fun PluviaMain(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    val getDensity: @Composable () -> String = {
+        val density = LocalDensity.current.density
+        when {
+            (density >= 4.0f) -> "xxxhdpi"
+            (density >= 3.0f) -> "xxhdpi"
+            (density >= 2.0f) -> "xhdpi"
+            (density >= 1.5f) -> "hdpi"
+            (density >= 1.0f) -> "mdpi"
+            else -> "ldpi"
+        }
+    }
+    Log.d("PluviaMain", "Density: ${getDensity()}")
 
     // since jetpack compose's TopAppBarLayout has an "implicit" constraint on heightPx that's not
     // reflected in the constraints themselves so we cannot "fillMaxHeight" or "fillMaxSize"
