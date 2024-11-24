@@ -44,10 +44,15 @@ import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInf
 import `in`.dragonbra.javasteam.steam.handlers.steamcontent.SteamContent
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamgameserver.SteamGameServer
+import `in`.dragonbra.javasteam.steam.handlers.steammasterserver.SteamMasterServer
+import `in`.dragonbra.javasteam.steam.handlers.steamscreenshots.SteamScreenshots
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOnCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamuserstats.SteamUserStats
+import `in`.dragonbra.javasteam.steam.handlers.steamworkshop.SteamWorkshop
 import `in`.dragonbra.javasteam.steam.steamclient.SteamClient
 import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
@@ -432,6 +437,12 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             // create our steam client instance
             _steamClient = SteamClient(configuration)
+            // remove callbacks we're not using.
+            _steamClient!!.removeHandler(SteamGameServer::class.java)
+            _steamClient!!.removeHandler(SteamMasterServer::class.java)
+            _steamClient!!.removeHandler(SteamWorkshop::class.java)
+            _steamClient!!.removeHandler(SteamScreenshots::class.java)
+            _steamClient!!.removeHandler(SteamUserStats::class.java)
             // create the callback manager which will route callbacks to function calls
             _callbackManager = CallbackManager(_steamClient!!)
             // get the different handlers to be used throughout the service

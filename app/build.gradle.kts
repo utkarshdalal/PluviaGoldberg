@@ -50,9 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        buildConfig = true
     }
     packaging {
         resources {
@@ -68,39 +66,42 @@ android {
 }
 
 dependencies {
-    implementation(libs.zxing)
-    // implementation(libs.steamkit)
-    implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
-    implementation(libs.protobuf.java) // only needed when building JavaSteam manually
-    implementation(libs.commons.lang3) // only needed when building JavaSteam manually
-    implementation(libs.xz) // only needed when building JavaSteam manually
-    implementation(libs.commons.io) // only needed when building JavaSteam manually
-    implementation(libs.commons.validator) // only needed when building JavaSteam manually (should crash without it, but I don't on some devices)
+    // implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
+    // implementation(libs.protobuf.java) // only needed when building JavaSteam manually
+    // implementation(libs.commons.lang3) // only needed when building JavaSteam manually
+    // implementation(libs.xz) // only needed when building JavaSteam manually
+    // implementation(libs.commons.io) // only needed when building JavaSteam manually
+    // implementation(libs.commons.validator) // only needed when building JavaSteam manually (should crash without it, but I don't on some devices)
 
-    implementation(libs.apache.compress) // for winlator
+    // JavaSteam
+    implementation(libs.steamkit) {
+        isChanging = version?.contains("SNAPSHOT") ?: false
+    }
+    implementation(libs.spongycastle)
+
     implementation("com.github.luben:zstd-jni:1.5.2-3@aar") // for winlator
     implementation(libs.android.preferences) // for winlator
+    implementation(libs.apache.compress) // for winlator
 
-    implementation(libs.navigation.compose)
-    implementation(libs.kotlin.coroutines)
-    implementation(libs.spongycastle)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network)
+    // Jetpack Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.bundles.compose)
+    debugImplementation(libs.androidx.ui.tooling)
+
+    // Support
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
+    implementation(libs.bundles.coil)
     implementation(libs.jetbrains.kotlinx.json)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.material.icons)
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
+    implementation(libs.kotlin.coroutines)
+    implementation(libs.zxing)
+
+    // Testing
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.ui.test.junit4)
-    debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+    testImplementation(libs.junit)
 }

@@ -10,11 +10,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.InstallMobile
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.FloatingActionButtonElevation
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -23,15 +30,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuState
+import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuValue
 import com.OxGames.Pluvia.ui.component.fabmenu.state.rememberFloatingActionMenuState
+import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import kotlinx.coroutines.launch
 
 @Composable
 fun FloatingActionMenu(
     modifier: Modifier = Modifier,
-    shape: Shape = CircleShape,
+    shape: Shape = FloatingActionButtonDefaults.shape,
     imageVector: ImageVector,
     closeImageVector: ImageVector? = null,
     containerColor: Color = FloatingActionButtonDefaults.containerColor,
@@ -54,7 +64,7 @@ fun FloatingActionMenu(
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom)
         ) {
             Column(
-                modifier = Modifier.offset(x = (-4).dp),
+                modifier = Modifier.offset(x = (-4).dp).padding(start = 4.dp),
                 content = content,
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(0.dp)
@@ -79,6 +89,35 @@ fun FloatingActionMenu(
             Icon(
                 imageVector = if (state.isOpen && closeImageVector != null) closeImageVector else imageVector,
                 contentDescription = if (state.isOpen) "Close menu" else "Open menu",
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_FloatingActionMenu() {
+    val state = rememberFloatingActionMenuState(initialValue = FloatingActionMenuValue.Open)
+    PluviaTheme {
+        Surface {
+            FloatingActionMenu(
+                state = state,
+                imageVector = Icons.Filled.FilterList,
+                closeImageVector = Icons.Filled.Close,
+                content = {
+                    FloatingActionMenuItem(
+                        labelText = "Search",
+                        onClick = { }
+                    ) { Icon(Icons.Filled.Search, "Search") }
+                    FloatingActionMenuItem(
+                        labelText = "Installed",
+                        onClick = { }
+                    ) { Icon(Icons.Filled.InstallMobile, "Installed") }
+                    FloatingActionMenuItem(
+                        labelText = "Alphabetic",
+                        onClick = { }
+                    ) { Icon(Icons.Filled.SortByAlpha, "Alphabetic") }
+                }
             )
         }
     }

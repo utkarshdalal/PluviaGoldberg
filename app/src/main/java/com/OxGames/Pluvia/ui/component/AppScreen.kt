@@ -14,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,14 +25,18 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil3.compose.AsyncImage
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.DownloadInfo
+import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 @Composable
 fun AppScreen(
@@ -39,7 +44,9 @@ fun AppScreen(
     onClickPlay: () -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
-    var downloadInfo by remember { mutableStateOf<DownloadInfo?>(SteamService.getAppDownloadInfo(appId)) }
+    var downloadInfo by remember {
+        mutableStateOf<DownloadInfo?>(SteamService.getAppDownloadInfo(appId))
+    }
     var downloadProgress by remember { mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f) }
     var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
@@ -59,13 +66,40 @@ fun AppScreen(
         }
     }
 
+    AppScreenContent(
+        appId = appId,
+        isInstalled = isInstalled,
+        isDownloading = isDownloading(),
+        downloadProgress = downloadProgress,
+        onDownloadClick = {
+            if (!isInstalled) {
+                downloadProgress = 0f
+                downloadInfo = SteamService.downloadApp(appId)
+            } else {
+                onClickPlay()
+            }
+        }
+    )
+}
+
+@Composable
+private fun AppScreenContent(
+    appId: Int,
+    isInstalled: Boolean,
+    isDownloading: Boolean,
+    downloadProgress: Float,
+    onDownloadClick: () -> Unit,
+) {
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
         AsyncImage(
+            modifier = Modifier.fillMaxWidth(),
             model = SteamService.getAppInfoOf(appId)?.getHeroUrl(),
             contentDescription = stringResource(R.string.header_img_desc),
-            modifier = Modifier.fillMaxWidth()
+            error = if (LocalInspectionMode.current) {
+                painterResource(R.drawable.ic_launcher_background)
+            } else null, // Should have a fallback icon
         )
         Row(
             modifier = Modifier
@@ -74,15 +108,8 @@ fun AppScreen(
         ) {
             Button(
                 shape = RoundedCornerShape(8.dp),
-                enabled = !isDownloading(),
-                onClick = {
-                    if (!isInstalled) {
-                        downloadProgress = 0f
-                        downloadInfo = SteamService.downloadApp(appId)
-                    } else {
-                        onClickPlay()
-                    }
-                }
+                enabled = !isDownloading,
+                onClick = onDownloadClick
             ) {
                 Text(
                     if (isInstalled)
@@ -91,7 +118,7 @@ fun AppScreen(
                         stringResource(R.string.download_app)
                 )
             }
-            if (isDownloading()) {
+            if (isDownloading) {
                 Column(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
@@ -107,9 +134,31 @@ fun AppScreen(
             } else {
                 Spacer(Modifier.weight(1f))
             }
-            IconButton(onClick = {
-                // TODO: add options menu
-            }) { Icon(Icons.Filled.MoreVert, "Options") }
+            IconButton(
+                onClick = {
+                    // TODO: add options menu
+                },
+                content = {
+                    Icon(Icons.Filled.MoreVert, "Options")
+                }
+            )
+        }
+    }
+}
+
+@Preview
+@Preview(device = "spec:parent=pixel_5,orientation=landscape")
+@Composable
+private fun Preview_AppScreen() {
+    PluviaTheme {
+        Surface {
+            AppScreenContent(
+                appId = 440,
+                isInstalled = false,
+                isDownloading = true,
+                downloadProgress = .50f,
+                onDownloadClick = { },
+            )
         }
     }
 }
