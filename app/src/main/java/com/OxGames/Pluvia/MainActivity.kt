@@ -10,10 +10,18 @@ import android.view.OrientationEventListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import coil3.ImageLoader
+import coil3.compose.setSingletonImageLoaderFactory
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
+import coil3.request.CachePolicy
+import coil3.util.DebugLogger
 import com.OxGames.Pluvia.ui.component.PluviaMain
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.enums.Orientation
+import com.github.luben.zstd.BuildConfig
 import com.winlator.core.AppUtils
+import okio.Path.Companion.toOkioPath
 import java.util.EnumSet
 import kotlin.math.abs
 import kotlin.math.min
@@ -49,7 +57,29 @@ class MainActivity : ComponentActivity() {
         PluviaApp.events.on<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
 
         enableEdgeToEdge()
-        setContent { PluviaMain() }
+        setContent {
+            setSingletonImageLoaderFactory { context ->
+                ImageLoader(context).newBuilder()
+                    .memoryCachePolicy(CachePolicy.ENABLED)
+                    .memoryCache {
+                        MemoryCache.Builder()
+                            .maxSizePercent(context, 0.1)
+                            .strongReferencesEnabled(true)
+                            .build()
+                    }
+                    .diskCachePolicy(CachePolicy.ENABLED)
+                    .diskCache {
+                        DiskCache.Builder()
+                            .maxSizePercent(0.03)
+                            .directory(context.cacheDir.resolve("image_cache").toOkioPath())
+                            .build()
+                    }
+                    .logger(if (BuildConfig.DEBUG) DebugLogger() else null)
+                    .build()
+            }
+
+            PluviaMain()
+        }
     }
 
     override fun onDestroy() {
