@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,7 +23,10 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.WriterException
@@ -52,8 +57,9 @@ fun QrCodeImage(
         val bitmap = rememberQrBitmap(content = content, size = size)
 
         if (bitmap != null) {
+            val bitmapPainter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) }
             Image(
-                painter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) },
+                painter = bitmapPainter,
                 contentDescription = null,
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.size(size),
@@ -73,13 +79,15 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
     var bitmap by remember(content) {
         mutableStateOf<Bitmap?>(null)
     }
+
+    val ioScope = rememberCoroutineScope { Dispatchers.IO }
     val bgColor = MaterialTheme.colorScheme.background.toArgb()
     val onBgColor = MaterialTheme.colorScheme.onBackground.toArgb()
 
     LaunchedEffect(bitmap) {
         if (bitmap != null) return@LaunchedEffect
 
-        launch(Dispatchers.IO) {
+        ioScope.launch {
             val qrCodeWriter = QRCodeWriter()
 
             val encodeHints = mutableMapOf<EncodeHintType, Any?>().apply {
@@ -125,4 +133,15 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
     }
 
     return bitmap
+}
+
+
+@Preview
+@Composable
+private fun Preview_QrCodeImage() {
+    PluviaTheme {
+        Surface {
+            QrCodeImage(Modifier, "Hello World", 256.dp)
+        }
+    }
 }
