@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
@@ -63,7 +64,7 @@ fun FloatingActionMenu(
             exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom)
         ) {
             Column(
-                modifier = Modifier.offset(x = (-4).dp),
+                modifier = Modifier.offset(x = (-4).dp).padding(start = 4.dp),
                 content = content,
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(0.dp)
