@@ -31,6 +31,8 @@ public class XConnectorEpoll implements Runnable {
         this.connectionHandler = connectionHandler;
         this.requestHandler = requestHandler;
 
+        setRLimitToMax();
+
         serverFd = createAFUnixSocket(socketConfig.path);
         if (serverFd < 0) {
             throw new RuntimeException("Failed to create an AF_UNIX socket.");
@@ -215,6 +217,8 @@ public class XConnectorEpoll implements Runnable {
     }
 
     public static native void closeFd(int fd);
+
+    private static native void setRLimitToMax();
 
     private native int createEpollFd();
 

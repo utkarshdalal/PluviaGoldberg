@@ -34,6 +34,7 @@ static int ashmemCreateRegion(const char* name, int64_t size) {
 //        return -1;
 //    }
     int fd = open("/dev/ashmem", O_RDWR);
+    printf("sysvshared_memory.c open %d", fd);
     if (fd < 0) return -1;
 
     char nameBuffer[ASHMEM_NAME_LEN] = {0};
@@ -89,9 +90,8 @@ Java_com_winlator_sysvshm_SysVSharedMemory_createMemoryFd(JNIEnv *env, jclass ob
                                                           jint size) {
     const char *namePtr = (*env)->GetStringUTFChars(env, name, 0);
 
-    printf("SysVSharedMemory2 memfd_create");
     int fd = memfd_create(namePtr, MFD_ALLOW_SEALING);
-    printf("SysVSharedMemory2 memfd_create done");
+    printf("sysvshared_memory.c memfd_create %d", fd);
     (*env)->ReleaseStringUTFChars(env, name, namePtr);
 
     if (fd < 0) return -1;
