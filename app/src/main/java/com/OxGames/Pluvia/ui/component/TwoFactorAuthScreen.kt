@@ -33,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
@@ -120,7 +120,6 @@ private fun TwoFactorAuthScreenContent(
 ) {
     Column(
         modifier = Modifier
-            .width(256.dp)
             .height(IntrinsicSize.Max)
             .padding(64.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -235,6 +234,7 @@ private fun TwoFactorTextField(
     )
 }
 
+@Preview(device = "spec:width=1920px,height=1080px,dpi=440") // Odin2 Mini
 @Preview
 @Composable
 private fun Preview_TwoFactorAuthScreen() {
@@ -255,22 +255,22 @@ private fun Preview_TwoFactorAuthScreen() {
     }
 }
 
-@Preview
-@Composable
-private fun Preview_TwoFactorAuthScreen_NotConnected() {
-    PluviaTheme(darkTheme = true) {
-        Surface {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                TwoFactorAuthScreenContent(
-                    userLoginState = UserLoginState(),
-                    isSteamConnected = false,
-                    isLoggingIn = false,
-                    onSetTwoFactor = { },
-                )
-            }
-        }
-    }
-}
+//@Preview
+//@Composable
+//private fun Preview_TwoFactorAuthScreen_NotConnected() {
+//    PluviaTheme(darkTheme = true) {
+//        Surface {
+//            Box(
+//                modifier = Modifier.fillMaxSize(),
+//                contentAlignment = Alignment.Center,
+//            ) {
+//                TwoFactorAuthScreenContent(
+//                    userLoginState = UserLoginState(),
+//                    isSteamConnected = false,
+//                    isLoggingIn = false,
+//                    onSetTwoFactor = { },
+//                )
+//            }
+//        }
+//    }
+//}

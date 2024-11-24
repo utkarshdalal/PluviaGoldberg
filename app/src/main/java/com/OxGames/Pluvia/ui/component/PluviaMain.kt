@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -38,10 +38,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -130,7 +130,7 @@ fun PluviaMain(
     var topAppBarVisible by rememberSaveable { mutableStateOf(true) }
 
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
-    // var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
+    var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
     var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
     var profilePicUrl by remember {
         mutableStateOf<String>(
@@ -172,21 +172,21 @@ fun PluviaMain(
         }
         val onSteamConnected: (SteamEvent.Connected) -> Unit = {
             Log.d("PluviaMain", "Received is connected")
-            // isLoggingIn = it.isAutoLoggingIn
+            isLoggingIn = it.isAutoLoggingIn
             isSteamConnected = true
         }
         val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
             Log.d("PluviaMain", "Received disconnected from Steam")
             isSteamConnected = false
         }
-        // val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = {
-        //     Log.d("PluviaMain", "Received logon started")
-        //     isLoggingIn = true
-        // }
+        val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = {
+            Log.d("PluviaMain", "Received logon started")
+            isLoggingIn = true
+        }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
             CoroutineScope(Dispatchers.Main).launch {
                 Log.d("PluviaMain", "Received logon ended")
-                // isLoggingIn = false
+                isLoggingIn = false
                 isLoggedIn = it.loginResult == LoginResult.Success
 
                 when (it.loginResult) {
@@ -209,7 +209,7 @@ fun PluviaMain(
         }
         val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
             Log.d("PluviaMain", "Received logged out")
-            // isLoggingIn = false
+            isLoggingIn = false
             isLoggedIn = false
         }
         val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = {
@@ -225,7 +225,7 @@ fun PluviaMain(
         PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
         PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
         PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
-        // PluviaApp.events.on<SteamEvent.LogonStarte, Unitd>(onLoggingIn)
+        // PluviaApp.events.on<SteamEvent.LogonState, Unit>(onLoggingIn)
         PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
         PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
         PluviaApp.events.on<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)
@@ -270,7 +270,7 @@ fun PluviaMain(
                     }
                     Spacer(Modifier.weight(1f))
                     NavigationDrawerItem(
-                        icon = { Icon(imageVector = Icons.Filled.Logout, "Log out") },
+                        icon = { Icon(imageVector = Icons.AutoMirrored.Filled.Logout, "Log out") },
                         label = { Text("Log out") },
                         selected = false,
                         onClick = { SteamService.logOut() }
@@ -300,7 +300,12 @@ fun PluviaMain(
                                     // only if we don't have a menu and there is a parent route
                                     IconButton(onClick = {
                                         navController.popBackStack()
-                                    }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, "Go back") }
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                            "Go back"
+                                        )
+                                    }
                                 }
                             },
                             actions = {
@@ -323,7 +328,7 @@ fun PluviaMain(
                     }
                 },
                 floatingActionButton = {
-                    if (currentScreen == PluviaScreen.LoginUser) {
+                    if (!isLoggingIn && currentScreen == PluviaScreen.LoginUser) {
                         ExtendedFloatingActionButton(
                             onClick = { navController.navigate(PluviaScreen.LoginQR.name) },
                             text = { Text(text = "QR Sign In") },
@@ -346,7 +351,8 @@ fun PluviaMain(
                 ) {
                     composable(route = PluviaScreen.LoginUser.name) {
                         UserLoginScreen(
-                            userLoginViewModel = userLoginViewModel,)
+                            userLoginViewModel = userLoginViewModel
+                        )
                     }
                     composable(route = PluviaScreen.LoginQR.name) {
                         QrLoginScreen(userLoginViewModel)

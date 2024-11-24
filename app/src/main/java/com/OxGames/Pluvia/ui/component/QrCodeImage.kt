@@ -31,6 +31,7 @@ import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.WriterException
 import com.google.zxing.qrcode.QRCodeWriter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
@@ -79,7 +80,7 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
         mutableStateOf<Bitmap?>(null)
     }
 
-    val ioScope = rememberCoroutineScope() // Dispatchers.IO ???
+    val ioScope = rememberCoroutineScope{ Dispatchers.IO }
     val bgColor = MaterialTheme.colorScheme.background.toArgb()
     val onBgColor = MaterialTheme.colorScheme.onBackground.toArgb()
 

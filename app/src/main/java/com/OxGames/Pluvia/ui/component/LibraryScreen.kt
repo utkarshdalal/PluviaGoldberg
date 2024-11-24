@@ -34,6 +34,9 @@ import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenu
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenuItem
+import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuState
+import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuValue
+import com.OxGames.Pluvia.ui.component.fabmenu.state.rememberFloatingActionMenuState
 import com.OxGames.Pluvia.ui.component.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import java.util.EnumSet
@@ -58,6 +61,8 @@ fun LibraryScreen(
     }
     var appsList by remember { mutableStateOf<List<AppInfo>>(getAppsList()) }
 
+    val fabState = rememberFloatingActionMenuState()
+
     DisposableEffect(lifecycleOwner) {
         val onAppInfoReceived: (SteamEvent.AppInfoReceived) -> Unit = {
             appsList = getAppsList()
@@ -73,6 +78,7 @@ fun LibraryScreen(
 
     LibraryScreenContent(
         appsList = appsList,
+        fabState = fabState,
         onAppClick = onAppClick,
         onInstalledClick = {
             installed = !installed
@@ -94,6 +100,7 @@ fun LibraryScreen(
 @Composable
 private fun LibraryScreenContent(
     appsList: List<AppInfo>,
+    fabState: FloatingActionMenuState,
     onAppClick: (appId: Int) -> Unit,
     onInstalledClick: () -> Unit,
     onAlphabeticClick: () -> Unit,
@@ -115,10 +122,12 @@ private fun LibraryScreenContent(
             }
         }
 
+        // TODO hoist
         FloatingActionMenu(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .offset(x = (-16).dp, y = (-8).dp),
+            state = fabState,
             imageVector = Icons.Filled.FilterList,
             closeImageVector = Icons.Filled.Close
         ) {
@@ -145,6 +154,24 @@ private fun Preview_LibraryScreenContent() {
         Surface {
             LibraryScreenContent(
                 appsList = List(10) { fakeAppInfo() },
+                fabState = rememberFloatingActionMenuState(),
+                onAppClick = { },
+                onInstalledClick = { },
+                onAlphabeticClick = { },
+                onSearchClick = { },
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_LibraryScreenContent_OpenFab() {
+    PluviaTheme {
+        Surface {
+            LibraryScreenContent(
+                appsList = List(10) { fakeAppInfo() },
+                fabState = rememberFloatingActionMenuState(initialValue = FloatingActionMenuValue.Open),
                 onAppClick = { },
                 onInstalledClick = { },
                 onAlphabeticClick = { },
