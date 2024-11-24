@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
@@ -270,7 +270,7 @@ fun PluviaMain(
                     }
                     Spacer(Modifier.weight(1f))
                     NavigationDrawerItem(
-                        icon = { Icon(imageVector = Icons.AutoMirrored.Filled.Logout, "Log out") },
+                        icon = { Icon(imageVector = Icons.Filled.Logout, "Log out") },
                         label = { Text("Log out") },
                         selected = false,
                         onClick = { SteamService.logOut() }
@@ -300,12 +300,7 @@ fun PluviaMain(
                                     // only if we don't have a menu and there is a parent route
                                     IconButton(onClick = {
                                         navController.popBackStack()
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                            "Go back"
-                                        )
-                                    }
+                                    }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, "Go back") }
                                 }
                             },
                             actions = {
