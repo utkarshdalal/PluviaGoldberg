@@ -3,6 +3,7 @@ package com.OxGames.Pluvia.ui.component.fabmenu
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.FloatingActionButtonDefaults
@@ -20,8 +21,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
-// TODO left margin
-//  Note: seems to clip left side when rendering with long text. Such as: "Alphabetic"
 @Composable
 fun FloatingActionMenuItem(
     labelText: String,
@@ -35,14 +34,13 @@ fun FloatingActionMenuItem(
     content: @Composable (() -> Unit)
 ) {
     Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = modifier.padding(start = 4.dp), // Don't like this right now, FAB has an interactable padding which takes care of the end side.
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         FloatingActionMenuLabel(label = labelText)
 
         SmallFloatingActionButton(
-            modifier = modifier,
             onClick = onClick,
             containerColor = containerColor,
             shape = shape,
