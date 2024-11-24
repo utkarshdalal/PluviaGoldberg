@@ -19,7 +19,6 @@ import coil3.util.DebugLogger
 import com.OxGames.Pluvia.ui.component.PluviaMain
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.enums.Orientation
-import com.github.luben.zstd.BuildConfig
 import com.winlator.core.AppUtils
 import okio.Path.Companion.toOkioPath
 import java.util.EnumSet
