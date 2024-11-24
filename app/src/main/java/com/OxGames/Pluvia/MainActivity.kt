@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
         // reverse direction of orientation
         val adjustedOrientation = 360 - orientation
         // if our available orientations are empty then assume unspecified
-        val orientations = if (conformTo.isNotEmpty()) conformTo else EnumSet.of(Orientation.UNSPECIFIED)
+        val orientations = conformTo.ifEmpty { EnumSet.of(Orientation.UNSPECIFIED) }
         var inRange = orientations.filter { it.angleRanges.any { it.contains(adjustedOrientation) } }.toTypedArray()
         if (inRange.isEmpty()) {
             // none of the available orientations conform to the reported orientation

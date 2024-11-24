@@ -1,5 +1,7 @@
 # Android Studio
 .idea
+.idea/deploymentTargetSelector.xml
+.idea/runConfigurations.xml
 *.iml
 
 # Gradle files
