@@ -91,13 +91,6 @@ fun XServerScreen(
         EnumSet.of(Orientation.LANDSCAPE, Orientation.REVERSE_LANDSCAPE)) // TOOD: add option for user to pick
     )
 
-    ProcessHelper.addDebugCallback(object: Callback<String> {
-        override fun call(outputLine: String?) {
-            Log.d("ProcessOutput", outputLine ?: "")
-        }
-
-    })
-
     val imageFs by remember { mutableStateOf(ImageFs.find(context)) }
     // var screenSize = Container.DEFAULT_SCREEN_SIZE
     val generateWinePrefix = false // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
@@ -170,15 +163,21 @@ fun XServerScreen(
                 xServer.winHandler.onGenericMotionEvent(it.event)
             } else false
         }
+        val debugCallback = Callback<String> { outputLine ->
+            Log.d("ProcessOutput", outputLine ?: "")
+        }
+
 
         PluviaApp.events.on<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
         PluviaApp.events.on<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
         PluviaApp.events.on<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
+        ProcessHelper.addDebugCallback(debugCallback)
 
         onDispose {
             PluviaApp.events.off<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
             PluviaApp.events.off<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
             PluviaApp.events.off<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
+            ProcessHelper.removeDebugCallback(debugCallback)
         }
     }
 

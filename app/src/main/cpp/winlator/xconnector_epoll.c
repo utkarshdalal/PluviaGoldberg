@@ -11,6 +11,8 @@
 #include <jni.h>
 #include <android/log.h>
 #include <android/fdsan.h>
+#include <sys/resource.h>
+#include <errno.h>
 
 #define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "System.out", __VA_ARGS__);
 #define MAX_EVENTS 10
@@ -54,11 +56,24 @@ void closeFd(jint fd) {
     }
 
     if (can_close) {
-        printf("XConnectorEpoll2 close %d", fd);
         close(fd);
-        printf("XConnectorEpoll2 close %d done", fd);
+        printf("XConnectorEpoll close %d", fd);
     } else {
-        printf("XConnectorEpoll2 attempted to close unowned fd %d", fd);
+        printf("XConnectorEpoll attempted to close unowned fd %d", fd);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_winlator_xconnector_XConnectorEpoll_setRLimitToMax(JNIEnv *env, jobject obj) {
+    struct rlimit rlm;
+    if (getrlimit(RLIMIT_NOFILE, &rlm) < 0) {
+        printf("XConnectorEpoll failed to getrlimit %s", strerror(errno));
+    } else {
+        printf("XConnectorEpoll setting current limit (%lu) to max limit (%lu)", rlm.rlim_cur, rlm.rlim_max);
+        rlm.rlim_cur = rlm.rlim_max;
+        if (setrlimit(RLIMIT_NOFILE, &rlm) < 0) {
+            printf("XConnectorEpoll failed to setrlimit %s", strerror(errno));
+        }
     }
 }
 
@@ -66,6 +81,7 @@ JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createAFUnixSocket(JNIEnv *env, jobject obj,
                                                                 jstring path) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    printf("xconnector_epoll.c socket %d", fd);
     if (fd < 0) return -1;
     trackFd(fd);
 
@@ -96,6 +112,7 @@ Java_com_winlator_xconnector_XConnectorEpoll_createAFUnixSocket(JNIEnv *env, job
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createEpollFd(JNIEnv *env, jobject obj) {
     int fd = epoll_create(MAX_EVENTS);
+    printf("xconnector_epoll.c epoll_create %d", fd);
     trackFd(fd);
     return fd;
 }
@@ -126,6 +143,7 @@ Java_com_winlator_xconnector_XConnectorEpoll_doEpollIndefinitely(JNIEnv *env, jo
     for (int i = 0; i < numFds; i++) {
         if (events[i].data.fd == serverFd) {
             int clientFd = accept(serverFd, NULL, NULL);
+            printf("xconnector_epoll.c accept %d", clientFd);
             if (clientFd >= 0) {
                 trackFd(clientFd);
                 if (addClientToEpoll) {
@@ -175,6 +193,7 @@ Java_com_winlator_xconnector_ClientSocket_read(JNIEnv *env, jobject obj, jint fd
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_ClientSocket_write(JNIEnv *env, jobject obj, jint fd, jobject data,
                                                 jint length) {
+//    printf("Writing to %d", fd);
     char *dataAddr = (*env)->GetDirectBufferAddress(env, data);
     return write(fd, dataAddr, length);
 }
@@ -182,6 +201,7 @@ Java_com_winlator_xconnector_ClientSocket_write(JNIEnv *env, jobject obj, jint f
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createEventFd(JNIEnv *env, jobject obj) {
     int fd = eventfd(0, EFD_NONBLOCK);
+    printf("xconnector_epoll.c eventfd %d", fd);
     trackFd(fd);
     return fd;
 }
@@ -218,6 +238,8 @@ Java_com_winlator_xconnector_ClientSocket_recvAncillaryMsg(JNIEnv *env, jobject 
                     jmethodID addAncillaryFd = (*env)->GetMethodID(env, cls, "addAncillaryFd", "(I)V");
                     for (int i = 0; i < numFds; i++) {
                         int ancillaryFd = ((int*)CMSG_DATA(cmsg))[i];
+                        printf("xconnector_epoll.c CMSG_DATA %d", ancillaryFd);
+                        trackFd(ancillaryFd);
                         (*env)->CallVoidMethod(env, obj, addAncillaryFd, ancillaryFd);
                     }
                 }
@@ -254,7 +276,9 @@ Java_com_winlator_xconnector_ClientSocket_sendAncillaryMsg(JNIEnv *env, jobject 
     cmsg->cmsg_len = msg.msg_controllen;
     ((int*)CMSG_DATA(cmsg))[0] = ancillaryFd;
 
-    return sendmsg(clientFd, &msg, 0);
+    jint size = sendmsg(clientFd, &msg, 0);
+    printf("xconnector_epoll.c sendmsg size %d", size);
+    return size;
 }
 
 JNIEXPORT jboolean JNICALL

@@ -1,5 +1,7 @@
 package com.winlator.alsaserver;
 
+import android.util.Log;
+
 import com.winlator.sysvshm.SysVSharedMemory;
 import com.winlator.xconnector.Client;
 import com.winlator.xconnector.RequestHandler;
@@ -26,6 +28,7 @@ public class ALSARequestHandler implements RequestHandler {
 
         switch (requestCode) {
             case RequestCodes.CLOSE:
+                Log.d("ALSARequestHandler", "Received request to close");
                 alsaClient.release();
                 break;
             case RequestCodes.START:

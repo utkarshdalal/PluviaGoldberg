@@ -172,6 +172,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         envVars.put("PROOT_LOADER", nativeLibraryDir+"/libproot-loader.so");
         if (!wow64Mode) envVars.put("PROOT_LOADER_32", nativeLibraryDir+"/libproot-loader32.so");
 
+        // ProcessHelper.exec(nativeLibraryDir+"/libproot.so ulimit -a", envVars.toStringArray(), rootDir);
         return ProcessHelper.exec(command, envVars.toStringArray(), rootDir, (status) -> {
             synchronized (lock) {
                 pid = -1;

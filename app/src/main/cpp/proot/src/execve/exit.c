@@ -55,9 +55,8 @@ static int fill_file_with_auxv(const Tracee *ptracee, const char *path,
 	int fd = -1;
 	int i;
 
-    printf("Exit open");
 	fd = open(path, O_WRONLY);
-    printf("Exit open done");
+    printf("execve/exit.c open %d", fd);
 	if (fd < 0)
 		return -1;
 
