@@ -138,13 +138,16 @@ private fun AppScreenContent(
                 onClick = {
                     // TODO: add options menu
                 },
-                content = { Icon(Icons.Filled.MoreVert, "Options") }
+                content = {
+                    Icon(Icons.Filled.MoreVert, "Options")
+                }
             )
         }
     }
 }
 
 @Preview
+@Preview(device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
 private fun Preview_AppScreen() {
     PluviaTheme {
