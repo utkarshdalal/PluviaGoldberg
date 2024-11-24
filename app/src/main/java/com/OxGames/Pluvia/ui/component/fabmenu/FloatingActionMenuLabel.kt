@@ -23,8 +23,9 @@ fun FloatingActionMenuLabel(
         color = Color.Black.copy(alpha = 0.8f)
     ) {
         Text(
-            text = label, color = Color.White,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+            text = label,
+            color = Color.White,
             fontSize = 14.sp,
             maxLines = 1
         )
