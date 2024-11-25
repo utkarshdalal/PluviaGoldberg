@@ -24,6 +24,7 @@ spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongy
 steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
 xz = "1.10" # https://mvnrepository.com/artifact/org.tukaani/xz
 zxing = "3.5.1" # https://mvnrepository.com/artifact/com.google.zxing/core
+zstd-jni = "1.5.2-3" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
 
 [libraries]
 android-preferences = { group = "androidx.preference", name = "preference-ktx", version.ref = "android-preferences" }
@@ -58,6 +59,7 @@ protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "p
 spongycastle = { group = "com.madgag.spongycastle", name = "prov", version.ref = "spongycastle" }
 steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
 xz = { group = "org.tukaani", name = "xz", version.ref = "xz" }
+zstd-jni = {group = "com.github.luben", name = "zstd-jni", version.ref = "zstd-jni"}
 zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
 [plugins]
@@ -79,12 +81,18 @@ coil = [
     "coil-test"
 ]
 compose = [
+    "androidx-activity-compose",
+    "androidx-material-icons",
     "androidx-material3",
     "androidx-ui",
-    "androidx-material-icons",
-    "androidx-activity-compose",
-    "androidx-ui-graphics",
-    "navigation-compose",
     "androidx-ui-adaptive-navigation",
     "androidx-ui-adaptive-navigation-suite",
+    "androidx-ui-graphics",
+    "androidx-ui-tooling-preview",
+    "navigation-compose",
+]
+winlator = [
+    "android-preferences",
+    "apache-compress",
+    "zstd-jni"
 ]
