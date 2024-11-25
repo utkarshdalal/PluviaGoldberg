@@ -53,6 +53,8 @@ import com.OxGames.Pluvia.ui.model.UserLoginViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import kotlin.math.min
 
+// TODO fold into UserLoginScreen using animated visibility,
+//  then hoist out some Composables into their own package specific kotlin files. ie: ".component.login"
 @Composable
 fun TwoFactorAuthScreen(
     userLoginViewModel: UserLoginViewModel,
@@ -138,12 +140,6 @@ private fun TwoFactorAuthScreenContent(
                 twoFactorText = userLoginState.twoFactorCode,
                 onTwoFactorTextChange = onSetTwoFactor,
             )
-//            OutlinedTextField(
-//                value = userLoginState.twoFactorCode,
-//                singleLine = true,
-//                onValueChange = onSetTwoFactor,
-//                label = { Text("Auth Code") }
-//            )
             Spacer(modifier = Modifier.height(16.dp))
             ElevatedButton(
                 onClick = {
@@ -254,23 +250,3 @@ private fun Preview_TwoFactorAuthScreen() {
         }
     }
 }
-
-//@Preview
-//@Composable
-//private fun Preview_TwoFactorAuthScreen_NotConnected() {
-//    PluviaTheme(darkTheme = true) {
-//        Surface {
-//            Box(
-//                modifier = Modifier.fillMaxSize(),
-//                contentAlignment = Alignment.Center,
-//            ) {
-//                TwoFactorAuthScreenContent(
-//                    userLoginState = UserLoginState(),
-//                    isSteamConnected = false,
-//                    isLoggingIn = false,
-//                    onSetTwoFactor = { },
-//                )
-//            }
-//        }
-//    }
-//}
