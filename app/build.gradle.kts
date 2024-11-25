@@ -36,6 +36,8 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
+            // applicationIdSuffix = ".debug"
+            // versionNameSuffix = "-debug"
         }
         release {
             isMinifyEnabled = false
@@ -79,13 +81,11 @@ dependencies {
     }
     implementation(libs.spongycastle)
 
-    implementation("com.github.luben:zstd-jni:1.5.2-3@aar") // for winlator
-    implementation(libs.android.preferences) // for winlator
-    implementation(libs.apache.compress) // for winlator
+    // Winlator
+    implementation(libs.bundles.winlator)
 
     // Jetpack Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.bundles.compose)
     debugImplementation(libs.androidx.ui.tooling)
 
@@ -96,6 +96,9 @@ dependencies {
     implementation(libs.jetbrains.kotlinx.json)
     implementation(libs.kotlin.coroutines)
     implementation(libs.zxing)
+
+    // Memory Leak Detection
+    // debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 
     // Testing
     androidTestImplementation(platform(libs.androidx.compose.bom))
