@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -65,7 +66,7 @@ fun QrCodeImage(
                 modifier = Modifier.size(size),
             )
         } else {
-            CircularProgressIndicator()
+            CircularProgressIndicator(modifier = Modifier.size(92.dp))
         }
     }
 }
@@ -80,7 +81,15 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
         mutableStateOf<Bitmap?>(null)
     }
 
-    val ioScope = rememberCoroutineScope { Dispatchers.IO }
+    val isPreview = LocalInspectionMode.current
+    val ioScope = rememberCoroutineScope {
+        // Hack to preview things for the time being.
+        if (isPreview) {
+            Dispatchers.Main
+        } else {
+            Dispatchers.IO
+        }
+    }
     val bgColor = MaterialTheme.colorScheme.background.toArgb()
     val onBgColor = MaterialTheme.colorScheme.onBackground.toArgb()
 
@@ -139,7 +148,7 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
 @Preview
 @Composable
 private fun Preview_QrCodeImage() {
-    PluviaTheme {
+    PluviaTheme(darkTheme = true) {
         Surface {
             QrCodeImage(Modifier, "Hello World", 256.dp)
         }

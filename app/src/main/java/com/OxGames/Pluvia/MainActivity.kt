@@ -16,8 +16,8 @@ import coil3.disk.DiskCache
 import coil3.memory.MemoryCache
 import coil3.request.CachePolicy
 import coil3.util.DebugLogger
-import com.OxGames.Pluvia.ui.component.PluviaMain
 import com.OxGames.Pluvia.events.AndroidEvent
+import com.OxGames.Pluvia.ui.component.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.winlator.core.AppUtils
 import okio.Path.Companion.toOkioPath
@@ -100,16 +100,20 @@ class MainActivity : ComponentActivity() {
     //     return super.onKeyDown(keyCode, event)
     // }
 
+
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Log.d("MainActivity$index", "dispatchKeyEvent(${event.keyCode}):\n$event")
         var eventDispatched = PluviaApp.events.emit(AndroidEvent.KeyEvent(event)) { it.any { it } } == true
-        if (!eventDispatched) {
-            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-                PluviaApp.events.emit(AndroidEvent.BackPressed)
-                eventDispatched = true
-            }
-        }
+        // TODO: Temp'd removed this.
+        //  Idealy, compose handles back presses automaticially in which we can override it in certain composables.
+        //  Since LibraryScreen uses its own navigation system, this will need to be re-worked accordingly.
+//        if (!eventDispatched) {
+//            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+//                PluviaApp.events.emit(AndroidEvent.BackPressed)
+//                eventDispatched = true
+//            }
+//        }
         return if (!eventDispatched) super.dispatchKeyEvent(event) else true
     }
 

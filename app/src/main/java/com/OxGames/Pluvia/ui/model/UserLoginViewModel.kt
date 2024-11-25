@@ -12,6 +12,21 @@ class UserLoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow(UserLoginState())
     val loginState: StateFlow<UserLoginState> = _loginState.asStateFlow()
 
+    fun setQrFailedState(qrCodeState: Boolean) {
+        _loginState.update { currentState ->
+            currentState.copy(isQrFailed = qrCodeState)
+        }
+    }
+    fun setQrCode(qrCode: String?) {
+        _loginState.update { currentState ->
+            currentState.copy(qrCode = qrCode)
+        }
+    }
+    fun setShowQrCode(isShowing: Boolean) {
+        _loginState.update { currentState ->
+            currentState.copy(showQrCode = isShowing)
+        }
+    }
     fun setUsername(username: String) {
         _loginState.update { currentState ->
             currentState.copy(username = username)
