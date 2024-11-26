@@ -2,17 +2,8 @@ package com.OxGames.Pluvia.ui.component
 
 import android.content.Intent
 import android.util.Log
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -26,7 +17,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -179,7 +169,7 @@ fun PluviaMain(
                     LoginResult.Success -> {
                         // TODO: add preference for first screen on login
                         Log.d("PluviaMain", "Navigating to library")
-                        navController.navigate(PluviaScreen.Library.name)
+                        navController.navigate(PluviaScreen.Home.name)
                     }
 
                     LoginResult.EmailAuth, LoginResult.TwoFactorCode -> {
@@ -234,115 +224,37 @@ fun PluviaMain(
     }
 
     PluviaTheme {
-        ModalNavigationDrawer(
-            drawerState = if (currentScreen.hasMenu) drawerState else DrawerState(DrawerValue.Closed),
-            gesturesEnabled = currentScreen.hasMenu,
-            drawerContent = {
-                ModalDrawerSheet {
-                    currentScreen.menuNavRoutes?.forEach {
-                        NavigationDrawerItem(
-                            icon = { Icon(imageVector = it.icon, stringResource(it.title)) },
-                            label = { Text(stringResource(it.title)) },
-                            selected = false,
-                            onClick = {
-                                if (currentScreen != it) {
-                                    if (!navController.popBackStack(it.name, false)) {
-                                        navController.navigate(it.name)
-                                    }
-                                }
-                                closeDrawer()
-                            }
-                        )
-                    }
-                    Spacer(Modifier.weight(1f))
-                    NavigationDrawerItem(
-                        icon = { Icon(imageVector = Icons.AutoMirrored.Filled.Logout, "Log out") },
-                        label = { Text("Log out") },
-                        selected = false,
-                        onClick = { SteamService.logOut() }
-                    )
-                }
-            }
+        NavHost(
+            navController = navController,
+            startDestination = PluviaScreen.LoginUser.name,
+            modifier = Modifier
+                .fillMaxSize(),
         ) {
-//            Scaffold(
-//                modifier = Modifier.fillMaxSize(),
-//                topBar = {
-//                    if (topAppBarVisible) {
-//                        TopAppBar(
-//                            title = {
-//                                val title = if (currentScreen == PluviaScreen.App) {
-//                                    SteamService.getAppInfoOf(appId)?.name
-//                                } else {
-//                                    null
-//                                } ?: stringResource(currentScreen.title)
-//                                Text(title)
-//                            },
-//                            navigationIcon = {
-//                                if (currentScreen.hasMenu) {
-//                                    IconButton(onClick = {
-//                                        toggleDrawer()
-//                                    }) { Icon(imageVector = Icons.Filled.Menu, "Open menu") }
-//                                } else if (hasBack) {
-//                                    // only if we don't have a menu and there is a parent route
-//                                    IconButton(onClick = {
-//                                        navController.popBackStack()
-//                                    }) {
-//                                        Icon(
-//                                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-//                                            "Go back"
-//                                        )
-//                                    }
-//                                }
-//                            },
-//                            actions = {
-//                                if (isLoggedIn) {
-//                                    Box(
-//                                        modifier = Modifier
-//                                            .height(topAppBarHeight)
-//                                    ) {
-//                                        CoilAsyncImage(
-//                                            modifier = Modifier.padding(8.dp),
-//                                            url = profilePicUrl,
-//                                            size = 48.dp,
-//                                            contentDescription = "Profile picture",
-//                                        )
-//                                    }
-//                                }
-//                            }
-//                        )
-//                    }
-//                },
-//            ) { innerPadding ->
-            NavHost(
-                navController = navController,
-                startDestination = PluviaScreen.LoginUser.name,
-                modifier = Modifier
-                    .fillMaxSize(),
-            ) {
-                composable(route = PluviaScreen.LoginUser.name) {
-                    UserLoginScreen(
-                        userLoginViewModel = userLoginViewModel
-                    )
-                }
-                composable(route = PluviaScreen.LoginTwoFactor.name) {
-                    TwoFactorAuthScreen(userLoginViewModel)
-                }
-                composable(route = PluviaScreen.Library.name) {
-                    LibraryScreen(
-                        onClickPlay = {
-                            appId = it
-                            navController.navigate(PluviaScreen.XServer.name)
-                        }
-                    )
-                }
-                composable(route = PluviaScreen.Downloads.name) {
-                    DownloadsScreen()
-                }
-                composable(route = PluviaScreen.XServer.name) {
-                    XServerScreen(appId = appId)
-                }
+            /** Login **/
+            composable(route = PluviaScreen.LoginUser.name) {
+                UserLoginScreen(
+                    userLoginViewModel = userLoginViewModel
+                )
+            }
+            composable(route = PluviaScreen.LoginTwoFactor.name) {
+                TwoFactorAuthScreen(userLoginViewModel)
+            }
+
+            /** Library, Downloads, Friends **/
+            composable(route = PluviaScreen.Home.name) {
+                HomeScreen(
+                    onClickPlay = {
+                        appId = it
+                        navController.navigate(PluviaScreen.XServer.name)
+                    }
+                )
+            }
+
+            /** Full Screen Chat **/
+
+            composable(route = PluviaScreen.XServer.name) {
+                XServerScreen(appId = appId)
             }
         }
     }
-//        }
 }

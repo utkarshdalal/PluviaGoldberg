@@ -2,6 +2,7 @@
     <string name="app_name">Pluvia</string>
     <string name="login_user">User Login</string>
     <string name="login_2fa">Two Factor</string>
+    <string name="home">Home</string>
     <string name="login_qr">QR Login</string>
     <string name="app_library">Library</string>
     <string name="app_downloads">Downloads</string>
@@ -12,6 +13,10 @@
     <string name="header_img_desc">App header image</string>
     <string name="download_app">Download</string>
     <string name="run_app">Play</string>
+
+    <string name="destination_library">Library</string>
+    <string name="destination_downloads">Downloads</string>
+    <string name="destination_friends">Friends</string>
 
     <!--Winlator-->
     <string name="copy">Copy</string>
