@@ -16,15 +16,15 @@ junit = "4.13.2" # https://mvnrepository.com/artifact/junit/junit
 junitVersion = "1.2.1" # https://mvnrepository.com/artifact/androidx.test.ext/junit
 kotlin = "2.0.21" # https://mvnrepository.com/artifact/org.jetbrains.kotlin.android/org.jetbrains.kotlin.android.gradle.plugin
 lifecycleRuntimeKtx = "2.8.7" # https://mvnrepository.com/artifact/androidx.lifecycle/lifecycle-runtime-ktx
-material3-adaptive = "1.0.0" # https://mvnrepository.com/artifact/androidx.compose.material3.adaptive/adaptive-navigation
-material3-adaptive-nav = "1.3.1" # https://mvnrepository.com/artifact/androidx.compose.material3/material3-adaptive-navigation-suite
+material3Adaptive = "1.0.0" # https://mvnrepository.com/artifact/androidx.compose.material3.adaptive/adaptive-layout
+material3AdaptiveNavSuite = "1.3.1" # https://mvnrepository.com/artifact/androidx.compose.material3/material3-adaptive-navigation-suite
 navigation-compose = "2.8.4" # https://mvnrepository.com/artifact/androidx.navigation/navigation-compose
 protobuf = "4.28.2" # https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
 spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongycastle/prov
 steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
 xz = "1.10" # https://mvnrepository.com/artifact/org.tukaani/xz
-zxing = "3.5.1" # https://mvnrepository.com/artifact/com.google.zxing/core
 zstd-jni = "1.5.2-3" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
+zxing = "3.5.1" # https://mvnrepository.com/artifact/com.google.zxing/core
 
 [libraries]
 android-preferences = { group = "androidx.preference", name = "preference-ktx", version.ref = "android-preferences" }
@@ -36,9 +36,10 @@ androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "j
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout", version.ref = "material3Adaptive" }
+androidx-material3-adaptive-nav-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite", version.ref = "material3AdaptiveNavSuite" }
+androidx-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "material3Adaptive" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
-androidx-ui-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "material3-adaptive" }
-androidx-ui-adaptive-navigation-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite", version.ref = "material3-adaptive-nav" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
@@ -84,9 +85,10 @@ compose = [
     "androidx-activity-compose",
     "androidx-material-icons",
     "androidx-material3",
+    "androidx-material3-adaptive-layout",
+    "androidx-material3-adaptive-nav-suite",
+    "androidx-material3-adaptive-navigation",
     "androidx-ui",
-    "androidx-ui-adaptive-navigation",
-    "androidx-ui-adaptive-navigation-suite",
     "androidx-ui-graphics",
     "androidx-ui-tooling-preview",
     "navigation-compose",
