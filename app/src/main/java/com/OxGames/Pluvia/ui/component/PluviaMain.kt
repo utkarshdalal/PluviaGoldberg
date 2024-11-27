@@ -163,11 +163,13 @@ fun PluviaMain(
             topAppBarVisible = it.visible
         }
         val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
-            if (hasBack) {
-                // TODO: check if back leads to log out and present confidence modal
-                navController.popBackStack()
-            } else {
-                // TODO: quit app?
+            CoroutineScope(Dispatchers.Main).launch {
+                if (hasBack) {
+                    // TODO: check if back leads to log out and present confidence modal
+                    navController.popBackStack()
+                } else {
+                    // TODO: quit app?
+                }
             }
         }
         val onSteamConnected: (SteamEvent.Connected) -> Unit = {

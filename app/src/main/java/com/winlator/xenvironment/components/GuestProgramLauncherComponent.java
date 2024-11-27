@@ -12,6 +12,7 @@ import com.winlator.box86_64.Box86_64PresetManager;
 import com.winlator.core.Callback;
 import com.winlator.core.DefaultVersion;
 import com.winlator.core.EnvVars;
+import com.winlator.core.FileUtils;
 import com.winlator.core.ProcessHelper;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.xconnector.UnixSocketConfig;
@@ -19,6 +20,11 @@ import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.ImageFs;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
@@ -123,6 +129,20 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " contains: " + Arrays.toString(nativeLibs.listFiles()));
         // nativeLibraryDir = nativeLibraryDir.replace("arm64", "arm64-v8a");
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + (new File(nativeLibraryDir)).exists());
+        // Log.d("GuestProgramLauncherComponent", steamApiPath + " exists: " + new File(steamApiPath).exists());
+        ImageFs fs = ImageFs.find(context);
+        Path dllsDir = Paths.get(fs.getRootDir().getAbsolutePath(), "/usr/dlls");
+        Path steamApiTargetPath = Paths.get(dllsDir.toString(), "steam_api.dll.so");
+        if (!Files.exists(steamApiTargetPath)) {
+            try {
+                Files.createDirectories(dllsDir);
+                Path steamApiPath = Paths.get(nativeLibraryDir, "steam_api.dll.so");
+                Files.copy(steamApiPath, steamApiTargetPath);
+                FileUtils.chmod(new File(steamApiTargetPath.toString()), 0771);
+            } catch (IOException e) {
+                Log.e("GuestProgramLauncherComponent", "Failed to copy steam_api.dll.so to /usr/lib " + e);
+            }
+        }
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         boolean enableBox86_64Logs = preferences.getBoolean("enable_box86_64_logs", false);
@@ -164,6 +184,9 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         if (bindingPaths != null) {
             for (String path : bindingPaths) command += " --bind="+(new File(path)).getAbsolutePath();
         }
+
+        envVars.put("WINEDLLPATH", dllsDir.toString());
+        // envVars.put("WINEDLLOVERRIDES", "\"steam_api=b\"");
 
         command += " /usr/bin/env "+envVars.toEscapedString()+" box64 "+guestExecutable;
 

@@ -60,6 +60,7 @@ import com.winlator.xenvironment.components.ALSAServerComponent
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent
 import com.winlator.xenvironment.components.NetworkInfoUpdateComponent
 import com.winlator.xenvironment.components.PulseAudioComponent
+import com.winlator.xenvironment.components.SteamClientComponent
 import com.winlator.xenvironment.components.SysVSharedMemoryComponent
 import com.winlator.xenvironment.components.VirGLRendererComponent
 import com.winlator.xenvironment.components.XServerComponent
@@ -163,6 +164,14 @@ fun XServerScreen(
                 xServer.winHandler.onGenericMotionEvent(it.event)
             } else false
         }
+        val onGuestProgramTerminated: (AndroidEvent.GuestProgramTerminated) -> Unit = {
+            // exit(xServer.winHandler, xEnvironment)
+            PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
+        }
+        val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
+            Log.d("XServerScreen", "Shutting down winHandler and xEnvironment")
+            exit(xServer.winHandler, xEnvironment)
+        }
         val debugCallback = Callback<String> { outputLine ->
             Log.d("ProcessOutput", outputLine ?: "")
         }
@@ -171,12 +180,16 @@ fun XServerScreen(
         PluviaApp.events.on<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
         PluviaApp.events.on<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
         PluviaApp.events.on<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
+        PluviaApp.events.on<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
+        PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
         ProcessHelper.addDebugCallback(debugCallback)
 
         onDispose {
             PluviaApp.events.off<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
             PluviaApp.events.off<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
             PluviaApp.events.off<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
+            PluviaApp.events.off<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
+            PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
             ProcessHelper.removeDebugCallback(debugCallback)
         }
     }
@@ -335,7 +348,7 @@ fun XServerScreen(
                 xServer.renderer = renderer
                 xServer.winHandler = WinHandler(xServer, this)  // TODO: fix communication which used to be via activity
                 touchMouse = TouchMouse(xServer)
-                renderer.setUnviewableWMClasses("explorer.exe")
+                // renderer.setUnviewableWMClasses("explorer.exe") // TODO: make conditional based on whether running container or game
                 // TODO: set wmclass of appId to be fullscreen
                 // if (shortcut != null) {
                 //     if (shortcut.getExtra("forceFullscreen", "0").equals("1")) renderer.forceFullscreenWMClass =
@@ -491,13 +504,13 @@ private fun setupXEnvironment(
     imageFs: ImageFs,
     preferences: SharedPreferences
 ): XEnvironment {
-    val DEFAULT_WINE_DEBUG_CHANNELS = "warn,err,fixme" // TODO: move somewhere else more appropriate
+    val DEFAULT_WINE_DEBUG_CHANNELS = "warn,err,fixme,loaddll" // TODO: move somewhere else more appropriate
 
     envVars.put("MESA_DEBUG", "silent")
     envVars.put("MESA_NO_ERROR", "1")
     envVars.put("WINEPREFIX", ImageFs.WINEPREFIX)
 
-    val enableWineDebug = preferences.getBoolean("enable_wine_debug", false)
+    val enableWineDebug = true//preferences.getBoolean("enable_wine_debug", false)
     val wineDebugChannels = preferences.getString("wine_debug_channels", DEFAULT_WINE_DEBUG_CHANNELS)!!
     envVars.put("WINEDEBUG", if (enableWineDebug && !wineDebugChannels.isEmpty()) "+"+wineDebugChannels.replace(",", ",+") else "-all")
 
@@ -531,6 +544,7 @@ private fun setupXEnvironment(
     environment.addComponent(SysVSharedMemoryComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH)))
     environment.addComponent(XServerComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.XSERVER_PATH)))
     environment.addComponent(NetworkInfoUpdateComponent())
+    environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.STEAM_PIPE_PATH)))
 
     if (xServerState.value.audioDriver == "alsa") {
         envVars.put("ANDROID_ALSA_SERVER", UnixSocketConfig.ALSA_SERVER_PATH)
@@ -547,7 +561,9 @@ private fun setupXEnvironment(
     }
 
     guestProgramLauncherComponent.envVars = envVars
-    guestProgramLauncherComponent.setTerminationCallback { status -> exit(xServer.winHandler, environment) } // TODO: turn this into an event
+    guestProgramLauncherComponent.setTerminationCallback { status ->
+        PluviaApp.events.emit(AndroidEvent.GuestProgramTerminated)
+    }
     environment.addComponent(guestProgramLauncherComponent)
 
     if (generateWinePrefix)
@@ -570,12 +586,14 @@ private fun getWineStartCommand(container: Container, appLocalExe: Pair<String, 
     val tempDir = File(container.rootDir, ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
 
-    Log.d("XServerScreen", "Converting $appLocalExe to wine start command")
-    var args = if (appLocalExe != null) {
-        "/dir D:/${appLocalExe.first} \"${appLocalExe.second}\""
-    } else {
-        "\"wfm.exe\""
-    }
+    val args = "\"wfm.exe\""
+    // Log.d("XServerScreen", "Converting $appLocalExe to wine start command")
+    // val args = if (appLocalExe != null) {
+    //     "/dir D:/${appLocalExe.first} \"${appLocalExe.second}\""
+    // } else {
+    //     "\"wfm.exe\""
+    // }
+
     // var args = ""
     // if (shortcut != null) {
     //     var execArgs = shortcut.getExtra("execArgs")
