@@ -131,12 +131,13 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + (new File(nativeLibraryDir)).exists());
         // Log.d("GuestProgramLauncherComponent", steamApiPath + " exists: " + new File(steamApiPath).exists());
         ImageFs fs = ImageFs.find(context);
-        Path dllsDir = Paths.get(fs.getRootDir().getAbsolutePath(), "/usr/dlls");
-        Path steamApiTargetPath = Paths.get(dllsDir.toString(), "steam_api.dll.so");
+        // Path dllsDir = Paths.get(fs.getRootDir().getAbsolutePath(), "/usr/dlls");
+        // Path steamApiTargetPath = Paths.get(dllsDir.toString(), "steam_api.dll.so");
+        Path steamApiTargetPath = Paths.get(fs.getLib64Dir().toString(), "libsteam_api.dll.so");
         if (!Files.exists(steamApiTargetPath)) {
             try {
-                Files.createDirectories(dllsDir);
-                Path steamApiPath = Paths.get(nativeLibraryDir, "steam_api.dll.so");
+                // Files.createDirectories(dllsDir);
+                Path steamApiPath = Paths.get(nativeLibraryDir, "libsteam_api.dll.so");
                 Files.copy(steamApiPath, steamApiTargetPath);
                 FileUtils.chmod(new File(steamApiTargetPath.toString()), 0771);
             } catch (IOException e) {
@@ -185,8 +186,8 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             for (String path : bindingPaths) command += " --bind="+(new File(path)).getAbsolutePath();
         }
 
-        envVars.put("WINEDLLPATH", dllsDir.toString());
-        // envVars.put("WINEDLLOVERRIDES", "\"steam_api=b\"");
+        // envVars.put("WINEDLLPATH", dllsDir.toString());
+        // envVars.put("WINEDLLOVERRIDES", "\"steam_api=n\"");
 
         command += " /usr/bin/env "+envVars.toEscapedString()+" box64 "+guestExecutable;
 

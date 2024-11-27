@@ -1,0 +1,32 @@
+//
+// Created by Oxters Wyzgowski on 11/27/24.
+//
+
+// protocol.h
+#ifndef PLUVIA_PROTOCOL_H
+#define PLUVIA_PROTOCOL_H
+
+enum MessageType {
+    MSG_STEAM_INIT = 1,
+    MSG_STEAM_SHUTDOWN,
+    MSG_STEAM_RESTART,
+    MSG_STEAM_IS_RUNNING,
+    MSG_USER_GET_AUTH_TICKET,
+    MSG_USER_BEGIN_AUTH,
+    MSG_USER_HAS_LICENSE,
+    MSG_CONTROLLER_GET_DIGITAL_ORIGINS,
+    MSG_CONTROLLER_GET_ANALOG_HANDLE,
+    MSG_CONTROLLER_GET_ANALOG_DATA,
+    MSG_APPS_GET_LAUNCH_PARAM,
+    MSG_APPS_GET_LAUNCH_CMD,
+    MSG_GC_SEND_MESSAGE,
+    MSG_GC_IS_MESSAGE_AVAILABLE,
+    MSG_GC_RETRIEVE_MESSAGE
+};
+
+struct MessageHeader {
+    enum MessageType type;
+    uint32_t length;
+};
+
+#endif //PLUVIA_PROTOCOL_H
