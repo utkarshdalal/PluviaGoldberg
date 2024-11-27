@@ -43,8 +43,7 @@ internal fun HomeNavigationWrapperUI(
                     icon = { Icon(it.icon, stringResource(it.title)) },
                     selected = it == destination,
                     onClick = { onDestination(it) },
-
-                    )
+                )
             }
         },
         layoutType = navLayoutType,

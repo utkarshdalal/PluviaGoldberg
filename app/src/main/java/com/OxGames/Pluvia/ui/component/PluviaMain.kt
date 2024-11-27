@@ -87,29 +87,13 @@ fun PluviaMain(
         navController.addOnDestinationChangedListener(PluviaApp.onDestinationChangedListener!!)
     }
 
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val toggleDrawer: () -> Unit = {
-        scope.launch {
-            drawerState.apply {
-                if (isClosed) open() else close()
-            }
-        }
-    }
-    val closeDrawer: () -> Unit = {
-        scope.launch {
-            drawerState.apply {
-                if (!isClosed) close()
-            }
-        }
-    }
-
     var topAppBarVisible by rememberSaveable { mutableStateOf(true) }
 
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
     var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
     var profilePicUrl by remember {
-        mutableStateOf<String>(
+        mutableStateOf(
             SteamService.getUserSteamId()?.let {
                 SteamService.getPersonaStateOf(it)
             }?.avatarUrl ?: SteamService.MISSING_AVATAR_URL
@@ -184,9 +168,21 @@ fun PluviaMain(
             }
         }
         val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
-            Log.d("PluviaMain", "Received logged out")
-            isLoggingIn = false
-            isLoggedIn = false
+            CoroutineScope(Dispatchers.Main).launch {
+                Log.d("PluviaMain", "Received logged out")
+                isLoggingIn = false
+                isLoggedIn = false
+
+                // Pop stack and go back to login.
+                navController.popBackStack(
+                    route = PluviaScreen.LoginUser.name,
+                    inclusive = false,
+                    saveState = false
+                )
+
+                // TODO scope 'userLoginViewModel' for the composable it's for.
+                //  this may re-init 'userLoginViewModel' to stop the spinner when were 'Revoked'
+            }
         }
         val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = {
             val persona = SteamService.getPersonaStateOf(it.steamId)
@@ -252,6 +248,7 @@ fun PluviaMain(
 
             /** Full Screen Chat **/
 
+            /** Game Screen **/
             composable(route = PluviaScreen.XServer.name) {
                 XServerScreen(appId = appId)
             }

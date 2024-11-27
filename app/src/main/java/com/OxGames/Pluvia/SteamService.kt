@@ -387,6 +387,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
         fun stopLoginWithQr() {
+            Log.d("SteamService", "Stopping QR polling")
             isWaitingForQRAuth = false
         }
         fun logOut() {
