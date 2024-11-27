@@ -41,7 +41,6 @@ import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
-import `in`.dragonbra.javasteam.steam.handlers.steamcontent.SteamContent
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamgameserver.SteamGameServer
@@ -57,7 +56,6 @@ import `in`.dragonbra.javasteam.steam.steamclient.SteamClient
 import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
-import `in`.dragonbra.javasteam.steam.steamclient.configuration.ISteamConfigurationBuilder
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
 import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
@@ -80,12 +78,11 @@ import kotlin.io.path.pathString
 
 
 class SteamService : Service(), IChallengeUrlChanged {
-    private var _steamClient: SteamClient? = null
     private var _callbackManager: CallbackManager? = null
+    private var _steamClient: SteamClient? = null
     private var _steamUser: SteamUser? = null
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
-    private var _steamContent: SteamContent? = null // TODO: add SteamContent to Java SteamKit
 
     private val _callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
@@ -112,6 +109,9 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         private val downloadJobs = ConcurrentHashMap<Int, DownloadInfo>()
 
+        // var isLoggingOut: Boolean = false
+        //     private set
+
         var isConnecting: Boolean = false
             private set
         var isStopping: Boolean = false
@@ -123,9 +123,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isLoggingIn: Boolean = false
             private set
         val isLoggedIn: Boolean
-            get() = instance?._steamClient?.steamID?.run { isValid == true } == true
-        // var isLoggingOut: Boolean = false
-        //     private set
+            get() = instance?._steamClient?.steamID?.run { isValid } == true
         var isWaitingForQRAuth: Boolean = false
             private set
         var isReceivingLicenseList: Boolean = false
@@ -135,73 +133,72 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isRequestingAppInfo: Boolean = false
             private set
 
-        private fun getServerListPath(): String {
-            return Paths.get(instance!!.cacheDir.path, "server_list.bin").pathString
-        }
-        private fun getDepotManifestsPath(): String {
-            return Paths.get(instance!!.dataDir.path, "Steam", "depot_manifests.zip").pathString
-        }
-        private fun getSteamDataPath(): String {
-            return Paths.get(instance!!.dataDir.path, "steam_data.json").pathString
-        }
-        private fun getDefaultAppInstallPath(): String {
-            return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
-        }
-        private fun getDefaultAppStagingPath(): String {
-            return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
-        }
+        private val serverListPath: String
+            get() = Paths.get(instance!!.cacheDir.path, "server_list.bin").pathString
+
+        private val depotManifestsPath: String
+            get() = Paths.get(instance!!.dataDir.path, "Steam", "depot_manifests.zip").pathString
+
+        private val steamDataPath: String
+            get() = Paths.get(instance!!.dataDir.path, "steam_data.json").pathString
+
+        private val defaultAppInstallPath: String
+            get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+
+        private val defaultAppStagingPath: String
+            get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
+
         private fun loadSteamData() {
-            val steamDataStr: String? = FileUtils.readFileAsString(getSteamDataPath())
-            if (steamDataStr != null)
-                steamData = Json.decodeFromString<SteamData>(steamDataStr)
-            else
-                steamData = SteamData(
-                    appInstallPath = getDefaultAppInstallPath(),
-                    appStagingPath = getDefaultAppStagingPath()
+            val steamDataStr = FileUtils.readFileAsString(steamDataPath)
+            steamData = if (steamDataStr != null) {
+                Json.decodeFromString<SteamData>(steamDataStr)
+            } else {
+                SteamData(
+                    appInstallPath = defaultAppInstallPath,
+                    appStagingPath = defaultAppStagingPath
                 )
+            }
         }
+
         private fun saveSteamData() {
-            FileUtils.writeStringToFile(Json.encodeToString(steamData), getSteamDataPath())
+            FileUtils.writeStringToFile(Json.encodeToString(steamData), steamDataPath)
         }
 
         fun requestUserPersona() {
             CoroutineScope(Dispatchers.Default).launch {
                 getUserSteamId()?.let {
-                    instance?._steamFriends?.requestFriendInfo(it) // in order to get user avatar url and other info
+                    // in order to get user avatar url and other info
+                    instance?._steamFriends?.requestFriendInfo(it)
                 }
             }
         }
-        fun getUserSteamId(): SteamID? {
-            return instance?._steamClient?.steamID
-        }
-        fun getPersonaStateOf(steamId: SteamID): UserData? {
-            return instance?.personaStates?.get(steamId.accountID)
+
+        fun getUserSteamId(): SteamID? = instance?._steamClient?.steamID
+
+        fun getPersonaStateOf(steamId: SteamID): UserData? =
+            instance?.personaStates?.get(steamId.accountID)
+
+        fun getAppList(filter: EnumSet<AppType>): List<AppInfo> =
+            instance?.appInfo?.values?.filter { filter.contains(it.type) } ?: emptyList()
+
+        fun getPkgInfoOf(appId: Int): PackageInfo? = instance?.packageInfo?.values?.firstOrNull {
+            // Log.d("SteamService", "Pkg (${it.packageId}) apps: ${it.appIds.joinToString(",")}")
+            it.appIds.contains(appId)
         }
 
-        fun getAppList(filter: EnumSet<AppType>): List<AppInfo> {
-            return instance?.appInfo?.values?.filter { filter.contains(it.type) } ?: emptyList()
+        fun getAppInfoOf(appId: Int): AppInfo? = instance?.appInfo?.values?.firstOrNull {
+            it.appId == appId
         }
 
-        fun getPkgInfoOf(appId: Int): PackageInfo? {
-            return instance?.packageInfo?.values?.firstOrNull {
-                // Log.d("SteamService", "Pkg (${it.packageId}) apps: ${it.appIds.joinToString(",")}")
-                it.appIds.contains(appId)
-            }
-        }
-        fun getAppInfoOf(appId: Int): AppInfo? {
-            return instance?.appInfo?.values?.firstOrNull {
-                it.appId == appId
-            }
-        }
-        fun getAppDownloadInfo(appId: Int): DownloadInfo? {
-            return downloadJobs.get(appId)
-        }
-        fun isAppInstalled(appId: Int): Boolean {
-            return Files.exists(Paths.get(getAppDirPath(appId)))
-        }
-        fun getAppRawDirPath(appId: Int): String {
-            return Paths.get(steamData?.appInstallPath ?: "", getAppInfoOf(appId)?.config?.installDir ?: "").pathString
-        }
+        fun getAppDownloadInfo(appId: Int): DownloadInfo? = downloadJobs[appId]
+
+        fun isAppInstalled(appId: Int): Boolean = Files.exists(Paths.get(getAppDirPath(appId)))
+
+        fun getAppRawDirPath(appId: Int): String = Paths.get(
+            steamData?.appInstallPath ?: "",
+            getAppInfoOf(appId)?.config?.installDir ?: ""
+        ).pathString
+
         fun getAppDirPath(appId: Int): String {
             val origPath = getAppRawDirPath(appId)
             return origPath.trim().replace(" ", "_")
@@ -211,50 +208,67 @@ class SteamService : Service(), IChallengeUrlChanged {
             val appInfo = getAppInfoOf(appId)
             val pkgInfo = getPkgInfoOf(appId)
             val depotId = pkgInfo?.depotIds?.firstOrNull {
+                // TODO: Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type Map<Int, DepotInfo>?
                 appInfo?.depots[it]?.osList?.contains(OS.windows) == true
             }
             return if (depotId != null) {
                 appInfo?.appId?.let {
                     downloadApp(it, depotId, "public")
                 }
-            }
-            else {
-                Log.e("SteamService", "Failed to download app (${appInfo?.appId}), could not find appropriate depot")
+            } else {
+                Log.e(
+                    "SteamService",
+                    "Failed to download app (${appInfo?.appId}), could not find appropriate depot"
+                )
+
                 null
             }
         }
+
         fun downloadApp(appId: Int, depotId: Int, branch: String): DownloadInfo? {
             if (downloadJobs.contains(appId)) {
-                Log.e("SteamService", "Could not start new download job for $appId since one already exists")
+                Log.e(
+                    "SteamService",
+                    "Could not start new download job for $appId since one already exists"
+                )
+
                 return getAppDownloadInfo(appId)
             }
 
             val downloadInfo = DownloadInfo().also { downloadInfo ->
-                downloadInfo.setDownloadJob(CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        ContentDownloader(instance!!._steamClient!!).downloadApp(
-                            appId,
-                            depotId,
-                            steamData!!.appInstallPath,
-                            steamData!!.appStagingPath,
-                            branch,
-                            // maxDownloads = 1,
-                            onDownloadProgress = { downloadInfo.setProgress(it) },
-                            parentScope = coroutineContext.job as CoroutineScope
-                        ).await()
-                        // rename directory to our specification
-                        val origPath = getAppRawDirPath(appId)
-                        val newPath = getAppDirPath(appId)
-                        if (origPath != newPath && Files.exists(Paths.get(origPath))) {
-                            File(origPath).renameTo(File(newPath))
+                downloadInfo.setDownloadJob(
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            ContentDownloader(instance!!._steamClient!!).downloadApp(
+                                appId,
+                                depotId,
+                                steamData!!.appInstallPath,
+                                steamData!!.appStagingPath,
+                                branch,
+                                // maxDownloads = 1,
+                                onDownloadProgress = { downloadInfo.setProgress(it) },
+                                parentScope = coroutineContext.job as CoroutineScope
+                            ).await()
+                            // rename directory to our specification
+                            val origPath = getAppRawDirPath(appId)
+                            val newPath = getAppDirPath(appId)
+                            if (origPath != newPath && Files.exists(Paths.get(origPath))) {
+                                File(origPath).renameTo(File(newPath))
+                            }
+                        } finally {
+                            /* Nothing */
                         }
-                    } finally {}
-                    downloadJobs.remove(appId)
-                })
+
+                        downloadJobs.remove(appId)
+                    }
+                )
             }
-            downloadJobs.put(appId, downloadInfo)
+
+            downloadJobs[appId] = downloadInfo
+
             return downloadInfo
         }
+
         // private fun getDefaultAvatarUrl(): String {
         //     return AVATAR_BASE_URL + "fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" // default profile picture (question mark)
         // }
@@ -267,16 +281,19 @@ class SteamService : Service(), IChallengeUrlChanged {
             // "avatarmedium": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4_medium.jpg",
             // "avatarfull": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4_full.jpg"
             // val unknownAvatarUrl: String = DEFAULT_AVATAR_URL
-            if (avatarHashBytes == null)
+            if (avatarHashBytes == null) {
                 return MISSING_AVATAR_URL
+            }
 
             // Getting hash as string
             var avatarHash: String? = null
-            if (avatarHashBytes.isNotEmpty() && avatarHashBytes.any { it != 0.toByte() })
+            if (avatarHashBytes.isNotEmpty() && avatarHashBytes.any { it != 0.toByte() }) {
                 avatarHash = avatarHashBytes.toHexString(HexFormat.Default)
+            }
 
-            if (avatarHash.isNullOrEmpty() || avatarHash.all { it == '0' })
+            if (avatarHash.isNullOrEmpty() || avatarHash.all { it == '0' }) {
                 return MISSING_AVATAR_URL
+            }
 
             // Making URL
             val folder = avatarHash.substring(0, 2)
@@ -285,21 +302,38 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun printAllKeyValues(parent: KeyValue, depth: Int = 0) {
             var tabString = ""
-            for (i in 0..depth)
+            for (i in 0..depth) {
                 tabString += "\t"
+            }
+
             if (parent.children.isNotEmpty()) {
                 Log.d("SteamService", "$tabString${parent.name}")
-                for (child in parent.children)
+                for (child in parent.children) {
                     printAllKeyValues(child, depth + 1)
+                }
             } else {
                 Log.d("SteamService", "$tabString${parent.name}: ${parent.value}")
             }
         }
 
-        private fun login(username: String, accessToken: String? = null, refreshToken: String? = null, password: String? = null, shouldRememberPassword: Boolean = false, twoFactorAuth: String? = null, emailAuth: String? = null) {
+        // TODO use new Login Flow for credential auth.
+        //  This will allow us to use 'Remember me'
+        //  Same as QR Auth, but we use AuthSessionDetails this time.
+        private fun login(
+            username: String,
+            accessToken: String? = null,
+            refreshToken: String? = null,
+            password: String? = null,
+            shouldRememberPassword: Boolean = false,
+            twoFactorAuth: String? = null,
+            emailAuth: String? = null
+        ) {
             val steamUser = instance!!._steamUser!!
 
-            Log.d("SteamService", "Login Information\n\tUsername: $username\n\tAccessToken: $accessToken\n\tRefreshToken: $refreshToken\n\tPassword: $password\n\tShouldRememberPass: $shouldRememberPassword\n\tTwoFactorAuth: $twoFactorAuth\n\tEmailAuth: $emailAuth")
+            Log.d(
+                "SteamService",
+                "Login Information\n\tUsername: $username\n\tAccessToken: $accessToken\n\tRefreshToken: $refreshToken\n\tPassword: $password\n\tShouldRememberPass: $shouldRememberPassword\n\tTwoFactorAuth: $twoFactorAuth\n\tEmailAuth: $emailAuth"
+            )
 
             steamData!!.accountName = username
             if ((password != null && shouldRememberPassword) || refreshToken != null) {
@@ -317,23 +351,33 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             isLoggingIn = true
             PluviaApp.events.emit(SteamEvent.LogonStarted(username))
-            steamUser.logOn(LogOnDetails(
-                // Steam strips all non-ASCII characters from usernames and passwords
-                // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
-                // more: https://github.com/winauth/winauth/issues/368#issuecomment-224631002
-                username = SteamUtils.removeSpecialChars(username).trim(),
-                password = if (password != null) SteamUtils.removeSpecialChars(password).trim() else null,
-                shouldRememberPassword = shouldRememberPassword,
-                twoFactorCode = twoFactorAuth,
-                authCode = emailAuth,
-                accessToken = refreshToken,
-                // Set LoginID to a non-zero value if you have another client connected using the same account,
-                // the same private ip, and same public ip.
-                // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
-                loginID = LOGIN_ID
-            ))
+            steamUser.logOn(
+                LogOnDetails(
+                    // Steam strips all non-ASCII characters from usernames and passwords
+                    // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
+                    // more: https://github.com/winauth/winauth/issues/368#issuecomment-224631002
+                    username = SteamUtils.removeSpecialChars(username).trim(),
+                    password = if (password != null) SteamUtils.removeSpecialChars(password)
+                        .trim() else null,
+                    shouldRememberPassword = shouldRememberPassword,
+                    twoFactorCode = twoFactorAuth,
+                    authCode = emailAuth,
+                    accessToken = refreshToken,
+                    // Set LoginID to a non-zero value if you have another client connected using the same account,
+                    // the same private ip, and same public ip.
+                    // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
+                    loginID = LOGIN_ID
+                )
+            )
         }
-        fun logOn(username: String, password: String, shouldRememberPassword: Boolean = false, twoFactorAuth: String? = null, emailAuth: String? = null) {
+
+        fun logOn(
+            username: String,
+            password: String,
+            shouldRememberPassword: Boolean = false,
+            twoFactorAuth: String? = null,
+            emailAuth: String? = null
+        ) {
             CoroutineScope(Dispatchers.Default).launch {
                 login(
                     username = username,
@@ -344,31 +388,45 @@ class SteamService : Service(), IChallengeUrlChanged {
                 )
             }
         }
+
         fun startLoginWithQr() {
             CoroutineScope(Dispatchers.IO).launch {
                 val steamClient = instance!!._steamClient
                 if (steamClient != null) {
                     isWaitingForQRAuth = true
-                    val authSession = steamClient.authentication.beginAuthSessionViaQR(AuthSessionDetails())
+
+                    val authSession = steamClient.authentication
+                        .beginAuthSessionViaQR(AuthSessionDetails())
+
                     // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
                     authSession.challengeUrlChanged = instance
                     PluviaApp.events.emit(SteamEvent.QrChallengeReceived(authSession.challengeUrl))
 
-                    Log.d("SteamService", "PollingInterval: ${authSession.pollingInterval.toLong()}")
+                    Log.d(
+                        "SteamService",
+                        "PollingInterval: ${authSession.pollingInterval.toLong()}"
+                    )
                     var authPollResult: AuthPollResult? = null
                     while (isWaitingForQRAuth && authPollResult == null) {
                         try {
                             authPollResult = authSession.pollAuthSessionStatus()
-                        } catch(e: Exception) {
+                        } catch (e: Exception) {
                             Log.w("SteamService", "Poll auth session status error: $e")
                             break
                         }
-                        if (authPollResult != null)
-                            Log.d("SteamService", "AccessToken: ${authPollResult.accessToken}\nAccountName: ${authPollResult.accountName}\nRefreshToken: ${authPollResult.refreshToken}\nNewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}")
-                        else
+
+                        if (authPollResult != null) {
+                            Log.d(
+                                "SteamService",
+                                "AccessToken: ${authPollResult.accessToken}\nAccountName: ${authPollResult.accountName}\nRefreshToken: ${authPollResult.refreshToken}\nNewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}"
+                            )
+                        } else {
                             Log.d("SteamService", "AuthPollResult is null")
+                        }
+
                         delay(authSession.pollingInterval.toLong())
                     }
+
                     isWaitingForQRAuth = false
                     PluviaApp.events.emit(SteamEvent.QrAuthEnded(authPollResult != null))
 
@@ -386,10 +444,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                 }
             }
         }
+
         fun stopLoginWithQr() {
             Log.d("SteamService", "Stopping QR polling")
             isWaitingForQRAuth = false
         }
+
         fun logOut() {
             CoroutineScope(Dispatchers.Default).launch {
                 isConnected = false
@@ -399,6 +459,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 steamUser.logOff()
             }
         }
+
         private fun clearUserData() {
             steamData!!.cellId = 0
             steamData!!.accountName = null
@@ -408,6 +469,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             saveSteamData()
             isLoggingIn = false
         }
+
         private fun performLogOffDuties() {
             val username = steamData!!.accountName
             clearUserData()
@@ -427,39 +489,75 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (!isRunning) {
             loadSteamData()
 
-            Log.d("SteamService", "Using server list path: ${getServerListPath()}")
-            val configuration =
-                SteamConfiguration.create { iSteamConfigurationBuilder: ISteamConfigurationBuilder ->
-                    iSteamConfigurationBuilder.withProtocolTypes(PROTOCOL_TYPES)
-                    iSteamConfigurationBuilder.withCellID(steamData!!.cellId)
-                    iSteamConfigurationBuilder.withServerListProvider(FileServerListProvider(File(getServerListPath())))
-                    iSteamConfigurationBuilder.withManifestProvider(FileManifestProvider(File(getDepotManifestsPath())))
-                }
+            Log.d("SteamService", "Using server list path: $serverListPath")
+            val configuration = SteamConfiguration.create {
+                it.withProtocolTypes(PROTOCOL_TYPES)
+                it.withCellID(steamData!!.cellId)
+                it.withServerListProvider(FileServerListProvider(File(serverListPath)))
+                it.withManifestProvider(FileManifestProvider(File(depotManifestsPath)))
+            }
 
             // create our steam client instance
             _steamClient = SteamClient(configuration)
+
             // remove callbacks we're not using.
             _steamClient!!.removeHandler(SteamGameServer::class.java)
             _steamClient!!.removeHandler(SteamMasterServer::class.java)
             _steamClient!!.removeHandler(SteamWorkshop::class.java)
             _steamClient!!.removeHandler(SteamScreenshots::class.java)
             _steamClient!!.removeHandler(SteamUserStats::class.java)
+
             // create the callback manager which will route callbacks to function calls
             _callbackManager = CallbackManager(_steamClient!!)
+
             // get the different handlers to be used throughout the service
             _steamUser = _steamClient!!.getHandler(SteamUser::class.java)
             _steamApps = _steamClient!!.getHandler(SteamApps::class.java)
             _steamFriends = _steamClient!!.getHandler(SteamFriends::class.java)
 
             // subscribe to the callbacks we are interested in
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(ConnectedCallback::class.java, this::onConnected))
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(DisconnectedCallback::class.java, this::onDisconnected))
-            // _callbackSubscriptions.add(_callbackManager!!.subscribe(CMListCallback::class.java, this::onCMList))
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOnCallback::class.java, this::onLoggedOn))
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(LoggedOffCallback::class.java, this::onLoggedOff))
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(PersonaStatesCallback::class.java, this::onPersonaStateReceived))
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(LicenseListCallback::class.java, this::onLicenseList))
-            _callbackSubscriptions.add(_callbackManager!!.subscribe(PICSProductInfoCallback::class.java, this::onPICSProductInfo))
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    ConnectedCallback::class.java,
+                    this::onConnected
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    DisconnectedCallback::class.java,
+                    this::onDisconnected
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    LoggedOnCallback::class.java,
+                    this::onLoggedOn
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    LoggedOffCallback::class.java,
+                    this::onLoggedOff
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    PersonaStatesCallback::class.java,
+                    this::onPersonaStateReceived
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    LicenseListCallback::class.java,
+                    this::onLicenseList
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    PICSProductInfoCallback::class.java,
+                    this::onPICSProductInfo
+                )
+            )
 
             isRunning = true
 
@@ -492,9 +590,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
     }
 
-    override fun onBind(p0: Intent?): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     private fun connectToSteam() {
         isConnecting = true
@@ -504,10 +600,17 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             delay(5000)
             if (!isConnected) {
-                Log.w("SteamService", "Failed to connect to Steam, marking endpoint bad and force disconnecting")
+                Log.w(
+                    "SteamService",
+                    "Failed to connect to Steam, marking endpoint bad and force disconnecting"
+                )
                 try {
-                    _steamClient!!.servers.tryMark(_steamClient!!.currentEndpoint, PROTOCOL_TYPES, ServerQuality.BAD)
-                } catch(e: Exception) {
+                    _steamClient!!.servers.tryMark(
+                        _steamClient!!.currentEndpoint,
+                        PROTOCOL_TYPES,
+                        ServerQuality.BAD
+                    )
+                } catch (e: Exception) {
                     Log.e("SteamService", "Failed to mark endpoint as bad: $e")
                 }
                 try {
@@ -519,21 +622,22 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
     }
 
-    private suspend fun stop()
-    {
+    private suspend fun stop() {
         Log.d("SteamService", "Stopping Steam service")
         if (_steamClient != null && _steamClient!!.isConnected) {
             isStopping = true
             _steamClient!!.disconnect()
-            while (isStopping)
+            while (isStopping) {
                 delay(200L)
+            }
             // the reason we don't clearValues() here is because the onDisconnect
             // callback does it for us
-        } else
+        } else {
             clearValues()
+        }
     }
-    private fun clearValues()
-    {
+
+    private fun clearValues() {
         _loginResult = LoginResult.Failed
         isRunning = false
         isConnected = false
@@ -545,17 +649,18 @@ class SteamService : Service(), IChallengeUrlChanged {
         isRequestingAppInfo = false
 
         steamData = SteamData(
-            appInstallPath = getDefaultAppInstallPath(),
-            appStagingPath = getDefaultAppStagingPath()
+            appInstallPath = defaultAppInstallPath,
+            appStagingPath = defaultAppStagingPath
         )
         _steamClient = null
         _steamUser = null
         _steamApps = null
         _steamFriends = null
-        _steamContent = null
 
-        for (subscription in _callbackSubscriptions)
+        for (subscription in _callbackSubscriptions) {
             subscription.close()
+        }
+
         _callbackSubscriptions.clear()
         _callbackManager = null
 
@@ -569,13 +674,17 @@ class SteamService : Service(), IChallengeUrlChanged {
         PluviaApp.events.clearAllListenersOf<SteamEvent<Any>>()
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun onConnected(callback: ConnectedCallback) {
         Log.d("SteamService", "Connected to Steam")
         retryAttempt = 0
         isConnecting = false
         isConnected = true
+
         var isAutoLoggingIn = false
+
         loadSteamData()
+
         if (_loginResult != LoginResult.TwoFactorCode && _loginResult != LoginResult.EmailAuth) {
             if (steamData!!.accountName != null && (steamData!!.refreshToken != null || steamData!!.password != null)) {
                 isAutoLoggingIn = true
@@ -587,11 +696,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 )
             }
         }
+
         PluviaApp.events.emit(SteamEvent.Connected(isAutoLoggingIn))
     }
-    // private fun onCMList(callback: CMListCallback) {
-    //     Log.d("SteamService", "CMListCallback:\nJobID: ${callback.jobID}\nServerList: ${callback.servers}")
-    // }
+
+    @Suppress("UNUSED_PARAMETER")
     private fun onDisconnected(callback: DisconnectedCallback) {
         Log.d("SteamService", "Disconnected from Steam")
         isConnected = false
@@ -624,14 +733,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                 _loginResult = LoginResult.EmailAuth
                 reconnect()
             }
+
             EResult.AccountLoginDeniedNeedTwoFactor -> {
                 _loginResult = LoginResult.TwoFactorCode
                 reconnect()
             }
+
             EResult.TryAnotherCM -> {
                 // _loginResult = LoginResult.TryAgain
                 reconnect()
             }
+
             EResult.OK -> {
                 logonSucess = true
                 // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
@@ -641,9 +753,13 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                 // retrieve persona data of logged in user
                 requestUserPersona()
-                isReceivingLicenseList = true // since we automatically receive the license list from steam on log on
+
+                // since we automatically receive the license list from steam on log on
+                isReceivingLicenseList = true
+
                 _loginResult = LoginResult.Success
             }
+
             else -> {
                 clearUserData()
                 _loginResult = LoginResult.Failed
@@ -662,13 +778,14 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     override fun onChanged(qrAuthSession: QrAuthSession?) {
         Log.d("SteamService", "QR code changed: ${qrAuthSession?.challengeUrl}")
-        if (qrAuthSession != null)
+        if (qrAuthSession != null) {
             PluviaApp.events.emit(SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl))
+        }
     }
 
     private fun onPersonaStateReceived(callback: PersonaStatesCallback) {
         Log.d("SteamService", "Persona state received: ${callback.name}")
-        personaStates.put(callback.friendID.accountID, UserData(
+        personaStates[callback.friendID.accountID] = UserData(
             statusFlags = callback.statusFlags,
             friendID = callback.friendID,
             state = callback.state,
@@ -688,7 +805,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             clanRank = callback.clanRank,
             clanTag = callback.clanTag,
             onlineSessionInstances = callback.onlineSessionInstances,
-        ))
+        )
+
         PluviaApp.events.emit(SteamEvent.PersonaStateReceived(callback.friendID))
     }
 
@@ -697,7 +815,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (callback.result == EResult.OK) {
             for (i in callback.licenseList.indices) {
                 val license = callback.licenseList[i]
-                packageInfo.put(license.packageID, PackageInfo(
+                packageInfo[license.packageID] = PackageInfo(
                     packageId = license.packageID,
                     receiveIndex = i,
                     ownerAccountId = license.ownerAccountID,
@@ -708,32 +826,44 @@ class SteamService : Service(), IChallengeUrlChanged {
                     licenseType = license.licenseType,
                     paymentMethod = license.paymentMethod,
                     purchaseCountryCode = license.purchaseCode,
-
                     appIds = IntArray(0),
                     depotIds = IntArray(0),
-                ))
+                )
             }
 
             isRequestingPkgInfo = true
-            _steamApps!!.picsGetProductInfo(emptyList(), callback.licenseList.map { PICSRequest(it.packageID, it.accessToken) })
+            _steamApps!!.picsGetProductInfo(
+                apps = emptyList(),
+                packages = callback.licenseList.map { PICSRequest(it.packageID, it.accessToken) }
+            )
         }
+
         isReceivingLicenseList = false
     }
+
     private fun onPICSProductInfo(callback: PICSProductInfoCallback) {
         // Log.d("SteamService", "Received PICSProductInfo")
         if (callback.packages.isNotEmpty()) {
             for (pkg in callback.packages.values) {
                 // Log.d("SteamService", "Received pkg ${pkg.id}")
-                packageInfo.get(pkg.id)?.let {
-                    it.appIds = pkg.keyValues["appids"].children.map { it.asInteger() }.toIntArray()
-                    it.depotIds = pkg.keyValues["depotids"].children.map { it.asInteger() }.toIntArray()
+                packageInfo[pkg.id]?.let { pi ->
+                    pi.appIds =
+                        pkg.keyValues["appids"].children.map { it.asInteger() }.toIntArray()
+                    pi.depotIds =
+                        pkg.keyValues["depotids"].children.map { it.asInteger() }.toIntArray()
                 }
             }
 
             isRequestingPkgInfo = false
             isRequestingAppInfo = true
-            _steamApps?.picsGetProductInfo(packageInfo.values.flatMap { it.appIds.asIterable() }.map { PICSRequest(it) }, emptyList())
+            _steamApps?.picsGetProductInfo(
+                apps = packageInfo.values
+                    .flatMap { it.appIds.asIterable() }
+                    .map { PICSRequest(it) },
+                packages = emptyList()
+            )
         }
+
         if (callback.apps.isNotEmpty()) {
             val apps = callback.apps.values.toTypedArray()
             for (i in apps.indices) {
@@ -758,7 +888,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                         }
                         val currentDepot = app.keyValues["depots"]["$depotId"]
                         val manifests = generateManifest(currentDepot["manifests"].children)
-                        val encryptedManifests = generateManifest(currentDepot["encryptedManifests"].children)
+                        val encryptedManifests = generateManifest(
+                            currentDepot["encryptedManifests"].children
+                        )
 
                         appDepots[depotId] = DepotInfo(
                             depotId = depotId,
@@ -778,7 +910,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     keyValues.map {
                         val language: Language = try {
                             Language.valueOf(it.name)
-                        } catch(_: Exception) {
+                        } catch (_: Exception) {
                             Log.d("SteamService", "Language ${it.name} does not exist in enum")
                             Language.unknown
                         }
@@ -786,7 +918,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     }.filter { it.first != Language.unknown }.toMap()
                 }
                 val launchConfigs = app.keyValues["config"]["launch"].children
-                appInfo.put(app.id, AppInfo(
+                appInfo[app.id] = AppInfo(
                     appId = app.id,
                     receiveIndex = packageInfo.values
                         .filter { it.receiveIndex < pkg.receiveIndex }
@@ -794,9 +926,13 @@ class SteamService : Service(), IChallengeUrlChanged {
                     packageId = pkg.packageId,
                     depots = appDepots,
                     name = app.keyValues["common"]["name"].value ?: "",
-                    type = AppType.valueOf(app.keyValues["common"]["type"].value?.lowercase() ?: "invalid"),
+                    type = AppType.valueOf(
+                        app.keyValues["common"]["type"].value?.lowercase() ?: "invalid"
+                    ),
                     osList = OS.from(app.keyValues["common"]["oslist"].value),
-                    releaseState = ReleaseState.valueOf(app.keyValues["common"]["releasestate"].value ?: "released"),
+                    releaseState = ReleaseState.valueOf(
+                        app.keyValues["common"]["releasestate"].value ?: "released"
+                    ),
                     metacriticScore = app.keyValues["common"]["metacritic_score"].asByte(),
                     metacriticFullUrl = app.keyValues["common"]["metacritic_fullurl"].value ?: "",
                     logoHash = app.keyValues["common"]["logo"].value ?: "",
@@ -823,8 +959,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                     primaryGenre = app.keyValues["common"]["primary_genre"].asBoolean(),
                     reviewScore = app.keyValues["common"]["review_score"].asByte(),
                     reviewPercentage = app.keyValues["common"]["review_percentage"].asByte(),
-                    controllerSupport = ControllerSupport.valueOf(app.keyValues["common"]["controller_support"].value ?: "none"),
-
+                    controllerSupport = ControllerSupport.valueOf(
+                        app.keyValues["common"]["controller_support"].value ?: "none"
+                    ),
                     demoOfAppId = app.keyValues["common"]["extended"]["demoofappid"].asInteger(),
                     developer = app.keyValues["common"]["extended"]["developer"].value ?: "",
                     publisher = app.keyValues["common"]["extended"]["publisher"].value ?: "",
@@ -844,12 +981,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                     order = app.keyValues["common"]["extended"]["order"].asBoolean(),
                     primaryCache = app.keyValues["common"]["extended"]["primarycache"].asInteger(),
                     // validOSList = app.keyValues["common"]["extended"]["validoslist"].value!.Split(",").Select(Enum.Parse<OS>).Aggregate((os1, os2) => os1 | os2),
-                    validOSList = EnumSet.of<OS>(OS.none),
+                    validOSList = EnumSet.of(OS.none),
                     thirdPartyCdKey = app.keyValues["common"]["extended"]["thirdpartycdkey"].asBoolean(),
                     visibleOnlyWhenInstalled = app.keyValues["common"]["extended"]["visibleonlywheninstalled"].asBoolean(),
                     visibleOnlyWhenSubscribed = app.keyValues["common"]["extended"]["visibleonlywhensubscribed"].asBoolean(),
                     launchEulaUrl = app.keyValues["common"]["extended"]["launcheula"].value ?: "",
-
                     requireDefaultInstallFolder = app.keyValues["common"]["config"]["requiredefaultinstallfolder"].asBoolean(),
                     contentType = app.keyValues["common"]["config"]["contentType"].asInteger(),
                     installDir = app.keyValues["common"]["config"]["installdir"].value ?: "",
@@ -858,7 +994,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                     useMms = app.keyValues["common"]["config"]["usemms"].asBoolean(),
                     installScriptSignature = app.keyValues["common"]["config"]["installscriptsignature"].value ?: "",
                     installScriptOverride = app.keyValues["common"]["config"]["installscriptoverride"].asBoolean(),
-
                     config = ConfigInfo(
                         installDir = app.keyValues["config"]["installdir"].value ?: "",
                         launch = launchConfigs.map {
@@ -874,21 +1009,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                         steamControllerTemplateIndex = app.keyValues["config"]["steamcontrollertemplateindex"].asInteger(),
                         steamControllerTouchTemplateIndex = app.keyValues["config"]["steamcontrollertouchtemplateindex"].asInteger(),
                     ),
-                ))
-
-                // // val isBaba = app.id == 736260
-                // val isNoita = app.id == 881100
-                // // val isHades = app.id == 1145360
-                // // val isCS2 = app.id == 730
-                // // val isPsuedo = app.id == 2365810
-                // if (isNoita) {
-                // 	Log.d("SteamService", "${app.id}: ${app.keyValues["common"]["name"].value}");
-                // 	printAllKeyValues(app.keyValues)
-                // 	// getPkgInfoOf(app.id)?.let {
-                // 	// 	printAllKeyValues(it.original)
-                //     // }
-                // }
+                )
             }
+
             isRequestingAppInfo = false
             PluviaApp.events.emit(SteamEvent.AppInfoReceived)
         }
