@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -37,6 +38,9 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.DownloadInfo
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.Paths
 
 @Composable
 fun AppScreen(
@@ -50,6 +54,7 @@ fun AppScreen(
     var downloadProgress by remember { mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f) }
     var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
+    val context = LocalContext.current
 
     DisposableEffect(downloadInfo) {
         val onDownloadProgress: (Float) -> Unit = {
@@ -76,6 +81,17 @@ fun AppScreen(
                 downloadProgress = 0f
                 downloadInfo = SteamService.downloadApp(appId)
             } else {
+                val steamApiPath = Paths.get(SteamService.getAppDirPath(appId), "steam_api.dll")
+                // delete existing steam api
+                if (Files.exists(steamApiPath)) {
+                    Files.delete(steamApiPath)
+                }
+                // Files.createFile(steamApiPath)
+                // FileOutputStream(steamApiPath.toString()).use { fos ->
+                //     context.assets.open("steamproxy/steam_api64.dll").use { fs ->
+                //         fs.copyTo(fos)
+                //     }
+                // }
                 onClickPlay()
             }
         }

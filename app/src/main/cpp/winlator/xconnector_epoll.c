@@ -103,9 +103,6 @@ Java_com_winlator_xconnector_XConnectorEpoll_createAFUnixSocket(JNIEnv *env, job
     return fd;
     error:
     closeFd(fd);
-//    printf("XConnectorEpoll close %d", fd);
-//    close(fd);
-//    printf("XConnectorEpoll close %d done", fd);
     return -1;
 }
 
