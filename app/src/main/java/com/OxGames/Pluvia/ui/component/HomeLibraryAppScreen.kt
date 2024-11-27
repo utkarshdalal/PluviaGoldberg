@@ -5,12 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,6 +22,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -32,24 +31,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import coil3.annotation.ExperimentalCoilApi
+import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePreviewHandler
+import coil3.compose.LocalAsyncImagePreviewHandler
+import coil3.test.FakeImage
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
-import com.OxGames.Pluvia.ui.util.CoilAsyncImage
 
 @Composable
 fun AppScreen(
@@ -95,6 +93,7 @@ fun AppScreen(
     )
 }
 
+@OptIn(ExperimentalCoilApi::class)
 @Composable
 private fun AppScreenContent(
     appId: Int,
@@ -128,37 +127,36 @@ private fun AppScreenContent(
         // TODO: Terrible drop shadow :)
         //  ...Modifier.shadow() doesnt seem dark enough to provide contract between hero and app logo.
         Box(modifier = Modifier.parallaxLayoutModifier(scrollState, 10)) {
-            CoilAsyncImage(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .size(with(LocalDensity.current) {
-                        DpSize(1920.toDp(), 620.toDp())
-                    }),
-                url = appInfo?.getHeroUrl(),
-                contentDescription = null,
-                contentScale = ContentScale.Crop
-            )
+            // Hero image (unchanged)
+            val previewHero = AsyncImagePreviewHandler {
+                FakeImage(color = Color.DarkGray.toArgb())
+            }
+            CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewHero) {
+                AsyncImage(
+                    model = appInfo?.getHeroUrl(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 10f)
+                )
+            }
 
-            CoilAsyncImage(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .width(256.dp)
-                    .offset(x = 16.dp, y = (-16).dp)
-                    .drawBehind {
-                        drawRoundRect(
-                            color = Color.Black.copy(alpha = 0.5f),
-                            cornerRadius = CornerRadius(16.dp.toPx()),
-                            size = Size(
-                                width = size.width + 8.dp.toPx(),
-                                height = size.height + 8.dp.toPx()
-                            ),
-                            topLeft = Offset(-4.dp.toPx(), -4.dp.toPx())
-                        )
-                    },
-                url = appInfo?.getLogoUrl(),
-                contentDescription = null,
-                contentScale = ContentScale.Fit
-            )
+            // Logo with shadow that follows image content
+            val previewLogo = AsyncImagePreviewHandler {
+                FakeImage(color = Color.LightGray.toArgb())
+            }
+            CompositionLocalProvider(LocalAsyncImagePreviewHandler provides previewLogo) {
+                AsyncImage(
+                    modifier = Modifier
+                        .fillMaxWidth(0.45f)
+                        .align(Alignment.BottomStart)
+                        .padding(16.dp),
+                    model = appInfo?.getLogoUrl(),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit
+                )
+            }
         }
 
         Row(

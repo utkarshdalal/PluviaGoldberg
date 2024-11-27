@@ -11,4 +11,7 @@ data class UserLoginState(
     val qrCode: String? = null,
     val isQrFailed: Boolean = false,
     val loginResult: LoginResult = LoginResult.Failed,
+    val isSteamConnected: Boolean = false,
+    val isLoggingIn: Boolean = false,
+    val attemptCount: Int = -1
 )

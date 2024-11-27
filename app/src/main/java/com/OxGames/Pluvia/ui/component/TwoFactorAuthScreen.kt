@@ -60,55 +60,12 @@ fun TwoFactorAuthScreen(
     userLoginViewModel: UserLoginViewModel,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
-    // var authCode by remember { mutableStateOf("") }
     val userLoginState by userLoginViewModel.loginState.collectAsState()
-
-    var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
-    var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
-    // var loginResult by remember { mutableStateOf(LoginResult.Failed) }
-
-    DisposableEffect(lifecycleOwner) {
-        val onSteamConnected: (SteamEvent.Connected) -> Unit = {
-            Log.d("TwoFactorAuthScreen", "Received is connected")
-            isLoggingIn = it.isAutoLoggingIn
-            isSteamConnected = true
-        }
-        val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
-            Log.d("TwoFactorAuthScreen", "Received disconnected from Steam")
-            isSteamConnected = false
-        }
-        val onLogonStarted: (SteamEvent.LogonStarted) -> Unit = {
-            isLoggingIn = true
-        }
-        val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
-            Log.d("TwoFactorAuthScreen", "Received login result: ${it.loginResult}")
-            userLoginViewModel.setLoginResult(it.loginResult)
-            isLoggingIn = false
-        }
-        val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
-            if (!isLoggingIn)
-                userLoginViewModel.setLoginResult(LoginResult.Failed)
-        }
-
-        PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
-        PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
-        PluviaApp.events.on<SteamEvent.LogonStarted, Unit>(onLogonStarted)
-        PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
-        PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
-
-        onDispose {
-            PluviaApp.events.off<SteamEvent.Connected, Unit>(onSteamConnected)
-            PluviaApp.events.off<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
-            PluviaApp.events.off<SteamEvent.LogonStarted, Unit>(onLogonStarted)
-            PluviaApp.events.off<SteamEvent.LogonEnded, Unit>(onLogonEnded)
-            PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
-        }
-    }
 
     TwoFactorAuthScreenContent(
         userLoginState = userLoginState,
-        isSteamConnected = isSteamConnected,
-        isLoggingIn = isLoggingIn,
+        isSteamConnected = userLoginState.isSteamConnected,
+        isLoggingIn = userLoginState.isLoggingIn,
         onSetTwoFactor = userLoginViewModel::setTwoFactorCode,
     )
 }
