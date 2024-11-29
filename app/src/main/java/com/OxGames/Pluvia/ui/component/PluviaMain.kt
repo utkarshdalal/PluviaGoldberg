@@ -2,22 +2,36 @@ package com.OxGames.Pluvia.ui.component
 
 import android.content.Intent
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.rememberDrawerState
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,6 +49,9 @@ import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.winlator.container.ContainerManager
+import com.winlator.core.WineInfo
+import com.winlator.xenvironment.ImageFsInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -65,6 +82,8 @@ fun PluviaMain(
         )
     }
     var hasLaunched by rememberSaveable { mutableStateOf(false) }
+    var dialogVisible by remember { mutableStateOf(false) }
+    var dialogProgress by remember { mutableFloatStateOf(0f) }
 
     LaunchedEffect(lifecycleOwner) {
         if (!hasLaunched) {
@@ -92,13 +111,6 @@ fun PluviaMain(
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
     var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
-    var profilePicUrl by remember {
-        mutableStateOf(
-            SteamService.getUserSteamId()?.let {
-                SteamService.getPersonaStateOf(it)
-            }?.avatarUrl ?: SteamService.MISSING_AVATAR_URL
-        )
-    }
     var appId by rememberSaveable { mutableIntStateOf(SteamService.INVALID_APP_ID) }
 
     var hasBack by rememberSaveable { mutableStateOf(navController.previousBackStackEntry?.destination?.route != null) }
@@ -184,14 +196,6 @@ fun PluviaMain(
                 //  this may re-init 'userLoginViewModel' to stop the spinner when were 'Revoked'
             }
         }
-        val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = {
-            val persona = SteamService.getPersonaStateOf(it.steamId)
-            // Log.d("PluviaMain", "Testing persona of ${persona?.name}:${persona?.friendID?.accountID} to ${SteamService.getUserSteamId()?.accountID}")
-            if (persona != null && persona.friendID.accountID == SteamService.getUserSteamId()?.accountID) {
-                Log.d("PluviaMain", "Setting avatar url to ${persona.avatarUrl}")
-                profilePicUrl = persona.avatarUrl
-            }
-        }
 
         PluviaApp.events.on<AndroidEvent.SetAppBarVisibility, Unit>(onHideAppBar)
         PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
@@ -200,7 +204,6 @@ fun PluviaMain(
         // PluviaApp.events.on<SteamEvent.LogonState, Unit>(onLoggingIn)
         PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
         PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
-        PluviaApp.events.on<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)
 
         if (!isSteamConnected) {
             val intent = Intent(context, SteamService::class.java)
@@ -215,11 +218,31 @@ fun PluviaMain(
             // PluviaApp.events.off<SteamEvent.LogonStarte, Unitd>(onLoggingIn)
             PluviaApp.events.off<SteamEvent.LogonEnded, Unit>(onLogonEnded)
             PluviaApp.events.off<SteamEvent.LoggedOut, Unit>(onLoggedOut)
-            PluviaApp.events.off<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)
         }
     }
 
     PluviaTheme {
+        when {
+            dialogVisible -> {
+                Dialog(
+                    onDismissRequest = {}
+                ) {
+                    Card {
+                        Column(
+                            modifier = Modifier
+                                // .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Loading...")
+                            Spacer(modifier = Modifier.height(16.dp))
+                            LinearProgressIndicator(progress = { dialogProgress })
+                        }
+                    }
+                }
+            }
+        }
         NavHost(
             navController = navController,
             startDestination = PluviaScreen.LoginUser.name,
@@ -241,7 +264,22 @@ fun PluviaMain(
                 HomeScreen(
                     onClickPlay = {
                         appId = it
-                        navController.navigate(PluviaScreen.XServer.name)
+                        dialogVisible = true
+                        // TODO: add a way to cancel
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val imageFsInstallSuccess = ImageFsInstaller.installIfNeededFuture(context) { progress ->
+                                // Log.d("XServerScreen", "$progress")
+                                dialogProgress = progress / 100f
+                            }.get()
+                            val containerId = 1 // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
+                            val containerManager = ContainerManager(context)
+                            containerManager.getContainerById(containerId) ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION).get()
+
+                            dialogVisible = false
+                            CoroutineScope(Dispatchers.Main).launch {
+                                navController.navigate(PluviaScreen.XServer.name)
+                            }
+                        }
                     }
                 )
             }

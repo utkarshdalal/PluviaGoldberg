@@ -96,5 +96,5 @@ compose = [
 winlator = [
     "android-preferences",
     "apache-compress",
-    "zstd-jni"
+#    "zstd-jni"
 ]
