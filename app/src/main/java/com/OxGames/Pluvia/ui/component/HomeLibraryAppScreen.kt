@@ -102,15 +102,6 @@ private fun AppScreenContent(
     downloadProgress: Float,
     onDownloadClick: () -> Unit,
 ) {
-    fun Modifier.parallaxLayoutModifier(scrollState: ScrollState, rate: Int) =
-        layout { measurable, constraints ->
-            val placeable = measurable.measure(constraints)
-            val height = if (rate > 0) scrollState.value / rate else scrollState.value
-            layout(placeable.width, placeable.height) {
-                placeable.place(0, height)
-            }
-        }
-
     val scrollState = rememberScrollState()
 
     val appInfo by remember(appId) {
@@ -126,7 +117,7 @@ private fun AppScreenContent(
         // TODO: 'CoilAsyncImage' maybe provide 'fake' or `approx` size?
         // TODO: Terrible drop shadow :)
         //  ...Modifier.shadow() doesnt seem dark enough to provide contract between hero and app logo.
-        Box(modifier = Modifier.parallaxLayoutModifier(scrollState, 10)) {
+        Box {
             // Hero image (unchanged)
             val previewHero = AsyncImagePreviewHandler {
                 FakeImage(color = Color.DarkGray.toArgb())
