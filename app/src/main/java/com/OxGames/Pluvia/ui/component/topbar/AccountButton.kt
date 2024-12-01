@@ -9,29 +9,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.ui.component.ProfileDialog
 import com.OxGames.Pluvia.ui.util.ListItemImage
+import `in`.dragonbra.javasteam.enums.EPersonaState
 
 @Composable
 fun AccountButton(
     contentDescription: String? = null,
-    onClick: () -> Unit,
 ) {
-    var avatarHash by remember {
-        var hash = SteamService.MISSING_AVATAR_URL
+    var persona by remember {
+        var persona: SteamFriend? = null
         SteamService.getUserSteamId()?.let { id ->
-            SteamService.getPersonaStateOf(id)?.let { persona ->
-                hash = SteamService.getAvatarURL(persona.avatarHash)
-            }
+            persona = SteamService.getPersonaStateOf(id)
         }
-        mutableStateOf(hash)
+        mutableStateOf(persona)
     }
 
     DisposableEffect(true) {
         val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = {
-            avatarHash = it.persona?.let { persona ->
-                SteamService.getAvatarURL(persona.avatarHash)
-            } ?: SteamService.MISSING_AVATAR_URL
+            it.persona?.let { persona = it }
         }
 
         PluviaApp.events.on<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)
@@ -41,11 +39,33 @@ fun AccountButton(
         }
     }
 
+    var showDialog by remember { mutableStateOf(false) }
+    ProfileDialog(
+        openDialog = showDialog,
+        name = persona!!.name,
+        avatarHash = persona!!.avatarHash,
+        state = EPersonaState.from(persona!!.state),
+        onStatusChange = {
+            // TODO status change
+        },
+        onSettings = {
+            // TODO settings
+            showDialog = false
+        },
+        onLogout = {
+            // TODO logout
+            showDialog = false
+        },
+        onDismiss = {
+            showDialog = false
+        },
+    )
+
     IconButton(
-        onClick = onClick,
+        onClick = { showDialog = true },
         content = {
             ListItemImage(
-                image = { avatarHash },
+                image = { SteamService.getAvatarURL(persona?.avatarHash.orEmpty()) },
                 contentDescription = contentDescription,
             )
         }

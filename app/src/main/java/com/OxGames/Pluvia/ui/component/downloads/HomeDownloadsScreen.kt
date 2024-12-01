@@ -84,11 +84,7 @@ private fun DownloadsScreenPane(
             CenterAlignedTopAppBar(
                 title = { Text(text = "Downloads") },
                 actions = {
-                    AccountButton {
-                        scope.launch {
-                            snackbarHost.showSnackbar("TODO")
-                        }
-                    }
+                    AccountButton()
                 },
                 navigationIcon = {
                     BackButton {
