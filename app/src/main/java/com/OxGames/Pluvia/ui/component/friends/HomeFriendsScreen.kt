@@ -1,14 +1,15 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui.component.friends
 
+import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -16,27 +17,43 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
+import com.OxGames.Pluvia.ui.model.FriendsState
+import com.OxGames.Pluvia.ui.model.FriendsViewModel
+import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import `in`.dragonbra.javasteam.types.SteamID
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeFriendsScreen() {
-    FriendsScreenContent()
+fun HomeFriendsScreen(
+    viewModel: FriendsViewModel = hiltViewModel()
+) {
+    val state by viewModel.friendsState.collectAsStateWithLifecycle()
+
+    FriendsScreenContent(
+        state = state
+    )
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun FriendsScreenContent() {
+private fun FriendsScreenContent(
+    state: FriendsState,
+) {
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val navigator = rememberListDetailPaneScaffoldNavigator<SteamID>()
@@ -55,7 +72,7 @@ private fun FriendsScreenContent() {
                     snackbarHost = { SnackbarHost(snackbarHost) },
                     topBar = {
                         CenterAlignedTopAppBar(
-                            title = { Text(text = "Library") },
+                            title = { Text(text = "Friends") },
                             actions = {
                                 AccountButton {
                                     scope.launch {
@@ -73,23 +90,17 @@ private fun FriendsScreenContent() {
                         )
                     }
                 ) { paddingValues ->
-                    Column(
-                        modifier = Modifier
-                            .padding(paddingValues)
-                            .fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
-                        content = {
-                            Text("TODO Friends!")
-                            OutlinedButton(
-                                onClick = {
-                                    navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, SteamID(1L))
-                                },
-                                content = {
-                                    Text("Click me!")
-                                }
-                            )
-                        }
+                    FriendsListPane(
+                        paddingValues = paddingValues,
+                        list = state.friendsList,
+                        onItemClick = {
+                            scope.launch {
+                                snackbarHost.showSnackbar("TODO Chat")
+                                // navigator.navigateTo(
+                                //     ListDetailPaneScaffoldRole.Detail,
+                                //     SteamID(1L))
+                            }
+                        },
                     )
                 }
             }
@@ -112,4 +123,40 @@ private fun FriendsScreenContent() {
             }
         }
     )
+}
+
+@Composable
+private fun FriendsListPane(
+    paddingValues: PaddingValues,
+    list: List<SteamFriend>,
+    onItemClick: () -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 72.dp) // Extra space for fab
+    ) {
+        items(list, key = { it.id }) { item ->
+            FriendItem(
+                modifier = Modifier.animateItem(),
+                friend = item,
+                onClick = onItemClick
+            )
+        }
+    }
+}
+
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
+@Composable
+private fun Preview_FriendsScreenContent() {
+    PluviaTheme {
+        FriendsScreenContent(
+            state = FriendsState(
+                List(15) {
+                    SteamFriend(id = it.toLong())
+                }
+            )
+        )
+    }
 }

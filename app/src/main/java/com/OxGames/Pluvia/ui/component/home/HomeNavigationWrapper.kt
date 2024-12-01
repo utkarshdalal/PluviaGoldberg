@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui.component.home
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text

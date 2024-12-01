@@ -4,6 +4,7 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import androidx.room.withTransaction
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.data.ConfigInfo
 import com.OxGames.Pluvia.data.DepotInfo
@@ -16,7 +17,8 @@ import com.OxGames.Pluvia.data.LibraryLogoInfo
 import com.OxGames.Pluvia.data.ManifestInfo
 import com.OxGames.Pluvia.data.PackageInfo
 import com.OxGames.Pluvia.data.SteamData
-import com.OxGames.Pluvia.data.UserData
+import com.OxGames.Pluvia.data.SteamFriend
+import com.OxGames.Pluvia.db.PluviaDatabase
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
 import com.OxGames.Pluvia.enums.Language
@@ -27,10 +29,17 @@ import com.OxGames.Pluvia.enums.ReleaseState
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
+import dagger.hilt.android.AndroidEntryPoint
+import `in`.dragonbra.javasteam.enums.EClientPersonaStateFlag
+import `in`.dragonbra.javasteam.enums.EPersonaState
+import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
+import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesChatSteamclient.CChat_RequestFriendPersonaStates_Request
+import `in`.dragonbra.javasteam.rpc.service.Chat
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
+import `in`.dragonbra.javasteam.steam.authentication.IAuthenticator
 import `in`.dragonbra.javasteam.steam.authentication.IChallengeUrlChanged
 import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
 import `in`.dragonbra.javasteam.steam.contentdownloader.ContentDownloader
@@ -42,10 +51,13 @@ import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.FriendsListCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.NicknameListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamgameserver.SteamGameServer
 import `in`.dragonbra.javasteam.steam.handlers.steammasterserver.SteamMasterServer
 import `in`.dragonbra.javasteam.steam.handlers.steamscreenshots.SteamScreenshots
+import `in`.dragonbra.javasteam.steam.handlers.steamunifiedmessages.SteamUnifiedMessages
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
@@ -59,13 +71,17 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
 import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
+import `in`.dragonbra.javasteam.util.NetHelpers
 import `in`.dragonbra.javasteam.util.log.DefaultLogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.Closeable
@@ -74,15 +90,23 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.EnumSet
 import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
 import kotlin.io.path.pathString
+import kotlin.time.Duration.Companion.seconds
 
-
+@AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
+
+    @Inject
+    lateinit var db: PluviaDatabase
+
     private var _callbackManager: CallbackManager? = null
     private var _steamClient: SteamClient? = null
     private var _steamUser: SteamUser? = null
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
+    private var _unifiedMessages: SteamUnifiedMessages? = null
+    private var _unifiedChat: Chat? = null
 
     private val _callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
@@ -92,7 +116,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private val packageInfo = ConcurrentHashMap<Int, PackageInfo>()
     private val appInfo = ConcurrentHashMap<Int, AppInfo>()
-    private val personaStates = ConcurrentHashMap<Long, UserData>()
+
+    private val dbScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
         const val MAX_RETRY_ATTEMPTS = 20
@@ -175,8 +200,12 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun getUserSteamId(): SteamID? = instance?._steamClient?.steamID
 
-        fun getPersonaStateOf(steamId: SteamID): UserData? =
-            instance?.personaStates?.get(steamId.accountID)
+        fun getPersonaStateOf(steamId: SteamID): SteamFriend? = runBlocking {
+            instance!!.db
+                .steamFriendDao()
+                .findFriend(steamId.convertToUInt64())
+                .first()
+        }
 
         fun getAppList(filter: EnumSet<AppType>): List<AppInfo> =
             instance?.appInfo?.values?.filter { filter.contains(it.type) } ?: emptyList()
@@ -208,8 +237,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             val appInfo = getAppInfoOf(appId)
             val pkgInfo = getPkgInfoOf(appId)
             val depotId = pkgInfo?.depotIds?.firstOrNull {
-                // TODO: Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type Map<Int, DepotInfo>?
-                appInfo?.depots[it]?.osList?.contains(OS.windows) == true
+                appInfo?.depots?.get(it)?.osList?.contains(OS.windows) == true
             }
             return if (depotId != null) {
                 appInfo?.appId?.let {
@@ -269,35 +297,11 @@ class SteamService : Service(), IChallengeUrlChanged {
             return downloadInfo
         }
 
-        // private fun getDefaultAvatarUrl(): String {
-        //     return AVATAR_BASE_URL + "fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" // default profile picture (question mark)
-        // }
-        // source: https://github.com/oxters168/ProjectDeagle/blob/48eeffbc8ff595b11d4cfecfb1b77cff17a6d179/Assets/Core/Scripts/SteamController.cs#L1321
-        @OptIn(ExperimentalStdlibApi::class)
-        private fun getAvatarURL(avatarHashBytes: ByteArray?): String {
-            // source: https://github.com/miranda-ng/miranda-ng/blob/a8a34efb4e37a417b5f87f8a973722100a57d7ef/protocols/Steam/src/api/friend.h#L22
-            // profile pic size options
-            // "avatar": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4.jpg",
-            // "avatarmedium": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4_medium.jpg",
-            // "avatarfull": "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/f1/f1dd60a188883caf82d0cbfccfe6aba0af1732d4_full.jpg"
-            // val unknownAvatarUrl: String = DEFAULT_AVATAR_URL
-            if (avatarHashBytes == null) {
-                return MISSING_AVATAR_URL
-            }
-
-            // Getting hash as string
-            var avatarHash: String? = null
-            if (avatarHashBytes.isNotEmpty() && avatarHashBytes.any { it != 0.toByte() }) {
-                avatarHash = avatarHashBytes.toHexString(HexFormat.Default)
-            }
-
-            if (avatarHash.isNullOrEmpty() || avatarHash.all { it == '0' }) {
-                return MISSING_AVATAR_URL
-            }
-
-            // Making URL
-            val folder = avatarHash.substring(0, 2)
-            return "$AVATAR_BASE_URL$folder/${avatarHash}_full.jpg"
+        fun getAvatarURL(avatarHash: String): String {
+            return avatarHash.ifEmpty { null }
+                ?.takeIf { str -> str.isNotEmpty() && !str.all { it == '0' } }
+                ?.let { "${AVATAR_BASE_URL}${it.substring(0, 2)}/${it}_full.jpg" }
+                ?: MISSING_AVATAR_URL
         }
 
         fun printAllKeyValues(parent: KeyValue, depth: Int = 0) {
@@ -316,9 +320,6 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
 
-        // TODO use new Login Flow for credential auth.
-        //  This will allow us to use 'Remember me'
-        //  Same as QR Auth, but we use AuthSessionDetails this time.
         private fun login(
             username: String,
             accessToken: String? = null,
@@ -371,25 +372,47 @@ class SteamService : Service(), IChallengeUrlChanged {
             )
         }
 
-        fun logOn(
+        fun startLoginWithCredentials(
             username: String,
             password: String,
-            shouldRememberPassword: Boolean = false,
-            twoFactorAuth: String? = null,
-            emailAuth: String? = null
+            shouldRememberPassword: Boolean,
+            authenticator: IAuthenticator,
         ) {
-            CoroutineScope(Dispatchers.Default).launch {
-                login(
-                    username = username,
-                    password = password,
-                    shouldRememberPassword = shouldRememberPassword,
-                    twoFactorAuth = twoFactorAuth,
-                    emailAuth = emailAuth
-                )
+            Log.d("SteamService", "Logging in via credentials.")
+            CoroutineScope(Dispatchers.IO).launch {
+                val steamClient = instance!!._steamClient
+                if (steamClient != null) {
+                    val authDetails = AuthSessionDetails().apply {
+                        this.username = username.trim()
+                        this.password = password.trim()
+                        this.persistentSession = shouldRememberPassword
+                        this.authenticator = authenticator
+                    }
+
+                    val authSession = steamClient.authentication
+                        .beginAuthSessionViaCredentials(authDetails)
+
+                    PluviaApp.events.emit(SteamEvent.LogonStarted(username))
+
+                    val pollResult = authSession.pollingWaitForResult()
+
+                    if (pollResult.accountName.isNotEmpty() && pollResult.refreshToken.isNotEmpty()) {
+                        login(
+                            username = pollResult.accountName,
+                            accessToken = pollResult.accessToken,
+                            refreshToken = pollResult.refreshToken,
+                            shouldRememberPassword = shouldRememberPassword,
+                        )
+                    }
+                } else {
+                    Log.e("SteamService", "Could not logon: Failed to connect to Steam")
+                    PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed))
+                }
             }
         }
 
         fun startLoginWithQr() {
+            Log.d("SteamService", "Logging in via QR.")
             CoroutineScope(Dispatchers.IO).launch {
                 val steamClient = instance!!._steamClient
                 if (steamClient != null) {
@@ -421,7 +444,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 "AccessToken: ${authPollResult.accessToken}\nAccountName: ${authPollResult.accountName}\nRefreshToken: ${authPollResult.refreshToken}\nNewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}"
                             )
                         } else {
-                            Log.d("SteamService", "AuthPollResult is null")
+                            // Log.d("SteamService", "AuthPollResult is null")
                         }
 
                         delay(authSession.pollingInterval.toLong())
@@ -509,6 +532,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             // create the callback manager which will route callbacks to function calls
             _callbackManager = CallbackManager(_steamClient!!)
+            _unifiedMessages = _steamClient!!.getHandler(SteamUnifiedMessages::class.java)
 
             // get the different handlers to be used throughout the service
             _steamUser = _steamClient!!.getHandler(SteamUser::class.java)
@@ -556,6 +580,18 @@ class SteamService : Service(), IChallengeUrlChanged {
                 _callbackManager!!.subscribe(
                     PICSProductInfoCallback::class.java,
                     this::onPICSProductInfo
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    NicknameListCallback::class.java,
+                    this::onNicknameList
+                )
+            )
+            _callbackSubscriptions.add(
+                _callbackManager!!.subscribe(
+                    FriendsListCallback::class.java,
+                    this::onFriendsList
                 )
             )
 
@@ -664,9 +700,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         _callbackSubscriptions.clear()
         _callbackManager = null
 
+        _unifiedMessages = null
+        _unifiedChat = null
+
         packageInfo.clear()
         appInfo.clear()
-        personaStates.clear()
 
         isStopping = false
         retryAttempt = 0
@@ -685,16 +723,16 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         loadSteamData()
 
-        if (_loginResult != LoginResult.TwoFactorCode && _loginResult != LoginResult.EmailAuth) {
-            if (steamData!!.accountName != null && (steamData!!.refreshToken != null || steamData!!.password != null)) {
-                isAutoLoggingIn = true
-                login(
-                    username = steamData!!.accountName!!,
-                    refreshToken = steamData!!.refreshToken,
-                    password = steamData!!.password,
-                    shouldRememberPassword = steamData!!.password != null
-                )
-            }
+        if (steamData!!.accountName != null &&
+            (steamData!!.refreshToken != null || steamData!!.password != null)
+        ) {
+            isAutoLoggingIn = true
+            login(
+                username = steamData!!.accountName!!,
+                refreshToken = steamData!!.refreshToken,
+                password = steamData!!.password,
+                shouldRememberPassword = steamData!!.password != null
+            )
         }
 
         PluviaApp.events.emit(SteamEvent.Connected(isAutoLoggingIn))
@@ -723,39 +761,41 @@ class SteamService : Service(), IChallengeUrlChanged {
         _steamClient!!.disconnect()
     }
 
+    /**
+     * Request a fresh state of Friend's PersonaStates
+     */
+    private fun refreshPersonaStates() {
+        val request = CChat_RequestFriendPersonaStates_Request.newBuilder().build()
+        _unifiedChat?.requestFriendPersonaStates(request)
+    }
+
     private fun onLoggedOn(callback: LoggedOnCallback) {
         Log.d("SteamService", "Logged onto Steam: ${callback.result}")
-        var logonSucess = false
         val username = steamData!!.accountName
 
         when (callback.result) {
-            EResult.AccountLogonDenied -> {
-                _loginResult = LoginResult.EmailAuth
-                reconnect()
-            }
-
-            EResult.AccountLoginDeniedNeedTwoFactor -> {
-                _loginResult = LoginResult.TwoFactorCode
-                reconnect()
-            }
-
             EResult.TryAnotherCM -> {
-                // _loginResult = LoginResult.TryAgain
                 reconnect()
             }
 
             EResult.OK -> {
-                logonSucess = true
                 // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
                 // servers from the Steam Directory.
                 steamData!!.cellId = callback.cellID
                 saveSteamData()
+
+                // Create Unified Handlers
+                _unifiedChat = _unifiedMessages!!.createService(Chat::class.java)
 
                 // retrieve persona data of logged in user
                 requestUserPersona()
 
                 // since we automatically receive the license list from steam on log on
                 isReceivingLicenseList = true
+
+                // TODO: Preference last known status?
+                // Tell steam we're online, this allows friends to update.
+                _steamFriends?.setPersonaState(EPersonaState.Online)
 
                 _loginResult = LoginResult.Success
             }
@@ -783,31 +823,95 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
     }
 
-    private fun onPersonaStateReceived(callback: PersonaStatesCallback) {
-        Log.d("SteamService", "Persona state received: ${callback.name}")
-        personaStates[callback.friendID.accountID] = UserData(
-            statusFlags = callback.statusFlags,
-            friendID = callback.friendID,
-            state = callback.state,
-            stateFlags = callback.stateFlags,
-            gameAppID = callback.gameAppID,
-            gameID = callback.gameID,
-            gameName = callback.gameName,
-            gameServerIP = callback.gameServerIP,
-            gameServerPort = callback.gameServerPort,
-            queryPort = callback.queryPort,
-            sourceSteamID = callback.sourceSteamID,
-            gameDataBlob = callback.gameDataBlob,
-            name = callback.name,
-            avatarUrl = getAvatarURL(callback.avatarHash),
-            lastLogOff = callback.lastLogOff,
-            lastLogOn = callback.lastLogOn,
-            clanRank = callback.clanRank,
-            clanTag = callback.clanTag,
-            onlineSessionInstances = callback.onlineSessionInstances,
-        )
+    private fun onNicknameList(callback: NicknameListCallback) {
+        Log.d("SteamService", "Nickname list called: ${callback.nicknames.size}")
+        dbScope.launch {
+            db.withTransaction {
+                db.steamFriendDao().clearAllNicknames()
+                db.steamFriendDao().updateNicknames(callback.nicknames)
+            }
+        }
+    }
 
-        PluviaApp.events.emit(SteamEvent.PersonaStateReceived(callback.friendID))
+    private fun onFriendsList(callback: FriendsListCallback) {
+        Log.d("SteamService", "onFriendsList ${callback.friendList.size}")
+        dbScope.launch {
+            db.withTransaction {
+                val list = callback.friendList
+                    .filter { friend -> friend.steamID.isIndividualAccount }
+                    .map { friend ->
+                        SteamFriend(
+                            id = friend.steamID.convertToUInt64(),
+                            relation = friend.relationship.code()
+                        )
+                    }
+                db.steamFriendDao().insertAll(list)
+
+                // Add logged in account
+                val self = SteamFriend(id = getUserSteamId()!!.convertToUInt64())
+                db.steamFriendDao().insert(self)
+            }
+
+            delay(5.seconds)
+            refreshPersonaStates()
+        }
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    private fun onPersonaStateReceived(callback: PersonaStatesCallback) {
+        // Ignore accounts that arent individuals
+        if (callback.friendID.isIndividualAccount.not()) {
+            return
+        }
+
+        // Ignore states where the name is blank.
+        if (callback.name.isEmpty()) {
+            return
+        }
+
+        Log.d("SteamService", "Persona state received: ${callback.name}")
+
+        dbScope.launch {
+            db.withTransaction {
+                val id = callback.friendID.convertToUInt64()
+                val friend = db.steamFriendDao().findFriend(id).first()
+
+                db.steamFriendDao().update(
+                    SteamFriend(
+                        id = id,
+                        relation = friend?.relation ?: 0,
+                        statusFlags = EClientPersonaStateFlag.code(callback.statusFlags),
+                        state = callback.state.code(),
+                        stateFlags = EPersonaStateFlag.code(callback.stateFlags),
+                        gameAppID = callback.gameAppID,
+                        gameID = callback.gameID.convertToUInt64(),
+                        gameName = callback.gameName,
+                        gameServerIP = NetHelpers.getIPAddress(callback.gameServerIP),
+                        gameServerPort = callback.gameServerPort,
+                        queryPort = callback.queryPort,
+                        sourceSteamID = callback.sourceSteamID.convertToUInt64(),
+                        gameDataBlob = callback.gameDataBlob.decodeToString(),
+                        name = callback.name,
+                        avatarHash = callback.avatarHash.toHexString(),
+                        lastLogOff = callback.lastLogOff.time,
+                        lastLogOn = callback.lastLogOn.time,
+                        clanRank = callback.clanRank,
+                        clanTag = callback.clanTag,
+                        onlineSessionInstances = callback.onlineSessionInstances,
+                    )
+                )
+            }
+        }
+
+        // Send off a status if we change states.
+        if (callback.friendID == getUserSteamId()) {
+            Log.d("SteamService", "Emitting PersonaStateReceived")
+            dbScope.launch {
+                val id = callback.friendID.convertToUInt64()
+                val friend = db.steamFriendDao().findFriend(id).first()
+                PluviaApp.events.emit(SteamEvent.PersonaStateReceived(friend))
+            }
+        }
     }
 
     private fun onLicenseList(callback: LicenseListCallback) {
