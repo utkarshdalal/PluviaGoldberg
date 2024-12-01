@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui.screen.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn

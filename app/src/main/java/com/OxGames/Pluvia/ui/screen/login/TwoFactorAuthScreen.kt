@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component.login
+package com.OxGames.Pluvia.ui.screen.login
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component.home
+package com.OxGames.Pluvia.ui.screen.home
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
@@ -15,8 +15,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.OxGames.Pluvia.ui.component.downloads.HomeDownloadsScreen
-import com.OxGames.Pluvia.ui.component.friends.HomeFriendsScreen
+import com.OxGames.Pluvia.ui.screen.downloads.HomeDownloadsScreen
+import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
 import com.OxGames.Pluvia.ui.enums.PluviaDestination
 import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme

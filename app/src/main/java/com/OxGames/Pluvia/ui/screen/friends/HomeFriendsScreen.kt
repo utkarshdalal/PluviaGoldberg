@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component.friends
+package com.OxGames.Pluvia.ui.screen.friends
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
