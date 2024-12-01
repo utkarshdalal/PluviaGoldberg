@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class FriendsState(
-    val friendsList: List<SteamFriend> = listOf()
+    val friendsList: Map<String, List<SteamFriend>> = mapOf()
 )
 
 @HiltViewModel
@@ -29,7 +30,7 @@ class FriendsViewModel @Inject constructor(
     }
 
     private fun observeFriendList() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             steamFriendDao.getAllFriends().collect { friends ->
                 _friendsState.update { currentState ->
                     val sortedList = friends
@@ -46,7 +47,16 @@ class FriendsViewModel @Inject constructor(
                             )
                         )
 
-                    currentState.copy(friendsList =sortedList )
+                    val groupedList = sortedList.groupBy { friend ->
+                        when {
+                            friend.isRequestRecipient -> "Friend Request"
+                            friend.isPlayingGame || friend.isInGameAwayOrSnooze -> "In-Game"
+                            friend.isOnline || friend.isAwayOrSnooze -> "Online"
+                            else -> "Offline"
+                        }
+                    }.toMap()
+
+                    currentState.copy(friendsList = groupedList)
                 }
             }
         }

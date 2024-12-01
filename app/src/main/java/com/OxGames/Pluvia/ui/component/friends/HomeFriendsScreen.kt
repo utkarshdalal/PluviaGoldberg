@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.component.friends
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -125,10 +126,11 @@ private fun FriendsScreenContent(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FriendsListPane(
     paddingValues: PaddingValues,
-    list: List<SteamFriend>,
+    list: Map<String, List<SteamFriend>>,
     onItemClick: () -> Unit,
 ) {
     LazyColumn(
@@ -137,12 +139,23 @@ private fun FriendsListPane(
             .fillMaxSize(),
         contentPadding = PaddingValues(bottom = 72.dp) // Extra space for fab
     ) {
-        items(list, key = { it.id }) { item ->
-            FriendItem(
-                modifier = Modifier.animateItem(),
-                friend = item,
-                onClick = onItemClick
-            )
+        list.forEach { (key, value) ->
+            stickyHeader {
+                StickyHeaderItem(
+                    isCollapsed = false,
+                    header = key,
+                    count = value.size,
+                    onHeaderAction = { }
+                )
+            }
+
+            items(value, key = { it.id }) { item ->
+                FriendItem(
+                    modifier = Modifier.animateItem(),
+                    friend = item,
+                    onClick = onItemClick
+                )
+            }
         }
     }
 }
@@ -153,9 +166,11 @@ private fun Preview_FriendsScreenContent() {
     PluviaTheme {
         FriendsScreenContent(
             state = FriendsState(
-                List(15) {
-                    SteamFriend(id = it.toLong())
-                }
+                friendsList = mapOf(
+                    "TEST A" to List(3) { SteamFriend(id = it.toLong()) },
+                    "TEST B" to List(3) { SteamFriend(id = it.toLong() + 5) },
+                    "TEST C" to List(3) { SteamFriend(id = it.toLong() + 10) }
+                )
             )
         )
     }
