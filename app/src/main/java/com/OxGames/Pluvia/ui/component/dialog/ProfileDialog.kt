@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui.component.dialog
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column

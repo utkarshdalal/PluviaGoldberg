@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component.downloads
+package com.OxGames.Pluvia.ui.screen.downloads
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler

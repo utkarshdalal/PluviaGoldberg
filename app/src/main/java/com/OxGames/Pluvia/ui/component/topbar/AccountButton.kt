@@ -11,7 +11,7 @@ import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.events.SteamEvent
-import com.OxGames.Pluvia.ui.component.ProfileDialog
+import com.OxGames.Pluvia.ui.component.dialog.ProfileDialog
 import com.OxGames.Pluvia.ui.util.ListItemImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
 

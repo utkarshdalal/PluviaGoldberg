@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component.home
+package com.OxGames.Pluvia.ui.screen.home
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
@@ -40,7 +40,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
-import com.OxGames.Pluvia.ui.component.AppItem
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenu
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenuItem
 import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuState

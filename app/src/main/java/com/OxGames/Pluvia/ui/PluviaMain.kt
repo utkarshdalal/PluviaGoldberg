@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui
 
 import android.content.Intent
 import android.util.Log
@@ -39,12 +39,13 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
-import com.OxGames.Pluvia.ui.component.home.HomeScreen
-import com.OxGames.Pluvia.ui.component.login.UserLoginScreen
+import com.OxGames.Pluvia.ui.screen.home.HomeScreen
+import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
+import com.OxGames.Pluvia.ui.screen.xserver.XServerScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.winlator.container.ContainerManager
 import com.winlator.core.WineInfo

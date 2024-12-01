@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component.home
+package com.OxGames.Pluvia.ui.screen.home
 
 import android.content.Intent
 import android.content.res.Configuration

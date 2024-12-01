@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui.screen.xserver
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -26,7 +26,6 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.data.XServerState
 import com.OxGames.Pluvia.ui.enums.Orientation
-import com.winlator.box86_64.Box86_64Preset
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.container.Shortcut
@@ -54,7 +53,6 @@ import com.winlator.core.WineThemeManager
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.TouchMouse
 import com.winlator.xconnector.UnixSocketConfig
-import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xenvironment.XEnvironment
 import com.winlator.xenvironment.components.ALSAServerComponent
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent
@@ -73,7 +71,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
 import java.util.EnumSet
-import java.util.concurrent.Future
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -512,7 +509,7 @@ private fun setupXEnvironment(
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
 
         val wow64Mode = container.isWoW64Mode
-        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand(container, appLocalExe)
+        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+ getWineStartCommand(container, appLocalExe)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
