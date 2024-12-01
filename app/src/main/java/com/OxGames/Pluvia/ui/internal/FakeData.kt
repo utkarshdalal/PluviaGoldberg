@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component.internal
+package com.OxGames.Pluvia.ui.internal
 
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.data.AppInfo

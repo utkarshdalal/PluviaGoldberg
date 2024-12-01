@@ -2,19 +2,14 @@ package com.OxGames.Pluvia.ui.component
 
 import android.content.Intent
 import android.util.Log
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -24,7 +19,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -45,8 +39,11 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.ui.component.home.HomeScreen
+import com.OxGames.Pluvia.ui.component.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
+import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.winlator.container.ContainerManager
@@ -59,20 +56,11 @@ import java.util.EnumSet
 
 @Composable
 fun PluviaMain(
-    userLoginViewModel: UserLoginViewModel = viewModel(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     navController: NavHostController = rememberNavController()
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
-    // since jetpack compose's TopAppBarLayout has an "implicit" constraint on heightPx that's not
-    // reflected in the constraints themselves so we cannot "fillMaxHeight" or "fillMaxSize"
-    // source: https://issuetracker.google.com/issues/300953236?hl=zh-tw
-    val topAppBarHeight = 64.dp
-
-    // val currentBackStackEntry by navController.currentBackStackEntryAsState()
-    // val currentScreen = PluviaScreen.valueOf(currentBackStackEntry?.destination?.route ?: PluviaScreen.LoginUser.name)
     var resettedScreen by rememberSaveable { mutableStateOf<PluviaScreen?>(null) }
     var currentScreen by rememberSaveable {
         mutableStateOf(
@@ -109,8 +97,6 @@ fun PluviaMain(
     var topAppBarVisible by rememberSaveable { mutableStateOf(true) }
 
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
-    var isLoggingIn by remember { mutableStateOf(SteamService.isLoggingIn) }
-    var isLoggedIn by remember { mutableStateOf(SteamService.isLoggedIn) }
     var appId by rememberSaveable { mutableIntStateOf(SteamService.INVALID_APP_ID) }
 
     var hasBack by rememberSaveable { mutableStateOf(navController.previousBackStackEntry?.destination?.route != null) }
@@ -144,7 +130,6 @@ fun PluviaMain(
         }
         val onSteamConnected: (SteamEvent.Connected) -> Unit = {
             Log.d("PluviaMain", "Received is connected")
-            isLoggingIn = it.isAutoLoggingIn
             isSteamConnected = true
         }
         val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
@@ -153,24 +138,16 @@ fun PluviaMain(
         }
         val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = {
             Log.d("PluviaMain", "Received logon started")
-            isLoggingIn = true
         }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
             CoroutineScope(Dispatchers.Main).launch {
                 Log.d("PluviaMain", "Received logon ended")
-                isLoggingIn = false
-                isLoggedIn = it.loginResult == LoginResult.Success
 
                 when (it.loginResult) {
                     LoginResult.Success -> {
                         // TODO: add preference for first screen on login
                         Log.d("PluviaMain", "Navigating to library")
                         navController.navigate(PluviaScreen.Home.name)
-                    }
-
-                    LoginResult.EmailAuth, LoginResult.TwoFactorCode -> {
-                        Log.d("PluviaMain", "Navigating to 2fa")
-                        navController.navigate(PluviaScreen.LoginTwoFactor.name)
                     }
 
                     else -> {
@@ -182,8 +159,6 @@ fun PluviaMain(
         val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
             CoroutineScope(Dispatchers.Main).launch {
                 Log.d("PluviaMain", "Received logged out")
-                isLoggingIn = false
-                isLoggedIn = false
 
                 // Pop stack and go back to login.
                 navController.popBackStack(
@@ -191,9 +166,6 @@ fun PluviaMain(
                     inclusive = false,
                     saveState = false
                 )
-
-                // TODO scope 'userLoginViewModel' for the composable it's for.
-                //  this may re-init 'userLoginViewModel' to stop the spinner when were 'Revoked'
             }
         }
 
@@ -201,7 +173,7 @@ fun PluviaMain(
         PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
         PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
         PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
-        // PluviaApp.events.on<SteamEvent.LogonState, Unit>(onLoggingIn)
+        PluviaApp.events.on<SteamEvent.LogonStarted, Unit>(onLoggingIn)
         PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
         PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
 
@@ -251,29 +223,34 @@ fun PluviaMain(
         ) {
             /** Login **/
             composable(route = PluviaScreen.LoginUser.name) {
+                val viewModel: UserLoginViewModel = viewModel()
                 UserLoginScreen(
-                    userLoginViewModel = userLoginViewModel
+                    viewModel = viewModel
                 )
             }
-            composable(route = PluviaScreen.LoginTwoFactor.name) {
-                TwoFactorAuthScreen(userLoginViewModel)
-            }
-
             /** Library, Downloads, Friends **/
             composable(route = PluviaScreen.Home.name) {
+                val viewModel: HomeViewModel = viewModel()
                 HomeScreen(
+                    viewModel = viewModel,
                     onClickPlay = {
                         appId = it
                         dialogVisible = true
                         // TODO: add a way to cancel
                         CoroutineScope(Dispatchers.IO).launch {
-                            val imageFsInstallSuccess = ImageFsInstaller.installIfNeededFuture(context) { progress ->
-                                // Log.d("XServerScreen", "$progress")
-                                dialogProgress = progress / 100f
-                            }.get()
-                            val containerId = 1 // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
+                            val imageFsInstallSuccess =
+                                ImageFsInstaller.installIfNeededFuture(context) { progress ->
+                                    // Log.d("XServerScreen", "$progress")
+                                    dialogProgress = progress / 100f
+                                }.get()
+
+                            // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
+                            val containerId = 1
+
                             val containerManager = ContainerManager(context)
-                            containerManager.getContainerById(containerId) ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION).get()
+                            containerManager.getContainerById(containerId)
+                                ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION)
+                                    .get()
 
                             dialogVisible = false
                             CoroutineScope(Dispatchers.Main).launch {

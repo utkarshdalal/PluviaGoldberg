@@ -24,10 +24,6 @@ enum class PluviaScreen(@StringRes val title: Int, val icon: ImageVector) {
         title = R.string.login_user,
         icon = Icons.Filled.Password
     ),
-    LoginTwoFactor(
-        title = R.string.login_2fa,
-        icon = Icons.Filled.Password
-    ),
     Home(
         title = R.string.home,
         icon = Icons.Filled.Home

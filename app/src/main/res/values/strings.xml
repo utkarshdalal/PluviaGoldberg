@@ -7,9 +7,10 @@
     <string name="app_library">Library</string>
     <string name="app_downloads">Downloads</string>
     <string name="unknown_app">Unknown App</string>
-    <string name="steam_auth_msg">Please enter the two factor authentication code found in the Steam Authenticator app</string>
-    <string name="email_2fa_msg">Please enter the two factor authentication code sent to your email</string>
-    <string name="other_2fa_msg">Please enter the two factor authentication code</string>
+    <string name="steam_2fa_incorrect">Previous code was incorrect, please try again.</string>
+    <string name="steam_2fa_confirmation">Use the Steam Mobile App to confirm your sign in…</string>
+    <string name="steam_2fa_device">Please enter your 2-factor auth code from your authenticator app.</string>
+    <string name="steam_2fa_email">Please enter the auth code sent to the email at %s</string>
     <string name="header_img_desc">App header image</string>
     <string name="download_app">Download</string>
     <string name="run_app">Play</string>
