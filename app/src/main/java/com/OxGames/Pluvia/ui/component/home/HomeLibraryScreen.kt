@@ -99,11 +99,7 @@ private fun LibraryScreenContent(
                         CenterAlignedTopAppBar(
                             title = { Text(text = "Library") },
                             actions = {
-                                AccountButton {
-                                    scope.launch {
-                                        snackbarHost.showSnackbar("TODO")
-                                    }
-                                }
+                                AccountButton()
                             },
                             navigationIcon = {
                                 BackButton {

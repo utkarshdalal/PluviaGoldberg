@@ -75,11 +75,7 @@ private fun FriendsScreenContent(
                         CenterAlignedTopAppBar(
                             title = { Text(text = "Friends") },
                             actions = {
-                                AccountButton {
-                                    scope.launch {
-                                        snackbarHost.showSnackbar("TODO")
-                                    }
-                                }
+                                AccountButton()
                             },
                             navigationIcon = {
                                 BackButton {
