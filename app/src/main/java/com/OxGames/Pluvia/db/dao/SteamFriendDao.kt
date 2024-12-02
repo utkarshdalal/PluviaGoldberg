@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
 interface SteamFriendDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(friends: SteamFriend)
+    suspend fun insert(friend: SteamFriend)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(friends: List<SteamFriend>)

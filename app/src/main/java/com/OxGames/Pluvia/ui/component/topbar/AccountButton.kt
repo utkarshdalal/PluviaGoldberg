@@ -1,17 +1,23 @@
 package com.OxGames.Pluvia.ui.component.topbar
 
+import android.content.res.Configuration
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.tooling.preview.Preview
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.component.dialog.ProfileDialog
+import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
 
@@ -28,8 +34,8 @@ fun AccountButton(
     }
 
     DisposableEffect(true) {
-        val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = {
-            it.persona?.let { persona = it }
+        val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = { event ->
+            event.persona?.let { persona = it }
         }
 
         PluviaApp.events.on<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)
@@ -42,9 +48,9 @@ fun AccountButton(
     var showDialog by remember { mutableStateOf(false) }
     ProfileDialog(
         openDialog = showDialog,
-        name = persona!!.name,
-        avatarHash = persona!!.avatarHash,
-        state = EPersonaState.from(persona!!.state),
+        name = persona?.name.orEmpty(),
+        avatarHash = persona?.avatarHash.orEmpty(),
+        state = EPersonaState.from(persona?.state ?: 0),
         onStatusChange = {
             // TODO status change
         },
@@ -70,4 +76,16 @@ fun AccountButton(
             )
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
+@Composable
+private fun Preview_AccountButton() {
+    PluviaTheme {
+        CenterAlignedTopAppBar(
+            title = { Text("Top App Bar") },
+            actions = { AccountButton() }
+        )
+    }
 }
