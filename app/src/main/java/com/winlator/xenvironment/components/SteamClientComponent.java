@@ -35,11 +35,11 @@ public class SteamClientComponent extends EnvironmentComponent implements Connec
         if (connector != null) return;
         connector = new XConnectorEpoll(socketConfig, this, this);
         // set up the socket file to be accessible by processes executed within wine
-        // File socketFile = new File(socketConfig.path);
-        // while (socketFile != null && socketFile.exists() && socketFile.getAbsolutePath().contains(ImageFs.WINEPREFIX)) {
-        //     FileUtils.chmod(socketFile, 0771);
-        //     socketFile = socketFile.getParentFile();
-        // }
+        File socketFile = new File(socketConfig.path);
+        while (socketFile != null && socketFile.exists() && socketFile.getAbsolutePath().contains(ImageFs.WINEPREFIX)) {
+            FileUtils.chmod(socketFile, 0771);
+            socketFile = socketFile.getParentFile();
+        }
         // connector.setMultithreadedClients(true);
         connector.start();
     }
