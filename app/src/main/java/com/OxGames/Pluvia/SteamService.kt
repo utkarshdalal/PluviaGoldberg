@@ -837,22 +837,38 @@ class SteamService : Service(), IChallengeUrlChanged {
         Log.d("SteamService", "onFriendsList ${callback.friendList.size}")
         dbScope.launch {
             db.withTransaction {
-                val list = callback.friendList
-                    .filter { friend -> friend.steamID.isIndividualAccount }
-                    .map { friend ->
-                        SteamFriend(
-                            id = friend.steamID.convertToUInt64(),
-                            relation = friend.relationship.code()
+                callback.friendList.filter { friend ->
+                    friend.steamID.isIndividualAccount
+                }.forEach { filteredFriend ->
+                    val friendId = filteredFriend.steamID.convertToUInt64()
+                    val friend = db.steamFriendDao().findFriend(friendId).first()
+
+                    if (friend == null) {
+                        // Not in the DB, create them.
+                        val friendToAdd = SteamFriend(
+                            id = filteredFriend.steamID.convertToUInt64(),
+                            relation = filteredFriend.relationship.code()
+                        )
+
+                        db.steamFriendDao().insert(friendToAdd)
+                    } else {
+                        // In the DB, update them.
+                        db.steamFriendDao().update(
+                            friend.copy(relation = filteredFriend.relationship.code())
                         )
                     }
-                db.steamFriendDao().insertAll(list)
+                }
 
-                // Add logged in account
-                val self = SteamFriend(id = getUserSteamId()!!.convertToUInt64())
-                db.steamFriendDao().insert(self)
+                // Add logged in account if we don't exist yet.
+                val selfId = getUserSteamId()!!.convertToUInt64()
+                val self = db.steamFriendDao().findFriend(selfId).first()
+                if (self == null) {
+                    db.steamFriendDao().insert(SteamFriend(id = selfId))
+                }
             }
 
-            delay(5.seconds)
+            // NOTE: Our UI could load too quickly on fresh database, our icon will be "?"
+            //  unless relaunched or we nav to a new screen.
             refreshPersonaStates()
         }
     }
@@ -876,10 +892,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val id = callback.friendID.convertToUInt64()
                 val friend = db.steamFriendDao().findFriend(id).first()
 
+                if (friend == null) {
+                    Log.w("SteamService", "onPersonaStateReceived: " +
+                            "failed to find friend to update: $id")
+                    return@withTransaction
+                }
+
                 db.steamFriendDao().update(
-                    SteamFriend(
-                        id = id,
-                        relation = friend?.relation ?: 0,
+                    friend.copy(
                         statusFlags = EClientPersonaStateFlag.code(callback.statusFlags),
                         state = callback.state.code(),
                         stateFlags = EPersonaStateFlag.code(callback.stateFlags),
