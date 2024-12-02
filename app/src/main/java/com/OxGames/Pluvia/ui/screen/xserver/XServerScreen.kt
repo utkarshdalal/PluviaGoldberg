@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui.screen.xserver
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -26,7 +26,6 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.data.XServerState
 import com.OxGames.Pluvia.ui.enums.Orientation
-import com.winlator.box86_64.Box86_64Preset
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.container.Shortcut
@@ -54,7 +53,6 @@ import com.winlator.core.WineThemeManager
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.TouchMouse
 import com.winlator.xconnector.UnixSocketConfig
-import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xenvironment.XEnvironment
 import com.winlator.xenvironment.components.ALSAServerComponent
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent
@@ -75,7 +73,6 @@ import org.json.JSONObject
 import java.io.File
 import java.nio.file.Paths
 import java.util.EnumSet
-import java.util.concurrent.Future
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -197,15 +194,17 @@ fun XServerScreen(
 
     LaunchedEffect(lifecycleOwner) {
         // CoroutineScope(Dispatchers.IO).launch {
-            val imageFsInstallSuccess = ImageFsInstaller.installIfNeededFuture(context).get()
-            Log.d("XServerScreen", "Installed ImageFs if needed with result: $imageFsInstallSuccess")
+        //     val imageFsInstallSuccess = ImageFsInstaller.installIfNeededFuture(context) { progress ->
+        //         Log.d("XServerScreen", "$progress")
+        //     }.get()
+        //     Log.d("XServerScreen", "Installed ImageFs if needed with result: $imageFsInstallSuccess")
             // var shortcut: Shortcut? = null
             var container: Container? = null
             var containerManager: ContainerManager? = null
             // var onExtractFileListener: OnExtractFileListener? = null
             if (!generateWinePrefix) {
                 containerManager = ContainerManager(context)
-                container = containerManager.getContainerById(containerId) ?: createContainer(containerManager, xServerState.value.wineInfo).get()
+                container = containerManager.getContainerById(containerId)// ?: createContainer(containerManager, xServerState.value.wineInfo).get()
                 val currentDrives = container.drives
                 val babaPath = "D:$appDirPath"
                 if (!currentDrives.contains(babaPath)) {
@@ -217,22 +216,22 @@ fun XServerScreen(
                 Log.d("XServerScreen", "Before: $currentDrives, after: ${container.drives}")
                 containerManager.activateContainer(container)
 
-                val winePrefixNeedsUpdate = container.getExtra("wineprefixNeedsUpdate") == "t"
-                if (winePrefixNeedsUpdate) {
-                    Log.d("XServerScreen", "Wine prefix needs update")
-                    // TODO: show pre-loading dialog
-                    WineUtils.updateWineprefix(context) { status ->
-                        if (status == 0) {
-                            container.putExtra("wineprefixNeedsUpdate", null)
-                            container.putExtra("wincomponents", null)
-                            container.saveData()
-                            // TODO: restart activity alternative?
-                        } else {
-                            // TODO: end activity alternative?
-                        }
-                    }
-                    // return
-                }
+                // val winePrefixNeedsUpdate = container.getExtra("wineprefixNeedsUpdate") == "t"
+                // if (winePrefixNeedsUpdate) {
+                //     Log.d("XServerScreen", "Wine prefix needs update")
+                //     // TODO: show pre-loading dialog
+                //     WineUtils.updateWineprefix(context) { status ->
+                //         if (status == 0) {
+                //             container.putExtra("wineprefixNeedsUpdate", null)
+                //             container.putExtra("wincomponents", null)
+                //             container.saveData()
+                //             // TODO: restart activity alternative?
+                //         } else {
+                //             // TODO: end activity alternative?
+                //         }
+                //     }
+                //     // return
+                // }
 
                 taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
                 taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
@@ -526,7 +525,7 @@ private fun setupXEnvironment(
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
 
         val wow64Mode = container.isWoW64Mode
-        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand(container, appLocalExe)
+        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+ getWineStartCommand(container, appLocalExe)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
@@ -1026,60 +1025,4 @@ private fun changeWineAudioDriver(audioDriver: String, container: Container, ima
         container.putExtra("audioDriver", audioDriver)
         container.saveData()
     }
-}
-
-private fun createContainer(containerManager: ContainerManager, wineInfo: WineInfo): Future<Container> {
-    val name: String = "container_${containerManager.nextContainerId}"
-    Log.d("XServerScreen", "Creating container $name")
-    val screenSize: String = Container.DEFAULT_SCREEN_SIZE
-    val envVars: String = Container.DEFAULT_ENV_VARS
-    val graphicsDriver: String = Container.DEFAULT_GRAPHICS_DRIVER
-    val dxwrapper: String = Container.DEFAULT_DXWRAPPER
-    val dxwrapperConfig: String = ""
-    val audioDriver: String = Container.DEFAULT_AUDIO_DRIVER
-    val wincomponents: String = Container.DEFAULT_WINCOMPONENTS
-    val drives: String = ""
-    val showFPS: Boolean = false
-    val cpuList: String = (0 until Runtime.getRuntime().availableProcessors()).joinToString(",")
-    val cpuListWoW64: String = (0 until Runtime.getRuntime().availableProcessors()).joinToString(",")
-    val wow64Mode: Boolean = WineInfo.isMainWineVersion(wineInfo.identifier())
-    // val wow64Mode: Boolean = false
-    val startupSelection: Byte = Container.STARTUP_SELECTION_ESSENTIAL
-    val box86Preset: String = Box86_64Preset.COMPATIBILITY
-    val box64Preset: String = Box86_64Preset.COMPATIBILITY
-    val desktopTheme: String = WineThemeManager.DEFAULT_DESKTOP_THEME
-
-    val data = JSONObject()
-    data.put("name", name)
-    data.put("screenSize", screenSize)
-    data.put("envVars", envVars)
-    data.put("cpuList", cpuList)
-    data.put("cpuListWoW64", cpuListWoW64)
-    data.put("graphicsDriver", graphicsDriver)
-    data.put("dxwrapper", dxwrapper)
-    data.put("dxwrapperConfig", dxwrapperConfig)
-    data.put("audioDriver", audioDriver)
-    data.put("wincomponents", wincomponents)
-    data.put("drives", drives)
-    data.put("showFPS", showFPS)
-    data.put("wow64Mode", wow64Mode)
-    data.put("startupSelection", startupSelection)
-    data.put("box86Preset", box86Preset)
-    data.put("box64Preset", box64Preset)
-    data.put("desktopTheme", desktopTheme)
-
-    return containerManager.createContainerFuture(data)
-    // return containerManager.createContainer(data)
-    // var container: Container? = null
-    // containerManager.createContainerAsync(data, object: Callback<Container> {
-    //     override fun call(result: Container?) {
-    //         container = result
-    //     }
-    // })
-    // withTimeout(10000L) {
-    //     while (isActive && container == null) {
-    //         delay(100L)
-    //     }
-    // }
-    // container
 }

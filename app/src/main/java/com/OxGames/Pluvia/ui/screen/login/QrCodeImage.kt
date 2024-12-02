@@ -1,6 +1,8 @@
-package com.OxGames.Pluvia.ui.component
+package com.OxGames.Pluvia.ui.screen.login
 
+import android.content.res.Configuration
 import android.graphics.Bitmap
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -23,6 +25,7 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,25 +50,30 @@ fun QrCodeImage(
     content: String,
     size: Dp,
 ) {
-    Box(
-        modifier = modifier
-            .size(size)
-            .background(Color.White),
-        contentAlignment = Alignment.Center,
-    ) {
-        // QR Code Image
-        val bitmap = rememberQrBitmap(content = content, size = size)
+    // QR Code Image
+    val qrBitmap = rememberQrBitmap(content = content, size = size)
 
-        if (bitmap != null) {
-            val bitmapPainter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) }
-            Image(
-                painter = bitmapPainter,
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier.size(size),
-            )
-        } else {
-            CircularProgressIndicator()
+    Crossfade(
+        modifier = Modifier,
+        targetState = qrBitmap
+    ) { bitmap ->
+        Box(
+            modifier = modifier
+                .size(size)
+                .background(Color.Transparent),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (bitmap != null) {
+                val bitmapPainter = remember(bitmap) { BitmapPainter(bitmap.asImageBitmap()) }
+                Image(
+                    painter = bitmapPainter,
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.size(size),
+                )
+            } else {
+                CircularProgressIndicator(modifier = Modifier.size(92.dp))
+            }
         }
     }
 }
@@ -80,7 +88,15 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
         mutableStateOf<Bitmap?>(null)
     }
 
-    val ioScope = rememberCoroutineScope { Dispatchers.IO }
+    val isPreview = LocalInspectionMode.current
+    val ioScope = rememberCoroutineScope {
+        // Hack to preview things for the time being.
+        if (isPreview) {
+            Dispatchers.Main
+        } else {
+            Dispatchers.IO
+        }
+    }
     val bgColor = MaterialTheme.colorScheme.background.toArgb()
     val onBgColor = MaterialTheme.colorScheme.onBackground.toArgb()
 
@@ -136,7 +152,7 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
 }
 
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
 private fun Preview_QrCodeImage() {
     PluviaTheme {
