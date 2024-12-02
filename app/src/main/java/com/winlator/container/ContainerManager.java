@@ -6,11 +6,13 @@ import android.util.Log;
 
 // import com.winlator.R;
 import com.OxGames.Pluvia.R;
+import com.winlator.box86_64.Box86_64Preset;
 import com.winlator.core.Callback;
 import com.winlator.core.FileUtils;
 import com.winlator.core.OnExtractFileListener;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.core.WineInfo;
+import com.winlator.core.WineThemeManager;
 import com.winlator.xenvironment.ImageFs;
 
 import org.json.JSONArray;
@@ -82,6 +84,63 @@ public class ContainerManager {
     }
     public Future<Container> createContainerFuture(final JSONObject data) {
         return Executors.newSingleThreadExecutor().submit(() -> createContainer(data));
+    }
+    public Future<Container> createDefaultContainerFuture(WineInfo wineInfo) {
+        return createDefaultContainerFuture(wineInfo, getNextContainerId());
+    }
+    public Future<Container> createDefaultContainerFuture(WineInfo wineInfo, int containerId) {
+        String name = "container_" + containerId;
+        Log.d("XServerScreen", "Creating container $name");
+        String screenSize = Container.DEFAULT_SCREEN_SIZE;
+        String envVars = Container.DEFAULT_ENV_VARS;
+        String graphicsDriver = Container.DEFAULT_GRAPHICS_DRIVER;
+        String dxwrapper = Container.DEFAULT_DXWRAPPER;
+        String dxwrapperConfig = "";
+        String audioDriver = Container.DEFAULT_AUDIO_DRIVER;
+        String wincomponents = Container.DEFAULT_WINCOMPONENTS;
+        String drives = "";
+        Boolean showFPS = false;
+        String cpuList = "";
+        for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
+            cpuList += i;
+            if (i < Runtime.getRuntime().availableProcessors() - 1) {
+                cpuList += ",";
+            }
+        }
+        // String cpuList = (0 until Runtime.getRuntime().availableProcessors()).joinToString(",");
+        // String cpuListWoW64 = (0 until Runtime.getRuntime().availableProcessors()).joinToString(",");
+        String cpuListWoW64 = cpuList;
+        Boolean wow64Mode = WineInfo.isMainWineVersion(wineInfo.identifier());
+        // Boolean wow64Mode = false;
+        Byte startupSelection = Container.STARTUP_SELECTION_ESSENTIAL;
+        String box86Preset = Box86_64Preset.COMPATIBILITY;
+        String box64Preset = Box86_64Preset.COMPATIBILITY;
+        String desktopTheme = WineThemeManager.DEFAULT_DESKTOP_THEME;
+
+        JSONObject data = new JSONObject();
+        try {
+            data.put("name", name);
+            data.put("screenSize", screenSize);
+            data.put("envVars", envVars);
+            data.put("cpuList", cpuList);
+            data.put("cpuListWoW64", cpuListWoW64);
+            data.put("graphicsDriver", graphicsDriver);
+            data.put("dxwrapper", dxwrapper);
+            data.put("dxwrapperConfig", dxwrapperConfig);
+            data.put("audioDriver", audioDriver);
+            data.put("wincomponents", wincomponents);
+            data.put("drives", drives);
+            data.put("showFPS", showFPS);
+            data.put("wow64Mode", wow64Mode);
+            data.put("startupSelection", startupSelection);
+            data.put("box86Preset", box86Preset);
+            data.put("box64Preset", box64Preset);
+            data.put("desktopTheme", desktopTheme);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+
+        return createContainerFuture(data);
     }
 
     public void duplicateContainerAsync(Container container, Runnable callback) {

@@ -10,21 +10,26 @@ import android.view.OrientationEventListener
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import coil3.ImageLoader
-import coil3.compose.setSingletonImageLoaderFactory
-import coil3.disk.DiskCache
-import coil3.memory.MemoryCache
-import coil3.request.CachePolicy
-import coil3.util.DebugLogger
-import com.OxGames.Pluvia.ui.component.PluviaMain
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import coil.ImageLoader
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
+import coil.request.CachePolicy
+import coil.util.DebugLogger
 import com.OxGames.Pluvia.events.AndroidEvent
+import com.OxGames.Pluvia.ui.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
+import com.skydoves.landscapist.coil.LocalCoilImageLoader
 import com.winlator.core.AppUtils
+import dagger.hilt.android.AndroidEntryPoint
 import okio.Path.Companion.toOkioPath
 import java.util.EnumSet
 import kotlin.math.abs
 import kotlin.math.min
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val onSetSystemUi: (AndroidEvent.SetSystemUIVisibility) -> Unit = {
         AppUtils.hideSystemUI(this, !it.visible)
@@ -43,8 +48,10 @@ class MainActivity : ComponentActivity() {
         private var totalIndex = 0
 
         private var currentOrientationChangeValue: Int = 0
-        private var availableOrientations: EnumSet<Orientation> = EnumSet.of(Orientation.UNSPECIFIED)
+        private var availableOrientations: EnumSet<Orientation> =
+            EnumSet.of(Orientation.UNSPECIFIED)
     }
+
     private var index = totalIndex++
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,12 +64,13 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            setSingletonImageLoaderFactory { context ->
-                ImageLoader(context).newBuilder()
+            val context = LocalContext.current
+            val imageLoader = remember {
+                ImageLoader.Builder(context)
                     .memoryCachePolicy(CachePolicy.ENABLED)
                     .memoryCache {
-                        MemoryCache.Builder()
-                            .maxSizePercent(context, 0.1)
+                        MemoryCache.Builder(context)
+                            .maxSizePercent(0.1)
                             .strongReferencesEnabled(true)
                             .build()
                     }
@@ -77,7 +85,9 @@ class MainActivity : ComponentActivity() {
                     .build()
             }
 
-            PluviaMain()
+            CompositionLocalProvider(LocalCoilImageLoader provides imageLoader) {
+                PluviaMain()
+            }
         }
     }
 
@@ -100,22 +110,28 @@ class MainActivity : ComponentActivity() {
     //     return super.onKeyDown(keyCode, event)
     // }
 
+
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         // Log.d("MainActivity$index", "dispatchKeyEvent(${event.keyCode}):\n$event")
-        var eventDispatched = PluviaApp.events.emit(AndroidEvent.KeyEvent(event)) { it.any { it } } == true
-        if (!eventDispatched) {
-            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-                PluviaApp.events.emit(AndroidEvent.BackPressed)
-                eventDispatched = true
-            }
-        }
+        var eventDispatched =
+            PluviaApp.events.emit(AndroidEvent.KeyEvent(event)) { it.any { it } } == true
+        // TODO: Temp'd removed this.
+        //  Idealy, compose handles back presses automaticially in which we can override it in certain composables.
+        //  Since LibraryScreen uses its own navigation system, this will need to be re-worked accordingly.
+//        if (!eventDispatched) {
+//            if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+//                PluviaApp.events.emit(AndroidEvent.BackPressed)
+//                eventDispatched = true
+//            }
+//        }
         return if (!eventDispatched) super.dispatchKeyEvent(event) else true
     }
 
     override fun dispatchGenericMotionEvent(ev: MotionEvent?): Boolean {
         // Log.d("MainActivity$index", "dispatchGenericMotionEvent(${ev?.deviceId}:${ev?.device?.name}):\n$ev")
-        val eventDispatched = PluviaApp.events.emit(AndroidEvent.MotionEvent(ev)) { it.any { it } } == true
+        val eventDispatched =
+            PluviaApp.events.emit(AndroidEvent.MotionEvent(ev)) { it.any { it } } == true
         return if (!eventDispatched) super.dispatchGenericMotionEvent(ev) else true
     }
 
@@ -128,7 +144,8 @@ class MainActivity : ComponentActivity() {
         // Log.d("MainActivity$index", "Orientator starting up")
         val orientationEventListener = object : OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
-                currentOrientationChangeValue = if (orientation != ORIENTATION_UNKNOWN) orientation else currentOrientationChangeValue
+                currentOrientationChangeValue =
+                    if (orientation != ORIENTATION_UNKNOWN) orientation else currentOrientationChangeValue
                 setOrientationTo(currentOrientationChangeValue, availableOrientations)
             }
         }
@@ -136,13 +153,16 @@ class MainActivity : ComponentActivity() {
             orientationEventListener.enable()
         }
     }
+
     private fun setOrientationTo(orientation: Int, conformTo: EnumSet<Orientation>) {
         // Log.d("MainActivity$index", "Setting orientation to conform")
         // reverse direction of orientation
         val adjustedOrientation = 360 - orientation
         // if our available orientations are empty then assume unspecified
         val orientations = conformTo.ifEmpty { EnumSet.of(Orientation.UNSPECIFIED) }
-        var inRange = orientations.filter { it.angleRanges.any { it.contains(adjustedOrientation) } }.toTypedArray()
+        var inRange =
+            orientations.filter { it.angleRanges.any { it.contains(adjustedOrientation) } }
+                .toTypedArray()
         if (inRange.isEmpty()) {
             // none of the available orientations conform to the reported orientation
             // so set it to the original orientations in preparation for finding the
@@ -163,9 +183,16 @@ class MainActivity : ComponentActivity() {
         }
         val nearest = distances.sortedBy { it.second }.first()
         // set the requested orientation to the nearest if it is not already as long as it is nearer than what is currently set
-        val currentOrientationDist = distances.firstOrNull { it.first.activityInfoValue == requestedOrientation }?.second ?: Int.MAX_VALUE
+        val currentOrientationDist =
+            distances.firstOrNull { it.first.activityInfoValue == requestedOrientation }?.second
+                ?: Int.MAX_VALUE
         if (requestedOrientation != nearest.first.activityInfoValue && currentOrientationDist > nearest.second) {
-            Log.d("MainActivity", "$adjustedOrientation => currentOrientation(${Orientation.fromActivityInfoValue(requestedOrientation)}) != nearestOrientation(${nearest.first}) && currentDistance($currentOrientationDist) > nearestDistance(${nearest.second})")
+            Log.d(
+                "MainActivity",
+                "$adjustedOrientation => currentOrientation(${
+                    Orientation.fromActivityInfoValue(requestedOrientation)
+                }) != nearestOrientation(${nearest.first}) && currentDistance($currentOrientationDist) > nearestDistance(${nearest.second})"
+            )
             requestedOrientation = nearest.first.activityInfoValue
         }
     }
