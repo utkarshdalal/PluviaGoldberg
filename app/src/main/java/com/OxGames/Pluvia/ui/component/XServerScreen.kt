@@ -73,6 +73,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
+import java.nio.file.Paths
 import java.util.EnumSet
 import java.util.concurrent.Future
 
@@ -408,6 +409,7 @@ fun XServerScreen(
                 }
                 xEnvironment = setupXEnvironment(
                     context,
+                    appId,
                     xServerState,
                     envVars,
                     generateWinePrefix,
@@ -493,6 +495,7 @@ private fun assignTaskAffinity(
 
 private fun setupXEnvironment(
     context: Context,
+    appId: Int,
     xServerState: MutableState<XServerState>,
     // xServerViewModel: XServerViewModel,
     envVars: EnvVars,
@@ -544,7 +547,12 @@ private fun setupXEnvironment(
     environment.addComponent(SysVSharedMemoryComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH)))
     environment.addComponent(XServerComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.XSERVER_PATH)))
     environment.addComponent(NetworkInfoUpdateComponent())
-    environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.STEAM_PIPE_PATH)))
+    environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(
+        rootPath,
+        Paths.get(ImageFs.WINEPREFIX, "drive_c", UnixSocketConfig.STEAM_PIPE_PATH).toString()
+    )))
+    // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(SteamService.getAppDirPath(appId), "/steam_pipe")))
+    // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.STEAM_PIPE_PATH)))
 
     if (xServerState.value.audioDriver == "alsa") {
         envVars.put("ANDROID_ALSA_SERVER", UnixSocketConfig.ALSA_SERVER_PATH)

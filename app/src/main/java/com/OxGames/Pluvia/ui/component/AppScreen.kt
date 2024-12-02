@@ -86,12 +86,12 @@ fun AppScreen(
                 if (Files.exists(steamApiPath)) {
                     Files.delete(steamApiPath)
                 }
-                // Files.createFile(steamApiPath)
-                // FileOutputStream(steamApiPath.toString()).use { fos ->
-                //     context.assets.open("steamproxy/steam_api64.dll").use { fs ->
-                //         fs.copyTo(fos)
-                //     }
-                // }
+                Files.createFile(steamApiPath)
+                FileOutputStream(steamApiPath.toString()).use { fos ->
+                    context.assets.open("steampipe/steam_api.dll").use { fs ->
+                        fs.copyTo(fos)
+                    }
+                }
                 onClickPlay()
             }
         }

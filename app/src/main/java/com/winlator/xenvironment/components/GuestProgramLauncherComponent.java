@@ -130,20 +130,20 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         // nativeLibraryDir = nativeLibraryDir.replace("arm64", "arm64-v8a");
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + (new File(nativeLibraryDir)).exists());
         // Log.d("GuestProgramLauncherComponent", steamApiPath + " exists: " + new File(steamApiPath).exists());
-        ImageFs fs = ImageFs.find(context);
+        // ImageFs fs = ImageFs.find(context);
         // Path dllsDir = Paths.get(fs.getRootDir().getAbsolutePath(), "/usr/dlls");
         // Path steamApiTargetPath = Paths.get(dllsDir.toString(), "steam_api.dll.so");
-        Path steamApiTargetPath = Paths.get(fs.getLib64Dir().toString(), "libsteam_api.dll.so");
-        if (!Files.exists(steamApiTargetPath)) {
-            try {
-                // Files.createDirectories(dllsDir);
-                Path steamApiPath = Paths.get(nativeLibraryDir, "libsteam_api.dll.so");
-                Files.copy(steamApiPath, steamApiTargetPath);
-                FileUtils.chmod(new File(steamApiTargetPath.toString()), 0771);
-            } catch (IOException e) {
-                Log.e("GuestProgramLauncherComponent", "Failed to copy steam_api.dll.so to /usr/lib " + e);
-            }
-        }
+        // Path steamApiTargetPath = Paths.get(fs.getLib64Dir().toString(), "libsteam_api.dll.so");
+        // if (!Files.exists(steamApiTargetPath)) {
+        //     try {
+        //         // Files.createDirectories(dllsDir);
+        //         Path steamApiPath = Paths.get(nativeLibraryDir, "libsteam_api.dll.so");
+        //         Files.copy(steamApiPath, steamApiTargetPath);
+        //         FileUtils.chmod(new File(steamApiTargetPath.toString()), 0771);
+        //     } catch (IOException e) {
+        //         Log.e("GuestProgramLauncherComponent", "Failed to copy steam_api.dll.so to /usr/lib " + e);
+        //     }
+        // }
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         boolean enableBox86_64Logs = preferences.getBoolean("enable_box86_64_logs", false);
@@ -188,6 +188,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
 
         // envVars.put("WINEDLLPATH", dllsDir.toString());
         // envVars.put("WINEDLLOVERRIDES", "\"steam_api=n\"");
+        envVars.put("WINEESYNC", "0");
 
         command += " /usr/bin/env "+envVars.toEscapedString()+" box64 "+guestExecutable;
 
