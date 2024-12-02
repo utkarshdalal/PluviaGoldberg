@@ -1,13 +1,15 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.dagger.hilt)
+    alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.jetbrains.serialization)
+    alias(libs.plugins.ksp)
 }
 
 android {
     namespace = "com.OxGames.Pluvia"
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = "22.1.7171670"
 
     defaultConfig {
@@ -36,6 +38,8 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
+            // applicationIdSuffix = ".debug"
+            // versionNameSuffix = "-debug"
         }
         release {
             isMinifyEnabled = false
@@ -79,23 +83,37 @@ dependencies {
     }
     implementation(libs.spongycastle)
 
-    implementation("com.github.luben:zstd-jni:1.5.2-3@aar") // for winlator
-    implementation(libs.android.preferences) // for winlator
-    implementation(libs.apache.compress) // for winlator
+    // Winlator
+    implementation(libs.bundles.winlator)
+    implementation(libs.zstd.jni) { artifact { type = "aar" } }
 
     // Jetpack Compose
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.bundles.compose)
+    implementation(libs.landscapist.coil)
     debugImplementation(libs.androidx.ui.tooling)
 
     // Support
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.bundles.coil)
     implementation(libs.jetbrains.kotlinx.json)
     implementation(libs.kotlin.coroutines)
     implementation(libs.zxing)
+
+    // Google Protobufs
+    implementation(libs.protobuf.java)
+
+    // Hilt
+    implementation(libs.bundles.hilt)
+
+    // KSP (Hilt, Room)
+    ksp(libs.bundles.ksp)
+
+    // Room Database
+    implementation(libs.bundles.room)
+
+    // Memory Leak Detection
+    // debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
 
     // Testing
     androidTestImplementation(platform(libs.androidx.compose.bom))

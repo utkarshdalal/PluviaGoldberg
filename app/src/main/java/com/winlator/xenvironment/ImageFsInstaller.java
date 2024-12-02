@@ -9,6 +9,7 @@ import android.util.Log;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 // import com.winlator.core.DownloadProgressDialog;
+import com.winlator.core.Callback;
 import com.winlator.core.FileUtils;
 // import com.winlator.core.PreloaderDialog;
 import com.winlator.core.TarCompressorUtils;
@@ -41,7 +42,7 @@ public abstract class ImageFsInstaller {
         }
     }
 
-    private static Future<Boolean> installFromAssetsFuture(final Context context) {
+    private static Future<Boolean> installFromAssetsFuture(final Context context, Callback<Integer> onProgress) {
         // AppUtils.keepScreenOn(context);
         ImageFs imageFs = ImageFs.find(context);
         final File rootDir = imageFs.getRootDir();
@@ -59,8 +60,10 @@ public abstract class ImageFsInstaller {
             boolean success = TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, context, "imagefs.txz", rootDir, (file, size) -> {
                 if (size > 0) {
                     long totalSize = totalSizeRef.addAndGet(size);
-                    final int progress = (int)(((float)totalSize / contentLength) * 100);
-                    // context.runOnUiThread(() -> dialog.setProgress(progress));
+                    if (onProgress != null) {
+                        final int progress = (int)(((float)totalSize / contentLength) * 100);
+                        onProgress.call(progress);
+                    }
                 }
                 return file;
             });
@@ -78,10 +81,14 @@ public abstract class ImageFsInstaller {
         });
     }
 
+
     public static Future<Boolean> installIfNeededFuture(final Context context) {
+        return installIfNeededFuture(context, null);
+    }
+    public static Future<Boolean> installIfNeededFuture(final Context context, Callback<Integer> onProgress) {
         ImageFs imageFs = ImageFs.find(context);
         if (!imageFs.isValid() || imageFs.getVersion() < LATEST_VERSION) {
-            return installFromAssetsFuture(context);
+            return installFromAssetsFuture(context, onProgress);
         } else {
             Log.d("ImageFsInstaller", "Image FS already valid and at latest version");
             return Executors.newSingleThreadExecutor().submit(() -> true);
