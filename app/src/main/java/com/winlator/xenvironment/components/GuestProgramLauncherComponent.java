@@ -123,10 +123,10 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         File rootDir = imageFs.getRootDir();
         File tmpDir = environment.getTmpDir();
         String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
-        // File nativeLibs = new File(nativeLibraryDir);
+        File nativeLibs = new File(nativeLibraryDir);
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + nativeLibs.exists());
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " is directory: " + nativeLibs.isDirectory());
-        // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " contains: " + Arrays.toString(nativeLibs.listFiles()));
+        Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " contains: " + Arrays.toString(Arrays.stream(nativeLibs.listFiles()).map(File::getName).toArray()));
         // nativeLibraryDir = nativeLibraryDir.replace("arm64", "arm64-v8a");
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + (new File(nativeLibraryDir)).exists());
         // Log.d("GuestProgramLauncherComponent", steamApiPath + " exists: " + new File(steamApiPath).exists());
@@ -134,15 +134,16 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         // Path dllsDir = Paths.get(fs.getRootDir().getAbsolutePath(), "/usr/dlls");
         // Path steamApiTargetPath = Paths.get(dllsDir.toString(), "steam_api.dll.so");
         // Path steamApiTargetPath = Paths.get(fs.getLib64Dir().toString(), "libsteam_api.dll.so");
-        // if (!Files.exists(steamApiTargetPath)) {
-        //     try {
-        //         // Files.createDirectories(dllsDir);
-        //         Path steamApiPath = Paths.get(nativeLibraryDir, "libsteam_api.dll.so");
-        //         Files.copy(steamApiPath, steamApiTargetPath);
-        //         FileUtils.chmod(new File(steamApiTargetPath.toString()), 0771);
-        //     } catch (IOException e) {
-        //         Log.e("GuestProgramLauncherComponent", "Failed to copy steam_api.dll.so to /usr/lib " + e);
+        // try {
+        //     if (Files.exists(steamApiTargetPath)) {
+        //         Files.delete(steamApiTargetPath);
         //     }
+        //     // Files.createDirectories(dllsDir);
+        //     Path steamApiPath = Paths.get(nativeLibraryDir, "libsteam_api.dll.so");
+        //     Files.copy(steamApiPath, steamApiTargetPath);
+        //     FileUtils.chmod(new File(steamApiTargetPath.toString()), 0771);
+        // } catch (IOException e) {
+        //     Log.e("GuestProgramLauncherComponent", "Failed to copy steam_api.dll.so to /usr/lib " + e);
         // }
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);

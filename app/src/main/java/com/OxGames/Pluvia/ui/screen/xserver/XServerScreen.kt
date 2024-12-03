@@ -546,10 +546,11 @@ private fun setupXEnvironment(
     environment.addComponent(SysVSharedMemoryComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH)))
     environment.addComponent(XServerComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.XSERVER_PATH)))
     environment.addComponent(NetworkInfoUpdateComponent())
-    environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(
-        rootPath,
-        Paths.get(ImageFs.WINEPREFIX, "drive_c", UnixSocketConfig.STEAM_PIPE_PATH).toString()
-    )))
+    environment.addComponent(SteamClientComponent())
+    // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(
+    //     rootPath,
+    //     Paths.get(ImageFs.WINEPREFIX, "drive_c", UnixSocketConfig.STEAM_PIPE_PATH).toString()
+    // )))
     // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(SteamService.getAppDirPath(appId), "/steam_pipe")))
     // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.STEAM_PIPE_PATH)))
 
