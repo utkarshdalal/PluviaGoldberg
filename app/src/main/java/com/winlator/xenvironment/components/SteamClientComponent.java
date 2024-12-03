@@ -3,6 +3,7 @@ package com.winlator.xenvironment.components;
 import android.util.Log;
 
 import com.winlator.core.FileUtils;
+import com.winlator.steampipeserver.SteamPipeServer;
 import com.winlator.xconnector.Client;
 import com.winlator.xconnector.ConnectionHandler;
 import com.winlator.xconnector.RequestHandler;
@@ -16,30 +17,31 @@ import com.winlator.xenvironment.ImageFs;
 import java.io.File;
 
 public class SteamClientComponent extends EnvironmentComponent implements ConnectionHandler, RequestHandler {
-    public abstract static class RequestCodes {
-        public static final byte INIT = 0;
-        public static final byte GET_TICKET = 1;
-        public static final byte AUTH_SESSION = 2;
-    }
+    // public abstract static class RequestCodes {
+    //     public static final byte INIT = 0;
+    //     public static final byte GET_TICKET = 1;
+    //     public static final byte AUTH_SESSION = 2;
+    // }
 
-    private XConnectorEpoll connector;
-    private final UnixSocketConfig socketConfig;
+    private SteamPipeServer connector;
+    // private XConnectorEpoll connector;
+    // private final UnixSocketConfig socketConfig;
 
-    public SteamClientComponent(UnixSocketConfig socketConfig) {
-        this.socketConfig = socketConfig;
-    }
+    // public SteamClientComponent(UnixSocketConfig socketConfig) {
+    //     this.socketConfig = socketConfig;
+    // }
 
     @Override
     public void start() {
         Log.d("SteamClientComponent", "Starting...");
         if (connector != null) return;
-        connector = new XConnectorEpoll(socketConfig, this, this);
+        connector = new SteamPipeServer();//new XConnectorEpoll(socketConfig, this, this);
         // set up the socket file to be accessible by processes executed within wine
-        File socketFile = new File(socketConfig.path);
-        while (socketFile != null && socketFile.exists() && socketFile.getAbsolutePath().contains(ImageFs.WINEPREFIX)) {
-            FileUtils.chmod(socketFile, 0771);
-            socketFile = socketFile.getParentFile();
-        }
+        // File socketFile = new File(socketConfig.path);
+        // while (socketFile != null && socketFile.exists() && socketFile.getAbsolutePath().contains(ImageFs.WINEPREFIX)) {
+        //     FileUtils.chmod(socketFile, 0771);
+        //     socketFile = socketFile.getParentFile();
+        // }
         // connector.setMultithreadedClients(true);
         connector.start();
     }
@@ -68,23 +70,24 @@ public class SteamClientComponent extends EnvironmentComponent implements Connec
 
     @Override
     public boolean handleRequest(Client client) {
-        XInputStream input = client.getInputStream();
-        if (input == null) return false;
-
-        int cmdType = input.readInt();
-        Log.d("SteamClientComponent", "Received " + cmdType);
-
-        switch (cmdType) {
-            case RequestCodes.INIT:
-                Log.d("SteamClientComponent", "Received INIT");
-                break;
-            case RequestCodes.GET_TICKET:
-                Log.d("SteamClientComponent", "Received GET_TICKET");
-                break;
-            case RequestCodes.AUTH_SESSION:
-                Log.d("SteamClientComponent", "Received AUTH_SESSION");
-                break;
-        }
+        // XInputStream input = client.getInputStream();
+        // if (input == null) return false;
+        //
+        // int cmdType = input.readInt();
+        // Log.d("SteamClientComponent", "Received " + cmdType);
+        //
+        // switch (cmdType) {
+        //     case RequestCodes.INIT:
+        //         Log.d("SteamClientComponent", "Received INIT");
+        //         break;
+        //     case RequestCodes.GET_TICKET:
+        //         Log.d("SteamClientComponent", "Received GET_TICKET");
+        //         break;
+        //     case RequestCodes.AUTH_SESSION:
+        //         Log.d("SteamClientComponent", "Received AUTH_SESSION");
+        //         break;
+        // }
+        // return true;
         return true;
     }
 }
