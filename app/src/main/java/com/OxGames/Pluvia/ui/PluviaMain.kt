@@ -37,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
+import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.screen.home.HomeScreen
@@ -238,7 +239,9 @@ fun PluviaMain(
                         appId = it
                         dialogVisible = true
                         // TODO: add a way to cancel
+                        // TODO: add fail conditions
                         CoroutineScope(Dispatchers.IO).launch {
+                            // set up Ubuntu file system
                             val imageFsInstallSuccess =
                                 ImageFsInstaller.installIfNeededFuture(context) { progress ->
                                     // Log.d("XServerScreen", "$progress")
@@ -248,10 +251,26 @@ fun PluviaMain(
                             // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
                             val containerId = 1
 
+                            // create container if it does not already exist
                             val containerManager = ContainerManager(context)
-                            containerManager.getContainerById(containerId)
+                            val container = containerManager.getContainerById(containerId)
                                 ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION)
                                     .get()
+                            // set up container drives to include app
+                            val currentDrives = container.drives
+                            val drivePath = "D:${SteamService.getAppDirPath(appId)}"
+                            if (!currentDrives.contains(drivePath)) {
+                                container.drives = drivePath
+                                container.saveData()
+                            }
+                            // must activate container before downloading save files
+                            containerManager.activateContainer(container)
+                            // download save files from steam cloud
+                            SteamService.downloadUserFiles(appId, this) { prefix ->
+                                PathType.from(prefix).toAbsPath(context, appId)
+                            }.await()
+
+                            // SteamUtils.replaceSteamApi(context, appId)
 
                             dialogVisible = false
                             CoroutineScope(Dispatchers.Main).launch {
@@ -266,7 +285,14 @@ fun PluviaMain(
 
             /** Game Screen **/
             composable(route = PluviaScreen.XServer.name) {
-                XServerScreen(appId = appId)
+                XServerScreen(
+                    appId = appId,
+                    navigateBack = {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            navController.popBackStack()
+                        }
+                    }
+                )
             }
         }
     }

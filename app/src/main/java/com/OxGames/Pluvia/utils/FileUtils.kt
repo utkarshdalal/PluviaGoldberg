@@ -6,6 +6,12 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.FileReader
 import java.io.OutputStreamWriter
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
 
 class FileUtils {
     companion object {
@@ -57,6 +63,22 @@ class FileUtils {
                 fOut.close()
             } catch (e: Exception) {
                 Log.e(errorTag, errorMsg?.invoke(e) ?: "Error writing to file: $e")
+            }
+        }
+        fun walkThroughPath(
+            path: String,
+            maxDepth: Int = 0,
+            action: (Path) -> Unit,
+        ) {
+            Files.list(Paths.get(path)).forEach {
+                action(it)
+                if (maxDepth != 0 && it.exists() && it.isDirectory()) {
+                    walkThroughPath(
+                        it.absolutePathString(),
+                        if (maxDepth > 0) maxDepth - 1 else maxDepth,
+                        action,
+                    )
+                }
             }
         }
     }

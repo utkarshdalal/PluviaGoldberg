@@ -16,8 +16,10 @@ import com.OxGames.Pluvia.data.LibraryHeroInfo
 import com.OxGames.Pluvia.data.LibraryLogoInfo
 import com.OxGames.Pluvia.data.ManifestInfo
 import com.OxGames.Pluvia.data.PackageInfo
+import com.OxGames.Pluvia.data.SaveFile
 import com.OxGames.Pluvia.data.SteamData
 import com.OxGames.Pluvia.data.SteamFriend
+import com.OxGames.Pluvia.data.UFS
 import com.OxGames.Pluvia.db.PluviaDatabase
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
@@ -25,6 +27,7 @@ import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.OSArch
+import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.ReleaseState
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
@@ -50,6 +53,7 @@ import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.FriendsListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.NicknameListCallback
@@ -77,22 +81,30 @@ import `in`.dragonbra.javasteam.util.log.LogManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import okhttp3.HttpUrl
+import okhttp3.Request
+import java.io.ByteArrayInputStream
 import java.io.Closeable
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.EnumSet
 import java.util.concurrent.ConcurrentHashMap
+import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import kotlin.io.path.pathString
-import kotlin.time.Duration.Companion.seconds
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -105,6 +117,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     private var _steamUser: SteamUser? = null
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
+    private var _steamCloud: SteamCloud? = null
     private var _unifiedMessages: SteamUnifiedMessages? = null
     private var _unifiedChat: Chat? = null
 
@@ -295,6 +308,151 @@ class SteamService : Service(), IChallengeUrlChanged {
             downloadJobs[appId] = downloadInfo
 
             return downloadInfo
+        }
+
+        /**
+         * Default timeout to use when making requests
+         */
+        var requestTimeout = 10000L
+
+        /**
+         * Default timeout to use when reading the response body
+         */
+        var responseBodyTimeout = 60000L
+        fun downloadUserFiles(
+            appId: Int,
+            parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
+            prefixToPath: (String) -> String,
+        ) = parentScope.async {
+            instance?.let { steamInstance ->
+                steamInstance._steamCloud?.let { steamCloud ->
+                    steamInstance.appInfo[appId]?.let { appInfo ->
+                        Log.d("SteamService", "Retrieving save files of ${appInfo.name}")
+                        val appFileListChange = steamCloud.cloudService.getAppFileListChange(appId)
+                        val pathTypePairs = appFileListChange.pathPrefixes
+                            .map {
+                                val matchResults = Regex("%\\w+%").findAll(it).map { it.value }.toList()
+                                Log.d("SteamService", "Mapping prefix $it and found $matchResults")
+                                matchResults
+                            }.flatten()
+                            .distinct()
+                            .map {
+                                Pair(it, prefixToPath(it))
+                            }
+                        val convertedPrefixes = appFileListChange.pathPrefixes.map { prefix ->
+                            var modified = prefix
+                            pathTypePairs.forEach {
+                                modified = modified.replace(it.first, it.second)
+                            }
+                            modified
+                        }
+                        // Log.d("SteamService",
+                        //     "GetAppFileListChange($appId):" +
+                        //     "\n\tTotal Files: ${appFileListChange.files.size}" +
+                        //     "\n\tCurrent Change Number: ${appFileListChange.currentChangeNumber}" +
+                        //     "\n\tIs Only Delta: ${appFileListChange.isOnlyDelta}" +
+                        //     "\n\tApp BuildID Hwm: ${appFileListChange.appBuildIDHwm}" +
+                        //     "\n\tPath Prefixes: \n\t\t${appFileListChange.pathPrefixes.joinToString("\n\t\t")}" +
+                        //     "\n\tMachine Names: \n\t\t${appFileListChange.machineNames.joinToString("\n\t\t")}" +
+                        //     appFileListChange.files.map {
+                        //         "\n\t${it.filename}:" +
+                        //         "\n\t\tshaFile: ${it.shaFile}" +
+                        //         "\n\t\ttimestamp: ${it.timestamp}" +
+                        //         "\n\t\trawFileSize: ${it.rawFileSize}" +
+                        //         "\n\t\tpersistState: ${it.persistState}" +
+                        //         "\n\t\tplatformsToSync: ${it.platformsToSync}" +
+                        //         "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
+                        //         "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
+                        //     }.joinToString()
+                        // )
+                        appFileListChange.files.forEach { file ->
+                            val prefixedPath = if (file.pathPrefixIndex < appFileListChange.pathPrefixes.size)
+                                "${appFileListChange.pathPrefixes[file.pathPrefixIndex]}${file.filename}"
+                            else
+                                file.filename
+                            val fileDownloadInfo = steamCloud.cloudService.clientFileDownload(appId, prefixedPath)
+                            // Log.d("SteamService",
+                            //     "ClientFileDownload($appId, $prefixedPath):" +
+                            //     "\n\tappId: ${fileDownloadInfo.appID}" +
+                            //     "\n\tfileSize: ${fileDownloadInfo.fileSize}" +
+                            //     "\n\trawFileSize: ${fileDownloadInfo.rawFileSize}" +
+                            //     "\n\tshaFile: ${fileDownloadInfo.shaFile}" +
+                            //     "\n\ttimestamp: ${fileDownloadInfo.timestamp}" +
+                            //     "\n\tisExplicitDelete: ${fileDownloadInfo.isExplicitDelete}" +
+                            //     "\n\turlHost: ${fileDownloadInfo.urlHost}" +
+                            //     "\n\turlPath: ${fileDownloadInfo.urlPath}" +
+                            //     "\n\tuseHttps: ${fileDownloadInfo.useHttps}" +
+                            //     "\n\trequestHeaders: ${fileDownloadInfo.requestHeaders}" +
+                            //     "\n\tencrypted: ${fileDownloadInfo.encrypted}"
+                            // )
+
+                            val actualFilePath = if (file.pathPrefixIndex < appFileListChange.pathPrefixes.size)
+                                Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
+                            else
+                                Paths.get(getAppDirPath(appId), file.filename)
+                            Log.d("SteamService", "$prefixedPath -> $actualFilePath")
+
+                            if (fileDownloadInfo.urlHost.isNotEmpty()) {
+                                // val httpUrl = HttpUrl.Builder()
+                                //     .scheme(if (fileDownloadInfo.useHttps) "https" else "http")
+                                //     .host(fileDownloadInfo.urlHost)
+                                //     .addPathSegments(fileDownloadInfo.urlPath)
+                                //     .build()
+                                val scheme = if (fileDownloadInfo.useHttps) "https://" else "http://"
+                                val httpUrl = "$scheme${fileDownloadInfo.urlHost}${fileDownloadInfo.urlPath}"
+                                Log.d("SteamService", "Downloading $httpUrl")
+                                val request = Request.Builder().url(httpUrl).build()
+                                val httpClient = steamInstance._steamClient!!.configuration.httpClient
+                                withTimeout(requestTimeout) {
+                                    val response = httpClient.newCall(request).execute()
+
+                                    if (!response.isSuccessful) {
+                                        Log.e("SteamService", "File download of $prefixedPath was unsuccessful")
+                                        return@withTimeout
+                                    }
+
+                                    val copyToFile: (InputStream) -> Unit = { input ->
+                                        Files.createDirectories(actualFilePath.parent)
+                                        FileOutputStream(actualFilePath.toString()).use { fs ->
+                                            val bytesRead = input.copyTo(fs)
+                                            if (bytesRead != fileDownloadInfo.rawFileSize.toLong()) {
+                                                Log.e("SteamService", "Bytes read from stream of $prefixedPath does not match expected size")
+                                            }
+                                        }
+                                    }
+
+                                    withTimeout(responseBodyTimeout) {
+                                        // var hadZipEntries = true
+                                        // val responseBytes = response.body?.bytes()
+                                        if (fileDownloadInfo.fileSize != fileDownloadInfo.rawFileSize) {
+                                            response.body?.byteStream()?.use { inputStream ->
+                                                ZipInputStream(inputStream).use { zipInput ->
+                                                    val entry = zipInput.nextEntry
+                                                    if (entry == null) {
+                                                        Log.w("SteamService", "Downloaded user file $prefixedPath has no zip entries")
+                                                        return@withTimeout
+                                                    }
+
+                                                    copyToFile(zipInput)
+                                                    if (zipInput.nextEntry != null) {
+                                                        Log.e("SteamService", "Downloaded user file $prefixedPath has more than one zip entry")
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            response.body?.byteStream()?.use { inputStream ->
+                                                copyToFile(inputStream)
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                Log.w("SteamService", "URL host of $prefixedPath was empty")
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         fun getAvatarURL(avatarHash: String): String {
@@ -538,6 +696,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             _steamUser = _steamClient!!.getHandler(SteamUser::class.java)
             _steamApps = _steamClient!!.getHandler(SteamApps::class.java)
             _steamFriends = _steamClient!!.getHandler(SteamFriends::class.java)
+            _steamCloud = _steamClient!!.getHandler(SteamCloud::class.java)
 
             // subscribe to the callbacks we are interested in
             _callbackSubscriptions.add(
@@ -692,6 +851,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         _steamUser = null
         _steamApps = null
         _steamFriends = null
+        _steamCloud = null
 
         for (subscription in _callbackSubscriptions) {
             subscription.close()
@@ -1133,6 +1293,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                         steamControllerTemplateIndex = app.keyValues["config"]["steamcontrollertemplateindex"].asInteger(),
                         steamControllerTouchTemplateIndex = app.keyValues["config"]["steamcontrollertouchtemplateindex"].asInteger(),
                     ),
+                    ufs = UFS(
+                        quota = app.keyValues["ufs"]["quota"].asInteger(),
+                        maxNumFiles = app.keyValues["ufs"]["maxnumfiles"].asInteger(),
+                        saveFiles = app.keyValues["ufs"]["savefiles"].children.map {
+                            SaveFile(
+                                root = PathType.from(it["root"].value),
+                                path = it["path"].value ?: "",
+                                pattern = it["pattern"].value ?: ""
+                            )
+                        }.toTypedArray()
+                    )
                 )
             }
 

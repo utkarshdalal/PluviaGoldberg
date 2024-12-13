@@ -77,6 +77,8 @@ data class AppInfo(
     val installScriptOverride: Boolean,
 
     val config: ConfigInfo,
+
+    val ufs: UFS,
 ) {
     // source: https://github.com/Nemirtingas/games-infos/blob/3915100198bac34553b3c862f9e295d277f5520a/steam_retriever/Program.cs#L589C43-L589C89
     fun getSmallCapsuleUrl(language: Language = Language.english): String? {
