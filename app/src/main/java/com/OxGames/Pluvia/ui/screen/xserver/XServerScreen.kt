@@ -3,6 +3,7 @@ package com.OxGames.Pluvia.ui.screen.xserver
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -71,14 +72,14 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
-import java.nio.file.Paths
 import java.util.EnumSet
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 fun XServerScreen(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
-    appId: Int
+    appId: Int,
+    navigateBack: () -> Unit,
     // xServerViewModel: XServerViewModel = viewModel()
 ) {
     Log.d("XServerScreen", "Starting up XServerScreen")
@@ -131,7 +132,6 @@ fun XServerScreen(
         result
     }
 
-    val appDirPath = SteamService.getAppDirPath(appId)
     val appLocalExe = SteamService.getAppInfoOf(appId)?.let { appInfo ->
         appInfo.config.launch.firstOrNull { launchInfo ->
             // since configOS was unreliable and configArch was even more unreliable
@@ -144,6 +144,10 @@ fun XServerScreen(
             }
             Pair(launchInfo.workingDir, exe)
         }
+    }
+
+    BackHandler {
+        exit(xServer.winHandler, xEnvironment)
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -164,12 +168,14 @@ fun XServerScreen(
         }
         val onGuestProgramTerminated: (AndroidEvent.GuestProgramTerminated) -> Unit = {
             // exit(xServer.winHandler, xEnvironment)
-            PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
-        }
-        val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
-            Log.d("XServerScreen", "Shutting down winHandler and xEnvironment")
             exit(xServer.winHandler, xEnvironment)
+            navigateBack()
+            // PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
         }
+        // val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
+        //     Log.d("XServerScreen", "Shutting down winHandler and xEnvironment")
+        //     exit(xServer.winHandler, xEnvironment)
+        // }
         val debugCallback = Callback<String> { outputLine ->
             Log.d("ProcessOutput", outputLine ?: "")
         }
@@ -179,7 +185,7 @@ fun XServerScreen(
         PluviaApp.events.on<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
         PluviaApp.events.on<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
         PluviaApp.events.on<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
-        PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
+        // PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
         ProcessHelper.addDebugCallback(debugCallback)
 
         onDispose {
@@ -187,7 +193,7 @@ fun XServerScreen(
             PluviaApp.events.off<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
             PluviaApp.events.off<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
             PluviaApp.events.off<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
-            PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
+            // PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
             ProcessHelper.removeDebugCallback(debugCallback)
         }
     }
@@ -205,15 +211,15 @@ fun XServerScreen(
             if (!generateWinePrefix) {
                 containerManager = ContainerManager(context)
                 container = containerManager.getContainerById(containerId)// ?: createContainer(containerManager, xServerState.value.wineInfo).get()
-                val currentDrives = container.drives
-                val babaPath = "D:$appDirPath"
-                if (!currentDrives.contains(babaPath)) {
-                    // val withHades = currentDrives + babaPath
-                    container.drives = babaPath
-                    container.saveData()
-                }
+                // val currentDrives = container.drives
+                // val appWinePath = "D:$fullAppAndroidPath"
+                // if (!currentDrives.contains(appWinePath)) {
+                //     // val withHades = currentDrives + babaPath
+                //     container.drives = appWinePath
+                //     container.saveData()
+                // }
                 // WineStartMenuCreator.createMenuEntry(container.desktopDir, "Baba Is You", "D:/Baba Is You.exe")
-                Log.d("XServerScreen", "Before: $currentDrives, after: ${container.drives}")
+                // Log.d("XServerScreen", "Before: $currentDrives, after: ${container.drives}")
                 containerManager.activateContainer(container)
 
                 // val winePrefixNeedsUpdate = container.getExtra("wineprefixNeedsUpdate") == "t"

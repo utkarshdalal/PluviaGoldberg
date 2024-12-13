@@ -48,9 +48,6 @@ import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
-import java.io.FileOutputStream
-import java.nio.file.Files
-import java.nio.file.Paths
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -66,7 +63,6 @@ fun AppScreen(
     var downloadProgress by remember { mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f) }
     var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
-    val context = LocalContext.current
 
     DisposableEffect(downloadInfo) {
         val onDownloadProgress: (Float) -> Unit = {
@@ -95,17 +91,6 @@ fun AppScreen(
                     downloadProgress = 0f
                     downloadInfo = SteamService.downloadApp(appId)
                 } else {
-                    val steamApiPath = Paths.get(SteamService.getAppDirPath(appId), "steam_api.dll")
-                    // delete existing steam api
-                    if (Files.exists(steamApiPath)) {
-                        Files.delete(steamApiPath)
-                    }
-                    Files.createFile(steamApiPath)
-                    FileOutputStream(steamApiPath.toString()).use { fos ->
-                        context.assets.open("steampipe/steam_api.dll").use { fs ->
-                            fs.copyTo(fos)
-                        }
-                    }
                     onClickPlay()
                 }
             }

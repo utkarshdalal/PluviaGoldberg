@@ -7,6 +7,7 @@ import com.OxGames.Pluvia.data.LibraryAssetsInfo
 import com.OxGames.Pluvia.data.LibraryCapsuleInfo
 import com.OxGames.Pluvia.data.LibraryHeroInfo
 import com.OxGames.Pluvia.data.LibraryLogoInfo
+import com.OxGames.Pluvia.data.UFS
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
 import com.OxGames.Pluvia.enums.OS
@@ -84,6 +85,11 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
             steamControllerTemplateIndex = 4,
             steamControllerTouchTemplateIndex = 1,
         ),
+        ufs = UFS(
+            quota = 0,
+            maxNumFiles = 0,
+            saveFiles = emptyArray()
+        )
     )
 }
 
