@@ -62,6 +62,7 @@ fun PluviaMain(
     navController: NavHostController = rememberNavController()
 ) {
     val context = LocalContext.current
+    Log.d("SteamService", "PRoot time: ${SteamService.getProotTime(context)}")
 
     var resettedScreen by rememberSaveable { mutableStateOf<PluviaScreen?>(null) }
     var currentScreen by rememberSaveable {
@@ -249,12 +250,12 @@ fun PluviaMain(
                                 }.get()
 
                             // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
-                            val containerId = 1
+                            val containerId = appId
 
                             // create container if it does not already exist
                             val containerManager = ContainerManager(context)
                             val container = containerManager.getContainerById(containerId)
-                                ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION)
+                                ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION, containerId)
                                     .get()
                             // set up container drives to include app
                             val currentDrives = container.drives
@@ -265,8 +266,8 @@ fun PluviaMain(
                             }
                             // must activate container before downloading save files
                             containerManager.activateContainer(container)
-                            // download save files from steam cloud
-                            SteamService.downloadUserFiles(appId, this) { prefix ->
+                            // sync save files and signal steam that app is launching
+                            SteamService.beginLaunchApp(appId, this) { prefix ->
                                 PathType.from(prefix).toAbsPath(context, appId)
                             }.await()
 
@@ -290,6 +291,13 @@ fun PluviaMain(
                     navigateBack = {
                         CoroutineScope(Dispatchers.Main).launch {
                             navController.popBackStack()
+                        }
+                    },
+                    onExit = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            SteamService.closeApp(appId, this) { prefix ->
+                                PathType.from(prefix).toAbsPath(context, appId)
+                            }.await()
                         }
                     }
                 )

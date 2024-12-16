@@ -1,0 +1,372 @@
+1244090: Sea of Stars
+	appinfo
+		appid: 1244090
+		common
+			name: Sea of Stars
+			type: Game
+			releasestate: released
+			oslist: windows
+			osarch: 
+			osextended: 
+			icon: 529d0f064196911482aeeb8f42ffcc1ff77fed67
+			logo: 7749a04a3c8ca59f3427dcb547e52a42e102886f
+			logo_small: 7749a04a3c8ca59f3427dcb547e52a42e102886f_thumb
+			clienttga: 1339cad00d5fb20a49633455d848a97f33451e09
+			linuxclienticon: 436ea884e17a3a81d6d68d7cca19fae0312ff53d
+			clienticns: 4e37f0743bde852622e41a13c1358c6731494658
+			clienticon: 7d51e52f1d96c72d5ae29ce9050127bdc79db135
+			name_localized
+				schinese: Sea of Stars 星之海
+				tchinese: Sea of Stars 星之海
+			languages
+				english: 1
+				german: 1
+				french: 1
+				koreana: 1
+				spanish: 1
+				schinese: 1
+				tchinese: 1
+				russian: 1
+				japanese: 1
+				brazilian: 1
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1692057600
+				tested_build_id: 11806502
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: proton-stable
+					requires_h264: 0
+					gamescope_frame_limiter_not_supported: 0
+			metacritic_name: Sea of Stars
+			controllertagwizard: 1
+			controller_support: full
+			small_capsule
+				english: 07c31553c860220fcdae733c9a42b2c20eb23fda/capsule_231x87.jpg
+			header_image
+				schinese: header_schinese.jpg
+				tchinese: header_tchinese.jpg
+				english: header.jpg
+			library_assets
+				library_capsule: en,zh-cn,zh-tw
+				library_hero: en
+				library_logo: en,zh-cn
+				logo_position
+					pinned_position: BottomCenter
+					width_pct: 87.8718535469107
+					height_pct: 65.42388981239611
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+						schinese: library_600x900_schinese.jpg
+						tchinese: library_600x900_tchinese.jpg
+					image2x
+						english: library_600x900_2x.jpg
+						schinese: library_600x900_schinese_2x.jpg
+						tchinese: library_600x900_tchinese_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+					image2x
+						english: library_hero_2x.jpg
+				library_logo
+					image
+						english: logo.png
+						schinese: logo_schinese.png
+					image2x
+						english: logo_2x.png
+					logo_position
+						pinned_position: BottomCenter
+						width_pct: 87.8718535469107
+						height_pct: 65.42388981239611
+			store_asset_mtime: 1732128101
+			associations
+				0
+					type: developer
+					name: Sabotage Studio
+				1
+					type: publisher
+					name: Sabotage Studio
+			primary_genre: 3
+			genres
+				0: 25
+				1: 23
+				2: 3
+			category
+				category_28: 1
+				category_2: 1
+				category_45: 1
+				category_46: 1
+				category_22: 1
+				category_23: 1
+				category_1: 1
+				category_9: 1
+				category_39: 1
+				category_24: 1
+				category_44: 1
+				category_55: 1
+				category_56: 1
+				category_57: 1
+				category_58: 1
+				category_60: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+					subtitles: true
+				french
+					supported: true
+					subtitles: true
+				german
+					supported: true
+					subtitles: true
+				spanish
+					supported: true
+					subtitles: true
+				japanese
+					supported: true
+					subtitles: true
+				koreana
+					supported: true
+					subtitles: true
+				brazilian
+					supported: true
+					subtitles: true
+				russian
+					supported: true
+					subtitles: true
+				schinese
+					supported: true
+					subtitles: true
+				tchinese
+					supported: true
+					subtitles: true
+			steam_release_date: 1693279980
+			metacritic_score: 87
+			metacritic_fullurl: https://www.metacritic.com/game/pc/sea-of-stars?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 1244090
+			store_tags
+				0: 4434
+				1: 3964
+				2: 4325
+				3: 3841
+				4: 10695
+				5: 21
+				6: 1742
+				7: 3871
+				8: 122
+				9: 4182
+				10: 4004
+				11: 1684
+				12: 492
+				13: 3854
+				14: 4136
+				15: 3834
+				16: 1685
+				17: 14720
+				18: 3859
+				19: 5608
+			review_score: 8
+			review_percentage: 89
+		extended
+			absolutemousecoordinates: 0
+			remoteplaytogethertestingbranches: debug_2,localization,staging
+			developer: Sabotage Studio
+			publisher: Sabotage Studio
+			homepage: https://seaofstarsgame.co
+			listofdlc: 2550500
+			dlcavailableonstore: 1
+		config
+			installdir: Sea of Stars
+			launch
+				0
+					executable: SeaOfStars.exe
+					type: none
+			steamdecktouchscreen: 5
+		depots
+			228988
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			228990
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			1244091
+				manifests
+					public
+						gid: 7261303137858943433
+						size: 3973918898
+						download: 3229659024
+				encryptedmanifests
+					indieland
+						gid: E20578DB07B7D3BC8BCED4BF2A564E12
+						size: 39A300185A7B9CE699E996AC787DDD31
+						download: EF56B39F7DFF0FC15F47AB14EA376F1F
+					public_playtest
+						gid: D053EE68A6797788539D842F8B65D7FD
+						size: 5B380849332181078CE156AA7911B24A
+						download: 702758EF9BFBFA21C904BDDE87AC8AC2
+					qa_cutscene
+						gid: 9B63B39F41EFAFB5EB8848335B5F9DC3
+						size: 9A25C20480D8AAE3748DDA1E1F13195C
+						download: 6896B1CD61C1F08ADDE0E4F5CF5C2166
+					stable
+						gid: 255C914A4CF94DE39D6CA4DD156B34BC
+						size: 1DF3DEAD8E991B085A5D99138A90158D
+						download: 247F1B0FB5DB12FB7E83E5A4D8E2810F
+					debug
+						gid: A67498FF4D698AE5F8F90785567F3838
+						size: A0A010F838D6621E1A7E79D1DBB09E08
+						download: AE0501FADFCDE8C4D5DAFA0468A3E288
+					debug_2
+						gid: A8AA11CCAA4860E43E30FF448C59C355
+						size: A315C190FD13638C734603BDB36F973D
+						download: 066968A57973F27F1407212BBE33AD6D
+					localization
+						gid: 846D31FEC4674A5436C884BA6A1DE0C1
+						size: 10BD677C132B123220AAC992EE7FF89A
+						download: F50AEC22D3A9EA9B9554588DE9D8A9EC
+					nightly_debug
+						gid: 28DCB2A24CC0B228A75CDB534D734570
+						size: CB898346C71F6C76241A0FAEC0B0937F
+						download: 86DC6E42549FB3452C49B1B2A43E95B8
+					nightly_release
+						gid: B179EE3A25EDB0EDB8966CEDD46B24FF
+						size: 3CFCC09B751E7DA90519BD6FBC769A71
+						download: 0CFF510858010AAAC7C354D6BB08AF37
+					press
+						gid: 4D00EF8D09BE12214CC635F01D6AAD4A
+						size: 1D759B9D9C40DE516B2CF8B2E38F427F
+						download: 8A2F035AABB12DD3AA09096B77FBF348
+					staging
+						gid: 4FE31FDF19D363C95EF19371B26CAEA0
+						size: EEC628725DE540495201794BA8D7F793
+						download: DD2F2EDF586006691BF51978B17BF186
+					test
+						gid: 7FAA55B87751F6DCEBC1762ED7FCEAB3
+						size: 4B352A8E4B94651E363DBDC2EA38C234
+						download: BDA2B5D79A6AD304606081759BDE2CC3
+					weekly_master
+						gid: FCD873974CF995A5C1E958ACEDE8B731
+						size: 9D9716EE6A2B13BEC7A9B5FFDF484A9A
+						download: 4A1C4A009996DB0C9F82CB01494CE066
+			2550501
+				dlcappid: 2550500
+				manifests
+					public
+						gid: 4186430635673826258
+						size: 761826673
+						download: 719731120
+				encryptedmanifests
+					indieland
+						gid: 400602F49E93C839A4FA7C63A8C62E37
+						size: 7FCAFB88139EFF3FFB54DC516AB317C9
+						download: F23159CB05155C1D9EB03A620A746052
+					public_playtest
+						gid: 5E7075FD117FBCB9885A126673AF3C5C
+						size: 1783B56E9598AF684373F8FA24570855
+						download: D018D1C408DCB4286472B2B75F5AB8EB
+					debug
+						gid: 29D98714790357C6DCA5037CC904C6EE
+						size: 0376763641D834F7145918CFF420D387
+						download: 5E0BB3F001B5D866526864A446419CC9
+					debug_2
+						gid: 9AFEEF6D5CEABAE514BDDF1D9147845D
+						size: 61AEDE25F4566403024119DBB781EB71
+						download: C687794BD468882AEACB81287E231B51
+					press
+						gid: 611D97AE5E7E242DE6AC98DBDFC98D85
+						size: EEFE9756486B937A3A4AAB14B8C108ED
+						download: 0985AF651929672B79905BFAB9C55AF4
+			branches
+				public
+					buildid: 16633445
+					timeupdated: 1733338863
+				indieland
+					buildid: 12550772
+					pwdrequired: 1
+					timeupdated: 1698392452
+				public_playtest
+					buildid: 14112527
+					pwdrequired: 1
+					timeupdated: 1713546234
+				qa_cutscene
+					buildid: 11488344
+					pwdrequired: 1
+					timeupdated: 1686925783
+				stable
+					buildid: 14086397
+					pwdrequired: 1
+					timeupdated: 1713377158
+				debug
+					buildid: 15695721
+					pwdrequired: 1
+					timeupdated: 1726258820
+				debug_2
+					buildid: 16504662
+					pwdrequired: 1
+					timeupdated: 1732305604
+				localization
+					buildid: 16054245
+					pwdrequired: 1
+					timeupdated: 1729009473
+				nightly_debug
+					buildid: 16743531
+					pwdrequired: 1
+					timeupdated: 1734152530
+				nightly_release
+					buildid: 16742905
+					pwdrequired: 1
+					timeupdated: 1734144818
+				press
+					buildid: 16254827
+					pwdrequired: 1
+					timeupdated: 1730394749
+				staging
+					buildid: 16556964
+					pwdrequired: 1
+					timeupdated: 1732735080
+				test
+					buildid: 14215045
+					pwdrequired: 1
+					timeupdated: 1714435722
+				weekly_master
+					buildid: 14476349
+					pwdrequired: 1
+					timeupdated: 1716514568
+		ufs
+			quota: 12582912
+			maxnumfiles: 30
+			savefiles
+				0
+					root: WinAppDataLocalLow
+					path: Sabotage Studio/Sea of Stars
+					pattern: *.sos
+					platforms
+						1: Windows

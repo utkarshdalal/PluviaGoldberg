@@ -8,10 +8,10 @@ import java.io.FileReader
 import java.io.OutputStreamWriter
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
-import kotlin.io.path.absolutePathString
+import java.util.stream.Stream
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
+import kotlin.io.path.name
 
 class FileUtils {
     companion object {
@@ -65,19 +65,51 @@ class FileUtils {
                 Log.e(errorTag, errorMsg?.invoke(e) ?: "Error writing to file: $e")
             }
         }
+
+        /**
+         * Traverse through a directory and perform an action on each file
+         *
+         * @param rootPath The start path
+         * @param maxDepth How deep to go in the directory tree, a value of -1 keeps going
+         * @param action The action to perform on each file
+         */
         fun walkThroughPath(
-            path: String,
+            rootPath: Path,
             maxDepth: Int = 0,
             action: (Path) -> Unit,
         ) {
-            Files.list(Paths.get(path)).forEach {
+            Files.list(rootPath).forEach {
                 action(it)
                 if (maxDepth != 0 && it.exists() && it.isDirectory()) {
                     walkThroughPath(
-                        it.absolutePathString(),
+                        it,
                         if (maxDepth > 0) maxDepth - 1 else maxDepth,
                         action,
                     )
+                }
+            }
+        }
+        fun findFiles(
+            rootPath: Path,
+            pattern: String,
+            includeDirectories: Boolean = false
+        ): Stream<Path> {
+            val patternParts = pattern.split("*").filter { it.isNotEmpty() }
+            Log.d("FileUtils", "$pattern -> $patternParts")
+            if (!Files.exists(rootPath)) return emptyList<Path>().stream()
+            return Files.list(rootPath).filter { path ->
+                if (path.isDirectory() && !includeDirectories) false
+                else {
+                    val fileName = path.name
+                    Log.d("FileUtils", "Checking $fileName for pattern $pattern")
+                    var startIndex = 0
+                    patternParts.map {
+                        val index = fileName.indexOf(it, startIndex)
+                        if (index >= 0) {
+                            startIndex = index + it.length
+                        }
+                        index
+                    }.any { it < 0 } == false
                 }
             }
         }

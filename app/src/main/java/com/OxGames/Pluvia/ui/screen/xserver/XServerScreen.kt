@@ -80,6 +80,7 @@ fun XServerScreen(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     appId: Int,
     navigateBack: () -> Unit,
+    onExit: () -> Unit,
     // xServerViewModel: XServerViewModel = viewModel()
 ) {
     Log.d("XServerScreen", "Starting up XServerScreen")
@@ -95,7 +96,7 @@ fun XServerScreen(
     // var screenSize = Container.DEFAULT_SCREEN_SIZE
     val generateWinePrefix = false // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
     var firstTimeBoot = false
-    val containerId = 1 // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
+    val containerId = appId // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
     val frameRatingWindowId = -1 // TODO: probably turn this into a mutable value and create an event that can set it
     var taskAffinityMask = 0
     var taskAffinityMaskWoW64 = 0
@@ -147,12 +148,12 @@ fun XServerScreen(
     }
 
     BackHandler {
-        exit(xServer.winHandler, xEnvironment)
+        exit(xServer.winHandler, xEnvironment, onExit)
     }
 
     DisposableEffect(lifecycleOwner) {
         val onActivityDestroyed: (AndroidEvent.ActivityDestroyed) -> Unit = {
-            exit(xServer.winHandler, xEnvironment)
+            exit(xServer.winHandler, xEnvironment, onExit)
         }
         val onKeyEvent: (AndroidEvent.KeyEvent) -> Boolean = {
             // Log.d("XServerScreen", "dispatchKeyEvent(${it.event.keyCode}):\n${it.event}")
@@ -168,7 +169,7 @@ fun XServerScreen(
         }
         val onGuestProgramTerminated: (AndroidEvent.GuestProgramTerminated) -> Unit = {
             // exit(xServer.winHandler, xEnvironment)
-            exit(xServer.winHandler, xEnvironment)
+            exit(xServer.winHandler, xEnvironment, onExit)
             navigateBack()
             // PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
         }
@@ -632,11 +633,12 @@ private fun getWineStartCommand(container: Container, appLocalExe: Pair<String, 
 
     return "winhandler.exe $args"
 }
-private fun exit(winHandler: WinHandler, environment: XEnvironment?) {
+private fun exit(winHandler: WinHandler, environment: XEnvironment?, onExit: () -> Unit) {
     Log.d("XServerScreen", "Exit called")
     winHandler.stop()
     environment?.stopEnvironmentComponents()
     // AppUtils.restartApplication(this)
+    onExit()
 }
 
 private fun generateWineprefix(

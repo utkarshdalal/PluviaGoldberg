@@ -27,6 +27,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         receiveIndex = 1,
         packageId = 112233,
         depots = mapOf(),
+        branches = mapOf(),
         name = "Baba Is You $idx",
         type = AppType.game,
         osList = EnumSet.of(OS.windows, OS.macos, OS.linux),
@@ -88,7 +89,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         ufs = UFS(
             quota = 0,
             maxNumFiles = 0,
-            saveFiles = emptyArray()
+            saveFilePatterns = emptyArray()
         )
     )
 }
