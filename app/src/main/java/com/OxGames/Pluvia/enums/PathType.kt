@@ -71,6 +71,17 @@ enum class PathType {
         }
         return if (!path.endsWith("/")) "$path/" else path
     }
+
+    fun isWindows(): Boolean = when (this) {
+        GameInstall,
+        WinMyDocuments,
+        WinAppDataLocal,
+        WinAppDataLocalLow,
+        WinAppDataRoaming,
+        WinSavedGames -> true
+        else -> false
+    }
+
     companion object {
         fun from(keyValue: String?): PathType {
             return when (keyValue?.lowercase()) {

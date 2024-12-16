@@ -2,6 +2,7 @@ package com.winlator.xenvironment.components;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.icu.util.TimeZone;
 import android.os.Process;
 import android.util.Log;
 
@@ -152,6 +153,12 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         EnvVars envVars = new EnvVars();
         if (!wow64Mode) addBox86EnvVars(envVars, enableBox86_64Logs);
         addBox64EnvVars(envVars, enableBox86_64Logs);
+
+        TimeZone androidTz = TimeZone.getDefault();
+        String tzId = androidTz.getID();
+        // Log.d("GuestProgramLauncherComponent", "Android timezone: " + tzId);
+
+        envVars.put("TZ", tzId);
         envVars.put("HOME", ImageFs.HOME_PATH);
         envVars.put("USER", ImageFs.USER);
         envVars.put("TMPDIR", "/tmp");

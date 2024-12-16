@@ -15,6 +15,7 @@ data class AppInfo(
     val packageId: Int,
 
     val depots: Map<Int, DepotInfo>,
+    val branches: Map<String, BranchInfo>,
 
     // Common
     val name: String,
