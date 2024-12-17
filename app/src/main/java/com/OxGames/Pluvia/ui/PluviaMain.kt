@@ -1,6 +1,7 @@
 package com.OxGames.Pluvia.ui
 
 import android.content.Intent
+import android.os.Process
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,8 +37,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.PathType
+import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.screen.home.HomeScreen
@@ -51,10 +54,14 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.winlator.container.ContainerManager
 import com.winlator.core.WineInfo
 import com.winlator.xenvironment.ImageFsInstaller
+import com.winlator.xserver.Window
+import `in`.dragonbra.javasteam.steam.handlers.steamapps.AppProcessInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.nio.file.Paths
 import java.util.EnumSet
+import kotlin.io.path.name
 
 @Composable
 fun PluviaMain(
@@ -62,7 +69,6 @@ fun PluviaMain(
     navController: NavHostController = rememberNavController()
 ) {
     val context = LocalContext.current
-    Log.d("SteamService", "PRoot time: ${SteamService.getProotTime(context)}")
 
     var resettedScreen by rememberSaveable { mutableStateOf<PluviaScreen?>(null) }
     var currentScreen by rememberSaveable {
@@ -266,16 +272,34 @@ fun PluviaMain(
                             }
                             // must activate container before downloading save files
                             containerManager.activateContainer(container)
-                            // sync save files and signal steam that app is launching
-                            SteamService.beginLaunchApp(appId, this) { prefix ->
+                            // sync save files and check no pending remote operations are running
+                            val postSyncInfo = SteamService.beginLaunchApp(appId, this) { prefix ->
                                 PathType.from(prefix).toAbsPath(context, appId)
                             }.await()
 
-                            // SteamUtils.replaceSteamApi(context, appId)
-
                             dialogVisible = false
-                            CoroutineScope(Dispatchers.Main).launch {
-                                navController.navigate(PluviaScreen.XServer.name)
+
+                            when (postSyncInfo.syncResult) {
+                                SyncResult.Conflict -> {
+                                    // TODO: show conflict window
+                                }
+                                SyncResult.InProgress,
+                                SyncResult.UnknownFail,
+                                SyncResult.DownloadFail,
+                                SyncResult.UpdateFail -> {
+                                    // TODO: show error
+                                }
+                                SyncResult.PendingOperations -> {
+                                    // TODO: show message saying there are pending remote operations
+                                }
+                                SyncResult.UpToDate,
+                                SyncResult.Success -> {
+                                    // SteamUtils.replaceSteamApi(context, appId)
+
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        navController.navigate(PluviaScreen.XServer.name)
+                                    }
+                                }
                             }
                         }
                     }
@@ -293,8 +317,55 @@ fun PluviaMain(
                             navController.popBackStack()
                         }
                     },
+                    onWindowMapped = { window ->
+                        SteamService.getAppInfoOf(appId)?.let { appInfo ->
+                            // Log.d("PluviaMain", "${appInfo.name} == ${window.name} || ${window.className}")
+                            // TODO: this should not be a search, the app should have been launched with a specific launch config that we then use to compare
+                            val launchConfig = SteamService.getWindowsLaunchInfos(appId).firstOrNull {
+                                Paths.get(it.executable).name.lowercase() == window.className.lowercase()
+                            }
+                            if (launchConfig != null) {
+                                val steamProcessId = Process.myPid()
+                                val processes = mutableListOf<AppProcessInfo>()
+                                var currentWindow: Window = window
+                                do {
+                                    var parentWindow: Window? = window.parent
+                                    // Log.d("PluviaMain", "${currentWindow.name}:${currentWindow.className} -> ${parentWindow?.name}:${parentWindow?.className}")
+                                    val process = if (
+                                        parentWindow != null &&
+                                        parentWindow.className.lowercase() != "explorer.exe"
+                                    ) {
+                                        val processId = currentWindow.processId
+                                        val parentProcessId = parentWindow.processId
+                                        currentWindow = parentWindow
+                                        AppProcessInfo(
+                                            processId,
+                                            parentProcessId,
+                                            false
+                                        )
+                                    } else {
+                                        parentWindow = null
+                                        AppProcessInfo(
+                                            currentWindow.processId,
+                                            steamProcessId,
+                                            true
+                                        )
+                                    }
+                                    processes.add(process)
+                                } while (parentWindow != null)
+
+                                SteamService.notifyRunningProcesses(
+                                    GameProcessInfo(
+                                        appId = appId,
+                                        processes = processes
+                                    )
+                                )
+                            }
+                        }
+                    },
                     onExit = {
                         CoroutineScope(Dispatchers.IO).launch {
+                            SteamService.notifyRunningProcesses()
                             SteamService.closeApp(appId, this) { prefix ->
                                 PathType.from(prefix).toAbsPath(context, appId)
                             }.await()

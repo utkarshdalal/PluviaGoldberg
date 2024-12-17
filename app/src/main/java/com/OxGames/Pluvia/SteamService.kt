@@ -11,6 +11,7 @@ import com.OxGames.Pluvia.data.BranchInfo
 import com.OxGames.Pluvia.data.ConfigInfo
 import com.OxGames.Pluvia.data.DepotInfo
 import com.OxGames.Pluvia.data.DownloadInfo
+import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.data.LibraryAssetsInfo
 import com.OxGames.Pluvia.data.LibraryCapsuleInfo
@@ -18,6 +19,7 @@ import com.OxGames.Pluvia.data.LibraryHeroInfo
 import com.OxGames.Pluvia.data.LibraryLogoInfo
 import com.OxGames.Pluvia.data.ManifestInfo
 import com.OxGames.Pluvia.data.PackageInfo
+import com.OxGames.Pluvia.data.PostSyncInfo
 import com.OxGames.Pluvia.data.SaveFilePattern
 import com.OxGames.Pluvia.data.SteamData
 import com.OxGames.Pluvia.data.SteamFriend
@@ -55,6 +57,7 @@ import `in`.dragonbra.javasteam.steam.contentdownloader.ContentDownloader
 import `in`.dragonbra.javasteam.steam.contentdownloader.FileManifestProvider
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
 import `in`.dragonbra.javasteam.steam.discovery.ServerQuality
+import `in`.dragonbra.javasteam.steam.handlers.steamapps.GamePlayedInfo
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
@@ -94,6 +97,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.future.await
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -341,6 +345,14 @@ class SteamService : Service(), IChallengeUrlChanged {
             return downloadInfo
         }
 
+        fun getWindowsLaunchInfos(appId: Int): List<LaunchInfo> {
+            return getAppInfoOf(appId)?.let { appInfo ->
+                appInfo.config.launch.filter { launchInfo ->
+                    // since configOS was unreliable and configArch was even more unreliable
+                    launchInfo.executable.endsWith(".exe")
+                }
+            } ?: emptyList()
+        }
         /**
          * Default timeout to use when making requests
          */
@@ -354,44 +366,96 @@ class SteamService : Service(), IChallengeUrlChanged {
         var syncInProgress: Boolean = false
         val MAX_USER_FILE_RETRIES = 3
 
-        data class PostSyncInfo(
-            val syncResult: SyncResult,
-            val remoteTimestamp: Long = 0,
-            val localTimestamp: Long = 0,
-            val uploadsRequired: Boolean = false,
-            val uploadsCompleted: Boolean = false,
-        )
-
+        fun notifyRunningProcesses(
+            vararg gameProcesses: GameProcessInfo
+        ) {
+            instance?.let { steamInstance ->
+                val gamesPlayed = gameProcesses.map { gameProcess ->
+                    getAppInfoOf(gameProcess.appId)?.let { appInfo ->
+                        getPkgInfoOf(gameProcess.appId)?.let { pkgInfo ->
+                            appInfo.branches[gameProcess.branch]?.let { branch ->
+                                val processId = gameProcess.processes.firstOrNull {
+                                    it.parentIsSteam
+                                }?.processId
+                                    ?: gameProcess.processes.firstOrNull()?.processId
+                                    ?: 0
+                                GamePlayedInfo(
+                                    gameId = gameProcess.appId.toLong(),
+                                    processId = processId,
+                                    ownerId = pkgInfo.ownerAccountId,
+                                    // TODO: figure out what this is and un-hardcode
+                                    launchSource = 100,
+                                    gameBuildId = branch.buildId.toInt(),
+                                    processIdList = gameProcess.processes
+                                )
+                            }
+                        }
+                    }
+                }.filterNotNull()
+                Log.d("SteamService", "GameProcessInfo:" +
+                    gamesPlayed.map {
+                        "\n\tprocessId: ${it.processId}" +
+                        "\n\tgameId: ${it.gameId}" +
+                        "\n\tprocesses: ${it.processIdList.map {
+                            "\n\t\tprocessId: ${it.processId}" +
+                            "\n\t\tprocessIdParent: ${it.processIdParent}" +
+                            "\n\t\tparentIsSteam: ${it.parentIsSteam}"
+                        }.joinToString("\n")}"
+                    }.joinToString("\n")
+                )
+                steamInstance._steamApps?.notifyGamesPlayed(
+                    gamesPlayed = gamesPlayed,
+                    clientOsType = EOSType.AndroidUnknown,
+                )
+            }
+        }
         fun beginLaunchApp(
             appId: Int,
             parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
             prefixToPath: (String) -> String,
-        ) = parentScope.async {
+        ): Deferred<PostSyncInfo> = parentScope.async {
             if (syncInProgress) {
                 Log.w("SteamService", "Cannot launch app when sync already in progress")
-                return@async
+                return@async PostSyncInfo(SyncResult.InProgress)
             }
             syncInProgress = true
+            var syncResult: PostSyncInfo = PostSyncInfo(SyncResult.UnknownFail)
             _steamData?.clientId?.let { clientId ->
                 instance?.let { steamInstance ->
-                    steamInstance._steamCloud?.let { steamCloud ->
-                        syncUserFiles(
-                            appId,
-                            clientId,
-                            steamInstance,
-                            steamCloud,
-                            parentScope,
-                            prefixToPath
-                        ).await()
-                        steamCloud.signalAppLaunchIntent(
-                            appId = appId,
-                            clientId = clientId,
-                            osType = EOSType.AndroidUnknown
-                        )
+                    getAppInfoOf(appId)?.let { appInfo ->
+                        steamInstance._steamCloud?.let { steamCloud ->
+                            syncUserFiles(
+                                appInfo,
+                                clientId,
+                                steamInstance,
+                                steamCloud,
+                                parentScope,
+                                prefixToPath
+                            ).await()?.let {
+                                syncResult = it
+                                if (
+                                    it.syncResult == SyncResult.Success ||
+                                    it.syncResult == SyncResult.UpToDate
+                                ) {
+                                    val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
+                                        appId = appId,
+                                        clientId = clientId,
+                                        osType = EOSType.AndroidUnknown
+                                    ).await()
+                                    if (pendingRemoteOperations.isNotEmpty()) {
+                                        syncResult = PostSyncInfo(
+                                            SyncResult.PendingOperations,
+                                            pendingRemoteOperations = pendingRemoteOperations
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
             syncInProgress = false
+            return@async syncResult
         }
         fun closeApp(
             appId: Int,
@@ -405,21 +469,23 @@ class SteamService : Service(), IChallengeUrlChanged {
             syncInProgress = true
             _steamData?.clientId?.let { clientId ->
                 instance?.let { steamInstance ->
-                    steamInstance._steamCloud?.let { steamCloud ->
-                        val postSyncInfo = syncUserFiles(
-                            appId,
-                            clientId,
-                            steamInstance,
-                            steamCloud,
-                            parentScope,
-                            prefixToPath
-                        ).await()
-                        steamCloud.signalAppExitSyncDone(
-                            appId = appId,
-                            clientId = clientId,
-                            uploadsCompleted = postSyncInfo?.uploadsCompleted == true,
-                            uploadsRequired = postSyncInfo?.uploadsRequired == true,
-                        )
+                    getAppInfoOf(appId)?.let { appInfo ->
+                        steamInstance._steamCloud?.let { steamCloud ->
+                            val postSyncInfo = syncUserFiles(
+                                appInfo,
+                                clientId,
+                                steamInstance,
+                                steamCloud,
+                                parentScope,
+                                prefixToPath
+                            ).await()
+                            steamCloud.signalAppExitSyncDone(
+                                appId = appId,
+                                clientId = clientId,
+                                uploadsCompleted = postSyncInfo?.uploadsCompleted == true,
+                                uploadsRequired = postSyncInfo?.uploadsRequired == true,
+                            )
+                        }
                     }
                 }
             }
@@ -476,7 +542,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             val filesCreated: List<UserFileInfo>,
         )
         fun syncUserFiles(
-            appId: Int,
+            appInfo: AppInfo,
             clientId: Long,
             steamInstance: SteamService,
             steamCloud: SteamCloud,
@@ -485,12 +551,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         ): Deferred<PostSyncInfo?> = parentScope.async {
             var postSyncInfo: PostSyncInfo? = null
             _steamData?.let { steamData ->
-                steamInstance.appInfo[appId]?.let { appInfo ->
                     Log.d("SteamService", "Retrieving save files of ${appInfo.name}")
 
                     val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
                         Log.d("SteamService",
-                            "GetAppFileListChange($appId):" +
+                            "GetAppFileListChange($appInfo.appId):" +
                             "\n\tTotal Files: ${fileList.files.size}" +
                             "\n\tCurrent Change Number: ${fileList.currentChangeNumber}" +
                             "\n\tIs Only Delta: ${fileList.isOnlyDelta}" +
@@ -544,7 +609,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         if (file.pathPrefixIndex < fileList.pathPrefixes.size)
                             Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
                         else
-                            Paths.get(getAppDirPath(appId), file.filename)
+                            Paths.get(getAppDirPath(appInfo.appId), file.filename)
                     }
                     val haveLocalFilesChanged: (List<UserFileInfo>, List<UserFileInfo>) -> Pair<Boolean, FileChanges> = { currentFiles, oldFiles ->
                         val overlappingFiles = currentFiles.filter { currentFile ->
@@ -661,7 +726,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 val actualFilePath = getFullFilePath(file, fileList)
                                 Log.d("SteamService", "$prefixedPath -> $actualFilePath")
 
-                                val fileDownloadInfo = steamCloud.clientFileDownload(appId, prefixedPath)
+                                val fileDownloadInfo = steamCloud.clientFileDownload(appInfo.appId, prefixedPath).await()
                                 if (fileDownloadInfo.urlHost.isNotEmpty()) {
                                     val httpUrl = buildUrl(
                                         fileDownloadInfo.useHttps,
@@ -733,20 +798,20 @@ class SteamService : Service(), IChallengeUrlChanged {
                             val filesToUpload = fileChanges.filesCreated.union(fileChanges.filesModified).map { Pair(it.getPrefixPath(), it) }
                             Log.d("SteamService", "Beginning app upload batch with ${filesToDelete.size} file(s) to delete and ${filesToUpload.size} file(s) to upload")
                             val uploadBatchResponse = steamCloud.beginAppUploadBatch(
-                                appId = appId,
+                                appId = appInfo.appId,
                                 clientId = clientId,
                                 filesToDelete = filesToDelete,
                                 filesToUpload = filesToUpload.map { it.first },
                                 // TODO: have branch be user selected and use that selection here
                                 appBuildId = appInfo.branches["public"]?.buildId ?: 0
-                            )
+                            ).await()
                             var uploadBatchSuccess = true
                             filesToUpload.map { it.second }.forEach { file ->
                                 val absFilePath = Paths.get(prefixToPath(file.root.toString()), file.path, file.filename)
                                 val fileSize = Files.size(absFilePath).toInt()
                                 Log.d("SteamService", "Beginning upload of ${file.getPrefixPath()} whose timestamp is ${file.timestamp}")
                                 val uploadInfo = steamCloud.beginFileUpload(
-                                    appId = appId,
+                                    appId = appInfo.appId,
                                     filename = file.getPrefixPath(),
                                     fileSize = fileSize,
                                     rawFileSize = fileSize,
@@ -754,7 +819,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     // timestamp = prootTimestampToDate(file.timestamp),
                                     timestamp = Date(file.timestamp),
                                     uploadBatchId = uploadBatchResponse.batchID,
-                                )
+                                ).await()
                                 var uploadFileSuccess = true
                                 RandomAccessFile(absFilePath.pathString, "r").use { fs ->
                                     uploadInfo.blockRequests.forEach { blockRequest ->
@@ -821,17 +886,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 }
                                 val commitSuccess = steamCloud.commitFileUpload(
                                     transferSucceeded = uploadFileSuccess,
-                                    appId = appId,
+                                    appId = appInfo.appId,
                                     fileSha = file.sha,
                                     filename = file.getPrefixPath(),
-                                )
+                                ).await()
                                 Log.d("SteamService", "File ${file.getPrefixPath()} commit success: $commitSuccess")
                             }
-                            steamCloud.completeAppUploadBatchBlocking(
-                                appId = appId,
+                            steamCloud.completeAppUploadBatch(
+                                appId = appInfo.appId,
                                 batchId = uploadBatchResponse.batchID,
                                 batchEResult = if (uploadBatchSuccess) EResult.OK else EResult.Fail
-                            )
+                            ).await()
                             Pair(uploadBatchSuccess, uploadBatchResponse.appChangeNumber)
                         }
                     }
@@ -842,9 +907,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                     var uploadsRequired = false
                     var uploadsCompleted = false
 
-                    val localAppChangeNumber = steamData.appChangeNumbers[appId] ?: 0
-                    // val fullCloudFileList = steamCloud.getAppFileListChange(appId)
-                    val appFileListChange = steamCloud.getAppFileListChange(appId, localAppChangeNumber)
+                    val localAppChangeNumber = steamData.appChangeNumbers[appInfo.appId] ?: 0
+                    // val fullCloudFileList = steamCloud.getAppFileListChange(appInfo.appId)
+                    val appFileListChange = steamCloud.getAppFileListChange(appInfo.appId, localAppChangeNumber).await()
                     val cloudAppChangeNumber = appFileListChange.currentChangeNumber
                     Log.d("SteamService", "AppChangeNumber: $localAppChangeNumber -> $cloudAppChangeNumber")
 
@@ -858,7 +923,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         // need uploading
 
                         var fileChanges: FileChanges? = null
-                        val hasLocalChanges = steamData.appFileChangeLists[appId]?.let { prevLocalUserFiles ->
+                        val hasLocalChanges = steamData.appFileChangeLists[appInfo.appId]?.let { prevLocalUserFiles ->
                             val result = haveLocalFilesChanged(allLocalUserFiles, prevLocalUserFiles)
                             fileChanges = result.second
                             result.first
@@ -869,8 +934,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                             val uploadResult = uploadFiles(fileChanges, parentScope).await()
                             uploadsCompleted = uploadsRequired && uploadResult.first
                             if (uploadResult.first) {
-                                steamData.appFileChangeLists[appId] = allLocalUserFiles
-                                steamData.appChangeNumbers[appId] = uploadResult.second
+                                steamData.appFileChangeLists[appInfo.appId] = allLocalUserFiles
+                                steamData.appChangeNumbers[appInfo.appId] = uploadResult.second
                                 saveSteamData()
                             } else {
                                 syncResult = SyncResult.UpdateFail
@@ -879,14 +944,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                             Log.d("SteamService", "No local changes and no new cloud user files, doing nothing...")
                             syncResult = SyncResult.UpToDate
                         }
-
-                        // val hasConflicts = hasHashConflictsOrRemoteMissingFiles(localUserFiles, fullCloudFileList)
-                        // Log.d("SteamService", "Conflicts on equal change numbers: $hasConflicts")
-
-                        // val appFileListChange = steamCloud.getAppFileListChange(appId, localAppChangeNumber)
-
-                        // steamData.appChangeNumbers[appId] = cloudAppChangeNumber
-                        // saveSteamData()
                     } else if (localAppChangeNumber < cloudAppChangeNumber) {
                         // our change number is less than the expected, meaning we are behind and
                         // need to download the new user files, but first we should check that
@@ -894,7 +951,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         // number or else that would mean that the user made changes locally and
                         // on a separate device and they must choose between the two
 
-                        var hasLocalChanges = steamData.appFileChangeLists[appId]?.let { prevLocalUserFiles ->
+                        var hasLocalChanges = steamData.appFileChangeLists[appInfo.appId]?.let { prevLocalUserFiles ->
                             haveLocalFilesChanged(allLocalUserFiles, prevLocalUserFiles).first
                         } == true
                         if (!hasLocalChanges) {
@@ -917,8 +974,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 return@async PostSyncInfo(syncResult)
                             }
 
-                            steamData.appFileChangeLists[appId] = updatedLocalFiles.map { it.value }.flatten()
-                            steamData.appChangeNumbers[appId] = cloudAppChangeNumber
+                            steamData.appFileChangeLists[appInfo.appId] = updatedLocalFiles.map { it.value }.flatten()
+                            steamData.appChangeNumbers[appInfo.appId] = cloudAppChangeNumber
                             saveSteamData()
                         } else {
                             // TODO: conflict resolution
@@ -927,26 +984,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                             remoteTimestamp = appFileListChange.files.map { it.timestamp.time }.max()
                             localTimestamp = allLocalUserFiles.map { it.timestamp }.max()
                         }
-                        // val cloudFileListChange = steamCloud.getAppFileListChange(appId, cloudAppChangeNumber)
-
-                        // Log.d("SteamService", "App change number 0")
-                        // printFileChangeList(fullCloudFileList)
-                        // val hasConflicts2 = hasHashConflicts(localUserFiles, fullCloudFileList)
-                        // Log.d("SteamService", "Conflicts between $localAppChangeNumber and 0: $hasConflicts2")
-
-                        // Log.d("SteamService", "App change number $localAppChangeNumber")
-                        // printFileChangeList(appFileListChange)
-                        // val hasConflicts = hasHashConflicts(localUserFiles, appFileListChange)
-                        // Log.d("SteamService", "Conflicts between $localAppChangeNumber and $localAppChangeNumber: $hasConflicts")
-
-                        // Log.d("SteamService", "App change number $cloudAppChangeNumber")
-                        // printFileChangeList(cloudFileListChange)
-                        // val hasConflicts3 = hasHashConflicts(localUserFiles, cloudFileListChange)
-                        // Log.d("SteamService", "Conflicts between $localAppChangeNumber and $cloudAppChangeNumber: $hasConflicts3")
-
-                        // if (!localConflicts) {
-
-                        // }
                     } else {
                         // our last scenario is if the change number we have is greater than
                         // the change number from the cloud. This scenario should not happen, I
@@ -964,7 +1001,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                         uploadsRequired = uploadsRequired,
                         uploadsCompleted = uploadsCompleted,
                     )
-                }
             }
 
             postSyncInfo
@@ -1730,13 +1766,13 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 encryptedManifests = encryptedManifests,
                             ))
                         }.toMap(),
-                    branches = app.keyValues["branches"].children.map { Pair(
+                    branches = app.keyValues["depots"]["branches"].children.map { Pair(
                         it.name,
                         BranchInfo(
                             name = it.name,
                             buildId = it["buildid"].asLong(),
                             pwdRequired = it["pwdrequired"].asBoolean(),
-                            timeUpdated = java.util.Date(it["timeupdated"].asLong() * 1000L)
+                            timeUpdated = Date(it["timeupdated"].asLong() * 1000L)
                         )
                     ) }.toMap(),
                     name = app.keyValues["common"]["name"].value ?: "",
