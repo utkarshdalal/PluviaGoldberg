@@ -72,7 +72,9 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
+import java.nio.file.Paths
 import java.util.EnumSet
+import kotlin.io.path.name
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -81,6 +83,8 @@ fun XServerScreen(
     appId: Int,
     navigateBack: () -> Unit,
     onExit: () -> Unit,
+    onWindowMapped: ((Window) -> Unit)? = null,
+    onWindowUnmapped: ((Window) -> Unit)? = null,
     // xServerViewModel: XServerViewModel = viewModel()
 ) {
     Log.d("XServerScreen", "Starting up XServerScreen")
@@ -97,17 +101,11 @@ fun XServerScreen(
     val generateWinePrefix = false // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
     var firstTimeBoot = false
     val containerId = appId // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
-    val frameRatingWindowId = -1 // TODO: probably turn this into a mutable value and create an event that can set it
+    // val frameRatingWindowId = -1
     var taskAffinityMask = 0
     var taskAffinityMaskWoW64 = 0
 
-    // TODO: maybe should turn these into a view model
     val envVars by remember { mutableStateOf(EnvVars()) }
-    // var dxwrapper = Container.DEFAULT_DXWRAPPER
-    // var wineInfo: WineInfo = WineInfo.MAIN_WINE_VERSION
-    // var graphicsDriver = Container.DEFAULT_GRAPHICS_DRIVER
-    // var audioDriver = Container.DEFAULT_AUDIO_DRIVER
-    // val xServerState by xServerViewModel.xServerState.collectAsState()
     var xServerState = remember { mutableStateOf(XServerState()) }
     val preferences = PreferenceManager.getDefaultSharedPreferences(context)
 
@@ -134,15 +132,8 @@ fun XServerScreen(
     }
 
     val appLocalExe = SteamService.getAppInfoOf(appId)?.let { appInfo ->
-        appInfo.config.launch.firstOrNull { launchInfo ->
-            // since configOS was unreliable and configArch was even more unreliable
-            launchInfo.executable.endsWith(".exe")
-        }?.let { launchInfo ->
-            val exe = if (launchInfo.executable.contains("\\")) {
-                launchInfo.executable.substring(launchInfo.executable.lastIndexOf("\\") + 1)
-            } else {
-                launchInfo.executable
-            }
+        SteamService.getWindowsLaunchInfos(appId).firstOrNull()?.let { launchInfo ->
+            val exe = Paths.get(launchInfo.executable).name
             Pair(launchInfo.workingDir, exe)
         }
     }
@@ -168,15 +159,10 @@ fun XServerScreen(
             } else false
         }
         val onGuestProgramTerminated: (AndroidEvent.GuestProgramTerminated) -> Unit = {
-            // exit(xServer.winHandler, xEnvironment)
             exit(xServer.winHandler, xEnvironment, onExit)
             navigateBack()
             // PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
         }
-        // val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
-        //     Log.d("XServerScreen", "Shutting down winHandler and xEnvironment")
-        //     exit(xServer.winHandler, xEnvironment)
-        // }
         val debugCallback = Callback<String> { outputLine ->
             Log.d("ProcessOutput", outputLine ?: "")
         }
@@ -186,7 +172,6 @@ fun XServerScreen(
         PluviaApp.events.on<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
         PluviaApp.events.on<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
         PluviaApp.events.on<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
-        // PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
         ProcessHelper.addDebugCallback(debugCallback)
 
         onDispose {
@@ -194,146 +179,121 @@ fun XServerScreen(
             PluviaApp.events.off<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
             PluviaApp.events.off<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
             PluviaApp.events.off<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
-            // PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
             ProcessHelper.removeDebugCallback(debugCallback)
         }
     }
 
     LaunchedEffect(lifecycleOwner) {
-        // CoroutineScope(Dispatchers.IO).launch {
-        //     val imageFsInstallSuccess = ImageFsInstaller.installIfNeededFuture(context) { progress ->
-        //         Log.d("XServerScreen", "$progress")
-        //     }.get()
-        //     Log.d("XServerScreen", "Installed ImageFs if needed with result: $imageFsInstallSuccess")
-            // var shortcut: Shortcut? = null
-            var container: Container? = null
-            var containerManager: ContainerManager? = null
-            // var onExtractFileListener: OnExtractFileListener? = null
-            if (!generateWinePrefix) {
-                containerManager = ContainerManager(context)
-                container = containerManager.getContainerById(containerId)// ?: createContainer(containerManager, xServerState.value.wineInfo).get()
-                // val currentDrives = container.drives
-                // val appWinePath = "D:$fullAppAndroidPath"
-                // if (!currentDrives.contains(appWinePath)) {
-                //     // val withHades = currentDrives + babaPath
-                //     container.drives = appWinePath
-                //     container.saveData()
-                // }
-                // WineStartMenuCreator.createMenuEntry(container.desktopDir, "Baba Is You", "D:/Baba Is You.exe")
-                // Log.d("XServerScreen", "Before: $currentDrives, after: ${container.drives}")
-                containerManager.activateContainer(container)
+        var container: Container? = null
+        var containerManager: ContainerManager? = null
+        // var onExtractFileListener: OnExtractFileListener? = null
+        if (!generateWinePrefix) {
+            containerManager = ContainerManager(context)
+            container = containerManager.getContainerById(containerId)
+            containerManager.activateContainer(container)
 
-                // val winePrefixNeedsUpdate = container.getExtra("wineprefixNeedsUpdate") == "t"
-                // if (winePrefixNeedsUpdate) {
-                //     Log.d("XServerScreen", "Wine prefix needs update")
-                //     // TODO: show pre-loading dialog
-                //     WineUtils.updateWineprefix(context) { status ->
-                //         if (status == 0) {
-                //             container.putExtra("wineprefixNeedsUpdate", null)
-                //             container.putExtra("wincomponents", null)
-                //             container.saveData()
-                //             // TODO: restart activity alternative?
-                //         } else {
-                //             // TODO: end activity alternative?
-                //         }
-                //     }
-                //     // return
-                // }
+            taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
+            taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
+            firstTimeBoot = container.getExtra("appVersion").isEmpty()
+            Log.d("XServerScreen", "First time boot: $firstTimeBoot")
 
-                taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
-                taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
-                firstTimeBoot = container.getExtra("appVersion").isEmpty()
-                Log.d("XServerScreen", "First time boot: $firstTimeBoot")
+            val wineVersion = container.wineVersion
+            xServerState.value = xServerState.value.copy(wineInfo = WineInfo.fromIdentifier(context, wineVersion))
+            // xServerViewModel.setWineInfo(WineInfo.fromIdentifier(context, wineVersion))
 
-                val wineVersion = container.wineVersion
-                xServerState.value = xServerState.value.copy(wineInfo = WineInfo.fromIdentifier(context, wineVersion))
-                // xServerViewModel.setWineInfo(WineInfo.fromIdentifier(context, wineVersion))
+            if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) imageFs.winePath = xServerState.value.wineInfo.path
 
-                if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) imageFs.winePath = xServerState.value.wineInfo.path
+            val shortcutPath: String? = null // TODO: set to executable path within container (intent extra "shortcut_path")
+            xServerState.value.shortcut = if (shortcutPath != null && !shortcutPath.isEmpty()) Shortcut(container, File(shortcutPath)) else null
 
-                val shortcutPath: String? = null // TODO: set to executable path within container (intent extra "shortcut_path")
-                xServerState.value.shortcut = if (shortcutPath != null && !shortcutPath.isEmpty()) Shortcut(container, File(shortcutPath)) else null
+            xServerState.value = xServerState.value.copy(
+                graphicsDriver = container.graphicsDriver,
+                audioDriver = container.audioDriver,
+                dxwrapper = container.dxWrapper,
+                screenSize = container.screenSize
+            )
+            var dxwrapperConfigRaw = container.dxWrapperConfig
 
+            if (xServerState.value.shortcut != null) {
                 xServerState.value = xServerState.value.copy(
-                    graphicsDriver = container.graphicsDriver,
-                    audioDriver = container.audioDriver,
-                    dxwrapper = container.dxWrapper,
-                    screenSize = container.screenSize
+                    graphicsDriver = xServerState.value.shortcut!!.getExtra("graphicsDriver", container.graphicsDriver),
+                    audioDriver = xServerState.value.shortcut!!.getExtra("audioDriver", container.audioDriver),
+                    dxwrapper = xServerState.value.shortcut!!.getExtra("dxwrapper", container.dxWrapper),
+                    screenSize = xServerState.value.shortcut!!.getExtra("screenSize", container.screenSize)
                 )
-                // xServerViewModel.setGraphicsDriver(container.graphicsDriver)
-                // xServerViewModel.setAudioDriver(container.audioDriver)
-                // xServerViewModel.setDxwrapper(container.dxWrapper)
-                // xServerViewModel.setScreenSize(container.screenSize)
-                var dxwrapperConfigRaw = container.dxWrapperConfig
+                dxwrapperConfigRaw = xServerState.value.shortcut!!.getExtra("dxwrapperConfig", container.dxWrapperConfig)
 
-                if (xServerState.value.shortcut != null) {
-                    xServerState.value = xServerState.value.copy(
-                        graphicsDriver = xServerState.value.shortcut!!.getExtra("graphicsDriver", container.graphicsDriver),
-                        audioDriver = xServerState.value.shortcut!!.getExtra("audioDriver", container.audioDriver),
-                        dxwrapper = xServerState.value.shortcut!!.getExtra("dxwrapper", container.dxWrapper),
-                        screenSize = xServerState.value.shortcut!!.getExtra("screenSize", container.screenSize)
-                    )
-                    // xServerViewModel.setGraphicsDriver(shortcut.getExtra("graphicsDriver", container.graphicsDriver))
-                    // xServerViewModel.setAudioDriver(shortcut.getExtra("audioDriver", container.audioDriver))
-                    // xServerViewModel.setDxwrapper(shortcut.getExtra("dxwrapper", container.dxWrapper))
-                    // xServerViewModel.setScreenSize(shortcut.getExtra("screenSize", container.screenSize))
-                    dxwrapperConfigRaw = xServerState.value.shortcut!!.getExtra("dxwrapperConfig", container.dxWrapperConfig)
-
-                    val dinputMapperType = "" // (intent extra "dinputMapperType")
-                    if (!dinputMapperType.isEmpty()) xServer.winHandler.dInputMapperType = dinputMapperType.toByte()
-                }
-
-                val parsedConfig = if (xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER) DXVKHelper.parseConfig(dxwrapperConfigRaw) else null
-                xServerState.value = xServerState.value.copy(dxwrapperConfig = parsedConfig)
-                // xServerViewModel.setDxwrapperConfig(parsedConfig)
-                // Log.d("XServerScreen", "dxwrapperConfig is ${xServerState.value.dxwrapperConfig} based on container dxWrapper of ${container.dxWrapper} which now in xServerState is ${xServerState.value.dxwrapper} and when checked against ${Container.DEFAULT_DXWRAPPER} if is equal is ${xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER} and so when parsed is $parsedConfig")
-
-                xServerState.value.onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
-                    object: OnExtractFileListener {
-                        override fun onExtractFile(destination: File?, size: Long): File? {
-                            return destination?.path?.let {
-                                if (it.contains("system32/")) null
-                                else File(it.replace("syswow64/", "system32/"))
-                            }
-                        }
-                    }
-                } else { null }
+                val dinputMapperType = "" // (intent extra "dinputMapperType")
+                if (!dinputMapperType.isEmpty()) xServer.winHandler.dInputMapperType = dinputMapperType.toByte()
             }
 
-            // TODO: show loading dialog
+            val parsedConfig = if (xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER) DXVKHelper.parseConfig(dxwrapperConfigRaw) else null
+            xServerState.value = xServerState.value.copy(dxwrapperConfig = parsedConfig)
+            // xServerViewModel.setDxwrapperConfig(parsedConfig)
+            // Log.d("XServerScreen", "dxwrapperConfig is ${xServerState.value.dxwrapperConfig} based on container dxWrapper of ${container.dxWrapper} which now in xServerState is ${xServerState.value.dxwrapper} and when checked against ${Container.DEFAULT_DXWRAPPER} if is equal is ${xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER} and so when parsed is $parsedConfig")
 
-            // val xServer = XServer(ScreenInfo(screenSize))
-            // xServer.winHandler = winHandler
-            // val winStarted: BooleanArray = BooleanArray(1) { false }
-
-            xServer.windowManager.addOnWindowModificationListener(object: WindowManager.OnWindowModificationListener {
-                override fun onUpdateWindowContent(window: Window) {
-                    // Log.d("XServerScreen", "onUpdateWindowContent")
-                    if (!xServerState.value.winStarted && window.isApplicationWindow()) {
-                        xServerView?.renderer?.setCursorVisible(true)
-                        // TODO: close pre-loading dialog
-                        xServerState.value.winStarted = true
+            xServerState.value.onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
+                object: OnExtractFileListener {
+                    override fun onExtractFile(destination: File?, size: Long): File? {
+                        return destination?.path?.let {
+                            if (it.contains("system32/")) null
+                            else File(it.replace("syswow64/", "system32/"))
+                        }
                     }
-
-                    // if (window.id == frameRatingWindowId) frameRating.update()
                 }
+            } else { null }
+        }
 
-                override fun onModifyWindowProperty(window: Window, property: Property) {
-                    // Log.d("XServerScreen", "onModifyWindowProperty")
-                    // changeFrameRatingVisibility(window, property)
+        xServer.windowManager.addOnWindowModificationListener(object: WindowManager.OnWindowModificationListener {
+            override fun onUpdateWindowContent(window: Window) {
+                // Log.d("XServerScreen", "onUpdateWindowContent:" +
+                //     "\n\twindowName: ${window.name}" +
+                //     "\n\tprocessId: ${window.processId}" +
+                //     "\n\thasParent: ${window.parent != null}" +
+                //     "\n\tchildrenSize: ${window.children.size}"
+                // )
+                if (!xServerState.value.winStarted && window.isApplicationWindow()) {
+                    xServerView?.renderer?.setCursorVisible(true)
+                    xServerState.value.winStarted = true
                 }
+                // if (window.id == frameRatingWindowId) frameRating.update()
+            }
 
-                override fun onMapWindow(window: Window) {
-                    // Log.d("XServerScreen", "onMapWindow")
-                    assignTaskAffinity(window, xServer.winHandler, taskAffinityMask, taskAffinityMaskWoW64)
-                }
+            override fun onModifyWindowProperty(window: Window, property: Property) {
+                // Log.d("XServerScreen", "onModifyWindowProperty:" +
+                //     "\n\twindowName: ${window.name}" +
+                //     "\n\tprocessId: ${window.processId}" +
+                //     "\n\thasParent: ${window.parent != null}" +
+                //     "\n\tchildrenSize: ${window.children.size}" +
+                //     "\n\tpropertyName${property.name}"
+                // )
+                // changeFrameRatingVisibility(window, property)
+            }
 
-                override fun onUnmapWindow(window: Window) {
-                    // Log.d("XServerScreen", "onUnmapWindow")
-                    // changeFrameRatingVisibility(window, null)
-                }
-            })
-        // }
+            override fun onMapWindow(window: Window) {
+                // Log.d("XServerScreen", "onMapWindow:" +
+                //     "\n\twindowName: ${window.name}" +
+                //     "\n\twindowClassName: ${window.className}" +
+                //     "\n\tprocessId: ${window.processId}" +
+                //     "\n\thasParent: ${window.parent != null}" +
+                //     "\n\tchildrenSize: ${window.children.size}"
+                // )
+                assignTaskAffinity(window, xServer.winHandler, taskAffinityMask, taskAffinityMaskWoW64)
+                onWindowMapped?.invoke(window)
+            }
+
+            override fun onUnmapWindow(window: Window) {
+                // Log.d("XServerScreen", "onUnmapWindow:" +
+                //     "\n\twindowName: ${window.name}" +
+                //     "\n\twindowClassName: ${window.className}" +
+                //     "\n\tprocessId: ${window.processId}" +
+                //     "\n\thasParent: ${window.parent != null}" +
+                //     "\n\tchildrenSize: ${window.children.size}"
+                // )
+                // changeFrameRatingVisibility(window, null)
+                onWindowUnmapped?.invoke(window)
+            }
+        })
     }
 
     AndroidView(
@@ -355,7 +315,8 @@ fun XServerScreen(
                 xServer.renderer = renderer
                 xServer.winHandler = WinHandler(xServer, this)  // TODO: fix communication which used to be via activity
                 touchMouse = TouchMouse(xServer)
-                // renderer.setUnviewableWMClasses("explorer.exe") // TODO: make conditional based on whether running container or game
+                renderer.setUnviewableWMClasses("explorer.exe") // TODO: make conditional based on whether running container or game
+                appLocalExe?.let { renderer.forceFullscreenWMClass = it.second }
                 // TODO: set wmclass of appId to be fullscreen
                 // if (shortcut != null) {
                 //     if (shortcut.getExtra("forceFullscreen", "0").equals("1")) renderer.forceFullscreenWMClass =
@@ -601,13 +562,13 @@ private fun getWineStartCommand(container: Container, appLocalExe: Pair<String, 
     val tempDir = File(container.rootDir, ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
 
-    val args = "\"wfm.exe\""
+    // val args = "\"wfm.exe\""
     // Log.d("XServerScreen", "Converting $appLocalExe to wine start command")
-    // val args = if (appLocalExe != null) {
-    //     "/dir D:/${appLocalExe.first} \"${appLocalExe.second}\""
-    // } else {
-    //     "\"wfm.exe\""
-    // }
+    val args = if (appLocalExe != null) {
+        "/dir D:/${appLocalExe.first} \"${appLocalExe.second}\""
+    } else {
+        "\"wfm.exe\""
+    }
 
     // var args = ""
     // if (shortcut != null) {
