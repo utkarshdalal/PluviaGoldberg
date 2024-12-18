@@ -268,13 +268,16 @@ class SteamService : Service(), IChallengeUrlChanged {
             return origPath.trim().replace(" ", "_")
         }
 
+        fun deleteApp(appId: Int): Boolean {
+            val appDirPath = getAppDirPath(appId)
+            return File(appDirPath).deleteRecursively()
+        }
+
         fun downloadApp(appId: Int): DownloadInfo? {
-            getPkgInfoOf(appId)?.let { pkgInfo ->
-                Log.d("SteamService", "App pkg contains ${pkgInfo.depotIds.size} depot(s): [${pkgInfo.depotIds.joinToString(", ")}]")
-            }
             return getAppInfoOf(appId)?.let { appInfo ->
                 Log.d("SteamService", "App contains ${appInfo.depots.size} depot(s): ${appInfo.depots.keys}")
                 appInfo.depots.filter { depotEntry ->
+                    // TODO: download shared install depots to a common location
                     val depot = depotEntry.value
                     // depot.sharedInstall == false &&
                     (
