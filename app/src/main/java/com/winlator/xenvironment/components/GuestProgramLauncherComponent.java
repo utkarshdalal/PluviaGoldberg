@@ -191,7 +191,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         command += " --bind=/sys";
 
         if (bindingPaths != null) {
-            for (String path : bindingPaths) command += " --bind="+(new File(path)).getAbsolutePath();
+            for (String path : bindingPaths) command += " --bind=\"" + (new File(path)).getAbsolutePath() + "\"";
         }
 
         // envVars.put("WINEDLLPATH", dllsDir.toString());

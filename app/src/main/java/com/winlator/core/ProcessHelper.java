@@ -135,21 +135,23 @@ public abstract class ProcessHelper {
         char currChar, nextChar;
         for (int i = 0, count = command.length(); i < count; i++) {
             currChar = command.charAt(i);
+            char quoteChar = '"';
 
             if (startedQuotes) {
-                if (currChar == '"') {
+                if (currChar == quoteChar) {
                     startedQuotes = false;
                     if (!value.isEmpty()) {
-                        value += '"';
+                        value += quoteChar;
                         result.add(value);
                         value = "";
                     }
                 }
                 else value += currChar;
             }
-            else if (currChar == '"') {
+            else if (currChar == '"' || currChar == '\'') {
+                if (currChar == '\'') quoteChar = '\'';
                 startedQuotes = true;
-                value += '"';
+                value += quoteChar;
             }
             else {
                 nextChar = i < count-1 ? command.charAt(i+1) : '\0';
