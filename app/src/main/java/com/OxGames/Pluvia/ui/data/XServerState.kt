@@ -11,7 +11,7 @@ data class XServerState(
     // val envVars: EnvVars = EnvVars(),
     var winStarted: Boolean = false,
     val dxwrapper: String = Container.DEFAULT_DXWRAPPER,
-    var shortcut: Shortcut? = null,
+    // var shortcut: Shortcut? = null,
     var onExtractFileListener: OnExtractFileListener? = null,
     val dxwrapperConfig: KeyValueSet? = null,
     val screenSize: String = Container.DEFAULT_SCREEN_SIZE,

@@ -107,6 +107,7 @@ fun PluviaMain(
 
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var appId by rememberSaveable { mutableIntStateOf(SteamService.INVALID_APP_ID) }
+    var bootToContainer by rememberSaveable { mutableStateOf(false) }
 
     var hasBack by rememberSaveable { mutableStateOf(navController.previousBackStackEntry?.destination?.route != null) }
     LaunchedEffect(currentScreen) {
@@ -242,8 +243,9 @@ fun PluviaMain(
                 val viewModel: HomeViewModel = viewModel()
                 HomeScreen(
                     viewModel = viewModel,
-                    onClickPlay = {
-                        appId = it
+                    onClickPlay = { launchAppId, asContainer ->
+                        appId = launchAppId
+                        bootToContainer = asContainer
                         dialogVisible = true
                         // TODO: add a way to cancel
                         // TODO: add fail conditions
@@ -312,6 +314,7 @@ fun PluviaMain(
             composable(route = PluviaScreen.XServer.name) {
                 XServerScreen(
                     appId = appId,
+                    bootToContainer = bootToContainer,
                     navigateBack = {
                         CoroutineScope(Dispatchers.Main).launch {
                             navController.popBackStack()

@@ -24,7 +24,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
-    onClickPlay: (Int) -> Unit,
+    onClickPlay: (Int, Boolean) -> Unit,
 ) {
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
@@ -76,7 +76,7 @@ fun HomeScreen(
 private fun HomeScreenContent(
     destination: PluviaDestination,
     onDestination: (PluviaDestination) -> Unit,
-    onClickPlay: (Int) -> Unit,
+    onClickPlay: (Int, Boolean) -> Unit,
 ) {
     HomeNavigationWrapperUI(
         destination = destination,
@@ -107,6 +107,6 @@ private fun Preview_HomeScreenContent() {
         HomeScreenContent(
             destination = destination,
             onDestination = { destination = it },
-            onClickPlay = { })
+            onClickPlay = { appId, asContainer -> })
     }
 }

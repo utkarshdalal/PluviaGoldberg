@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeLibraryScreen(
     viewModel: LibraryViewModel = viewModel(),
-    onClickPlay: (Int) -> Unit,
+    onClickPlay: (Int, Boolean) -> Unit,
 ) {
     val vmState by viewModel.state.collectAsStateWithLifecycle()
     val fabState = rememberFloatingActionMenuState()
@@ -76,7 +76,7 @@ private fun LibraryScreenContent(
     vmState: LibraryState,
     fabState: FloatingActionMenuState,
     onFabFilter: (FabFilter) -> Unit,
-    onClickPlay: (Int) -> Unit,
+    onClickPlay: (Int, Boolean) -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -151,7 +151,7 @@ private fun LibraryScreenContent(
             AnimatedPane {
                 LibraryDetailPane(
                     appId = appId,
-                    onClickPlay = { onClickPlay(appId) }
+                    onClickPlay = { onClickPlay(appId, it) }
                 )
             }
         }
@@ -183,7 +183,7 @@ private fun LibraryListPane(
 @Composable
 private fun LibraryDetailPane(
     appId: Int,
-    onClickPlay: () -> Unit
+    onClickPlay: (Boolean) -> Unit
 ) {
     Surface {
         if (appId == SteamService.INVALID_APP_ID) {
@@ -218,7 +218,7 @@ private fun Preview_LibraryScreenContent() {
             ),
             fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),
             onFabFilter = {},
-            onClickPlay = {},
+            onClickPlay = { appId, asContainer -> },
         )
     }
 }
