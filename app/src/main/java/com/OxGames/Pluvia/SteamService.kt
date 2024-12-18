@@ -258,15 +258,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun isAppInstalled(appId: Int): Boolean = Files.exists(Paths.get(getAppDirPath(appId)))
 
-        fun getAppRawDirPath(appId: Int): String = Paths.get(
+        fun getAppDirPath(appId: Int): String = Paths.get(
             _steamData?.appInstallPath ?: "",
             getAppInfoOf(appId)?.config?.installDir ?: ""
         ).pathString
-
-        fun getAppDirPath(appId: Int): String {
-            val origPath = getAppRawDirPath(appId)
-            return origPath.trim().replace(" ", "_")
-        }
 
         fun deleteApp(appId: Int): Boolean {
             val appDirPath = getAppDirPath(appId)
@@ -327,12 +322,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     onDownloadProgress = { downloadInfo.setProgress(it) },
                                     parentScope = coroutineContext.job as CoroutineScope
                                 ).await()
-                            }
-                            // rename directory to our specification
-                            val origPath = getAppRawDirPath(appId)
-                            val newPath = getAppDirPath(appId)
-                            if (origPath != newPath && Files.exists(Paths.get(origPath))) {
-                                File(origPath).renameTo(File(newPath))
                             }
                         } finally {
                             /* Nothing */
