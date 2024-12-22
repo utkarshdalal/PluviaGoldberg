@@ -6,6 +6,7 @@ import java.util.EnumSet
 
 data class DepotInfo(
     val depotId: Int,
+    val dlcAppId: Int,
     val depotFromApp: Int,
     val sharedInstall: Boolean,
     val osList: EnumSet<OS>,

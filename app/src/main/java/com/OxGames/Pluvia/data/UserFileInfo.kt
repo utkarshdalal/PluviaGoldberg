@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.data
 
 import com.OxGames.Pluvia.enums.PathType
 import kotlinx.serialization.Serializable
+import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.pathString
 
@@ -21,5 +22,8 @@ data class UserFileInfo(
     }
     fun getPrefixPath(): String {
         return Paths.get(getPrefix(), filename).pathString
+    }
+    fun getAbsPath(prefixToPath: (String) -> String): Path {
+        return Paths.get(prefixToPath(root.toString()), path, filename)
     }
 }
