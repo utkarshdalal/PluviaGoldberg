@@ -1,0 +1,431 @@
+607050: Wargroove
+	appinfo
+		appid: 607050
+		common
+			name: Wargroove
+			type: Game
+			releasestate: released
+			oslist: windows
+			osarch: 
+			clienticon: 5a8080eb668a49cab131881d6baa5200d84f399e
+			clienttga: 3db15ab73dec123b8260f5ec3397d443ca8727d0
+			icon: 5d9f9be7eea6816578e46f07629a4dae8cec3b59
+			logo: 2cb0e85f4c3bc23197c91e7e8540e29bd9312d45
+			logo_small: 2cb0e85f4c3bc23197c91e7e8540e29bd9312d45_thumb
+			languages
+				english: 1
+				german: 1
+				french: 1
+				italian: 1
+				spanish: 1
+				schinese: 1
+				tchinese: 1
+				russian: 1
+				japanese: 1
+				brazilian: 1
+			linuxclienticon: 06c5bf68dee6a9d2b64ae44838599647f16ad361
+			clienticns: 039e3ea61ecaa1b8d8a88c9623a4245f5c6b2a19
+			eulas
+				0
+					id: 607050_eula_0
+					name: Wargroove EULA
+					url: https://store.steampowered.com//eula/607050_eula_0
+			name_localized
+				japanese: ウォーグルーヴ
+				koreana: 워그루브
+				schinese: 战律
+				tchinese: 戰律
+			steam_deck_compatibility
+				category: 2
+				test_timestamp: 1654041600
+				tested_build_id: 5374517
+				tests
+					0
+						display: 3
+						token: #SteamDeckVerified_TestResult_DisplayOutputHasNonblockingIssues
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					4
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: proton-experimental
+					requires_h264: 1
+					gamescope_frame_limiter_not_supported: 0
+			metacritic_name: Wargroove
+			controllertagwizard: 1
+			controller_support: full
+			small_capsule
+				english: capsule_231x87.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: BottomLeft
+					width_pct: 53
+					height_pct: 54
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+				library_logo
+					logo_position
+						pinned_position: BottomLeft
+						width_pct: 53
+						height_pct: 54
+					image
+						english: logo.png
+					image2x
+						english: logo_2x.png
+			store_asset_mtime: 1730825610
+			associations
+				0
+					type: developer
+					name: Chucklefish
+				1
+					type: publisher
+					name: Chucklefish
+				2
+					type: franchise
+					name: Chucklefish
+				3
+					type: franchise
+					name: Wargroove
+			primary_genre: 2
+			genres
+				0: 23
+				1: 2
+			category
+				category_2: 1
+				category_1: 1
+				category_36: 1
+				category_37: 1
+				category_9: 1
+				category_38: 1
+				category_39: 1
+				category_24: 1
+				category_27: 1
+				category_28: 1
+				category_23: 1
+				category_32: 1
+				category_17: 1
+				category_22: 1
+				category_29: 1
+				category_44: 1
+				category_49: 1
+				category_43: 1
+				category_45: 1
+				category_46: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+					subtitles: true
+					full_audio: true
+				french
+					supported: true
+					subtitles: true
+				italian
+					supported: true
+					subtitles: true
+				german
+					supported: true
+					subtitles: true
+				spanish
+					supported: true
+					subtitles: true
+				japanese
+					supported: true
+					subtitles: true
+				brazilian
+					supported: true
+					subtitles: true
+				russian
+					supported: true
+					subtitles: true
+				schinese
+					supported: true
+					subtitles: true
+				tchinese
+					supported: true
+					subtitles: true
+				koreana
+					supported: true
+					subtitles: true
+			steam_release_date: 1549022354
+			metacritic_score: 82
+			metacritic_fullurl: https://www.metacritic.com/game/pc/wargroove?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 607050
+			store_tags
+				0: 9
+				1: 14139
+				2: 3964
+				3: 1741
+				4: 21725
+				5: 492
+				6: 17305
+				7: 1677
+				8: 1708
+				9: 3859
+				10: 4182
+				11: 3841
+				12: 3843
+				13: 7368
+				14: 4840
+				15: 4508
+				16: 7481
+				17: 1775
+				18: 5350
+				19: 1685
+			review_score: 8
+			review_percentage: 83
+		extended
+			developer: Chucklefish
+			publisher: Chucklefish
+			homepage: https://wargroove.com
+			listofdlc: 1061140
+			dlcavailableonstore: 1
+		config
+			installdir: Wargroove
+			launch
+				0
+					executable: win32_bin\wargroove32.exe
+					arguments: --dx11
+					type: default
+					config
+						oslist: windows
+						osarch: 32
+				1
+					executable: win64_bin\wargroove64.exe
+					arguments: --dx11
+					type: default
+					config
+						oslist: windows
+						osarch: 64
+				3
+					executable: win32_bin\wargroove32.exe
+					arguments: --opengl
+					description: Wargroove (OpenGL)
+					type: option1
+					config
+						oslist: windows
+						osarch: 32
+				4
+					executable: win64_bin\wargroove64.exe
+					arguments: --opengl
+					description: Wargroove (OpenGL)
+					type: option1
+					config
+						oslist: windows
+						osarch: 64
+				5
+					executable: wargroove.app
+					type: default
+					config
+						oslist: macos
+				6
+					executable: win64_bin\wargroove64.exe
+					arguments: --skip-intro
+					type: option2
+					config
+						oslist: windows
+						osarch: 64
+					description_loc
+						english: Wargroove (No Intro)
+					description: Wargroove (No Intro)
+				7
+					executable: win32_bin\wargroove32.exe
+					arguments: --skip-intro
+					type: option2
+					config
+						oslist: windows
+						osarch: 32
+					description_loc
+						english: Wargroove (No Intro)
+					description: Wargroove (No Intro)
+		depots
+			hasdepotsindlc: 1
+			baselanguages: english,german,french,italian,spanish,schinese,tchinese,russian,japanese,brazilian
+			228986
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			228987
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			607051
+				manifests
+					public
+						gid: 7071124816779123252
+						size: 333970028
+						download: 321246576
+				encryptedmanifests
+					beta
+						gid: C447AE9F63869AE25FE4E881069EC329
+						size: FBC24C23D464A776CB8424DFF1DA6544
+						download: B7E0486825A5EA1A154D51B587B69528
+					nightly
+						gid: 6E411B04C91EDC6C7A512EAA84C47F69
+						size: A1A3E0CE741C9BDDF1852123FAB79FA0
+						download: A1A3E0CE741C9BDDF1852123FAB79FA0
+					public-beta
+						gid: D7475161D853CB6C8A1656081A023514
+						size: 4EA9A917E00980009BBC45B3F2BDD702
+						download: 61872B3BBEBA1366060515823E10963D
+					ratings
+						gid: 26905AAD947C7DF4290DCF2025FC0D9C
+						size: 202732081E69FB97590B1297E138D958
+						download: D7096CAFE6541CB43033E9E2F47EE296
+					testing
+						gid: CD48223F052C999727C740CD8D0DA42F
+						size: CAA1C9EBF3D064787B01A988DDB26CEE
+						download: 67B8AA19CC9A8E11125F389E748208B3
+					unstable
+						gid: 9FEEC53B9DBCEA3362C66A9682D6655C
+						size: 96608885061E369E245552528814CBE6
+						download: B127151D71A553BDABDD4E6448804726
+			607052
+				config
+					oslist: windows
+					osarch: 32
+				manifests
+					public
+						gid: 8220361524159760239
+						size: 18235312
+						download: 4288192
+				encryptedmanifests
+					beta
+						gid: B395E663C3C606BAF8D47B2BFF9EB0F4
+						size: FF24AC96F3A43C97102F770D4F02038C
+						download: 9067BA97C1E9486AF91BAD60256A06B2
+					nightly
+						gid: 622DEDD93A2696C424CEBF9E05686A04
+						size: 29E37A687CECE7B2C73E8D25F9F3C127
+						download: ACC10BC1B0D1919E2FBE3C948ADFFAB3
+					public-beta
+						gid: 94D58B4BDF188EFC54CEB9AC95F3FBA1
+						size: 3DACE433C3426FEB6051BB6FB8C7F21D
+						download: 4D462A6FC57A5BA5C58A66553AAA13ED
+					ratings
+						gid: 027FF017A60A8A1FA7B80441E2920C68
+						size: 6EB765F980526B3EA6852002F22A8FC0
+						download: 1BDE377E464D076313E5AACDB8C8696F
+					testing
+						gid: CA82D4716B43280F2C974E1C3A08AC3C
+						size: 499757774E2332A0570075D6AAE23B5C
+						download: 9402998D2D659775C483E891B4C4B582
+					unstable
+						gid: 14772B093794F3D4070297A8513E7C47
+						size: 5AC22E4883B6742ED7577BAA7D98A774
+						download: B56E6684C65155CD08399D81F3A39C94
+			607053
+				config
+					oslist: windows
+					osarch: 64
+				manifests
+					public
+						gid: 7564822593432117800
+						size: 30454257
+						download: 8503344
+				encryptedmanifests
+					beta
+						gid: 336E6C736EE50FCA6465B963D5920E82
+						size: 865FB0796994F6B505FCCDED217E469F
+						download: 060549AADC1ABA29FB24225362BF3B97
+					nightly
+						gid: 63958959690D9D5845E4AA92F34663F7
+						size: A2F16C94B537AB5537BEA2B99E4D3CDE
+						download: 208B9C9633AA56B92E24A4A271A3712F
+					public-beta
+						gid: 01915FB87E67DA8E8DB84FC8A6AA368F
+						size: 4DFCDB36D1E26D0D0F412EC590A26D87
+						download: 7FD53E3F1F7F539ECF7B85C0D86B9508
+					ratings
+						gid: AEDE06941EE3BE113F861CE813D5311D
+						size: 7DB67F0FEC75C738D438B53DF3DB8136
+						download: 7787B6C422B28F11261B5E2C029D5154
+					testing
+						gid: D4F19CC91AB5B88815508C9F536B100B
+						size: 7D47231603B71CCB1B3CC21368E211DF
+						download: A08BE339077A7E9AF3C60237F99A4CBE
+					unstable
+						gid: FA6508F5B0B55519CB159063DC196902
+						size: 7F322493DB5004F88350FB3084C682DD
+						download: 29A211C0AACFCAF21A3488A4A575D020
+			607054
+				config
+					oslist: macos
+				manifests
+					public
+						gid: 3742102536967398452
+						size: 353969938
+						download: 325670736
+				encryptedmanifests
+					beta
+						gid: EC9910348ABA174D0DEFB2E3A5CB67AE
+						size: E671358599D59A6FB5C7D52BCD1B50DA
+						download: 70E785921BA0A4E71FE35A1BBF360828
+						download: 516F4E384FBC41B763F72ADC444F94C0
+						gid: 6306A97078676D1A7A414FA5AC54A9C2
+						gid: 2421640833EE0D19A399C998A9F23065
+						size: 2291EA56E3187695C2D48E26FC104EC3
+						download: 6FC1899F90BAFB46CDADFD56D12950FB
+			branches
+				public
+					buildid: 5374517
+					timeupdated: 1596632542
+				beta
+					buildid: 5078224
+					pwdrequired: 1
+					timeupdated: 1593798246
+					pwdrequired: 1
+					timeupdated: 1583210431
+				public-beta
+					buildid: 4183669
+				ratings
+					buildid: 3257495
+					pwdrequired: 1
+					pwdrequired: 1
+					timeupdated: 1568123562
+					pwdrequired: 1
+		ufs
+			quota: 100000000000
+					root: WinAppDataRoaming
+					pattern: *
+					recursive: 1
+			rootoverrides
+				0
+					root: WinAppDataRoaming
+					oscompare: =
+				1
+					os: Linux
+					oscompare: =
+					useinstead: LinuxXdgDataHome

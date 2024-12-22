@@ -1,0 +1,260 @@
+1177980: Little Kitty, Big City
+	appinfo
+		appid: 1177980
+		common
+			name: Little Kitty, Big City
+			type: Game
+			logo: 033bd7d27176fc269c989cbb26544e67129cbe90
+			logo_small: 033bd7d27176fc269c989cbb26544e67129cbe90_thumb
+			icon: 6ec93a31653f49b4bf7ab633c4d136210751d30e
+			oslist: windows
+			osarch: 
+			osextended: 
+			clienttga: ce2a79f7aacb346a699867bfdfbcc7bcc09f0a8a
+			clienticon: f44eb237ea7787fd963c6ef220c74a05afdb7440
+			releasestate: released
+			name_localized
+				schinese: 小猫咪大城市 Little Kitty, Big City
+				tchinese: 小貓咪大城市 Little Kitty, Big City
+			languages
+				english: 1
+				german: 1
+				french: 1
+				koreana: 1
+				spanish: 1
+				schinese: 1
+				tchinese: 1
+				japanese: 1
+				brazilian: 1
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1713571200
+				tested_build_id: 14077631
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: proton-9.0-1RC
+					requires_h264: 0
+					gamescope_frame_limiter_not_supported: 0
+					hdr_support: 0
+			controllertagwizard: 1
+			controller_support: full
+			small_capsule
+				english: capsule_231x87.jpg
+				schinese: capsule_231x87_schinese.jpg
+				tchinese: capsule_231x87_tchinese.jpg
+			header_image
+				english: header.jpg
+				schinese: header_schinese.jpg
+				tchinese: header_tchinese.jpg
+			library_assets
+				library_capsule: en,zh-cn
+				library_hero: en
+				library_logo: en
+				library_header: en
+				logo_position
+					pinned_position: BottomCenter
+					width_pct: 100
+					height_pct: 100
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+						schinese: library_600x900_schinese.jpg
+					image2x
+						english: library_600x900_2x.jpg
+						schinese: library_600x900_schinese_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+					image2x
+						english: library_hero_2x.jpg
+				library_logo
+					image
+						english: logo.png
+					logo_position
+						pinned_position: BottomCenter
+						width_pct: 100
+						height_pct: 100
+					image2x
+						english: logo_2x.png
+				library_header
+					image
+						english: library_header.jpg
+			store_asset_mtime: 1732581963
+			associations
+				0
+					type: developer
+					name: Double Dagger Studio
+				1
+					type: publisher
+					name: Double Dagger Studio
+			primary_genre: 23
+			genres
+				0: 25
+				1: 4
+				2: 23
+				3: 28
+			category
+				category_28: 1
+				category_2: 1
+				category_22: 1
+				category_55: 1
+				category_56: 1
+				category_57: 1
+				category_58: 1
+				category_59: 1
+				category_60: 1
+				category_23: 1
+				category_45: 1
+				category_46: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+					subtitles: true
+				spanish
+					supported: true
+					subtitles: true
+				japanese
+					supported: true
+					subtitles: true
+				brazilian
+					supported: true
+					subtitles: true
+				french
+					supported: true
+					subtitles: true
+				german
+					supported: true
+					subtitles: true
+				koreana
+					supported: true
+					subtitles: true
+				schinese
+					supported: true
+					subtitles: true
+				tchinese
+					supported: true
+					subtitles: true
+				italian
+					supported: true
+					subtitles: true
+				polish
+					supported: true
+					subtitles: true
+				russian
+					supported: true
+					subtitles: true
+				turkish
+					supported: true
+					subtitles: true
+			steam_release_date: 1715270258
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 1177980
+			store_tags
+				0: 17894
+				1: 4726
+				2: 552282
+				3: 3834
+				4: 3810
+				5: 5350
+				6: 97376
+				7: 1719
+				8: 4136
+				9: 599
+				10: 492
+				11: 4191
+				12: 4195
+				13: 4182
+				14: 1695
+				15: 4252
+				16: 4305
+				17: 21
+				18: 6869
+				19: 5395
+			review_score: 9
+			review_percentage: 96
+		extended
+			developer: Double Dagger Studio
+			publisher: Double Dagger Studio
+			homepage: https://linktr.ee/littlekittybigcity
+		config
+			installdir: LittleKittyBigCity
+			launch
+				0
+					executable: Little Kitty, Big City.exe
+					type: none
+					config
+						oslist: windows
+			uselaunchcommandline: 1
+		depots
+			baselanguages: english
+			1177981
+				config
+					language: english
+					oslist: windows
+				manifests
+					public
+						gid: 6881372238322442508
+						size: 1326846072
+						download: 451692128
+				encryptedmanifests
+					demo
+						gid: 01DE2B8D87AAEB33CC5E408A71989D2A
+						size: 7151479A4BF1F398C0666C3FF746558A
+						download: D641F0997AB2F214503BD03268BF7B6C
+					minspecs
+						gid: 402F0000E287022D78B679B74F1EB811
+						size: 9AA245ACEE71FF4AD3931DEE6D40C255
+						download: C7B4B029FCBCB0F0201AECAB88408144
+					beta
+						gid: 43DE3A5C746C01AD7F7C915FBA1519ED
+						size: ABD4DB6B3B25E696FA213F98FCAA86F2
+						download: BFD4E9C1DE240A9C3197BB21112BE498
+			1177982: null
+			branches
+				public
+					buildid: 16699465
+					timeupdated: 1733872632
+				demo
+					buildid: 11670788
+					pwdrequired: 1
+					timeupdated: 1689042789
+				minspecs
+					buildid: 12766023
+					pwdrequired: 1
+					timeupdated: 1701455276
+				beta
+					buildid: 16699465
+					pwdrequired: 1
+					timeupdated: 1733865779
+		ufs
+			quota: 10000000
+			maxnumfiles: 10
+			sync_while_suspended: 1
+			savefiles
+				0
+					root: WinAppDataLocalLow
+					path: Double Dagger Studio/Little Kitty, Big City
+					pattern: *.es3

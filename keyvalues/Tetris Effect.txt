@@ -1,0 +1,464 @@
+1003590: Tetris® Effect: Connected
+	appinfo
+		appid: 1003590
+		common
+			name: Tetris® Effect: Connected
+			type: Game
+			releasestate: released
+			oslist: windows
+			osarch: 64
+			controllervr
+				steamvr: 1
+				oculus: 1
+				xinput: 1
+				kbm: 1
+			playareavr
+				seated: 1
+			logo: 4660be08307e18940afbb2d225f3f4cef7f5b603
+			logo_small: 4660be08307e18940afbb2d225f3f4cef7f5b603_thumb
+			clienticon: ff5a00292b5df6d183dd321c03b7f1911903b528
+			clienttga: 03e2fff2c23bae359b4399c39fdcd6e5f7959e23
+			icon: a56de7a86218528ff841a9a1322ce88d735b1156
+			languages
+				english: 1
+				german: 1
+				french: 1
+				italian: 1
+				koreana: 1
+				spanish: 1
+				schinese: 1
+				tchinese: 1
+				thai: 1
+				japanese: 1
+			eulas
+				0
+					id: 1003590_eula_0
+					name: Tetris® Effect: Connected EULA
+					url: https://store.steampowered.com//eula/1003590_eula_0
+					version: 3
+				1
+					id: 1003590_eula_1
+					name: Tetris® Effect: Connected EULA
+					url: https://store.steampowered.com//eula/1003590_eula_1
+					version: 1
+			openvrsupport: 1
+			othervrsupport: 1
+			othervrsupport_rift_13: 1
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1644969600
+				tested_build_id: 7451923
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: proton-stable
+					requires_h264: 0
+			metacritic_name: Tetris Effect: Connected
+			controller_support: full
+			small_capsule
+				english: capsule_231x87.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: CenterCenter
+					width_pct: 73.79649832366565
+					height_pct: 100
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+					image2x
+						english: library_hero_2x.jpg
+				library_logo
+					image
+						english: logo.png
+					image2x
+						english: logo_2x.png
+					logo_position
+						pinned_position: CenterCenter
+						width_pct: 73.79649832366565
+						height_pct: 100
+			store_asset_mtime: 1719262124
+			associations
+				0
+					type: developer
+					name: Monstars Inc.
+				1
+					type: developer
+					name: Resonair
+				2
+					type: developer
+					name: Stage Games
+				3
+					type: publisher
+					name: Enhance
+			primary_genre: 4
+			genres
+				0: 4
+				1: 23
+			category
+				category_2: 1
+				category_1: 1
+				category_49: 1
+				category_36: 1
+				category_37: 1
+				category_9: 1
+				category_38: 1
+				category_39: 1
+				category_24: 1
+				category_22: 1
+				category_25: 1
+				category_28: 1
+				category_27: 1
+				category_23: 1
+				category_44: 1
+				category_52: 1
+				category_53: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+					full_audio: true
+				french
+					supported: true
+				italian
+					supported: true
+				german
+					supported: true
+				spanish
+					supported: true
+				japanese
+					supported: true
+				koreana
+					supported: true
+				schinese
+					supported: true
+				thai
+					supported: true
+				tchinese
+					supported: true
+			steam_release_date: 1629259235
+			metacritic_score: 93
+			metacritic_fullurl: https://www.metacritic.com/game/pc/tetris-effect-connected?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 1003590
+			store_tags
+				0: 1664
+				1: 5350
+				2: 3859
+				3: 4182
+				4: 3878
+				5: 492
+				6: 3843
+				7: 1621
+				8: 1773
+				9: 597
+				10: 3841
+				11: 12057
+				12: 5154
+				13: 1714
+				14: 4166
+				15: 7481
+				16: 7368
+				17: 21978
+				18: 1775
+				19: 4252
+			review_score: 9
+			review_percentage: 95
+		extended
+			vrheadsetstreaming: 1
+			developer: Monstars Inc.
+			publisher: Enhance
+			homepage: https://tetriseffect.game
+			listofdlc: 1723660
+			dlcavailableonstore: 1
+		config
+			installdir: Tetris Effect Connected
+			launch
+				0
+					executable: TetrisEffect.exe
+					arguments: 2D
+					type: default
+					config
+						oslist: windows
+						osarch: 64
+				1
+					executable: TetrisEffect.exe
+					arguments: -vr hmd=SteamVR
+					type: vr
+					config
+						oslist: windows
+						osarch: 64
+				2
+					executable: TetrisEffect.exe
+					arguments: -vr hmd=OculusHMD
+					type: othervr
+					config
+						oslist: windows
+						osarch: 64
+				3
+					executable: TetrisEffect.exe
+					arguments: DBGACVRST
+					type: option1
+					config
+						oslist: windows
+						osarch: 64
+						betakey: check_monstars,dev_monstars
+					description_loc
+						english: 実績リセット
+					description: 実績リセット
+				4
+					executable: TetrisEffect.exe
+					arguments: -vr hmd=SteamVR device=WindowsMR
+					type: option1
+					config
+						oslist: windows
+						osarch: 64
+						betakey: check_monstars,dev_monstars,pg_monstars,check_wmr
+					description_loc
+						english: Tetris® Effect Connected in Windows MR (Beta) 
+					description: Tetris® Effect Connected in Windows MR (Beta) 
+				5
+					executable: TetrisEffect.exe
+					arguments: -dx12
+					type: option1
+					config
+						oslist: windows
+						osarch: 64
+						betakey: check_monstars,dev_monstars
+					description_loc
+						english: DX12
+					description: DX12
+			steamcontrollertemplateindex: 4
+		depots
+			228986
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			228988
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			228990
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			1003591
+				manifests
+					public
+						gid: 6349658408828228648
+						size: 5988014877
+						download: 3064571632
+				encryptedmanifests
+					beta_test
+						gid: 68ABDA5C71C1B0FB3C9D0272A4B98BB6
+						size: 2BE52DB680295E9A30919BC0B53FA1F9
+						download: F1A889187D7FADBDEA937423FE7AEE5A
+					boot_test
+						gid: 1EE3594A727764E45C9D2E07DE9E4DE4
+						size: 9459988726840BA2E7B7AD4AF7149BE6
+						download: 212E2C9A8A5C78BCBD3046870B33CDAE
+					capture
+						gid: C02FABBDC17183D338E94B91A9AD7930
+						size: 13939A3731B36347CBE6E723F8F6A782
+						download: 9442A33607D7DDB8113BDDF288678637
+					check
+						gid: C5CEDC60457A84A4D11E9ED638676024
+						size: 0F05AD895F2A011AE38EC5775ABD9D1A
+						download: 4E206E7CE8CDFE6B0AB06BB9C3DE2049
+					check_enh_deck
+						gid: A53D665C7859F7C0EDD3B046E31C17A6
+						size: 9F2CF28B2F1532A16417F302A0E71026
+						download: 0D11D4E93808A4526883E2A6F8F933B2
+					check_enhance_2
+						gid: A1BA2F8C5ABE084E742898B650FD48D7
+						size: 01CDA4C6B647AC6CD50A42F539965B3A
+						download: C35C416C8BE7F0AD8F9A3C3A5C14F0F9
+					check_enhance_3
+						gid: 407008F586EF51D8A73226F2C8BE8935
+						size: BA8BC81909213E6F57576AFC3F23D160
+						download: 1621D43D35FB4180406F7298A5773503
+					check_epic
+						gid: 4690FD0D4926279C76D066C34B6BEFE3
+						size: 765A54147E8AFE8B4BF02C76B7B8D0B7
+						download: 2FD79B967B3B22660A490B56657F38B8
+					check_monstars
+						gid: 07806C3EFBC1B7CEA525877D4D8D98A9
+						size: 901CE1263A51A04751020BC7E864F03A
+						download: 5E764189D9C74F6D27A6D85133456EEE
+					check_vive_brian
+						gid: CDBF0AF9EDC3A84F8542B549C015E680
+						size: 79E4E1E6BF4224B36BBBE22119AD79CC
+						download: F3135100FDE9556720833136693A1509
+					check_wmr
+						gid: 5725AA6B88AAA1D90E43BA737BA23E52
+						size: 29FD19178653DE4FEEB05A16756DC731
+						download: BC2950E3CFB839169AAE21B5CCBAE6EC
+					debug_t
+						gid: F0E22D442633C65BF673CF1476FE8BF8
+						size: A4CA00DBDE1311E83E795FF4A3A85570
+						download: 115957191622860970D30FAADF20B5B7
+					dev_monstars
+						gid: E2229290D9BEBCF265164B205769629D
+						size: DCC69D9B17D029E3FA187F8D1B9C8813
+						download: 8DD6A08FD5D64FE56131DE1778BFC751
+					mp_disconnect_ranking
+						gid: BB7897449E7E1C05BAD110B5E95DCB03
+						size: 0DD479C31B010DF273BD252339E9654B
+						download: E746936265AB62093E4250EFF80856FC
+					mp_ranking_export
+						gid: 7430588F16DB7988281063DA55374B68
+						size: C60FA73DE9437ECEFBEADC9813EC40C8
+						download: DEDCE872FB9BE3E1F076078F2FDEF07B
+					omega_trailer
+						gid: 11A408D97D505555F10945BFBA1E405B
+						size: 7D1008E49B505CB7E4CB1A92369B2165
+						download: DF628E240E8093A4A800EF974435649C
+					pg_monstars
+						gid: 7BEFA64AEA35EF80C0AACC87B56EF6C3
+						size: 7AF46D065C010A2977AF2D6A431BFA89
+						download: 19EF83D766E986A830E3250CF886CBE0
+					press
+						gid: 2564FB7152C835331A1F3CA5E8ABF643
+						size: 0A4DDFF188E2444483CD4DB8915C6E72
+						download: 749EB25CC841893ABE02FFA7E543EDC8
+					ut_tester
+						gid: 85C166425F3A32EEF54152D40ED55185
+						size: 35738F867E32CC2D0E7EC04F59CC3B47
+						download: 874997432B24407A0F18E5E32147F3C8
+					ut_tester_staging
+						gid: 4E0CC1EDF041EB8D33E6D331625612AB
+						size: 76246E28C3EE78202EF91169A127088A
+						download: F961E1A5B1AE931725DEB09BBFBBE061
+					ut_tester_staging_2
+						gid: 834D3803218CB5CE7CB343312718D2CF
+						size: 483F7E0CF1FACEDFA021106F91FA0289
+						download: 2B76A00256242554D26FA89A67B7164B
+			1723660
+				dlcappid: 1723660
+				manifests
+					public
+						gid: 95806865477798006
+						size: 101318686
+						download: 87462224
+				encryptedmanifests
+					boot_test
+						gid: 83E892D2C475384DE5EED6907626CD2C
+						size: 42B0C41F04E90790A6FE1BD2B999D21E
+						download: 7EDE587556E594B93ED61C9F1149FD7B
+					check
+						gid: 1669FE9C5318EE7B4DA9773D0FFB194F
+						size: 129501B4467767B1EC51AB5348CA1BA8
+						download: 49580C00172A722959D66E0A12C62464
+					check_enh_deck
+						gid: E3C69BE7022192158EF7F6541A6BC4D7
+						size: 038EBAAC9B2F0EC0B84E22200878B11B
+						download: 12AD00968AD895ABB9DD7EE25BB296A0
+					check_enhance_2
+						gid: BBA142BB539758A44F559CB4B0DE9B4D
+						size: BA99CDA2448902B04329A1E3D445A0AF
+						download: 059C4B66D20357194B064A29FC645A69
+					check_enhance_3
+						gid: BC7D6CB171CE668F3F7717FF3BBDF86E
+					ut_tester_staging_2
+						gid: 95AE799977861D651AF9E4B1A56E6D86
+						size: 6E2EE889C7FE229F6512B3E5B6B4474C
+						download: D6464AF0BC675BD3DF8579EDF5A97EEB
+			branches
+				public
+					buildid: 13299678
+					timeupdated: 1707264346
+				beta_test
+					buildid: 7013841
+					pwdrequired: 1
+					timeupdated: 1626160081
+				boot_test
+					buildid: 7712958
+					pwdrequired: 1
+					timeupdated: 1638163544
+				capture
+					buildid: 7058528
+					pwdrequired: 1
+					timeupdated: 1626797893
+				check
+					buildid: 11268314
+					pwdrequired: 1
+					timeupdated: 1685488157
+				check_enh_deck
+					buildid: 13299678
+					pwdrequired: 1
+					timeupdated: 1706519410
+				check_enhance_2
+					buildid: 11268314
+					pwdrequired: 1
+					timeupdated: 1685488177
+				check_enhance_3
+					buildid: 13299678
+					pwdrequired: 1
+					timeupdated: 1706665683
+				check_epic
+					buildid: 9899031
+					pwdrequired: 1
+					timeupdated: 1667980146
+				check_monstars
+					buildid: 13299678
+					pwdrequired: 1
+					timeupdated: 1706519396
+				check_vive_brian
+					buildid: 3728164
+					pwdrequired: 1
+					timeupdated: 1554972866
+				check_wmr
+					buildid: 7253540
+					pwdrequired: 1
+					timeupdated: 1630020579
+				debug_t
+					buildid: 11028172
+					pwdrequired: 1
+					timeupdated: 1681813488
+				dev_monstars
+					buildid: 13399978
+					pwdrequired: 1
+					timeupdated: 1707367155
+				mp_disconnect_ranking
+					buildid: 7979281
+					pwdrequired: 1
+					timeupdated: 1648087056
+				mp_ranking_export
+					buildid: 7360889
+					pwdrequired: 1
+					timeupdated: 1631679196
+				omega_trailer
+					buildid: 6762314

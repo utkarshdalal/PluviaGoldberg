@@ -25,6 +25,8 @@ import com.OxGames.Pluvia.data.SteamData
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.data.UFS
 import com.OxGames.Pluvia.data.UserFileInfo
+import com.OxGames.Pluvia.data.UserFilesDownloadResult
+import com.OxGames.Pluvia.data.UserFilesUploadResult
 import com.OxGames.Pluvia.db.PluviaDatabase
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
@@ -34,19 +36,23 @@ import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.OSArch
 import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.ReleaseState
+import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
 import com.winlator.xenvironment.ImageFs
 import dagger.hilt.android.AndroidEntryPoint
+import `in`.dragonbra.javasteam.enums.EAppUsageEvent
 import `in`.dragonbra.javasteam.enums.EClientPersonaStateFlag
 import `in`.dragonbra.javasteam.enums.EOSType
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
+import `in`.dragonbra.javasteam.enums.EPlatformType
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesChatSteamclient.CChat_RequestFriendPersonaStates_Request
+import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
 import `in`.dragonbra.javasteam.rpc.service.Chat
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
@@ -84,6 +90,7 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
+import `in`.dragonbra.javasteam.types.GameID
 import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
 import `in`.dragonbra.javasteam.util.NetHelpers
@@ -126,6 +133,7 @@ import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import kotlin.io.path.name
 import kotlin.io.path.pathString
+import kotlin.time.measureTime
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -181,6 +189,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isRunning: Boolean = false
             private set
         var isLoggingIn: Boolean = false
+            private set
+        var isLoggingOut: Boolean = false
             private set
         val isLoggedIn: Boolean
             get() = instance?._steamClient?.steamID?.run { isValid } == true
@@ -255,15 +265,41 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun getAppDownloadInfo(appId: Int): DownloadInfo? = downloadJobs[appId]
+        fun isAppInstalled(appId: Int): Boolean {
+            val isNotDownloading = getAppDownloadInfo(appId) == null
+            val appDirPath = Paths.get(getAppDirPath(appId))
+            val pathExists = Files.exists(appDirPath)
+            // Log.d("SteamService", "isDownloading: $isNotDownloading && pathExists: $pathExists && appDirPath: $appDirPath")
+            return isNotDownloading && pathExists
+        }
+        fun getAppDlc(appId: Int): Map<Int, DepotInfo> {
+            return getAppInfoOf(appId)?.let {
+                it.depots.filter { it.value.dlcAppId != INVALID_APP_ID }
+            } ?: emptyMap()
+        }
+        fun getOwnedAppDlc(appId: Int): Map<Int, DepotInfo> = getAppDlc(appId).filter {
+            getPkgInfoOf(it.value.dlcAppId)?.let { pkg ->
+                instance?._steamClient?.let { steamClient ->
+                    pkg.ownerAccountId == steamClient.steamID.accountID.toInt()
+                }
+            } == true
+        }
 
-        fun isAppInstalled(appId: Int): Boolean = Files.exists(Paths.get(getAppDirPath(appId)))
-
-        fun getAppDirPath(appId: Int): String = Paths.get(
-            _steamData?.appInstallPath ?: "",
-            getAppInfoOf(appId)?.config?.installDir ?: ""
-        ).pathString
+        fun getAppDirPath(appId: Int): String {
+            var appName = getAppInfoOf(appId)?.config?.installDir ?: ""
+            if (appName.isEmpty()) {
+                appName = getAppInfoOf(appId)?.name ?: ""
+            }
+            return Paths.get(
+                _steamData?.appInstallPath ?: "",
+                appName
+            ).pathString
+        }
 
         fun deleteApp(appId: Int): Boolean {
+            _steamData?.appChangeNumbers?.remove(appId)
+            _steamData?.appFileChangeLists?.remove(appId)
+            saveSteamData()
             val appDirPath = getAppDirPath(appId)
             return File(appDirPath).deleteRecursively()
         }
@@ -274,7 +310,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 appInfo.depots.filter { depotEntry ->
                     // TODO: download shared install depots to a common location
                     val depot = depotEntry.value
-                    // depot.sharedInstall == false &&
+                    (depot.manifests.isNotEmpty() || depot.sharedInstall) &&
                     (
                         depot.osList.contains(OS.windows) ||
                         (
@@ -282,7 +318,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                             !depot.osList.contains(OS.macos)
                         )
                     ) &&
-                    (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown)
+                    (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
+                    (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(depot.depotId))
                 }.let { depotEntries ->
                     downloadApp(appId, depotEntries.keys.toList(), "public")
                 }
@@ -307,11 +344,11 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
             Log.d("SteamService", "Found ${depotIds.size} depot(s) to download: $depotIds")
 
-            val downloadInfo = DownloadInfo().also { downloadInfo ->
+            val downloadInfo = DownloadInfo(depotIds.size).also { downloadInfo ->
                 downloadInfo.setDownloadJob(
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            depotIds.forEach { depotId ->
+                            depotIds.forEachIndexed { jobIndex, depotId ->
                                 ContentDownloader(instance!!._steamClient!!).downloadApp(
                                     appId,
                                     depotId,
@@ -319,7 +356,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     _steamData!!.appStagingPath,
                                     branch,
                                     // maxDownloads = 1,
-                                    onDownloadProgress = { downloadInfo.setProgress(it) },
+                                    onDownloadProgress = { downloadInfo.setProgress(it, jobIndex) },
                                     parentScope = coroutineContext.job as CoroutineScope
                                 ).await()
                             }
@@ -404,6 +441,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun beginLaunchApp(
             appId: Int,
             parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
+            ignorePendingOperations: Boolean = false,
+            preferredSave: SaveLocation = SaveLocation.None,
             prefixToPath: (String) -> String,
         ): Deferred<PostSyncInfo> = parentScope.async {
             if (syncInProgress) {
@@ -416,30 +455,79 @@ class SteamService : Service(), IChallengeUrlChanged {
                 instance?.let { steamInstance ->
                     getAppInfoOf(appId)?.let { appInfo ->
                         steamInstance._steamCloud?.let { steamCloud ->
-                            syncUserFiles(
-                                appInfo,
-                                clientId,
-                                steamInstance,
-                                steamCloud,
-                                parentScope,
-                                prefixToPath
-                            ).await()?.let {
+                            val postSyncInfo = syncUserFiles(
+                                appInfo = appInfo,
+                                clientId = clientId,
+                                steamInstance = steamInstance,
+                                steamCloud = steamCloud,
+                                preferredSave = preferredSave,
+                                parentScope = parentScope,
+                                prefixToPath = prefixToPath,
+                            ).await()
+                            // steamCloud.appCloudSyncStats(
+                            //     appId = appId,
+                            //     platformType = EPlatformType.Win32,
+                            //     preload = false,
+                            //     blockingAppLaunch = true,
+                            //     filesUploaded = postSyncInfo?.filesUploaded ?: 0,
+                            //     filesDownloaded = postSyncInfo?.filesDownloaded ?: 0,
+                            //     filesDeleted = postSyncInfo?.filesDeleted ?: 0,
+                            //     filesManaged = postSyncInfo?.filesManaged ?: 0,
+                            //     bytesUploaded = postSyncInfo?.bytesUploaded ?: 0,
+                            //     bytesDownloaded = postSyncInfo?.bytesDownloaded ?: 0,
+                            //     microsecTotal = postSyncInfo?.microsecTotal ?: 0,
+                            //     microsecInitCaches = postSyncInfo?.microsecInitCaches ?: 0,
+                            //     microsecValidateState = postSyncInfo?.microsecValidateState ?: 0,
+                            //     microsecAcLaunch = postSyncInfo?.microsecAcLaunch ?: 0,
+                            //     microsecAcPrepUserFiles = postSyncInfo?.microsecAcPrepUserFiles ?: 0,
+                            //     microsecAcExit = postSyncInfo?.microsecAcExit ?: 0,
+                            //     microsecBuildSyncList = postSyncInfo?.microsecBuildSyncList ?: 0,
+                            //     microsecDeleteFiles = postSyncInfo?.microsecDeleteFiles ?: 0,
+                            //     microsecDownloadFiles = postSyncInfo?.microsecDownloadFiles ?: 0,
+                            //     microsecUploadFiles = postSyncInfo?.microsecUploadFiles ?: 0,
+                            // )
+                            postSyncInfo?.let {
                                 syncResult = it
                                 if (
                                     it.syncResult == SyncResult.Success ||
                                     it.syncResult == SyncResult.UpToDate
                                 ) {
+                                    Log.d("SteamService", "Signaling app launch:" +
+                                        "\n\tappId: $appId" +
+                                        "\n\tclientId: $clientId" +
+                                        "\n\tosType: ${EOSType.AndroidUnknown}"
+                                    )
                                     val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
                                         appId = appId,
                                         clientId = clientId,
-                                        osType = EOSType.AndroidUnknown
+                                        ignorePendingOperations = ignorePendingOperations,
+                                        osType = EOSType.AndroidUnknown,
                                     ).await()
-                                    if (pendingRemoteOperations.isNotEmpty()) {
+                                    if (pendingRemoteOperations.isNotEmpty() && !ignorePendingOperations) {
                                         syncResult = PostSyncInfo(
                                             SyncResult.PendingOperations,
-                                            pendingRemoteOperations = pendingRemoteOperations
+                                            pendingRemoteOperations = pendingRemoteOperations,
                                         )
+                                    } else if (ignorePendingOperations && pendingRemoteOperations.any {
+                                        it.operation == ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionActive
+                                    }) {
+                                        steamInstance._steamUser!!.kickPlayingSession()
                                     }
+                                    // else {
+                                    //     val gameId = GameID()
+                                    //     gameId.appID = appId
+                                    //     // TODO: un-hardcode
+                                    //     gameId.appType = GameID.GameType.APP
+                                    //     // TODO: un-hardcode
+                                    //     gameId.modID = 0
+                                    //     steamInstance._steamCloud?.sendClientAppUsageEvent(
+                                    //         gameId = gameId,
+                                    //         // TODO: un-hardcode
+                                    //         usageEvent = EAppUsageEvent.GameLaunch,
+                                    //         // TODO: un-hardcode
+                                    //         offline = 0,
+                                    //     )
+                                    // }
                                 }
                             }
                         }
@@ -464,18 +552,40 @@ class SteamService : Service(), IChallengeUrlChanged {
                     getAppInfoOf(appId)?.let { appInfo ->
                         steamInstance._steamCloud?.let { steamCloud ->
                             val postSyncInfo = syncUserFiles(
-                                appInfo,
-                                clientId,
-                                steamInstance,
-                                steamCloud,
-                                parentScope,
-                                prefixToPath
+                                appInfo = appInfo,
+                                clientId = clientId,
+                                steamInstance = steamInstance,
+                                steamCloud = steamCloud,
+                                parentScope = parentScope,
+                                prefixToPath = prefixToPath
                             ).await()
+                            // steamCloud.appCloudSyncStats(
+                            //     appId = appId,
+                            //     platformType = EPlatformType.Win32,
+                            //     preload = false,
+                            //     blockingAppLaunch = false,
+                            //     filesUploaded = postSyncInfo?.filesUploaded ?: 0,
+                            //     filesDownloaded = postSyncInfo?.filesDownloaded ?: 0,
+                            //     filesDeleted = postSyncInfo?.filesDeleted ?: 0,
+                            //     filesManaged = postSyncInfo?.filesManaged ?: 0,
+                            //     bytesUploaded = postSyncInfo?.bytesUploaded ?: 0,
+                            //     bytesDownloaded = postSyncInfo?.bytesDownloaded ?: 0,
+                            //     microsecTotal = postSyncInfo?.microsecTotal ?: 0,
+                            //     microsecInitCaches = postSyncInfo?.microsecInitCaches ?: 0,
+                            //     microsecValidateState = postSyncInfo?.microsecValidateState ?: 0,
+                            //     microsecAcLaunch = postSyncInfo?.microsecAcLaunch ?: 0,
+                            //     microsecAcPrepUserFiles = postSyncInfo?.microsecAcPrepUserFiles ?: 0,
+                            //     microsecAcExit = postSyncInfo?.microsecAcExit ?: 0,
+                            //     microsecBuildSyncList = postSyncInfo?.microsecBuildSyncList ?: 0,
+                            //     microsecDeleteFiles = postSyncInfo?.microsecDeleteFiles ?: 0,
+                            //     microsecDownloadFiles = postSyncInfo?.microsecDownloadFiles ?: 0,
+                            //     microsecUploadFiles = postSyncInfo?.microsecUploadFiles ?: 0,
+                            // )
                             steamCloud.signalAppExitSyncDone(
                                 appId = appId,
                                 clientId = clientId,
                                 uploadsCompleted = postSyncInfo?.uploadsCompleted == true,
-                                uploadsRequired = postSyncInfo?.uploadsRequired == true,
+                                uploadsRequired = postSyncInfo?.uploadsRequired == false,
                             )
                         }
                     }
@@ -533,466 +643,629 @@ class SteamService : Service(), IChallengeUrlChanged {
             val filesModified: List<UserFileInfo>,
             val filesCreated: List<UserFileInfo>,
         )
+
+        /**
+         * [Steam Auto Cloud](https://partner.steamgames.com/doc/features/cloud#steam_auto-cloud)
+         */
         fun syncUserFiles(
             appInfo: AppInfo,
             clientId: Long,
             steamInstance: SteamService,
             steamCloud: SteamCloud,
+            preferredSave: SaveLocation = SaveLocation.None,
             parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
             prefixToPath: (String) -> String,
         ): Deferred<PostSyncInfo?> = parentScope.async {
             var postSyncInfo: PostSyncInfo? = null
             _steamData?.let { steamData ->
-                    Log.d("SteamService", "Retrieving save files of ${appInfo.name}")
+                Log.d("SteamService", "Retrieving save files of ${appInfo.name}")
 
-                    val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
-                        Log.d("SteamService",
-                            "GetAppFileListChange($appInfo.appId):" +
-                            "\n\tTotal Files: ${fileList.files.size}" +
-                            "\n\tCurrent Change Number: ${fileList.currentChangeNumber}" +
-                            "\n\tIs Only Delta: ${fileList.isOnlyDelta}" +
-                            "\n\tApp BuildID Hwm: ${fileList.appBuildIDHwm}" +
-                            "\n\tPath Prefixes: \n\t\t${fileList.pathPrefixes.joinToString("\n\t\t")}" +
-                            "\n\tMachine Names: \n\t\t${fileList.machineNames.joinToString("\n\t\t")}" +
-                            fileList.files.map {
-                                "\n\t${it.filename}:" +
-                                "\n\t\tshaFile: ${it.shaFile}" +
-                                "\n\t\ttimestamp: ${it.timestamp}" +
-                                "\n\t\trawFileSize: ${it.rawFileSize}" +
-                                "\n\t\tpersistState: ${it.persistState}" +
-                                "\n\t\tplatformsToSync: ${it.platformsToSync}" +
-                                "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
-                                "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
-                            }.joinToString()
+                val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
+                    Log.d("SteamService",
+                        "GetAppFileListChange($appInfo.appId):" +
+                        "\n\tTotal Files: ${fileList.files.size}" +
+                        "\n\tCurrent Change Number: ${fileList.currentChangeNumber}" +
+                        "\n\tIs Only Delta: ${fileList.isOnlyDelta}" +
+                        "\n\tApp BuildID Hwm: ${fileList.appBuildIDHwm}" +
+                        "\n\tPath Prefixes: \n\t\t${fileList.pathPrefixes.joinToString("\n\t\t")}" +
+                        "\n\tMachine Names: \n\t\t${fileList.machineNames.joinToString("\n\t\t")}" +
+                        fileList.files.map {
+                            "\n\t${it.filename}:" +
+                            "\n\t\tshaFile: ${it.shaFile}" +
+                            "\n\t\ttimestamp: ${it.timestamp}" +
+                            "\n\t\trawFileSize: ${it.rawFileSize}" +
+                            "\n\t\tpersistState: ${it.persistState}" +
+                            "\n\t\tplatformsToSync: ${it.platformsToSync}" +
+                            "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
+                            "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
+                        }.joinToString()
+                    )
+                }
+                val getPathTypePairs: (AppFileChangeList) -> List<Pair<String, String>> = { fileList ->
+                    fileList.pathPrefixes.map {
+                        val matchResults = Regex("%\\w+%").findAll(it).map { it.value }.toList()
+                        Log.d("SteamService", "Mapping prefix $it and found $matchResults")
+                        matchResults
+                    }.flatten()
+                    .distinct()
+                    .map {
+                        Pair(it, prefixToPath(it))
+                    }
+                }
+                val convertPrefixes: (AppFileChangeList) -> List<String> = { fileList ->
+                    val pathTypePairs = getPathTypePairs(fileList)
+                    fileList.pathPrefixes.map { prefix ->
+                        var modified = prefix
+                        pathTypePairs.forEach {
+                            modified = modified.replace(it.first, it.second)
+                        }
+                        modified
+                    }
+                }
+                val getFilePrefix: (AppFileInfo, AppFileChangeList) -> String = { file, fileList ->
+                    if (file.pathPrefixIndex < fileList.pathPrefixes.size)
+                        Paths.get(fileList.pathPrefixes[file.pathPrefixIndex]).pathString
+                    else
+                        Paths.get("%${PathType.GameInstall.name}%").pathString
+                }
+                val getFilePrefixPath: (AppFileInfo, AppFileChangeList) -> String = { file, fileList ->
+                    Paths.get(getFilePrefix(file, fileList), file.filename).pathString
+                }
+                val getFullFilePath: (AppFileInfo, AppFileChangeList) -> Path = { file, fileList ->
+                    val convertedPrefixes = convertPrefixes(fileList)
+                    if (file.pathPrefixIndex < fileList.pathPrefixes.size)
+                        Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
+                    else
+                        Paths.get(getAppDirPath(appInfo.appId), file.filename)
+                }
+                val getFilesDiff: (List<UserFileInfo>, List<UserFileInfo>) -> Pair<Boolean, FileChanges> = { currentFiles, oldFiles ->
+                    val overlappingFiles = currentFiles.filter { currentFile ->
+                        oldFiles.any { currentFile.getPrefixPath() == it.getPrefixPath() }
+                    }
+                    val newFiles = currentFiles.filter { currentFile ->
+                        !oldFiles.any { currentFile.getPrefixPath() == it.getPrefixPath() }
+                    }
+                    val deletedFiles = oldFiles.filter { oldFile ->
+                        !currentFiles.any { oldFile.getPrefixPath() == it.getPrefixPath() }
+                    }
+                    val modifiedFiles = overlappingFiles.filter { file ->
+                        oldFiles.first {
+                            it.getPrefixPath() == file.getPrefixPath()
+                        }.let {
+                            Log.d("SteamService", "Comparing SHA of ${it.getPrefixPath()} and ${file.getPrefixPath()}")
+                            Log.d("SteamService", "[${it.sha.joinToString(", ")}]\n[${file.sha.joinToString(", ")}]")
+                            !it.sha.contentEquals(file.sha)
+                        }
+                    }
+                    val changesExist =
+                        newFiles.isNotEmpty() ||
+                        deletedFiles.isNotEmpty() ||
+                        modifiedFiles.isNotEmpty()
+                    Pair(changesExist, FileChanges(deletedFiles, modifiedFiles, newFiles))
+                }
+                val hasHashConflicts: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean = { localUserFiles, fileList ->
+                    fileList.files.any { file ->
+                        Log.d("SteamService", "Checking for ${getFilePrefix(file, fileList)} in ${localUserFiles.keys}")
+                        localUserFiles[getFilePrefix(file, fileList)]?.let { localUserFile ->
+                            localUserFile.firstOrNull {
+                                Log.d("SteamService", "Comparing ${file.filename} and ${it.filename}")
+                                it.filename == file.filename
+                            }?.let {
+                                Log.d("SteamService", "Comparing SHA of ${getFilePrefixPath(file, fileList)} and ${it.getPrefixPath()}")
+                                Log.d("SteamService", "[${file.shaFile.joinToString(", ")}]\n[${it.sha.joinToString(", ")}]")
+                                !file.shaFile.contentEquals(it.sha)
+                            }
+                        } == true
+                    }
+                }
+                val hasHashConflictsOrRemoteMissingFiles: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean = { localUserFiles, fileList ->
+                    localUserFiles.values.any {
+                        it.any { localUserFile ->
+                            fileList.files.firstOrNull { cloudFile ->
+                                val cloudFilePath = getFilePrefixPath(cloudFile, fileList)
+                                val localFilePath = Paths.get(localUserFile.getPrefix(), localUserFile.filename).pathString
+                                Log.d("SteamService", "Comparing $cloudFilePath and $localFilePath")
+                                cloudFilePath == localFilePath
+                            }?.let {
+                                Log.d("SteamService", "Comparing SHA of ${getFilePrefixPath(it, fileList)} and ${localUserFile.getPrefixPath()}")
+                                Log.d("SteamService", "[${it.shaFile.joinToString(", ")}]\n[${localUserFile.sha.joinToString(", ")}]")
+                                it.shaFile.contentEquals(localUserFile.sha)
+                            } != true
+                        }
+                    }
+                }
+                val getLocalUserFilesAsPrefixMap: () -> Map<String, List<UserFileInfo>> = {
+                    appInfo.ufs.saveFilePatterns.filter { userFile ->
+                        userFile.root.isWindows()
+                    }.map { userFile ->
+                        Pair(
+                            Paths.get(userFile.getPrefix()).pathString,
+                            FileUtils.findFiles(
+                                Paths.get(
+                                    prefixToPath(userFile.root.toString()),
+                                    userFile.path
+                                ),
+                                userFile.pattern
+                            ).map {
+                                val sha = CryptoHelper.shaHash(Files.readAllBytes(it))
+                                Log.d("SteamService", "Found ${it.pathString}\n\tin ${userFile.getPrefix()}\n\twith sha [${sha.joinToString(", ")}]")
+                                UserFileInfo(
+                                    userFile.root,
+                                    userFile.path,
+                                    it.name,
+                                    Files.getLastModifiedTime(it).toMillis(),
+                                    sha
+                                )
+                            }.collect(Collectors.toList())
+                        )
+                    }.toMap()
+                }
+                val fileChangeListToUserFiles: (AppFileChangeList) -> List<UserFileInfo> = { appFileListChange ->
+                    val pathTypePairs = getPathTypePairs(appFileListChange)
+                    appFileListChange.files.map { UserFileInfo(
+                        root = if (it.pathPrefixIndex < pathTypePairs.size)
+                            PathType.from(pathTypePairs[it.pathPrefixIndex].first)
+                        else
+                            PathType.GameInstall,
+                        path = if (it.pathPrefixIndex < pathTypePairs.size)
+                            appFileListChange.pathPrefixes[it.pathPrefixIndex]
+                        else
+                            "",
+                        filename = it.filename,
+                        timestamp = it.timestamp.time,
+                        sha = it.shaFile,
+                    ) }
+                }
+                val buildUrl: (Boolean, String, String) -> String = { useHttps, urlHost, urlPath ->
+                    val scheme = if (useHttps) "https://" else "http://"
+                    "$scheme${urlHost}${urlPath}"
+                }
+
+                val prootTimestampToDate: (Long) -> Date = { originalTimestamp ->
+                    val androidTimestamp = System.currentTimeMillis()
+                    val prootTimestamp = getProotTime(steamInstance)
+                    val timeDifference = androidTimestamp - prootTimestamp
+                    val adjustedTimestamp = originalTimestamp + timeDifference
+                    Log.d("SteamService", "Android: $androidTimestamp, PRoot: $prootTimestamp, $originalTimestamp -> $adjustedTimestamp")
+                    Date(adjustedTimestamp)
+                }
+                val downloadFiles: (AppFileChangeList, CoroutineScope) -> Deferred<UserFilesDownloadResult> = { fileList, parentScope ->
+                    parentScope.async {
+                        var filesDownloaded = 0
+                        var bytesDownloaded = 0L
+                        // val convertedPrefixes = convertPrefixes(fileList)
+                        fileList.files.forEach { file ->
+                            val prefixedPath = getFilePrefixPath(file, fileList)
+                            val actualFilePath = getFullFilePath(file, fileList)
+                            Log.d("SteamService", "$prefixedPath -> $actualFilePath")
+
+                            val fileDownloadInfo = steamCloud.clientFileDownload(appInfo.appId, prefixedPath).await()
+                            if (fileDownloadInfo.urlHost.isNotEmpty()) {
+                                val httpUrl = buildUrl(
+                                    fileDownloadInfo.useHttps,
+                                    fileDownloadInfo.urlHost,
+                                    fileDownloadInfo.urlPath
+                                )
+                                Log.d("SteamService", "Downloading $httpUrl")
+                                val request = Request.Builder()
+                                    .url(httpUrl)
+                                    .headers(Headers.headersOf
+                                        (*fileDownloadInfo.requestHeaders
+                                            .map { listOf(it.name, it.value) }
+                                            .flatten()
+                                            .toTypedArray()
+                                        )
+                                    )
+                                    .build()
+                                val httpClient = steamInstance._steamClient!!.configuration.httpClient
+                                withTimeout(requestTimeout) {
+                                    val response = httpClient.newCall(request).execute()
+
+                                    if (!response.isSuccessful) {
+                                        Log.e("SteamService", "File download of $prefixedPath was unsuccessful")
+                                        return@withTimeout
+                                    }
+
+                                    val copyToFile: (InputStream) -> Unit = { input ->
+                                        Files.createDirectories(actualFilePath.parent)
+                                        FileOutputStream(actualFilePath.toString()).use { fs ->
+                                            val bytesRead = input.copyTo(fs)
+                                            if (bytesRead != fileDownloadInfo.rawFileSize.toLong()) {
+                                                Log.e("SteamService", "Bytes read from stream of $prefixedPath does not match expected size")
+                                            }
+                                        }
+                                    }
+
+                                    withTimeout(responseBodyTimeout) {
+                                        if (fileDownloadInfo.fileSize != fileDownloadInfo.rawFileSize) {
+                                            response.body?.byteStream()?.use { inputStream ->
+                                                ZipInputStream(inputStream).use { zipInput ->
+                                                    val entry = zipInput.nextEntry
+                                                    if (entry == null) {
+                                                        Log.w("SteamService", "Downloaded user file $prefixedPath has no zip entries")
+                                                        return@withTimeout
+                                                    }
+
+                                                    copyToFile(zipInput)
+                                                    if (zipInput.nextEntry != null) {
+                                                        Log.e("SteamService", "Downloaded user file $prefixedPath has more than one zip entry")
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            response.body?.byteStream()?.use { inputStream ->
+                                                copyToFile(inputStream)
+                                            }
+                                        }
+                                        filesDownloaded++
+                                        bytesDownloaded += fileDownloadInfo.fileSize
+                                    }
+                                }
+                            } else {
+                                Log.w("SteamService", "URL host of $prefixedPath was empty")
+                            }
+                        }
+                        UserFilesDownloadResult(
+                            filesDownloaded,
+                            bytesDownloaded,
                         )
                     }
-                    val getPathTypePairs: (AppFileChangeList) -> List<Pair<String, String>> = { fileList ->
-                        fileList.pathPrefixes.map {
-                            val matchResults = Regex("%\\w+%").findAll(it).map { it.value }.toList()
-                            Log.d("SteamService", "Mapping prefix $it and found $matchResults")
-                            matchResults
-                        }.flatten()
-                        .distinct()
-                        .map {
-                            Pair(it, prefixToPath(it))
-                        }
-                    }
-                    val convertPrefixes: (AppFileChangeList) -> List<String> = { fileList ->
-                        val pathTypePairs = getPathTypePairs(fileList)
-                        fileList.pathPrefixes.map { prefix ->
-                            var modified = prefix
-                            pathTypePairs.forEach {
-                                modified = modified.replace(it.first, it.second)
-                            }
-                            modified
-                        }
-                    }
-                    val getFilePrefix: (AppFileInfo, AppFileChangeList) -> String = { file, fileList ->
-                        if (file.pathPrefixIndex < fileList.pathPrefixes.size)
-                            Paths.get(fileList.pathPrefixes[file.pathPrefixIndex]).pathString
-                        else
-                            Paths.get("%${PathType.GameInstall.name}%").pathString
-                    }
-                    val getFilePrefixPath: (AppFileInfo, AppFileChangeList) -> String = { file, fileList ->
-                        Paths.get(getFilePrefix(file, fileList), file.filename).pathString
-                    }
-                    val getFullFilePath: (AppFileInfo, AppFileChangeList) -> Path = { file, fileList ->
-                        val convertedPrefixes = convertPrefixes(fileList)
-                        if (file.pathPrefixIndex < fileList.pathPrefixes.size)
-                            Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
-                        else
-                            Paths.get(getAppDirPath(appInfo.appId), file.filename)
-                    }
-                    val haveLocalFilesChanged: (List<UserFileInfo>, List<UserFileInfo>) -> Pair<Boolean, FileChanges> = { currentFiles, oldFiles ->
-                        val overlappingFiles = currentFiles.filter { currentFile ->
-                            oldFiles.any { currentFile.getPrefixPath() == it.getPrefixPath() }
-                        }
-                        val newFiles = currentFiles.filter { currentFile ->
-                            !oldFiles.any { currentFile.getPrefixPath() == it.getPrefixPath() }
-                        }
-                        val deletedFiles = oldFiles.filter { oldFile ->
-                            !currentFiles.any { oldFile.getPrefixPath() == it.getPrefixPath() }
-                        }
-                        val modifiedFiles = overlappingFiles.filter { file ->
-                            oldFiles.first {
-                                it.getPrefixPath() == file.getPrefixPath()
-                            }.let {
-                                Log.d("SteamService", "Comparing SHA of ${it.getPrefixPath()} and ${file.getPrefixPath()}")
-                                Log.d("SteamService", "[${it.sha.joinToString(", ")}]\n[${file.sha.joinToString(", ")}]")
-                                !it.sha.contentEquals(file.sha)
-                            }
-                        }
-                        val changesExist =
-                            newFiles.isNotEmpty() ||
-                            deletedFiles.isNotEmpty() ||
-                            modifiedFiles.isNotEmpty()
-                        Pair(changesExist, FileChanges(deletedFiles, modifiedFiles, newFiles))
-
-                        // if (currentFiles.size != oldFiles.size) true
-                        // else {
-                        //     val sortedCurrent = currentFiles.sortedBy { it.getPrefixPath() }
-                        //     val sortedOld = oldFiles.sortedBy { it.getPrefixPath() }
-                        //     sortedCurrent.mapIndexed { index, currentFile ->
-                        //         Log.d("SteamService", "Comparing SHA of ${currentFile.getPrefixPath()} and ${sortedOld[index].getPrefixPath()}")
-                        //         Log.d("SteamService", "[${currentFile.sha.joinToString(", ")}]\n[${sortedOld[index].sha.joinToString(", ")}]")
-                        //         !currentFile.sha.contentEquals(sortedOld[index].sha)
-                        //     }.any { it }
-                        // }
-                    }
-                    val hasHashConflicts: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean = { localUserFiles, fileList ->
-                        fileList.files.any { file ->
-                            Log.d("SteamService", "Checking for ${getFilePrefix(file, fileList)} in ${localUserFiles.keys}")
-                            localUserFiles[getFilePrefix(file, fileList)]?.let { localUserFile ->
-                                localUserFile.firstOrNull {
-                                    Log.d("SteamService", "Comparing ${file.filename} and ${it.filename}")
-                                    it.filename == file.filename
-                                }?.let {
-                                    Log.d("SteamService", "Comparing SHA of ${getFilePrefixPath(file, fileList)} and ${it.getPrefixPath()}")
-                                    Log.d("SteamService", "[${file.shaFile.joinToString(", ")}]\n[${it.sha.joinToString(", ")}]")
-                                    !file.shaFile.contentEquals(it.sha)
-                                }
-                            } == true
-                        }
-                    }
-                    val hasHashConflictsOrRemoteMissingFiles: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean = { localUserFiles, fileList ->
-                        localUserFiles.values.any {
-                            it.any { localUserFile ->
-                                fileList.files.firstOrNull { cloudFile ->
-                                    val cloudFilePath = getFilePrefixPath(cloudFile, fileList)
-                                    val localFilePath = Paths.get(localUserFile.getPrefix(), localUserFile.filename).pathString
-                                    Log.d("SteamService", "Comparing $cloudFilePath and $localFilePath")
-                                    cloudFilePath == localFilePath
-                                }?.let {
-                                    Log.d("SteamService", "Comparing SHA of ${getFilePrefixPath(it, fileList)} and ${localUserFile.getPrefixPath()}")
-                                    Log.d("SteamService", "[${it.shaFile.joinToString(", ")}]\n[${localUserFile.sha.joinToString(", ")}]")
-                                    it.shaFile.contentEquals(localUserFile.sha)
-                                } != true
-                            }
-                        }
-                    }
-                    val getLocalUserFilesAsPrefixMap: () -> Map<String, List<UserFileInfo>> = {
-                        appInfo.ufs.saveFilePatterns.filter { userFile ->
-                            userFile.root.isWindows()
-                        }.map { userFile ->
-                            Pair(
-                                Paths.get(userFile.getPrefix()).pathString,
-                                FileUtils.findFiles(
-                                    Paths.get(
-                                        prefixToPath(userFile.root.toString()),
-                                        userFile.path
-                                    ),
-                                    userFile.pattern
-                                ).map {
-                                    val sha = CryptoHelper.shaHash(Files.readAllBytes(it))
-                                    Log.d("SteamService", "Found ${it.pathString}\n\tin ${userFile.getPrefix()}\n\twith sha [${sha.joinToString(", ")}]")
-                                    UserFileInfo(
-                                        userFile.root,
-                                        userFile.path,
-                                        it.name,
-                                        Files.getLastModifiedTime(it).toMillis(),
-                                        sha
-                                    )
-                                    // Pair(it, CryptoHelper.shaHash(Files.readAllBytes(it)))
-                                }.collect(Collectors.toList())
-                            )
-                        }.toMap()
-                    }
-                    val buildUrl: (Boolean, String, String) -> String = { useHttps, urlHost, urlPath ->
-                        val scheme = if (useHttps) "https://" else "http://"
-                        "$scheme${urlHost}${urlPath}"
-                    }
-
-                    val prootTimestampToDate: (Long) -> Date = { originalTimestamp ->
-                        val androidTimestamp = System.currentTimeMillis()
-                        val prootTimestamp = getProotTime(steamInstance)
-                        val timeDifference = androidTimestamp - prootTimestamp
-                        val adjustedTimestamp = originalTimestamp + timeDifference
-                        Log.d("SteamService", "Android: $androidTimestamp, PRoot: $prootTimestamp, $originalTimestamp -> $adjustedTimestamp")
-                        Date(adjustedTimestamp)
-                    }
-                    val downloadFiles: (AppFileChangeList, CoroutineScope) -> Deferred<Unit> = { fileList, parentScope ->
-                        parentScope.async {
-                            // val convertedPrefixes = convertPrefixes(fileList)
-                            fileList.files.forEach { file ->
-                                val prefixedPath = getFilePrefixPath(file, fileList)
-                                val actualFilePath = getFullFilePath(file, fileList)
-                                Log.d("SteamService", "$prefixedPath -> $actualFilePath")
-
-                                val fileDownloadInfo = steamCloud.clientFileDownload(appInfo.appId, prefixedPath).await()
-                                if (fileDownloadInfo.urlHost.isNotEmpty()) {
+                }
+                val uploadFiles: (FileChanges, CoroutineScope) -> Deferred<UserFilesUploadResult> = { fileChanges, parentScope ->
+                    parentScope.async {
+                        var filesUploaded = 0
+                        var bytesUploaded = 0L
+                        val filesToDelete = fileChanges.filesDeleted.map { it.getPrefixPath() }
+                        val filesToUpload = fileChanges.filesCreated.union(fileChanges.filesModified).map { Pair(it.getPrefixPath(), it) }
+                        Log.d("SteamService", "Beginning app upload batch with ${filesToDelete.size} file(s) to delete and ${filesToUpload.size} file(s) to upload")
+                        val uploadBatchResponse = steamCloud.beginAppUploadBatch(
+                            appId = appInfo.appId,
+                            clientId = clientId,
+                            filesToDelete = filesToDelete,
+                            filesToUpload = filesToUpload.map { it.first },
+                            // TODO: have branch be user selected and use that selection here
+                            appBuildId = appInfo.branches["public"]?.buildId ?: 0
+                        ).await()
+                        var uploadBatchSuccess = true
+                        filesToUpload.map { it.second }.forEach { file ->
+                            val absFilePath = file.getAbsPath(prefixToPath)
+                            val fileSize = Files.size(absFilePath).toInt()
+                            Log.d("SteamService", "Beginning upload of ${file.getPrefixPath()} whose timestamp is ${file.timestamp}")
+                            val uploadInfo = steamCloud.beginFileUpload(
+                                appId = appInfo.appId,
+                                filename = file.getPrefixPath(),
+                                fileSize = fileSize,
+                                rawFileSize = fileSize,
+                                fileSha = file.sha,
+                                // timestamp = prootTimestampToDate(file.timestamp),
+                                timestamp = Date(file.timestamp),
+                                uploadBatchId = uploadBatchResponse.batchID,
+                            ).await()
+                            var uploadFileSuccess = true
+                            RandomAccessFile(absFilePath.pathString, "r").use { fs ->
+                                uploadInfo.blockRequests.forEach { blockRequest ->
                                     val httpUrl = buildUrl(
-                                        fileDownloadInfo.useHttps,
-                                        fileDownloadInfo.urlHost,
-                                        fileDownloadInfo.urlPath
+                                        blockRequest.useHttps,
+                                        blockRequest.urlHost,
+                                        blockRequest.urlPath
                                     )
-                                    Log.d("SteamService", "Downloading $httpUrl")
+                                    Log.d("SteamService", "Uploading to $httpUrl")
+
+                                    Log.d("SteamService",
+                                        "Block Request:" +
+                                        "\n\tblockOffset: ${blockRequest.blockOffset}" +
+                                        "\n\tblockLength: ${blockRequest.blockLength}" +
+                                        "\n\trequestHeaders:\n\t\t${blockRequest.requestHeaders.map { "${it.name}: ${it.value}" }.joinToString("\n\t\t")}" +
+                                        "\n\texplicitBodyData: [${blockRequest.explicitBodyData.joinToString(", ")}]" +
+                                        "\n\tmayParallelize: ${blockRequest.mayParallelize}"
+                                    )
+                                    val byteArray = ByteArray(blockRequest.blockLength)
+                                    fs.seek(blockRequest.blockOffset)
+                                    val bytesRead = fs.read(byteArray, 0, blockRequest.blockLength)
+                                    Log.d("SteamService", "Read $bytesRead byte(s) for block")
+                                    val mediaType = "application/octet-stream".toMediaTypeOrNull()
+                                    val requestBody = byteArray.toRequestBody(mediaType)
+                                    // val requestBody = byteArray.toRequestBody()
+
+                                    val headers = Headers.headersOf(
+                                        *blockRequest.requestHeaders
+                                            .map { listOf(it.name, it.value) }
+                                            .flatten()
+                                            .toTypedArray()
+                                    )
+
                                     val request = Request.Builder()
                                         .url(httpUrl)
-                                        .headers(Headers.headersOf
-                                            (*fileDownloadInfo.requestHeaders
-                                                .map { listOf(it.name, it.value) }
-                                                .flatten()
-                                                .toTypedArray()
-                                            )
-                                        )
+                                        .put(requestBody)
+                                        .headers(headers)
+                                        .addHeader("Accept", "text/html,*/*;q=0.9")
+                                        .addHeader("accept-encoding", "gzip,identity,*;q=0")
+                                        .addHeader("accept-charset", "ISO-8859-1,utf-8,*;q=0.7")
+                                        .addHeader("user-agent", "Valve/Steam HTTP Client 1.0")
                                         .build()
                                     val httpClient = steamInstance._steamClient!!.configuration.httpClient
+
+                                    Log.d("SteamService", "Sending request to ${request.url} using\n$request")
                                     withTimeout(requestTimeout) {
                                         val response = httpClient.newCall(request).execute()
 
                                         if (!response.isSuccessful) {
-                                            Log.e("SteamService", "File download of $prefixedPath was unsuccessful")
-                                            return@withTimeout
-                                        }
-
-                                        val copyToFile: (InputStream) -> Unit = { input ->
-                                            Files.createDirectories(actualFilePath.parent)
-                                            FileOutputStream(actualFilePath.toString()).use { fs ->
-                                                val bytesRead = input.copyTo(fs)
-                                                if (bytesRead != fileDownloadInfo.rawFileSize.toLong()) {
-                                                    Log.e("SteamService", "Bytes read from stream of $prefixedPath does not match expected size")
-                                                }
-                                            }
-                                        }
-
-                                        withTimeout(responseBodyTimeout) {
-                                            if (fileDownloadInfo.fileSize != fileDownloadInfo.rawFileSize) {
-                                                response.body?.byteStream()?.use { inputStream ->
-                                                    ZipInputStream(inputStream).use { zipInput ->
-                                                        val entry = zipInput.nextEntry
-                                                        if (entry == null) {
-                                                            Log.w("SteamService", "Downloaded user file $prefixedPath has no zip entries")
-                                                            return@withTimeout
-                                                        }
-
-                                                        copyToFile(zipInput)
-                                                        if (zipInput.nextEntry != null) {
-                                                            Log.e("SteamService", "Downloaded user file $prefixedPath has more than one zip entry")
-                                                        }
-                                                    }
-                                                }
-                                            } else {
-                                                response.body?.byteStream()?.use { inputStream ->
-                                                    copyToFile(inputStream)
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Log.w("SteamService", "URL host of $prefixedPath was empty")
-                                }
-                            }
-                        }
-                    }
-                    val uploadFiles: (FileChanges, CoroutineScope) -> Deferred<Pair<Boolean, Long>> = { fileChanges, parentScope ->
-                        parentScope.async {
-                            val filesToDelete = fileChanges.filesDeleted.map { it.getPrefixPath() }
-                            val filesToUpload = fileChanges.filesCreated.union(fileChanges.filesModified).map { Pair(it.getPrefixPath(), it) }
-                            Log.d("SteamService", "Beginning app upload batch with ${filesToDelete.size} file(s) to delete and ${filesToUpload.size} file(s) to upload")
-                            val uploadBatchResponse = steamCloud.beginAppUploadBatch(
-                                appId = appInfo.appId,
-                                clientId = clientId,
-                                filesToDelete = filesToDelete,
-                                filesToUpload = filesToUpload.map { it.first },
-                                // TODO: have branch be user selected and use that selection here
-                                appBuildId = appInfo.branches["public"]?.buildId ?: 0
-                            ).await()
-                            var uploadBatchSuccess = true
-                            filesToUpload.map { it.second }.forEach { file ->
-                                val absFilePath = Paths.get(prefixToPath(file.root.toString()), file.path, file.filename)
-                                val fileSize = Files.size(absFilePath).toInt()
-                                Log.d("SteamService", "Beginning upload of ${file.getPrefixPath()} whose timestamp is ${file.timestamp}")
-                                val uploadInfo = steamCloud.beginFileUpload(
-                                    appId = appInfo.appId,
-                                    filename = file.getPrefixPath(),
-                                    fileSize = fileSize,
-                                    rawFileSize = fileSize,
-                                    fileSha = file.sha,
-                                    // timestamp = prootTimestampToDate(file.timestamp),
-                                    timestamp = Date(file.timestamp),
-                                    uploadBatchId = uploadBatchResponse.batchID,
-                                ).await()
-                                var uploadFileSuccess = true
-                                RandomAccessFile(absFilePath.pathString, "r").use { fs ->
-                                    uploadInfo.blockRequests.forEach { blockRequest ->
-                                        val httpUrl = buildUrl(
-                                            blockRequest.useHttps,
-                                            blockRequest.urlHost,
-                                            blockRequest.urlPath
-                                        )
-                                        Log.d("SteamService", "Uploading to $httpUrl")
-
-                                        Log.d("SteamService",
-                                            "Block Request:" +
-                                            "\n\tblockOffset: ${blockRequest.blockOffset}" +
-                                            "\n\tblockLength: ${blockRequest.blockLength}" +
-                                            "\n\trequestHeaders:\n\t\t${blockRequest.requestHeaders.map { "${it.name}: ${it.value}" }.joinToString("\n\t\t")}" +
-                                            "\n\texplicitBodyData: [${blockRequest.explicitBodyData.joinToString(", ")}]" +
-                                            "\n\tmayParallelize: ${blockRequest.mayParallelize}"
-                                        )
-                                        val byteArray = ByteArray(blockRequest.blockLength)
-                                        fs.seek(blockRequest.blockOffset)
-                                        val bytesRead = fs.read(byteArray, 0, blockRequest.blockLength)
-                                        Log.d("SteamService", "Read $bytesRead byte(s) for block")
-                                        val mediaType = "application/octet-stream".toMediaTypeOrNull()
-                                        val requestBody = byteArray.toRequestBody(mediaType)
-                                        // val requestBody = byteArray.toRequestBody()
-
-                                        val headers = Headers.headersOf(
-                                            *blockRequest.requestHeaders
-                                                .map { listOf(it.name, it.value) }
-                                                .flatten()
-                                                .toTypedArray()
-                                        )
-
-                                        // val request = Request.Builder()
-                                        //     .url(httpUrl)
-                                        //     .post(requestBody)
-                                        //     .headers(headers)
-                                        //     .build()
-                                        val request = Request.Builder()
-                                            .url(httpUrl)
-                                            .put(requestBody)
-                                            .headers(headers)
-                                            .addHeader("Accept", "text/html,*/*;q=0.9")
-                                            .addHeader("accept-encoding", "gzip,identity,*;q=0")
-                                            .addHeader("accept-charset", "ISO-8859-1,utf-8,*;q=0.7")
-                                            .addHeader("user-agent", "Valve/Steam HTTP Client 1.0")
-                                            .build()
-                                        val httpClient = steamInstance._steamClient!!.configuration.httpClient
-
-                                        Log.d("SteamService", "Sending request to ${request.url} using\n$request")
-                                        withTimeout(requestTimeout) {
-                                            val response = httpClient.newCall(request).execute()
-
-                                            if (!response.isSuccessful) {
-                                                Log.e(
-                                                    "SteamService",
-                                                    "Failed to upload part of ${file.getPrefixPath()}: ${response.message}, ${response.body?.string()}"
-                                                )
-                                                uploadFileSuccess = false
-                                                uploadBatchSuccess = false
-                                            }
+                                            Log.e(
+                                                "SteamService",
+                                                "Failed to upload part of ${file.getPrefixPath()}: ${response.message}, ${response.body?.string()}"
+                                            )
+                                            uploadFileSuccess = false
+                                            uploadBatchSuccess = false
                                         }
                                     }
                                 }
-                                val commitSuccess = steamCloud.commitFileUpload(
-                                    transferSucceeded = uploadFileSuccess,
-                                    appId = appInfo.appId,
-                                    fileSha = file.sha,
-                                    filename = file.getPrefixPath(),
-                                ).await()
-                                Log.d("SteamService", "File ${file.getPrefixPath()} commit success: $commitSuccess")
                             }
-                            steamCloud.completeAppUploadBatch(
+                            if (uploadFileSuccess) {
+                                filesUploaded++
+                                bytesUploaded += fileSize
+                            }
+                            val commitSuccess = steamCloud.commitFileUpload(
+                                transferSucceeded = uploadFileSuccess,
                                 appId = appInfo.appId,
-                                batchId = uploadBatchResponse.batchID,
-                                batchEResult = if (uploadBatchSuccess) EResult.OK else EResult.Fail
+                                fileSha = file.sha,
+                                filename = file.getPrefixPath(),
                             ).await()
-                            Pair(uploadBatchSuccess, uploadBatchResponse.appChangeNumber)
+                            Log.d("SteamService", "File ${file.getPrefixPath()} commit success: $commitSuccess")
                         }
+                        steamCloud.completeAppUploadBatch(
+                            appId = appInfo.appId,
+                            batchId = uploadBatchResponse.batchID,
+                            batchEResult = if (uploadBatchSuccess) EResult.OK else EResult.Fail
+                        ).await()
+                        UserFilesUploadResult(
+                            uploadBatchSuccess,
+                            uploadBatchResponse.appChangeNumber,
+                            filesUploaded,
+                            bytesUploaded,
+                        )
                     }
+                }
 
-                    var syncResult = SyncResult.Success
-                    var remoteTimestamp = 0L
-                    var localTimestamp = 0L
-                    var uploadsRequired = false
-                    var uploadsCompleted = false
+                var syncResult = SyncResult.Success
+                var remoteTimestamp = 0L
+                var localTimestamp = 0L
+                var uploadsRequired = false
+                var uploadsCompleted = true
+                // sync metrics
+                var filesUploaded = 0
+                var filesDownloaded = 0
+                var filesDeleted = 0
+                var filesManaged = 0
+                var bytesUploaded = 0L
+                var bytesDownloaded = 0L
+                var microsecTotal = 0L
+                var microsecInitCaches = 0L
+                var microsecValidateState = 0L
+                var microsecAcLaunch = 0L
+                var microsecAcPrepUserFiles = 0L
+                var microsecAcExit = 0L
+                var microsecBuildSyncList = 0L
+                var microsecDeleteFiles = 0L
+                var microsecDownloadFiles = 0L
+                var microsecUploadFiles = 0L
 
-                    val localAppChangeNumber = steamData.appChangeNumbers[appInfo.appId] ?: 0
-                    // val fullCloudFileList = steamCloud.getAppFileListChange(appInfo.appId)
-                    val appFileListChange = steamCloud.getAppFileListChange(appInfo.appId, localAppChangeNumber).await()
+                microsecTotal = measureTime {
+                    val localAppChangeNumber = steamData.appChangeNumbers[appInfo.appId] ?: -1
+                    val appFileListChange = steamCloud.getAppFileListChange(
+                        appInfo.appId,
+                        if (localAppChangeNumber >= 0) localAppChangeNumber else 0
+                    ).await()
                     val cloudAppChangeNumber = appFileListChange.currentChangeNumber
-                    Log.d("SteamService", "AppChangeNumber: $localAppChangeNumber -> $cloudAppChangeNumber")
+                    Log.d(
+                        "SteamService",
+                        "AppChangeNumber: $localAppChangeNumber -> $cloudAppChangeNumber"
+                    )
+                    printFileChangeList(appFileListChange)
 
                     // retrieve existing user files from local storage
-                    val localUserFilesMap = getLocalUserFilesAsPrefixMap()
-                    val allLocalUserFiles = localUserFilesMap.map { it.value }.flatten()
+                    val localUserFilesMap: Map<String, List<UserFileInfo>>
+                    val allLocalUserFiles: List<UserFileInfo>
+                    microsecInitCaches = measureTime {
+                        localUserFilesMap = getLocalUserFilesAsPrefixMap()
+                        allLocalUserFiles = localUserFilesMap.map { it.value }.flatten()
+                    }.inWholeMicroseconds
 
-                    if (localAppChangeNumber == cloudAppChangeNumber) {
-                        // our app change numbers are the same so the file hashes should match
-                        // if they do not then that means we have new user files locally that
-                        // need uploading
+                    val downloadUserFiles: (CoroutineScope) -> Deferred<PostSyncInfo?> = { parentScope ->
+                        parentScope.async {
+                            Log.d("SteamService", "Downloading cloud user files")
+                            val remoteUserFiles = fileChangeListToUserFiles(appFileListChange)
+                            val filesDiff = getFilesDiff(remoteUserFiles, allLocalUserFiles).second
+                            microsecDeleteFiles = measureTime {
+                                var totalFilesDeleted = 0
+                                filesDiff.filesDeleted.forEach {
+                                    val deleted = Files.deleteIfExists(it.getAbsPath(prefixToPath))
+                                    if (deleted) totalFilesDeleted++
+                                }
+                                filesDeleted = totalFilesDeleted
+                            }.inWholeMicroseconds
+                            microsecDownloadFiles = measureTime {
+                                val downloadInfo =
+                                    downloadFiles(appFileListChange, parentScope).await()
+                                filesDownloaded = downloadInfo.filesDownloaded
+                                bytesDownloaded = downloadInfo.bytesDownloaded
+                            }.inWholeMicroseconds
+                            val updatedLocalFiles: Map<String, List<UserFileInfo>>
+                            val hasLocalChanges: Boolean
+                            microsecValidateState = measureTime {
+                                updatedLocalFiles = getLocalUserFilesAsPrefixMap()
+                                hasLocalChanges =
+                                    hasHashConflicts(updatedLocalFiles, appFileListChange)
+                                filesManaged = updatedLocalFiles.size
+                            }.inWholeMicroseconds
+                            // var retries = 0
+                            // do {
+                            //     downloadFiles(appFileListChange, parentScope).await()
+                            //     updatedLocalFiles = getLocalUserFilesAsPrefixMap()
+                            //     hasLocalChanges =
+                            //         hasHashConflicts(updatedLocalFiles, appFileListChange)
+                            // } while (hasLocalChanges && retries++ < MAX_USER_FILE_RETRIES)
+                            //
+                            if (hasLocalChanges) {
+                                Log.e(
+                                    "SteamService",
+                                    "Failed to download latest user files after $MAX_USER_FILE_RETRIES tries"
+                                )
+                                syncResult = SyncResult.DownloadFail
+                                return@async PostSyncInfo(syncResult)
+                            }
 
-                        var fileChanges: FileChanges? = null
-                        val hasLocalChanges = steamData.appFileChangeLists[appInfo.appId]?.let { prevLocalUserFiles ->
-                            val result = haveLocalFilesChanged(allLocalUserFiles, prevLocalUserFiles)
-                            fileChanges = result.second
-                            result.first
-                        } == true
-                        if (hasLocalChanges) {
-                            Log.d("SteamService", "Found local changes and no new cloud user files, uploading...")
-                            uploadsRequired = fileChanges!!.filesCreated.isNotEmpty() || fileChanges.filesModified.isNotEmpty()
-                            val uploadResult = uploadFiles(fileChanges, parentScope).await()
-                            uploadsCompleted = uploadsRequired && uploadResult.first
-                            if (uploadResult.first) {
+                            steamData.appFileChangeLists[appInfo.appId] =
+                                updatedLocalFiles.map { it.value }.flatten()
+                            steamData.appChangeNumbers[appInfo.appId] = cloudAppChangeNumber
+                            saveSteamData()
+                            return@async null
+                        }
+                    }
+                    val uploadUserFiles: (CoroutineScope) -> Deferred<Unit> = { parentScope ->
+                        parentScope.async {
+                            Log.d("SteamService", "Uploading local user files")
+                            val fileChanges = steamData.appFileChangeLists[appInfo.appId].let { prevLocalUserFiles ->
+                                val result =
+                                    getFilesDiff(allLocalUserFiles, prevLocalUserFiles ?: emptyList())
+                                result.second
+                            }
+                            uploadsRequired =
+                                fileChanges.filesCreated.isNotEmpty() || fileChanges.filesModified.isNotEmpty()
+                            val uploadResult: UserFilesUploadResult
+                            microsecUploadFiles = measureTime {
+                                uploadResult = uploadFiles(fileChanges, parentScope).await()
+                                filesUploaded = uploadResult.filesUploaded
+                                bytesUploaded = uploadResult.bytesUploaded
+                                uploadsCompleted = uploadsRequired && uploadResult.uploadBatchSuccess
+                            }.inWholeMicroseconds
+                            filesManaged = allLocalUserFiles.size
+                            if (uploadResult.uploadBatchSuccess) {
                                 steamData.appFileChangeLists[appInfo.appId] = allLocalUserFiles
-                                steamData.appChangeNumbers[appInfo.appId] = uploadResult.second
+                                steamData.appChangeNumbers[appInfo.appId] = uploadResult.appChangeNumber
                                 saveSteamData()
                             } else {
                                 syncResult = SyncResult.UpdateFail
                             }
-                        } else {
-                            Log.d("SteamService", "No local changes and no new cloud user files, doing nothing...")
-                            syncResult = SyncResult.UpToDate
                         }
-                    } else if (localAppChangeNumber < cloudAppChangeNumber) {
+                    }
+
+                    if (localAppChangeNumber < cloudAppChangeNumber) {
                         // our change number is less than the expected, meaning we are behind and
                         // need to download the new user files, but first we should check that
                         // the local user files are not conflicting with their respective change
                         // number or else that would mean that the user made changes locally and
                         // on a separate device and they must choose between the two
 
-                        var hasLocalChanges = steamData.appFileChangeLists[appInfo.appId]?.let { prevLocalUserFiles ->
-                            haveLocalFilesChanged(allLocalUserFiles, prevLocalUserFiles).first
-                        } == true
-                        if (!hasLocalChanges) {
-                            // we can safely download the new changes since no changes have been
-                            // made locally
+                        microsecAcLaunch = measureTime {
+                            var hasLocalChanges: Boolean
+                            microsecAcPrepUserFiles = measureTime {
+                                hasLocalChanges =
+                                    steamData.appFileChangeLists[appInfo.appId]?.let { prevLocalUserFiles ->
+                                        getFilesDiff(allLocalUserFiles, prevLocalUserFiles).first
+                                    } == true
+                            }.inWholeMicroseconds
+                            if (!hasLocalChanges) {
+                                // we can safely download the new changes since no changes have been
+                                // made locally
 
-                            Log.d("SteamService", "No local changes but new cloud user files, downloading...")
+                                Log.d(
+                                    "SteamService",
+                                    "No local changes but new cloud user files"
+                                )
 
-                            var updatedLocalFiles: Map<String, List<UserFileInfo>>
-                            var retries = 0
-                            do {
-                                downloadFiles(appFileListChange, parentScope).await()
-                                updatedLocalFiles = getLocalUserFilesAsPrefixMap()
-                                hasLocalChanges = hasHashConflicts(updatedLocalFiles, appFileListChange)
-                            } while (hasLocalChanges && retries++ < MAX_USER_FILE_RETRIES)
-
-                            if (hasLocalChanges) {
-                                Log.e("SteamService", "Failed to download latest user files after $MAX_USER_FILE_RETRIES tries")
-                                syncResult = SyncResult.DownloadFail
-                                return@async PostSyncInfo(syncResult)
+                                downloadUserFiles(parentScope).await()?.let {
+                                    return@async it
+                                }
+                            } else {
+                                Log.d(
+                                    "SteamService",
+                                    "Found local changes and new cloud user files, conflict resolution..."
+                                )
+                                when (preferredSave) {
+                                    SaveLocation.Local -> {
+                                        // overwrite remote save with the local one
+                                        uploadUserFiles(parentScope).await()
+                                    }
+                                    SaveLocation.Remote -> {
+                                        // overwrite local save with the remote one
+                                        downloadUserFiles(parentScope).await()?.let {
+                                            return@async it
+                                        }
+                                    }
+                                    SaveLocation.None -> {
+                                        syncResult = SyncResult.Conflict
+                                        remoteTimestamp =
+                                            appFileListChange.files.map { it.timestamp.time }.max()
+                                        localTimestamp = allLocalUserFiles.map { it.timestamp }.max()
+                                    }
+                                }
                             }
+                        }.inWholeMicroseconds
+                    } else if (localAppChangeNumber == cloudAppChangeNumber) {
+                        // our app change numbers are the same so the file hashes should match
+                        // if they do not then that means we have new user files locally that
+                        // need uploading
 
-                            steamData.appFileChangeLists[appInfo.appId] = updatedLocalFiles.map { it.value }.flatten()
-                            steamData.appChangeNumbers[appInfo.appId] = cloudAppChangeNumber
-                            saveSteamData()
-                        } else {
-                            // TODO: conflict resolution
-                            Log.d("SteamService", "Found local changes and new cloud user files, conflict resolution...")
-                            syncResult = SyncResult.Conflict
-                            remoteTimestamp = appFileListChange.files.map { it.timestamp.time }.max()
-                            localTimestamp = allLocalUserFiles.map { it.timestamp }.max()
-                        }
+                        microsecAcExit = measureTime {
+                            var fileChanges: FileChanges? = null
+                            val hasLocalChanges =
+                                steamData.appFileChangeLists[appInfo.appId].let { prevLocalUserFiles ->
+                                    val result =
+                                        getFilesDiff(allLocalUserFiles, prevLocalUserFiles ?: emptyList())
+                                    fileChanges = result.second
+                                    result.first
+                                } == true
+                            if (hasLocalChanges) {
+                                Log.d(
+                                    "SteamService",
+                                    "Found local changes and no new cloud user files"
+                                )
+                                uploadUserFiles(parentScope).await()
+                            } else {
+                                Log.d(
+                                    "SteamService",
+                                    "No local changes and no new cloud user files, doing nothing..."
+                                )
+                                syncResult = SyncResult.UpToDate
+                            }
+                        }.inWholeMicroseconds
                     } else {
                         // our last scenario is if the change number we have is greater than
                         // the change number from the cloud. This scenario should not happen, I
                         // believe, since we get the new app change number after having downloaded
                         // or uploaded from/to the cloud, so we should always be either behind or
                         // on par with the cloud change number, never ahead
-                        Log.e("SteamService", "Local change number greater than cloud $localAppChangeNumber > $cloudAppChangeNumber")
+                        Log.e(
+                            "SteamService",
+                            "Local change number greater than cloud $localAppChangeNumber > $cloudAppChangeNumber"
+                        )
                         syncResult = SyncResult.UnknownFail
                     }
+                }.inWholeMicroseconds
 
-                    postSyncInfo = PostSyncInfo(
-                        syncResult = syncResult,
-                        remoteTimestamp = remoteTimestamp,
-                        localTimestamp = localTimestamp,
-                        uploadsRequired = uploadsRequired,
-                        uploadsCompleted = uploadsCompleted,
-                    )
+                postSyncInfo = PostSyncInfo(
+                    syncResult = syncResult,
+                    remoteTimestamp = remoteTimestamp,
+                    localTimestamp = localTimestamp,
+                    uploadsRequired = uploadsRequired,
+                    uploadsCompleted = uploadsCompleted,
+                    filesUploaded = filesUploaded,
+                    filesDownloaded = filesDownloaded,
+                    filesDeleted = filesDeleted,
+                    filesManaged = filesManaged,
+                    bytesUploaded = bytesUploaded,
+                    bytesDownloaded = bytesDownloaded,
+                    microsecTotal = microsecTotal,
+                    microsecInitCaches = microsecInitCaches,
+                    microsecValidateState = microsecValidateState,
+                    microsecAcLaunch = microsecAcLaunch,
+                    microsecAcPrepUserFiles = microsecAcPrepUserFiles,
+                    microsecAcExit = microsecAcExit,
+                    // microsecBuildSyncList = microsecBuildSyncList,
+                    microsecDeleteFiles = microsecDeleteFiles,
+                    microsecDownloadFiles = microsecDownloadFiles,
+                    microsecUploadFiles = microsecUploadFiles,
+                )
             }
 
             postSyncInfo
@@ -1182,8 +1455,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun logOut() {
             CoroutineScope(Dispatchers.Default).launch {
-                isConnected = false
-                // isLoggingOut = true
+                // isConnected = false
+                isLoggingOut = true
                 performLogOffDuties()
                 val steamUser = instance!!._steamUser!!
                 steamUser.logOff()
@@ -1389,6 +1662,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         isConnected = false
         isConnecting = false
         isLoggingIn = false
+        isLoggingOut = false
         isWaitingForQRAuth = false
         isReceivingLicenseList = false
         isRequestingPkgInfo = false
@@ -1524,7 +1798,19 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private fun onLoggedOff(callback: LoggedOffCallback) {
         Log.d("SteamService", "Logged off of Steam: ${callback.result}")
-        performLogOffDuties()
+        if (isLoggingOut) {
+            performLogOffDuties()
+            CoroutineScope(Dispatchers.IO).launch {
+                stop()
+            }
+        } else if (callback.result == EResult.LoggedInElsewhere) {
+            // received when a client runs an app and wants to forcibly close another
+            // client running an app
+            PluviaApp.events.emit(SteamEvent.ForceCloseApp)
+            reconnect()
+        } else {
+            reconnect()
+        }
     }
 
     override fun onChanged(qrAuthSession: QrAuthSession?) {
@@ -1750,6 +2036,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                             Pair(depotId, DepotInfo(
                                 depotId = depotId,
+                                dlcAppId = currentDepot["dlcappid"].asInteger(INVALID_APP_ID),
                                 depotFromApp = currentDepot["depotfromapp"].asInteger(INVALID_APP_ID),
                                 sharedInstall = currentDepot["sharedinstall"].asBoolean(),
                                 osList = OS.from(currentDepot["config"]["oslist"].value),
@@ -1871,8 +2158,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // // val isPsuedo = app.id == 2365810
                 // // val isPathway = app.id == 546430
                 // // val isSeaOfStars = app.id == 1244090
-                // val isMessenger = app.id == 764790
-                // if (isMessenger) {
+                // // val isMessenger = app.id == 764790
+                // // val isWargroove = app.id == 607050
+                // // val isTetrisEffect = app.id == 1003590
+                // val isLittleKitty = app.id == 1177980
+                // if (isLittleKitty) {
                 // 	Log.d("SteamService", "${app.id}: ${app.keyValues["common"]["name"].value}");
                 // 	printAllKeyValues(app.keyValues)
                 // 	// getPkgInfoOf(app.id)?.let {

@@ -25,11 +25,11 @@ import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.events.AndroidEvent
+import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.XServerState
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
-import com.winlator.container.Shortcut
 import com.winlator.core.AppUtils
 import com.winlator.core.Callback
 import com.winlator.core.ProcessHelper
@@ -164,6 +164,10 @@ fun XServerScreen(
             navigateBack()
             // PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
         }
+        val onForceCloseApp: (SteamEvent.ForceCloseApp) -> Unit = {
+            exit(xServer.winHandler, xEnvironment, onExit)
+            navigateBack()
+        }
         val debugCallback = Callback<String> { outputLine ->
             Log.d("ProcessOutput", outputLine ?: "")
         }
@@ -173,6 +177,7 @@ fun XServerScreen(
         PluviaApp.events.on<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
         PluviaApp.events.on<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
         PluviaApp.events.on<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
+        PluviaApp.events.on<SteamEvent.ForceCloseApp, Unit>(onForceCloseApp)
         ProcessHelper.addDebugCallback(debugCallback)
 
         onDispose {
@@ -180,6 +185,7 @@ fun XServerScreen(
             PluviaApp.events.off<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
             PluviaApp.events.off<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
             PluviaApp.events.off<AndroidEvent.GuestProgramTerminated, Unit>(onGuestProgramTerminated)
+            PluviaApp.events.off<SteamEvent.ForceCloseApp, Unit>(onForceCloseApp)
             ProcessHelper.removeDebugCallback(debugCallback)
         }
     }
@@ -570,7 +576,7 @@ private fun getWineStartCommand(
     val args = if (bootToContainer || appLocalExe == null) {
         "\"wfm.exe\""
     } else {
-        "/dir D:/${appLocalExe.first} \"${appLocalExe.second}\""
+        "/dir D:/ \"${appLocalExe.second.replace('\\', '/')}\""
     }
 
     // var args = ""
