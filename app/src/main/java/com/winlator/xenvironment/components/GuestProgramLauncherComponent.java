@@ -2,6 +2,7 @@ package com.winlator.xenvironment.components;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.icu.util.TimeZone;
 import android.os.Process;
 import android.util.Log;
 
@@ -12,6 +13,7 @@ import com.winlator.box86_64.Box86_64PresetManager;
 import com.winlator.core.Callback;
 import com.winlator.core.DefaultVersion;
 import com.winlator.core.EnvVars;
+import com.winlator.core.FileUtils;
 import com.winlator.core.ProcessHelper;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.xconnector.UnixSocketConfig;
@@ -19,6 +21,11 @@ import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.ImageFs;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
@@ -117,12 +124,28 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         File rootDir = imageFs.getRootDir();
         File tmpDir = environment.getTmpDir();
         String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
-        // File nativeLibs = new File(nativeLibraryDir);
+        File nativeLibs = new File(nativeLibraryDir);
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + nativeLibs.exists());
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " is directory: " + nativeLibs.isDirectory());
-        // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " contains: " + Arrays.toString(nativeLibs.listFiles()));
+        Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " contains: " + Arrays.toString(Arrays.stream(nativeLibs.listFiles()).map(File::getName).toArray()));
         // nativeLibraryDir = nativeLibraryDir.replace("arm64", "arm64-v8a");
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + (new File(nativeLibraryDir)).exists());
+        // Log.d("GuestProgramLauncherComponent", steamApiPath + " exists: " + new File(steamApiPath).exists());
+        // ImageFs fs = ImageFs.find(context);
+        // Path dllsDir = Paths.get(fs.getRootDir().getAbsolutePath(), "/usr/dlls");
+        // Path steamApiTargetPath = Paths.get(dllsDir.toString(), "steam_api.dll.so");
+        // Path steamApiTargetPath = Paths.get(fs.getLib64Dir().toString(), "libsteam_api.dll.so");
+        // try {
+        //     if (Files.exists(steamApiTargetPath)) {
+        //         Files.delete(steamApiTargetPath);
+        //     }
+        //     // Files.createDirectories(dllsDir);
+        //     Path steamApiPath = Paths.get(nativeLibraryDir, "libsteam_api.dll.so");
+        //     Files.copy(steamApiPath, steamApiTargetPath);
+        //     FileUtils.chmod(new File(steamApiTargetPath.toString()), 0771);
+        // } catch (IOException e) {
+        //     Log.e("GuestProgramLauncherComponent", "Failed to copy steam_api.dll.so to /usr/lib " + e);
+        // }
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         boolean enableBox86_64Logs = preferences.getBoolean("enable_box86_64_logs", false);
@@ -130,6 +153,12 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         EnvVars envVars = new EnvVars();
         if (!wow64Mode) addBox86EnvVars(envVars, enableBox86_64Logs);
         addBox64EnvVars(envVars, enableBox86_64Logs);
+
+        TimeZone androidTz = TimeZone.getDefault();
+        String tzId = androidTz.getID();
+        // Log.d("GuestProgramLauncherComponent", "Android timezone: " + tzId);
+
+        envVars.put("TZ", tzId);
         envVars.put("HOME", ImageFs.HOME_PATH);
         envVars.put("USER", ImageFs.USER);
         envVars.put("TMPDIR", "/tmp");
@@ -162,8 +191,12 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         command += " --bind=/sys";
 
         if (bindingPaths != null) {
-            for (String path : bindingPaths) command += " --bind="+(new File(path)).getAbsolutePath();
+            for (String path : bindingPaths) command += " --bind=\"" + (new File(path)).getAbsolutePath() + "\"";
         }
+
+        // envVars.put("WINEDLLPATH", dllsDir.toString());
+        // envVars.put("WINEDLLOVERRIDES", "\"steam_api=n\"");
+        envVars.put("WINEESYNC", "0");
 
         command += " /usr/bin/env "+envVars.toEscapedString()+" box64 "+guestExecutable;
 

@@ -173,13 +173,13 @@ public class XServer {
 
     public void injectKeyPress(XKeycode xKeycode, int keysym) {
         try (XLock lock = lock(Lockable.WINDOW_MANAGER, Lockable.INPUT_DEVICE)) {
-            keyboard.setKeyPress(xKeycode.id, keysym);
+            keyboard.setKeyPress(xKeycode.getId(), keysym);
         }
     }
 
     public void injectKeyRelease(XKeycode xKeycode) {
         try (XLock lock = lock(Lockable.WINDOW_MANAGER, Lockable.INPUT_DEVICE)) {
-            keyboard.setKeyRelease(xKeycode.id);
+            keyboard.setKeyRelease(xKeycode.getId());
         }
     }
 

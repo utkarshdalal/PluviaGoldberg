@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.screen.home
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,8 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -45,6 +48,8 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.ui.data.AppMenuOption
+import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
@@ -54,9 +59,10 @@ import com.skydoves.landscapist.coil.CoilImage
 @Composable
 fun AppScreen(
     appId: Int,
-    onClickPlay: () -> Unit,
+    onClickPlay: (Boolean) -> Unit,
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 ) {
+    val context = LocalContext.current
     var downloadInfo by remember {
         mutableStateOf(SteamService.getAppDownloadInfo(appId))
     }
@@ -86,14 +92,44 @@ fun AppScreen(
             isInstalled = isInstalled,
             isDownloading = isDownloading(),
             downloadProgress = downloadProgress,
-            onDownloadClick = {
+            onDownloadBtnClick = {
                 if (!isInstalled) {
                     downloadProgress = 0f
                     downloadInfo = SteamService.downloadApp(appId)
                 } else {
-                    onClickPlay()
+                    onClickPlay(false)
                 }
-            }
+            },
+            optionsMenu = arrayOf(
+                AppMenuOption(
+                    AppOptionMenuType.StorePage,
+                    onClick = {
+                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://store.steampowered.com/app/$appId/"))
+                        context.startActivity(browserIntent)
+                    }
+                ),
+                *(if (isInstalled) {
+                    arrayOf(
+                        AppMenuOption(
+                            AppOptionMenuType.RunContainer,
+                            onClick = {
+                                onClickPlay(true)
+                            }
+                        ),
+                        AppMenuOption(
+                            AppOptionMenuType.Uninstall,
+                            onClick = {
+                                // TODO: exit app screen and reload installed list
+                                // TODO: show dialog prompt "are you sure you want to delete"
+                                // TODO: show loading screen of delete progress
+                                SteamService.deleteApp(appId)
+                            }
+                        )
+                    )
+                } else {
+                    emptyArray()
+                })
+            ),
         )
     }
 }
@@ -105,13 +141,16 @@ private fun AppScreenContent(
     isInstalled: Boolean,
     isDownloading: Boolean,
     downloadProgress: Float,
-    onDownloadClick: () -> Unit,
+    onDownloadBtnClick: () -> Unit,
+    vararg optionsMenu: AppMenuOption,
 ) {
     val scrollState = rememberScrollState()
 
     val appInfo by remember(appId) {
         mutableStateOf(SteamService.getAppInfoOf(appId))
     }
+
+    var optionsMenuVisible by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -165,7 +204,7 @@ private fun AppScreenContent(
             Button(
                 shape = RoundedCornerShape(8.dp),
                 enabled = !isDownloading,
-                onClick = onDownloadClick
+                onClick = onDownloadBtnClick
             ) {
                 Text(
                     if (isInstalled)
@@ -194,14 +233,30 @@ private fun AppScreenContent(
                 Spacer(Modifier.weight(1f))
             }
 
-            IconButton(
-                onClick = {
-                    // TODO: add options menu
-                },
-                content = {
-                    Icon(Icons.Filled.MoreVert, "Options")
+            Box {
+                IconButton(
+                    onClick = {
+                        optionsMenuVisible = !optionsMenuVisible
+                    },
+                    content = {
+                        Icon(Icons.Filled.MoreVert, "Options")
+                    }
+                )
+                DropdownMenu(
+                    expanded = optionsMenuVisible,
+                    onDismissRequest = { optionsMenuVisible = false }
+                ) {
+                    optionsMenu.forEach { menuOption ->
+                        DropdownMenuItem(
+                            text = { Text(menuOption.optionType.text) },
+                            onClick = {
+                                menuOption.onClick()
+                                optionsMenuVisible = false
+                            }
+                        )
+                    }
                 }
-            )
+            }
         }
     }
 }
@@ -223,7 +278,7 @@ private fun Preview_AppScreen() {
                 isInstalled = false,
                 isDownloading = true,
                 downloadProgress = .50f,
-                onDownloadClick = { },
+                onDownloadBtnClick = { },
             )
         }
     }

@@ -1,16 +1,10 @@
 package com.OxGames.Pluvia.ui
 
+import android.content.Context
 import android.content.Intent
+import android.os.Process
 import android.util.Log
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -21,11 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,9 +27,16 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.enums.LoginResult
+import com.OxGames.Pluvia.enums.PathType
+import com.OxGames.Pluvia.enums.SaveLocation
+import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
+import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
+import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.screen.home.HomeScreen
 import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.enums.Orientation
@@ -50,10 +48,16 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.winlator.container.ContainerManager
 import com.winlator.core.WineInfo
 import com.winlator.xenvironment.ImageFsInstaller
+import com.winlator.xserver.Window
+import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
+import `in`.dragonbra.javasteam.steam.handlers.steamapps.AppProcessInfo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.nio.file.Paths
+import java.util.Date
 import java.util.EnumSet
+import kotlin.io.path.name
 
 @Composable
 fun PluviaMain(
@@ -71,8 +75,17 @@ fun PluviaMain(
         )
     }
     var hasLaunched by rememberSaveable { mutableStateOf(false) }
-    var dialogVisible by remember { mutableStateOf(false) }
-    var dialogProgress by remember { mutableFloatStateOf(0f) }
+    var loadingDialogVisible by remember { mutableStateOf(false) }
+    var loadingProgress by remember { mutableFloatStateOf(0f) }
+    var msgDialogState by remember { mutableStateOf(MessageDialogState(false)) }
+    // var msgDialogVisible by remember { mutableStateOf(false) }
+    // var msgDialogTitle by remember { mutableStateOf<String?>(null) }
+    // var msgDialogMsg by remember { mutableStateOf<String?>(null) }
+    // var msgDialogDismissBtnTxt by remember { mutableStateOf("Dismiss") }
+    // var msgDialogConfirmBtnTxt by remember { mutableStateOf("Confirm") }
+    // var msgDialogDismissClick by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // var msgDialogConfirmClick by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // var msgDialogDismissRequest by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     LaunchedEffect(lifecycleOwner) {
         if (!hasLaunched) {
@@ -99,6 +112,7 @@ fun PluviaMain(
 
     var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
     var appId by rememberSaveable { mutableIntStateOf(SteamService.INVALID_APP_ID) }
+    var bootToContainer by rememberSaveable { mutableStateOf(false) }
 
     var hasBack by rememberSaveable { mutableStateOf(navController.previousBackStackEntry?.destination?.route != null) }
     LaunchedEffect(currentScreen) {
@@ -195,27 +209,20 @@ fun PluviaMain(
     }
 
     PluviaTheme {
-        when {
-            dialogVisible -> {
-                Dialog(
-                    onDismissRequest = {}
-                ) {
-                    Card {
-                        Column(
-                            modifier = Modifier
-                                // .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("Loading...")
-                            Spacer(modifier = Modifier.height(16.dp))
-                            LinearProgressIndicator(progress = { dialogProgress })
-                        }
-                    }
-                }
-            }
-        }
+        LoadingDialog(
+            visible = loadingDialogVisible,
+            progress = loadingProgress,
+        )
+        MessageDialog(
+            visible = msgDialogState.visible,
+            onDismissRequest = msgDialogState.onDismissRequest,
+            onConfirmClick = msgDialogState.onConfirmClick,
+            confirmBtnText = msgDialogState.confirmBtnText,
+            onDismissClick = msgDialogState.onDismissClick,
+            dismissBtnText = msgDialogState.dismissBtnText,
+            title = msgDialogState.title,
+            message = msgDialogState.message,
+        )
         NavHost(
             navController = navController,
             startDestination = PluviaScreen.LoginUser.name,
@@ -234,30 +241,23 @@ fun PluviaMain(
                 val viewModel: HomeViewModel = viewModel()
                 HomeScreen(
                     viewModel = viewModel,
-                    onClickPlay = {
-                        appId = it
-                        dialogVisible = true
-                        // TODO: add a way to cancel
-                        CoroutineScope(Dispatchers.IO).launch {
-                            val imageFsInstallSuccess =
-                                ImageFsInstaller.installIfNeededFuture(context) { progress ->
-                                    // Log.d("XServerScreen", "$progress")
-                                    dialogProgress = progress / 100f
-                                }.get()
+                    onClickPlay = { launchAppId, asContainer ->
+                        appId = launchAppId
+                        bootToContainer = asContainer
+                        launchApp(
+                            context = context,
+                            appId = appId,
+                            setLoadingDialogVisible = { loadingDialogVisible = it },
+                            setLoadingProgress = { loadingProgress = it },
+                            setMessageDialogState = { msgDialogState = it },
+                            onSuccess = {
+                                // SteamUtils.replaceSteamApi(context, appId)
 
-                            // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
-                            val containerId = 1
-
-                            val containerManager = ContainerManager(context)
-                            containerManager.getContainerById(containerId)
-                                ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION)
-                                    .get()
-
-                            dialogVisible = false
-                            CoroutineScope(Dispatchers.Main).launch {
-                                navController.navigate(PluviaScreen.XServer.name)
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    navController.navigate(PluviaScreen.XServer.name)
+                                }
                             }
-                        }
+                        )
                     }
                 )
             }
@@ -266,8 +266,333 @@ fun PluviaMain(
 
             /** Game Screen **/
             composable(route = PluviaScreen.XServer.name) {
-                XServerScreen(appId = appId)
+                XServerScreen(
+                    appId = appId,
+                    bootToContainer = bootToContainer,
+                    navigateBack = {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            navController.popBackStack()
+                        }
+                    },
+                    onWindowMapped = { window ->
+                        SteamService.getAppInfoOf(appId)?.let { appInfo ->
+                            // Log.d("PluviaMain", "${appInfo.name} == ${window.name} || ${window.className}")
+                            // TODO: this should not be a search, the app should have been launched with a specific launch config that we then use to compare
+                            val launchConfig = SteamService.getWindowsLaunchInfos(appId).firstOrNull {
+                                val gameExe = Paths.get(it.executable.replace('\\', '/')).name.lowercase()
+                                val windowExe = window.className.lowercase()
+                                // Log.d("PluviaMain", "Is $gameExe == $windowExe")
+                                gameExe == windowExe
+                            }
+                            if (launchConfig != null) {
+                                val steamProcessId = Process.myPid()
+                                val processes = mutableListOf<AppProcessInfo>()
+                                var currentWindow: Window = window
+                                do {
+                                    var parentWindow: Window? = window.parent
+                                    // Log.d("PluviaMain", "${currentWindow.name}:${currentWindow.className} -> ${parentWindow?.name}:${parentWindow?.className}")
+                                    val process = if (
+                                        parentWindow != null &&
+                                        parentWindow.className.lowercase() != "explorer.exe"
+                                    ) {
+                                        val processId = currentWindow.processId
+                                        val parentProcessId = parentWindow.processId
+                                        currentWindow = parentWindow
+                                        AppProcessInfo(
+                                            processId,
+                                            parentProcessId,
+                                            false
+                                        )
+                                    } else {
+                                        parentWindow = null
+                                        AppProcessInfo(
+                                            currentWindow.processId,
+                                            steamProcessId,
+                                            true
+                                        )
+                                    }
+                                    processes.add(process)
+                                } while (parentWindow != null)
+
+                                SteamService.notifyRunningProcesses(
+                                    GameProcessInfo(
+                                        appId = appId,
+                                        processes = processes
+                                    )
+                                )
+                            }
+                        }
+                    },
+                    onExit = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            SteamService.notifyRunningProcesses()
+                            SteamService.closeApp(appId, this) { prefix ->
+                                PathType.from(prefix).toAbsPath(context, appId)
+                            }.await()
+                        }
+                    }
+                )
             }
+        }
+    }
+}
+
+fun launchApp(
+    context: Context,
+    appId: Int,
+    ignorePendingOperations: Boolean = false,
+    preferredSave: SaveLocation = SaveLocation.None,
+    setLoadingDialogVisible: (Boolean) -> Unit,
+    setLoadingProgress: (Float) -> Unit,
+    setMessageDialogState: (MessageDialogState) -> Unit,
+    onSuccess: () -> Unit,
+) {
+    setLoadingDialogVisible(true)
+    // TODO: add a way to cancel
+    // TODO: add fail conditions
+    CoroutineScope(Dispatchers.IO).launch {
+        // set up Ubuntu file system
+        val imageFsInstallSuccess =
+            ImageFsInstaller.installIfNeededFuture(context) { progress ->
+                // Log.d("XServerScreen", "$progress")
+                setLoadingProgress(progress / 100f)
+            }.get()
+        setLoadingProgress(-1f)
+
+        // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
+        val containerId = appId
+
+        // create container if it does not already exist
+        val containerManager = ContainerManager(context)
+        val container = containerManager.getContainerById(containerId)
+            ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION, containerId)
+                .get()
+        // set up container drives to include app
+        val currentDrives = container.drives
+        val drivePath = "D:${SteamService.getAppDirPath(appId)}"
+        if (!currentDrives.contains(drivePath)) {
+            container.drives = drivePath
+            container.saveData()
+        }
+        // must activate container before downloading save files
+        containerManager.activateContainer(container)
+        // sync save files and check no pending remote operations are running
+        val prefixToPath: (String) -> String = { prefix ->
+            PathType.from(prefix).toAbsPath(context, appId)
+        }
+        val postSyncInfo = SteamService.beginLaunchApp(
+            appId = appId,
+            prefixToPath = prefixToPath,
+            ignorePendingOperations = ignorePendingOperations,
+            preferredSave = preferredSave,
+            parentScope = this,
+        ).await()
+
+        setLoadingDialogVisible(false)
+
+        when (postSyncInfo.syncResult) {
+            SyncResult.Conflict -> {
+                setMessageDialogState(MessageDialogState(
+                    visible = true,
+                    title = "Save Conflict",
+                    message = "There is a new remote save and a new local save, which would you " +
+                            "like to keep?\n\nLocal save:\n\t${Date(postSyncInfo.localTimestamp)}" +
+                            "\nRemote save:\n\t${Date(postSyncInfo.remoteTimestamp)}",
+                    dismissBtnText = "Keep local",
+                    confirmBtnText = "Keep remote",
+                    onConfirmClick = {
+                        launchApp(
+                            context = context,
+                            appId = appId,
+                            preferredSave = SaveLocation.Remote,
+                            setLoadingDialogVisible = setLoadingDialogVisible,
+                            setLoadingProgress = setLoadingProgress,
+                            setMessageDialogState = setMessageDialogState,
+                            onSuccess = onSuccess,
+                        )
+                        setMessageDialogState(MessageDialogState(false))
+                    },
+                    onDismissClick = {
+                        launchApp(
+                            context = context,
+                            appId = appId,
+                            preferredSave = SaveLocation.Local,
+                            setLoadingDialogVisible = setLoadingDialogVisible,
+                            setLoadingProgress = setLoadingProgress,
+                            setMessageDialogState = setMessageDialogState,
+                            onSuccess = onSuccess,
+                        )
+                        setMessageDialogState(MessageDialogState(false))
+                    },
+                    onDismissRequest = {
+                        setMessageDialogState(MessageDialogState(false))
+                    },
+                ))
+            }
+            SyncResult.InProgress,
+            SyncResult.UnknownFail,
+            SyncResult.DownloadFail,
+            SyncResult.UpdateFail -> {
+                setMessageDialogState(MessageDialogState(
+                    visible = true,
+                    title = "Sync Error",
+                    message = "Failed to sync save files: ${postSyncInfo.syncResult}",
+                    dismissBtnText = "Ok",
+                    onDismissClick = {
+                        setMessageDialogState(MessageDialogState(false))
+                    },
+                    onDismissRequest = {
+                        setMessageDialogState(MessageDialogState(false))
+                    },
+                ))
+            }
+            SyncResult.PendingOperations -> {
+                Log.d("PluviaMain", "Pending remote operations:${
+                    postSyncInfo.pendingRemoteOperations.map { pro ->
+                        "\n\tmachineName: ${pro.machineName}" +
+                        "\n\ttimestamp: ${Date(pro.timeLastUpdated * 1000L)}" +
+                        "\n\toperation: ${pro.operation}"
+                    }.joinToString("\n")
+                }")
+                if (postSyncInfo.pendingRemoteOperations.size == 1) {
+                    val pro = postSyncInfo.pendingRemoteOperations.first()
+                    when (pro.operation) {
+                        ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationUploadInProgress -> {
+                            // maybe this should instead wait for the upload to finish and then
+                            // launch the app
+                            setMessageDialogState(MessageDialogState(
+                                visible = true,
+                                title = "Upload in Progress",
+                                message = "You played ${SteamService.getAppInfoOf(appId)?.name} " +
+                                        "on the device ${pro.machineName} " +
+                                        "(${Date(pro.timeLastUpdated * 1000L)}) and the save of " +
+                                        "that session is still uploading.\nTry again later.",
+                                dismissBtnText = "Ok",
+                                onDismissClick = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                                onDismissRequest = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                            ))
+                        }
+                        ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationUploadPending -> {
+                            setMessageDialogState(MessageDialogState(
+                                visible = true,
+                                title = "Pending Upload",
+                                message = "You played " +
+                                        "${SteamService.getAppInfoOf(appId)?.name} " +
+                                        "on the device ${pro.machineName} " +
+                                        "(${Date(pro.timeLastUpdated * 1000L)}), " +
+                                        "and that save is not yet in the cloud. " +
+                                        "(upload not started)\nYou can still play " +
+                                        "this game, but that may create a conflict " +
+                                        "when your previous game progress " +
+                                        "successfully uploads.",
+                                confirmBtnText = "Play anyway",
+                                dismissBtnText = "Cancel",
+                                onConfirmClick = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                    launchApp(
+                                        context = context,
+                                        appId = appId,
+                                        ignorePendingOperations = true,
+                                        setLoadingDialogVisible = setLoadingDialogVisible,
+                                        setLoadingProgress = setLoadingProgress,
+                                        setMessageDialogState = setMessageDialogState,
+                                        onSuccess = onSuccess,
+                                    )
+                                },
+                                onDismissClick = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                                onDismissRequest = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                            ))
+                        }
+                        ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionActive -> {
+                            setMessageDialogState(MessageDialogState(
+                                visible = true,
+                                title = "App Running",
+                                message = "You are logged in on another device (${pro.machineName}) " +
+                                        "already playing ${SteamService.getAppInfoOf(appId)?.name} " +
+                                        "(${Date(pro.timeLastUpdated * 1000L)}), and that save " +
+                                        "is not yet in the cloud. \nYou can still play this game, " +
+                                        "but that will disconnect the other session from Steam " +
+                                        "and may create a save conflict when that session " +
+                                        "progress is synced",
+                                confirmBtnText = "Play anyway",
+                                dismissBtnText = "Cancel",
+                                onConfirmClick = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                    launchApp(
+                                        context = context,
+                                        appId = appId,
+                                        ignorePendingOperations = true,
+                                        setLoadingDialogVisible = setLoadingDialogVisible,
+                                        setLoadingProgress = setLoadingProgress,
+                                        setMessageDialogState = setMessageDialogState,
+                                        onSuccess = onSuccess,
+                                    )
+                                },
+                                onDismissClick = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                                onDismissRequest = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                            ))
+                        }
+                        ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionSuspended -> {
+                            // I don't know what this means, yet
+                            setMessageDialogState(MessageDialogState(
+                                visible = true,
+                                title = "Sync Error",
+                                message = "App session suspended",
+                                dismissBtnText = "Ok",
+                                onDismissClick = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                                onDismissRequest = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                            ))
+                        }
+                        ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationNone -> {
+                            // why are we here
+                            setMessageDialogState(MessageDialogState(
+                                visible = true,
+                                title = "Sync Error",
+                                message = "Received pending remote operations whose operation was 'none'",
+                                dismissBtnText = "Ok",
+                                onDismissClick = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                                onDismissRequest = {
+                                    setMessageDialogState(MessageDialogState(false))
+                                },
+                            ))
+                        }
+                    }
+                } else {
+                    // this should probably be handled differently
+                    setMessageDialogState(MessageDialogState(
+                        visible = true,
+                        title = "Sync Error",
+                        message = "Multiple pending remote operations, try again later",
+                        dismissBtnText = "Ok",
+                        onDismissClick = {
+                            setMessageDialogState(MessageDialogState(false))
+                        },
+                        onDismissRequest = {
+                            setMessageDialogState(MessageDialogState(false))
+                        },
+                    ))
+                }
+            }
+            SyncResult.UpToDate,
+            SyncResult.Success -> onSuccess()
         }
     }
 }

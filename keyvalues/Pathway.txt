@@ -1,0 +1,291 @@
+546430: Pathway
+	appinfo
+		appid: 546430
+		common
+			name: Pathway
+			type: Game
+			releasestate: released
+			oslist: windows,macos,linux
+			osarch: 64
+			languages
+				english: 1
+				german: 1
+				french: 1
+				schinese: 1
+				japanese: 1
+			logo: 7851edaca0efa6b2149fb17362e41f8f5305c5c6
+			logo_small: 7851edaca0efa6b2149fb17362e41f8f5305c5c6_thumb
+			icon: 9ffd5f407ef365da34edc5a05eb64506955c6df5
+			clienttga: b5472e76bcc3f3a15db3fc6733cab2e4090494a2
+			linuxclienticon: 39127be5903c1663a0b026df9903825bd9ec0f36
+			clienticon: e2f37eb7eb417621a42ee5257275f759e90f9892
+			clienticns: 746823266c98cab6eae48ed9f9418310728acb1b
+			osextended: macos64
+			steam_deck_compatibility
+				category: 2
+				test_timestamp: 1664841600
+				tested_build_id: 8082258
+				tests
+					0
+						display: 3
+						token: #SteamDeckVerified_TestResult_TextInputDoesNotAutomaticallyInvokesKeyboard
+					1
+						display: 3
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsNotLegible
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					4
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 1
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 1
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: native
+					requires_h264: 0
+					gamescope_frame_limiter_not_supported: 0
+			metacritic_name: Pathway
+			controller_support: full
+			small_capsule
+				english: capsule_231x87.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: UpperCenter
+					width_pct: 97.2401931786527
+					height_pct: 90.58025583870514
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+					image2x
+						english: library_hero_2x.jpg
+				library_logo
+					image
+						english: logo.png
+					image2x
+						english: logo_2x.png
+					logo_position
+						pinned_position: UpperCenter
+						width_pct: 97.2401931786527
+						height_pct: 90.58025583870514
+			store_asset_mtime: 1660202905
+			associations
+				0
+					type: developer
+					name: Robotality
+				1
+					type: publisher
+					name: Chucklefish
+			primary_genre: 2
+			genres
+				0: 25
+				1: 23
+				2: 3
+				3: 2
+			category
+				category_2: 1
+				category_29: 1
+				category_22: 1
+				category_23: 1
+				category_45: 1
+				category_46: 1
+				category_28: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+					full_audio: true
+					subtitles: true
+				german
+					supported: true
+					subtitles: true
+				french
+					supported: true
+					subtitles: true
+				japanese
+					supported: true
+					subtitles: true
+				schinese
+					supported: true
+					subtitles: true
+			steam_release_date: 1554980425
+			steam_deck_blog_url: https://steamcommunity.com/games/546430/announcements/detail/3140698954424082116?snr=2___
+			metacritic_score: 68
+			metacritic_fullurl: https://www.metacritic.com/game/pc/pathway?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			workshop_visible: 1
+			community_hub_visible: 1
+			gameid: 546430
+			store_tags
+				0: 14139
+				1: 3964
+				2: 17305
+				3: 3834
+				4: 4486
+				5: 21725
+				6: 122
+				7: 3959
+				8: 4598
+				9: 1677
+				10: 9
+				11: 1741
+				12: 1716
+				13: 3871
+				14: 4325
+				15: 4791
+				16: 5125
+				17: 1708
+				18: 21
+				19: 1659
+			review_score: 6
+			review_percentage: 76
+		extended
+			developer: Robotality
+			publisher: Chucklefish
+			homepage: http://www.pathway-game.com/
+		config
+			installdir: Pathway
+			launch
+				0
+					executable: Pathway.exe
+					arguments: --steam
+					type: default
+					config
+						oslist: windows
+				1
+					executable: Pathway.app/Contents/MacOS/Pathway
+					arguments: --steam
+					type: default
+					config
+						oslist: macos
+				2
+					executable: Pathway
+					arguments: --steam
+					type: default
+					config
+						oslist: linux
+		depots
+			baselanguages: english,german
+			228987
+				config
+					oslist: windows
+				depotfromapp: 228980
+				sharedinstall: 1
+			546431
+				config
+					oslist: windows
+				manifests
+					public
+						gid: 4493958282423529341
+						size: 1018253682
+						download: 513194224
+					preview
+						gid: 1178914080303942257
+						size: 1032345908
+						download: 523050560
+				encryptedmanifests
+					alpha
+						gid: 6B47AEA9F2557C4A2F1D7DF3243576F5
+						size: 14439E8683675495652F267B2991798B
+						download: B5D390C7E379F8917116EF13405105C4
+					beta
+						gid: B8E82DB84E08B6E01BE708FCBE018C0A
+						size: 97CCA5CFFC8A0319FFA43953C3B830CF
+						download: E00446461EC2A29F79E9A2ED67F3D2AC
+					closedbetatest
+						gid: 194FD1B625C73B5988D3E72C3F905187
+						size: 2E6A430E1A46AB9053831036764F3780
+						download: 828D55AF7F2C7961C72C7551D13446DB
+			546432
+				config
+					oslist: macos
+				manifests
+					public
+						gid: 1055957405384195784
+						size: 1065329756
+						download: 520681024
+					preview
+						gid: 4839846983386716765
+						size: 1071984684
+						download: 526959840
+				encryptedmanifests
+					alpha
+						gid: AC5B37B5B9181AB6C027D22CC628FEAC
+						size: 343938119304D5CD026F4AB62ABD2F2C
+						download: C05CCCC76CEEA1350D850FAFF5FC7E3C
+					beta
+						gid: A175D58D7715A64D70AE157E2971765D
+						size: FBBA219DE5FCF81FFDDF58300F53DFCC
+						download: 1C375CE0CACE86D76616127A8BCC32C8
+					closedbetatest
+						gid: DDECC6DD37F8F4A532C5A5172FB0BB6E
+						size: A31504F95570E7EFE4C00A7F8688E5B6
+						download: 712CE12680176BCB1628028382D296C7
+			546433
+				config
+					oslist: linux
+				manifests
+					public
+						gid: 773080397893289308
+						size: 1023553410
+						download: 515511408
+					preview
+						gid: 3703856369945368170
+						size: 1030138682
+						download: 521722144
+				encryptedmanifests
+					alpha
+						gid: B242E41E45D53EF439CE7B1170AC7CE4
+						size: 82DA5039CB6DB31B258556C2BF05A3F7
+						download: 9F4D5409B795596A027387BEFE3E08F5
+					beta
+						gid: 65F0A75CBAC458DAB104AE44B85650FE
+						size: 56D34FFA5741833BA98C6E86D105B387
+						download: 7AFDE9EA5F7FEED43D15FD299AB9FECD
+					closedbetatest
+						gid: BDB0499DE836AC2D231F5D13DF572026
+						size: 61C72F4109951479D4A5B3C11995F77E
+						download: 423C0C38054427842EA991BFD16F8EA2
+			workshopdepot: 546430
+			branches
+				public
+					buildid: 8082258
+					timeupdated: 1643297746
+				alpha
+					buildid: 11379111
+					pwdrequired: 1
+					timeupdated: 1685703625
+				beta
+					buildid: 8950196
+					pwdrequired: 1
+					timeupdated: 1655391976
+				closedbetatest
+					buildid: 8082258
+					pwdrequired: 1
+					timeupdated: 1643297765
+				preview
+					buildid: 11379111
+					description: Preview Version
+					timeupdated: 1685704029
+		ufs
+			quota: 16777216
+			maxnumfiles: 64
