@@ -212,10 +212,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         private val steamDataPath: String
             get() = Paths.get(instance!!.dataDir.path, "steam_data.json").pathString
 
-        private val defaultAppInstallPath: String
+        val defaultAppInstallPath: String
             get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
 
-        private val defaultAppStagingPath: String
+        val defaultAppStagingPath: String
             get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
 
         private fun loadSteamData() {
