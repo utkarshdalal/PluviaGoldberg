@@ -2127,8 +2127,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                         installDir = app.keyValues["config"]["installdir"].value ?: "",
                         launch = launchConfigs.map {
                             LaunchInfo(
-                                executable = it["executable"].value ?: "",
-                                workingDir = it["workingdir"].value ?: "",
+                                executable = it["executable"].value?.replace('\\', '/') ?: "",
+                                workingDir = it["workingdir"].value?.replace('\\', '/') ?: "",
                                 description = it["description"].value ?: "",
                                 type = it["type"].value ?: "",
                                 configOS = OS.from(it["config"]["oslist"].value),
@@ -2161,8 +2161,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // // val isMessenger = app.id == 764790
                 // // val isWargroove = app.id == 607050
                 // // val isTetrisEffect = app.id == 1003590
-                // val isLittleKitty = app.id == 1177980
-                // if (isLittleKitty) {
+                // // val isLittleKitty = app.id == 1177980
+                // val isFactorio = app.id == 427520
+                // if (isFactorio) {
                 // 	Log.d("SteamService", "${app.id}: ${app.keyValues["common"]["name"].value}");
                 // 	printAllKeyValues(app.keyValues)
                 // 	// getPkgInfoOf(app.id)?.let {

@@ -291,9 +291,19 @@ public class TouchMouse {
         this.fourFingersTapCallback = fourFingersTapCallback;
     }
 
+    public static boolean isMouseDevice(InputDevice device) {
+        if (device == null) return false;
+        int sources = device.getSources();
+        return !device.isVirtual() && ((sources & InputDevice.SOURCE_MOUSE) == InputDevice.SOURCE_MOUSE ||
+                (sources & InputDevice.SOURCE_TOUCHPAD) == InputDevice.SOURCE_TOUCHPAD ||
+                (sources & InputDevice.SOURCE_BLUETOOTH_STYLUS) == InputDevice.SOURCE_BLUETOOTH_STYLUS ||
+                (sources & InputDevice.SOURCE_STYLUS) == InputDevice.SOURCE_STYLUS);
+    }
+
     public boolean onExternalMouseEvent(MotionEvent event) {
         boolean handled = false;
-        if (event.isFromSource(InputDevice.SOURCE_MOUSE)) {
+        // if (event.isFromSource(InputDevice.SOURCE_MOUSE)) {
+        if (isMouseDevice(event.getDevice())) {
             int actionButton = event.getActionButton();
             switch (event.getAction()) {
                 case MotionEvent.ACTION_BUTTON_PRESS:

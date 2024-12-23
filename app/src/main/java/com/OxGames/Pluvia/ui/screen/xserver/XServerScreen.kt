@@ -3,6 +3,8 @@ package com.OxGames.Pluvia.ui.screen.xserver
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import android.view.MotionEvent
+import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -17,6 +19,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -24,6 +30,7 @@ import androidx.preference.PreferenceManager
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.XServerState
@@ -63,6 +70,7 @@ import com.winlator.xenvironment.components.SteamClientComponent
 import com.winlator.xenvironment.components.SysVSharedMemoryComponent
 import com.winlator.xenvironment.components.VirGLRendererComponent
 import com.winlator.xenvironment.components.XServerComponent
+import com.winlator.xserver.Keyboard
 import com.winlator.xserver.Property
 import com.winlator.xserver.Window
 import com.winlator.xserver.WindowManager
@@ -131,12 +139,11 @@ fun XServerScreen(
         Log.d("XServerScreen", "Remembering touchMouse as $result")
         result
     }
+    var keyboard by remember { mutableStateOf<Keyboard?>(null) }
+    // var pointerEventListener by remember { mutableStateOf<Callback<MotionEvent>?>(null) }
 
-    val appLocalExe = SteamService.getAppInfoOf(appId)?.let { appInfo ->
-        SteamService.getWindowsLaunchInfos(appId).firstOrNull()?.let { launchInfo ->
-            val exe = Paths.get(launchInfo.executable).name
-            Pair(launchInfo.workingDir, exe)
-        }
+    val appLaunchInfo = SteamService.getAppInfoOf(appId)?.let { appInfo ->
+        SteamService.getWindowsLaunchInfos(appId).firstOrNull()
     }
 
     BackHandler {
@@ -148,14 +155,18 @@ fun XServerScreen(
             exit(xServer.winHandler, xEnvironment, onExit)
         }
         val onKeyEvent: (AndroidEvent.KeyEvent) -> Boolean = {
-            // Log.d("XServerScreen", "dispatchKeyEvent(${it.event.keyCode}):\n${it.event}")
-            if (ExternalController.isGameController(it.event.device)) {
+            // Log.d("XServerScreen", "onKeyEvent(${it.event.keyCode}):\n${it.event}")
+            if (Keyboard.isKeyboardDevice(it.event.device)) {
+                keyboard?.onKeyEvent(it.event) == true
+            } else if (ExternalController.isGameController(it.event.device)) {
                 xServer.winHandler.onKeyEvent(it.event)
             } else false
         }
         val onMotionEvent: (AndroidEvent.MotionEvent) -> Boolean = {
             // Log.d("XServerScreen", "dispatchGenericMotionEvent(${it.event?.deviceId}:${it.event?.device?.name}):\n${it.event}")
-            if (ExternalController.isGameController(it.event?.device)) {
+            if (TouchMouse.isMouseDevice(it.event?.device)) {
+                touchMouse?.onExternalMouseEvent(it.event) == true
+            } else if (ExternalController.isGameController(it.event?.device)) {
                 xServer.winHandler.onGenericMotionEvent(it.event)
             } else false
         }
@@ -306,31 +317,66 @@ fun XServerScreen(
     AndroidView(
         modifier = Modifier
             .fillMaxSize()
+            .pointerHoverIcon(PointerIcon(0))
             .pointerInteropFilter {
-                // Log.d("XServerScreen", "PointerInteropFilter: $it")
+                Log.d("XServerScreen", "PointerInteropFilter:\n\t$it")
                 touchMouse?.onTouchEvent(it)
                 true
-            },
+            }
+        ,
         factory = { context ->
             // Creates view
             Log.d("XServerScreen", "Creating XServerView")
             XServerView(context, xServer).apply {
                 xServerView = this
+                // pointerEventListener = object: Callback<MotionEvent> {
+                //     override fun call(event: MotionEvent) {
+                //         Log.d("XServerScreen", "onMotionEvent:\n\t$event")
+                //         if (TouchMouse.isMouseDevice(event.device)) {
+                //             touchMouse?.onExternalMouseEvent(event) == true
+                //         }
+                //     }
+                // }
+                // this.addPointerEventListener(pointerEventListener)
+                // this.requestFocus()
+                // this.setOnCapturedPointerListener(object: View.OnCapturedPointerListener {
+                //     override fun onCapturedPointer(
+                //         view: View,
+                //         event: MotionEvent
+                //     ): Boolean {
+                //         Log.d("XServerScreen", "onMotionEvent:\n\t$event")
+                //         return if (TouchMouse.isMouseDevice(event.device)) {
+                //             touchMouse?.onExternalMouseEvent(event) == true
+                //         } else false
+                //     }
+                //
+                // })
+                // this.requestPointerCapture()
                 // this.background = ColorDrawable(Color.Green.toArgb())
                 val renderer = this.renderer
                 renderer.isCursorVisible = false
                 xServer.renderer = renderer
-                xServer.winHandler = WinHandler(xServer, this)  // TODO: fix communication which used to be via activity
+                xServer.winHandler = WinHandler(xServer, this)
                 touchMouse = TouchMouse(xServer)
+                keyboard = Keyboard(xServer)
                 if (!bootToContainer) {
                     renderer.setUnviewableWMClasses("explorer.exe")
-                    appLocalExe?.let { renderer.forceFullscreenWMClass = it.second } // TODO: make option of app
+                    // TODO: make 'force fullscreen' option of app being launched
+                    appLaunchInfo?.let { renderer.forceFullscreenWMClass = Paths.get(it.executable).name }
                 }
             }
         },
         update = { view ->
             // View's been inflated or state read in this block has been updated
             // Add logic here if necessary
+            // view.requestFocus()
+        },
+        onRelease = { view ->
+            // view.releasePointerCapture()
+            // pointerEventListener?.let {
+            //     view.removePointerEventListener(pointerEventListener)
+            //     view.onRelease()
+            // }
         }
     )
 
@@ -385,7 +431,7 @@ fun XServerScreen(
                     envVars,
                     generateWinePrefix,
                     container,
-                    appLocalExe,
+                    appLaunchInfo,
                     // xServerState.value.shortcut,
                     xServer,
                     imageFs,
@@ -473,7 +519,7 @@ private fun setupXEnvironment(
     envVars: EnvVars,
     generateWinePrefix: Boolean,
     container: Container?,
-    appLocalExe: Pair<String, String>?,
+    appLaunchInfo: LaunchInfo?,
     // shortcut: Shortcut?,
     xServer: XServer,
     imageFs: ImageFs,
@@ -498,7 +544,7 @@ private fun setupXEnvironment(
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
 
         val wow64Mode = container.isWoW64Mode
-        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+ getWineStartCommand(container, bootToContainer, appLocalExe)
+        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+ getWineStartCommand(container, bootToContainer, appLaunchInfo)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
@@ -566,17 +612,17 @@ private fun setupXEnvironment(
 private fun getWineStartCommand(
     container: Container,
     bootToContainer: Boolean,
-    appLocalExe: Pair<String, String>?
+    appLaunchInfo: LaunchInfo?
 ): String {
     val tempDir = File(container.rootDir, ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
 
     // val args = "\"wfm.exe\""
     // Log.d("XServerScreen", "Converting $appLocalExe to wine start command")
-    val args = if (bootToContainer || appLocalExe == null) {
+    val args = if (bootToContainer || appLaunchInfo == null) {
         "\"wfm.exe\""
     } else {
-        "/dir D:/ \"${appLocalExe.second.replace('\\', '/')}\""
+        "/dir D:/${appLaunchInfo.workingDir} \"${appLaunchInfo.executable}\""
     }
 
     // var args = ""

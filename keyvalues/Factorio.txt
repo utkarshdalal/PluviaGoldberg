@@ -1,0 +1,506 @@
+427520: Factorio
+	appinfo
+		appid: 427520
+		common
+			name: Factorio
+			type: Game
+			releasestate: released
+			oslist: windows,macos,linux
+			logo: 95e5aa627ae1481b1dea293f6db5954e8aa79f41
+			logo_small: 95e5aa627ae1481b1dea293f6db5954e8aa79f41_thumb
+			icon: 267f5a89f36ab287e600a4e7d4e73d3d11f0fd7d
+			clienticon: bcbf4ca8e6be3f0222e257396c8ba7dbc6caca29
+			clienttga: 7dbdb4c9fd24f12daca89c91b4216e18708080b6
+			clienticns: 1814708b5344008dd9a8ea3c89699aa0f8a50309
+			languages
+				english: 1
+				german: 1
+				french: 1
+				italian: 1
+				koreana: 1
+				spanish: 1
+				schinese: 1
+				tchinese: 1
+				russian: 1
+				thai: 1
+				japanese: 1
+				portuguese: 1
+				polish: 1
+				danish: 1
+				dutch: 1
+				finnish: 1
+				norwegian: 1
+				swedish: 1
+				hungarian: 1
+				czech: 1
+				romanian: 1
+				turkish: 1
+				arabic: 1
+				brazilian: 1
+				bulgarian: 1
+				greek: 1
+				ukrainian: 1
+			osarch: 
+			osextended: macos64,macosapplesilicon,macosnotarized
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1694476800
+				tested_build_id: 12130330
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: native
+					requires_h264: 0
+					gamescope_frame_limiter_not_supported: 0
+			metacritic_name: Factorio
+			controllertagwizard: 1
+			controller_support: partial
+			small_capsule
+				english: capsule_231x87.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: CenterCenter
+					width_pct: 53
+					height_pct: 41
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+				library_logo
+					logo_position
+						pinned_position: CenterCenter
+						width_pct: 53
+						height_pct: 41
+					image
+						english: logo.png
+			store_asset_mtime: 1611916591
+			associations
+				0
+					type: developer
+					name: Wube Software LTD.
+				1
+					type: publisher
+					name: Wube Software LTD.
+			primary_genre: 28
+			genres
+				0: 4
+				1: 23
+				2: 28
+				3: 2
+			category
+				category_2: 1
+				category_1: 1
+				category_27: 1
+				category_17: 1
+				category_23: 1
+				category_22: 1
+				category_9: 1
+				category_38: 1
+				category_48: 1
+				category_42: 1
+				category_45: 1
+				category_46: 1
+				category_18: 1
+				category_55: 1
+				category_56: 1
+				category_57: 1
+				category_58: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+				french
+					supported: true
+				italian
+					supported: true
+				german
+					supported: true
+				spanish
+					supported: true
+				hungarian
+					supported: true
+				dutch
+					supported: true
+				norwegian
+					supported: true
+				polish
+					supported: true
+				portuguese
+					supported: true
+				brazilian
+					supported: true
+				romanian
+					supported: true
+				finnish
+					supported: true
+				swedish
+					supported: true
+				czech
+					supported: true
+				russian
+					supported: true
+				ukrainian
+					supported: true
+				japanese
+					supported: true
+				schinese
+					supported: true
+				tchinese
+					supported: true
+				koreana
+					supported: true
+				turkish
+					supported: true
+				greek
+					supported: true
+				latam
+					supported: true
+				thai
+					supported: true
+				vietnamese
+					supported: true
+				belarusian
+					supported: true
+				catalan
+					supported: true
+				kazakh
+					supported: true
+				georgian
+					supported: true
+			steam_release_date: 1597395480
+			metacritic_score: 90
+			metacritic_fullurl: https://www.metacritic.com/game/pc/factorio?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 427520
+			store_tags
+				0: 255534
+				1: 7332
+				2: 8945
+				3: 3810
+				4: 1702
+				5: 9
+				6: 3859
+				7: 1662
+				8: 12472
+				9: 1695
+				10: 1643
+				11: 1685
+				12: 3871
+				13: 1669
+				14: 4182
+				15: 1616
+				16: 599
+				17: 3964
+				18: 4328
+				19: 492
+			review_score: 9
+			review_percentage: 96
+			review_score_bombs: 9
+			review_percentage_bombs: 97
+		extended
+			developer: Wube Software LTD.
+			publisher: Wube Software LTD.
+			homepage: https://www.factorio.com
+			listofdlc: 645390
+			dlcavailableonstore: 1
+		config
+			contenttype: 3
+			installdir: Factorio
+			steamcontrollertemplateindex: 1
+			launch
+				1
+					executable: bin/x64/Factorio.exe
+					type: default
+					config
+						oslist: windows
+						osarch: 64
+				2
+					executable: bin/Win32/Factorio.exe
+					type: default
+					config
+						oslist: windows
+						osarch: 32
+				3
+					executable: bin/x64/factorio
+					type: default
+					config
+						oslist: linux
+						osarch: 64
+				4
+					executable: bin/i386/factorio
+					type: default
+					config
+						oslist: linux
+						osarch: 32
+				5
+					executable: factorio.app
+					type: default
+					config
+						oslist: macos
+			steamcontrollerconfigdetails
+				2809690725
+					controller_type: controller_neptune
+					enabled_branches: 0.12.35,0.13.20,0.14.23,0.15.37,0.15.40,0.16.51,0.17.79,1.0.0,1.1.76,1.1.80,1.1.82
+					use_action_block: false
+				2989587271
+					controller_type: controller_neptune
+					enabled_branches: 1.1.83,1.1.84,1.1.85,1.1.86,1.1.87,1.1.88,1.1.89
+					use_action_block: false
+				3031247259
+					controller_type: controller_neptune
+					enabled_branches: default,1.1.90,1.1.x,build,console,internal-test
+					use_action_block: false
+			steamdecktouchscreen: 4
+		depots
+			baselanguages: english,german,french,italian,koreana,spanish,schinese,tchinese,russian,japanese,polish,danish,dutch,finnish,norwegian,swedish,hungarian,czech,romanian,brazilian,ukrainian
+			hasdepotsindlc: 1
+			427521
+				config
+					oslist: windows
+					osarch: 64
+				manifests
+					public
+						gid: 8923964210212479389
+						size: 2148151013
+						download: 1505737632
+					experimental
+						gid: 8923964210212479389
+						size: 2148151013
+						download: 1505737632
+					console
+						gid: 669443118324432452
+						size: 2145852264
+						download: 1505223456
+					2.0.28
+						gid: 8923964210212479389
+						size: 2148151013
+						download: 1505737632
+					2.0.27
+						gid: 4968085586127245048
+						size: 2148046192
+						download: 1505628752
+					2.0.26
+						gid: 6488949592420350808
+						size: 2147877583
+						download: 1505662512
+					2.0.25
+						gid: 7578078756714691216
+						size: 2147662782
+						download: 1505676768
+					2.0.24
+						gid: 4822483785468393502
+						size: 2147384453
+						download: 1505581408
+					2.0.23
+						gid: 669443118324432452
+						size: 2145852264
+						download: 1505223456
+					2.0.21
+						gid: 7272004795884154359
+						size: 2141146929
+						download: 1501232784
+					2.0.20
+						gid: 4855378410271749081
+						size: 2140816115
+						download: 1500994288
+					2.0.15
+						gid: 187897947202592013
+						size: 2138734173
+						download: 1500668032
+					2.0.14
+						gid: 7853020343786392367
+						size: 2138460237
+						download: 1500671088
+					2.0.7
+						gid: 2211384005721758383
+						size: 2132370873
+						download: 1499431360
+					1.1.110
+						gid: 362171530019617350
+						size: 1910192671
+						download: 1490467696
+					1.1.94
+						gid: 4657870009257279704
+						size: 2002798904
+						download: 1494546928
+					1.0.0
+						gid: 5626465236371366430
+						size: 1755245061
+						download: 1423642848
+					0.17.79
+						gid: 5217633593669398073
+						size: 1585403397
+						download: 1290537248
+					0.16.51
+						gid: 7710943521562681979
+						size: 1066733514
+						download: 856913248
+					0.15.40
+						gid: 8127115610667035850
+						gid: 8127115610667035850
+						download: 290216160
+					build
+						gid: A496BB76550E29714013D6E2AB0280A5
+						size: D28509B0A6002B37F4AB86BCED169D9C
+						download: CAF041536D0C841E4BA6181D9F31EE47
+			427523
+				config
+						gid: 2007166854912438579
+					2.0.28
+						gid: 7120683173075354933
+						size: 2415780764
+						size: 2415207863
+					0.15.40
+						download: 279254912
+						gid: 4863508618591081907
+						download: 4294606960
+						gid: 6091650892817544955
+						size: 4875291391
+						download: 4292898448
+					2.0.28
+						gid: 4863508618591081907
+						size: 4878282310
+						download: 4294606960
+					2.0.27
+						gid: 5277775857162633574
+						size: 4878245703
+						download: 4294472880
+					2.0.26
+				dlcappid: 645390
+				config
+					oslist: macos
+				manifests
+					public
+						gid: 8266759465711935273
+						size: 5261489884
+						download: 4344882608
+					experimental
+						gid: 8266759465711935273
+						size: 5261489884
+						download: 4344882608
+					console
+						gid: 6049810506079226043
+						size: 5257206749
+						download: 4342832080
+					2.0.28
+						gid: 8266759465711935273
+						size: 5261489884
+						download: 4344882608
+					2.0.27
+						gid: 5938253730929710136
+						download: 4339238080
+					2.0.20
+						gid: 4715056474603484881
+						size: 5258235462
+						download: AFC62D2B485C85378F2246B6F23BA808
+						gid: 7828090669751088586
+						size: 4988233045
+						download: 4303103856
+					2.0.21
+						gid: 7809592105391082812
+						size: 4982766461
+						download: 4298318384
+					2.0.20
+						gid: 924407496372122870
+						size: 4982481120
+						download: 4298104912
+					2.0.15
+						gid: 4218581231766647735
+						size: 4974059379
+						download: 4291547936
+					2.0.14
+						gid: 2112902555287576907
+						size: 4973749031
+						download: 4291561472
+					2.0.7
+						gid: 8334953794217600713
+						size: 4966219654
+						download: 4288973792
+				encryptedmanifests
+					build
+						gid: 37997CE43403CD892708D9C7CB1FF463
+						size: 3FDB45421EE3D193C48AC7C4BB29084B
+						download: DE2B87C3B3B01429CF94ACEF25BEE7DC
+			branches
+				public
+					buildid: 16814940
+					timeupdated: 1734778813
+				experimental
+					buildid: 16814940
+					description: Latest 2.0 Experimental (2.0.28)
+					timeupdated: 1734703862
+				console
+					buildid: 16568931
+					description: Factorio version matching latest console release (2.0.23)
+					timeupdated: 1733928210
+				2.0.28
+					buildid: 16814940
+					description: Factorio Stable 2.0.28
+					timeupdated: 1734703822
+				2.0.27
+					buildid: 16789641
+					description: Factorio Experimental 2.0.27
+					timeupdated: 1734540681
+				2.0.26
+					buildid: 16761888
+					description: Factorio Experimental 2.0.26
+					timeupdated: 1734369506
+				2.0.25
+					buildid: 16725114
+					description: Factorio Experimental 2.0.25
+					timeupdated: 1734026968
+				2.0.24
+					buildid: 16644891
+					description: Factorio Experimental 2.0.24
+					timeupdated: 1733410978
+				2.0.23
+					buildid: 16568931
+					description:  Factorio Stable 2.0.23
+					timeupdated: 1732811075
+				2.0.21
+					buildid: 16490042
+					description: Factorio Outdated Stable 2.0.21
+					timeupdated: 1732211902
+				2.0.20
+					buildid: 16446133
+					description:  Factorio Outdated Stable 2.0.20
+					timeupdated: 1731944761
+				2.0.15
+					buildid: 16303643
+					description: Factorio Outdated Stable 2.0.15
+					timeupdated: 1730825811
+					description: Factorio Stable 0.13
+					timeupdated: 1478180124
+				0.12.35
+					buildid: 1158343
+					description: Factorio Stable 0.12
