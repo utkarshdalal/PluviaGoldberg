@@ -25,15 +25,15 @@ roomKtx = "2.6.1"
 roomPaging = "2.6.1"
 roomRuntime = "2.6.1"
 spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongycastle/prov
-#steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
+steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
 zstd-jni = "1.5.2-3" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
 zxing = "3.5.1" # https://mvnrepository.com/artifact/com.google.zxing/core
 dagger-hilt = "2.52" # https://mvnrepository.com/artifact/com.google.dagger/hilt-android
 ksp = "2.0.21-1.0.28" # https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
-commons-io = "2.17.0" # https://mvnrepository.com/artifact/commons-io/commons-io
-commons-lang3 = "3.17.0" # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-commons-validator = "1.9.0" # https://mvnrepository.com/artifact/commons-validator/commons-validator
-xz = "1.10" # https://mvnrepository.com/artifact/org.tukaani/xz
+#commons-io = "2.17.0" # https://mvnrepository.com/artifact/commons-io/commons-io
+#commons-lang3 = "3.17.0" # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+#commons-validator = "1.9.0" # https://mvnrepository.com/artifact/commons-validator/commons-validator
+#xz = "1.10" # https://mvnrepository.com/artifact/org.tukaani/xz
 
 [libraries]
 android-preferences = { group = "androidx.preference", name = "preference-ktx", version.ref = "android-preferences" }
@@ -69,13 +69,13 @@ landscapist-coil = { module = "com.github.skydoves:landscapist-coil", version.re
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 spongycastle = { group = "com.madgag.spongycastle", name = "prov", version.ref = "spongycastle" }
-#steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
+steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
 zstd-jni = {group = "com.github.luben", name = "zstd-jni", version.ref = "zstd-jni"}
 zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
-commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
-commons-validator = { module = "commons-validator:commons-validator", version.ref = "commons-validator" }
-xz = { module = "org.tukaani:xz", version.ref = "xz" }
+#commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
+#commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
+#commons-validator = { module = "commons-validator:commons-validator", version.ref = "commons-validator" }
+#xz = { module = "org.tukaani:xz", version.ref = "xz" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -116,9 +116,9 @@ winlator = [
     "android-preferences",
     "apache-compress",
 ]
-steamkit-dev = [
-    "commons-io",
-    "commons-lang3",
-    "commons-validator",
-    "xz",
-]
+#steamkit-dev = [
+#    "commons-io",
+#    "commons-lang3",
+#    "commons-validator",
+#    "xz",
+#]

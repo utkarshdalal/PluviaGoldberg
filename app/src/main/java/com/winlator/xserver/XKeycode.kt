@@ -1,6 +1,6 @@
-package com.winlator.xserver;
+package com.winlator.xserver
 
-public enum XKeycode {
+enum class XKeycode(val id: Byte) {
     KEY_NONE(0),
     KEY_ESC(9),
     KEY_1(10),
@@ -103,9 +103,4 @@ public enum XKeycode {
     KEY_INSERT(118),
     KEY_DEL(119),
     KEY_MAX(KEY_DEL.id);
-    public final byte id;
-
-    XKeycode(int id) {
-        this.id = (byte)id;
-    }
 }

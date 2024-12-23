@@ -70,13 +70,13 @@ android {
 }
 
 dependencies {
-    implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
-    implementation(libs.bundles.steamkit.dev) // only needed when building JavaSteam manually
+    // implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
+    // implementation(libs.bundles.steamkit.dev) // only needed when building JavaSteam manually
 
     // JavaSteam
-    // implementation(libs.steamkit) {
-    //     isChanging = version?.contains("SNAPSHOT") ?: false
-    // }
+    implementation(libs.steamkit) {
+        isChanging = version?.contains("SNAPSHOT") ?: false
+    }
     implementation(libs.spongycastle)
 
     // Winlator
