@@ -9,8 +9,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.OxGames.Pluvia.data.UserFileInfo
+import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.ui.enums.Orientation
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import kotlinx.coroutines.CoroutineName
@@ -114,6 +117,85 @@ object PrefManager {
         get() = getPref(REFRESH_TOKEN, "")
         set(value) {
             setPref(REFRESH_TOKEN, value)
+        }
+
+    // Special: Because null value.
+    private val CLIENT_ID = longPreferencesKey("client_id")
+    var clientId: Long?
+        get() = runBlocking { dataStore.data.first()[CLIENT_ID] }
+        set(value) {
+            scope.launch {
+                dataStore.edit { pref -> pref[CLIENT_ID] = value!! }
+            }
+        }
+
+    // TODO database this.
+    private val APP_FILE_CHANGE_LISTS = stringPreferencesKey("app_file_change_lists")
+    var appFileChangeLists: Map<Int, List<UserFileInfo>>
+        get() {
+            val string = getPref(APP_FILE_CHANGE_LISTS, "{}")
+            return string.removeSurrounding("{", "}")
+                .split(";")
+                .associate { entry ->
+                    val (key, listStr) = entry.split(":", limit = 2)
+                    val list = listStr.removeSurrounding("[", "]")
+                        .takeIf { it.isNotEmpty() }
+                        ?.split(",")
+                        ?.map { fileInfoStr ->
+                            val (rootStr, path, filename, timestamp, shaHex) = fileInfoStr.split("|")
+                            val sha = shaHex.chunked(2)
+                                .map { it.toInt(16).toByte() }
+                                .toByteArray()
+
+                            UserFileInfo(
+                                root = PathType.valueOf(rootStr),
+                                path = path,
+                                filename = filename,
+                                timestamp = timestamp.toLong(),
+                                sha = sha
+                            )
+                        } ?: emptyList()
+
+                    key.toInt() to list
+                }
+        }
+        set(value) {
+            val result = value.entries.joinToString(
+                separator = ";",
+                prefix = "{",
+                postfix = "}"
+            ) { (key, list) ->
+                val listAsString = list.joinToString(separator = ",") { fileInfo ->
+                    val shaHex = fileInfo.sha.joinToString("") { byte -> "%02x".format(byte) }
+                    "${fileInfo.root}|${fileInfo.path}|${fileInfo.filename}|${fileInfo.timestamp}|$shaHex"
+                }
+                "$key:[$listAsString]"
+            }
+
+            setPref(APP_FILE_CHANGE_LISTS, result)
+        }
+
+    // TODO database this
+    private val APP_CHANGE_NUMBERS = stringPreferencesKey("app_change_numbers")
+    var appChangeNumbers: Map<Int, Long>
+        get() {
+            val string = getPref(APP_CHANGE_NUMBERS, "{}")
+            return string.removeSurrounding("{", "}")
+                .split(",")
+                .associate { pair ->
+                    val (key, value) = pair.split(":")
+                    key.toInt() to value.toLong()
+                }
+        }
+        set(value) {
+            val result = value.entries.joinToString(
+                separator = ",",
+                prefix = "{", postfix = "}"
+            ) { (key, value) ->
+                "$key:$value"
+            }
+
+            setPref(APP_CHANGE_NUMBERS, result)
         }
 
     private val REMEMBER_PASSWORD = booleanPreferencesKey("remember_password")
