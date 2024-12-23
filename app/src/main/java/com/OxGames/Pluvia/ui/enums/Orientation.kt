@@ -1,6 +1,7 @@
 package com.OxGames.Pluvia.ui.enums
 
 import android.content.pm.ActivityInfo
+import java.util.EnumSet
 
 enum class Orientation(val activityInfoValue: Int, val angleRanges: Array<IntRange>) {
     PORTRAIT(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, arrayOf(330..360, 0..30)), // 0° ± 30°
@@ -13,5 +14,11 @@ enum class Orientation(val activityInfoValue: Int, val angleRanges: Array<IntRan
         fun fromActivityInfoValue(value: Int): Orientation {
             return Orientation.entries.firstOrNull { it.activityInfoValue == value } ?: UNSPECIFIED
         }
+
+        fun toInt(flags: EnumSet<Orientation>): Int =
+            flags.fold(0) { acc, flag -> acc or (1 shl flag.ordinal) }
+
+        fun fromInt(code: Int): EnumSet<Orientation> =
+            EnumSet.copyOf(entries.filter { (code and (1 shl it.ordinal)) != 0 })
     }
 }
