@@ -21,6 +21,7 @@ import coil.util.DebugLogger
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
+import com.OxGames.Pluvia.utils.IconDecoder
 import com.skydoves.landscapist.coil.LocalCoilImageLoader
 import com.winlator.core.AppUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -81,6 +82,7 @@ class MainActivity : ComponentActivity() {
                             .directory(context.cacheDir.resolve("image_cache").toOkioPath())
                             .build()
                     }
+                    .components { add(IconDecoder.Factory()) }
                     .logger(if (BuildConfig.DEBUG) DebugLogger() else null)
                     .build()
             }
