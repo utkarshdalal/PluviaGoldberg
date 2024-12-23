@@ -76,14 +76,19 @@ public class ContainerManager {
     }
 
     public void createContainerAsync(final JSONObject data, Callback<Container> callback) {
+        int id = maxContainerId + 1;
         final Handler handler = new Handler();
         Executors.newSingleThreadExecutor().execute(() -> {
-            final Container container = createContainer(data);
+            final Container container = createContainer(id, data);
             handler.post(() -> callback.call(container));
         });
     }
     public Future<Container> createContainerFuture(final JSONObject data) {
-        return Executors.newSingleThreadExecutor().submit(() -> createContainer(data));
+        int id = maxContainerId + 1;
+        return Executors.newSingleThreadExecutor().submit(() -> createContainer(id, data));
+    }
+    public Future<Container> createContainerFuture(int id, final JSONObject data) {
+        return Executors.newSingleThreadExecutor().submit(() -> createContainer(id, data));
     }
     public Future<Container> createDefaultContainerFuture(WineInfo wineInfo) {
         return createDefaultContainerFuture(wineInfo, getNextContainerId());
@@ -140,7 +145,7 @@ public class ContainerManager {
             throw new RuntimeException(e);
         }
 
-        return createContainerFuture(data);
+        return createContainerFuture(containerId, data);
     }
 
     public void duplicateContainerAsync(Container container, Runnable callback) {
@@ -159,15 +164,14 @@ public class ContainerManager {
         });
     }
 
-    public Container createContainer(JSONObject data) {
+    public Container createContainer(int containerId, JSONObject data) {
         try {
-            int id = maxContainerId + 1;
-            data.put("id", id);
+            data.put("id", containerId);
 
-            File containerDir = new File(homeDir, ImageFs.USER+"-"+id);
+            File containerDir = new File(homeDir, ImageFs.USER+"-"+containerId);
             if (!containerDir.mkdirs()) return null;
 
-            Container container = new Container(id);
+            Container container = new Container(containerId);
             container.setRootDir(containerDir);
             container.loadData(data);
 

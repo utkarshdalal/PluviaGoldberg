@@ -4,10 +4,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 
 data class DownloadInfo(
-    private var downloadJob: Job? = null,
-    private var progress: Float = 0f
+    val jobCount: Int = 1,
 ) {
+    private var downloadJob: Job? = null
     private val downloadProgressListeners = mutableListOf<((Float) -> Unit)>()
+    private val progresses: Array<Float> = Array(jobCount) { 0f }
 
     fun cancel() {
         downloadJob?.cancel(CancellationException("Cancelled by user"))
@@ -16,10 +17,10 @@ data class DownloadInfo(
         downloadJob = job
     }
     fun getProgress(): Float {
-        return progress
+        return progresses.sum() / jobCount
     }
-    fun setProgress(amount: Float) {
-        progress = amount
+    fun setProgress(amount: Float, jobIndex: Int = 0) {
+        progresses[jobIndex] = amount
         emitProgressChange()
     }
     fun addProgressListener(listener: (Float) -> Unit) {
@@ -30,7 +31,7 @@ data class DownloadInfo(
     }
     fun emitProgressChange() {
         for (listener in downloadProgressListeners) {
-            listener(progress)
+            listener(getProgress())
         }
     }
 }

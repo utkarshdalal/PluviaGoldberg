@@ -1,0 +1,250 @@
+764790: The Messenger
+	appinfo
+		appid: 764790
+		common
+			name: The Messenger
+			type: Game
+			releasestate: released
+			oslist: windows
+			osarch: 
+			logo: c2a6febb14b2532b542dfc4f6d871dc6ea2949f7
+			logo_small: c2a6febb14b2532b542dfc4f6d871dc6ea2949f7_thumb
+			icon: 0557eb871fd0e6c6124532bf959af2604be5aa9d
+			clienticon: ecff89a818b3c47ad2f8d271047ad1d57524f6c3
+			clienttga: 1cbc3394d526af7b87abf012cbd31532c06c990b
+			languages
+				english: 1
+				german: 1
+				french: 1
+				koreana: 1
+				spanish: 1
+				schinese: 1
+				tchinese: 1
+				russian: 1
+				japanese: 1
+				brazilian: 1
+			name_localized
+				schinese: 信使
+			steam_deck_compatibility
+				category: 3
+				test_timestamp: 1644969600
+				tested_build_id: 4251184
+				tests
+					0
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultControllerConfigFullyFunctional
+					1
+						display: 4
+						token: #SteamDeckVerified_TestResult_ControllerGlyphsMatchDeckDevice
+					2
+						display: 4
+						token: #SteamDeckVerified_TestResult_InterfaceTextIsLegible
+					3
+						display: 4
+						token: #SteamDeckVerified_TestResult_DefaultConfigurationIsPerformant
+				configuration
+					supported_input: gamepad
+					requires_manual_keyboard_invoke: 0
+					requires_non_controller_launcher_nav: 0
+					primary_player_is_controller_slot_0: 0
+					non_deck_display_glyphs: 0
+					small_text: 0
+					requires_internet_for_setup: 0
+					requires_internet_for_singleplayer: 0
+					recommended_runtime: proton-stable
+					requires_h264: 0
+			metacritic_name: The Messenger
+			controller_support: full
+			small_capsule
+				english: capsule_231x87.jpg
+			header_image
+				english: header.jpg
+			library_assets
+				library_capsule: en
+				library_hero: en
+				library_logo: en
+				logo_position
+					pinned_position: BottomLeft
+					width_pct: 58.23798627002289
+					height_pct: 63.29850391830919
+			library_assets_full
+				library_capsule
+					image
+						english: library_600x900.jpg
+					image2x
+						english: library_600x900_2x.jpg
+				library_hero
+					image
+						english: library_hero.jpg
+					image2x
+						english: library_hero_2x.jpg
+				library_logo
+					image
+						english: logo.png
+					image2x
+						english: logo_2x.png
+					logo_position
+						pinned_position: BottomLeft
+						width_pct: 58.23798627002289
+						height_pct: 63.29850391830919
+			store_asset_mtime: 1693327023
+			associations
+				0
+					type: developer
+					name: Sabotage
+				1
+					type: publisher
+					name: Devolver Digital
+				2
+					type: franchise
+					name: Sabotage
+			primary_genre: 1
+			genres
+				0: 1
+				1: 23
+			category
+				category_28: 1
+				category_2: 1
+				category_22: 1
+				category_29: 1
+				category_23: 1
+				category_43: 1
+				category_62: 1
+			supported_languages
+				english
+					supported: true
+					subtitles: true
+				french
+					supported: true
+					subtitles: true
+				german
+					supported: true
+					subtitles: true
+				spanish
+					supported: true
+					subtitles: true
+				schinese
+					supported: true
+					subtitles: true
+				tchinese
+					supported: true
+					subtitles: true
+				japanese
+					supported: true
+					subtitles: true
+				koreana
+					supported: true
+					subtitles: true
+				brazilian
+					supported: true
+					subtitles: true
+				russian
+					supported: true
+					subtitles: true
+			steam_release_date: 1535644140
+			metacritic_score: 83
+			metacritic_fullurl: https://www.metacritic.com/game/pc/the-messenger?ftag=MCD-06-10aaa1f
+			community_visible_stats: 1
+			community_hub_visible: 1
+			gameid: 764790
+			store_tags
+				0: 4004
+				1: 1625
+				2: 3964
+				3: 1628
+				4: 3871
+				5: 1688
+				6: 1756
+				7: 492
+				8: 19
+				9: 5379
+				10: 4182
+				11: 4136
+				12: 4026
+				13: 4106
+				14: 10679
+				15: 21
+				16: 3798
+				17: 1719
+				18: 3965
+				19: 5411
+			review_score: 8
+			review_percentage: 93
+		extended
+			developer: Sabotage
+			publisher: Devolver Digital
+			homepage: https://themessengergame.com
+			listofdlc: 1107180
+			dlcavailableonstore: 1
+		config
+			installdir: The Messenger
+			launch
+				0
+					executable: TheMessenger.exe
+					type: none
+		depots
+			hasdepotsindlc: 0
+			764791
+				config
+					oslist: windows
+					language: 
+				manifests
+					public
+						gid: 1617844275229918891
+						size: 1699469415
+						download: 287723920
+				encryptedmanifests
+					demo
+						gid: 03D40B174119CD46D95C46EF1CE683B3
+						size: 52EEE7D6DC7F9B60BCEB0A914D7933EF
+						download: 396F6729DA98E6169B9735586561C902
+					devbranch
+						gid: 15F292B0DF7D8D0E42C2659E57901215
+						size: AA7E07AA43D6C04FEA0658A8D4FCC4F1
+						download: 6A6FC4BCC5B35E34D2C642A45451939E
+					picnic_panic_press
+						gid: B03D71AE66A9AE9D0014191E019958E4
+						size: C8A6A203FA3FED144726106A0325363C
+						download: 70D6684E0402B98B2B93269E30C1AAC1
+					playtest
+						gid: 86B91DB07BD1133E16774BC91C26535F
+						size: C0493C30506CF9FE8F3D66CA8F31ED00
+						download: 04D8A09DB5AC24D556E8ACB3D29AF4F0
+					qa_test
+						gid: 8E65EBC4334261079621D4AC34681F0E
+						size: BD1265FED2ECF1B1F67746447D309B09
+						download: 199239A5A6C57BDDB27CBC74C829D935
+			branches
+				public
+					buildid: 4251184
+					timeupdated: 1572661317
+				demo
+					buildid: 3851350
+					pwdrequired: 1
+					timeupdated: 1558624900
+				devbranch
+					buildid: 3992616
+					pwdrequired: 1
+					timeupdated: 1562767013
+				picnic_panic_press
+					buildid: 3974776
+					pwdrequired: 1
+					timeupdated: 1562089436
+				playtest
+					buildid: 5105575
+					pwdrequired: 1
+					timeupdated: 1591038306
+				qa_test
+					buildid: 5214852
+					pwdrequired: 1
+					timeupdated: 1593101467
+		ufs
+			quota: 3000000
+			maxnumfiles: 1
+			savefiles
+				0
+					root: WinAppDataLocalLow
+					path: Sabotage Studio/The Messenger
+					pattern: SaveGame.txt
+					platforms
+						1: Windows

@@ -71,11 +71,7 @@ android {
 
 dependencies {
     // implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
-    // implementation(libs.protobuf.java) // only needed when building JavaSteam manually
-    // implementation(libs.commons.lang3) // only needed when building JavaSteam manually
-    // implementation(libs.xz) // only needed when building JavaSteam manually
-    // implementation(libs.commons.io) // only needed when building JavaSteam manually
-    // implementation(libs.commons.validator) // only needed when building JavaSteam manually (should crash without it, but I don't on some devices)
+    // implementation(libs.bundles.steamkit.dev) // only needed when building JavaSteam manually
 
     // JavaSteam
     implementation(libs.steamkit) {
