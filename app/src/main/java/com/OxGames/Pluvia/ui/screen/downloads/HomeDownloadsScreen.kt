@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.screen.downloads
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,23 +24,31 @@ import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
-import kotlinx.coroutines.launch
 
 @Composable
-fun HomeDownloadsScreen() {
-    DownloadsScreenContent()
+fun HomeDownloadsScreen(
+    onSettings: () -> Unit,
+) {
+    val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+
+    DownloadsScreenContent(
+        onBack = { onBackPressedDispatcher?.onBackPressed() },
+        onSettings = onSettings,
+    )
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
-private fun DownloadsScreenContent() {
+private fun DownloadsScreenContent(
+    onBack: () -> Unit,
+    onSettings: () -> Unit,
+) {
     val snackbarHost = remember { SnackbarHostState() }
     val navigator = rememberListDetailPaneScaffoldNavigator<Long>()
 
@@ -57,7 +66,9 @@ private fun DownloadsScreenContent() {
                     snackbarHost = snackbarHost,
                     onClick = {
                         navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, 1L)
-                    }
+                    },
+                    onBack = onBack,
+                    onSettings = onSettings,
                 )
             }
         },
@@ -74,25 +85,17 @@ private fun DownloadsScreenContent() {
 @Composable
 private fun DownloadsScreenPane(
     snackbarHost: SnackbarHostState,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onBack: () -> Unit,
+    onSettings: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(text = "Downloads") },
-                actions = {
-                    AccountButton()
-                },
-                navigationIcon = {
-                    BackButton {
-                        scope.launch {
-                            snackbarHost.showSnackbar("TODO")
-                        }
-                    }
-                }
+                actions = { AccountButton(onSettings = onSettings) },
+                navigationIcon = { BackButton(onClick = onBack) }
             )
         }
     ) { paddingValues ->
@@ -137,7 +140,10 @@ private fun DownloadsScreenDetail(value: Long) {
 private fun Preview_DownloadsScreenContent() {
     PluviaTheme {
         Surface {
-            DownloadsScreenContent()
+            DownloadsScreenContent(
+                onBack = {},
+                onSettings = {}
+            )
         }
     }
 }

@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.screen.friends
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,12 +42,17 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeFriendsScreen(
-    viewModel: FriendsViewModel = hiltViewModel()
+    viewModel: FriendsViewModel = hiltViewModel(),
+    onSettings: () -> Unit,
 ) {
     val state by viewModel.friendsState.collectAsStateWithLifecycle()
 
+    val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+
     FriendsScreenContent(
-        state = state
+        state = state,
+        onBack = { onBackPressedDispatcher?.onBackPressed() },
+        onSettings = onSettings,
     )
 }
 
@@ -54,6 +60,8 @@ fun HomeFriendsScreen(
 @Composable
 private fun FriendsScreenContent(
     state: FriendsState,
+    onBack: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -74,16 +82,8 @@ private fun FriendsScreenContent(
                     topBar = {
                         CenterAlignedTopAppBar(
                             title = { Text(text = "Friends") },
-                            actions = {
-                                AccountButton()
-                            },
-                            navigationIcon = {
-                                BackButton {
-                                    scope.launch {
-                                        snackbarHost.showSnackbar("TODO")
-                                    }
-                                }
-                            }
+                            actions = { AccountButton(onSettings = onSettings) },
+                            navigationIcon = { BackButton(onClick = onBack) }
                         )
                     }
                 ) { paddingValues ->
@@ -167,7 +167,9 @@ private fun Preview_FriendsScreenContent() {
                     "TEST B" to List(3) { SteamFriend(id = it.toLong() + 5) },
                     "TEST C" to List(3) { SteamFriend(id = it.toLong() + 10) }
                 )
-            )
+            ),
+            onBack = { },
+            onSettings = { },
         )
     }
 }

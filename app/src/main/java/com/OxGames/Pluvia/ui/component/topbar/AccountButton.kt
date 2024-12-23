@@ -13,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.OxGames.Pluvia.PluviaApp
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.events.SteamEvent
@@ -24,6 +25,7 @@ import `in`.dragonbra.javasteam.enums.EPersonaState
 @Composable
 fun AccountButton(
     contentDescription: String? = null,
+    onSettings: () -> Unit,
 ) {
     var persona by remember {
         var persona: SteamFriend? = null
@@ -50,12 +52,13 @@ fun AccountButton(
         openDialog = showDialog,
         name = persona?.name.orEmpty(),
         avatarHash = persona?.avatarHash.orEmpty(),
-        state = EPersonaState.from(persona?.state ?: 0),
+        state = persona?.state ?: EPersonaState.Offline,
         onStatusChange = {
-            // TODO status change
+            PrefManager.personaState = it
+            SteamService.setPersonaState(it)
         },
         onSettings = {
-            // TODO settings
+            onSettings()
             showDialog = false
         },
         onLogout = {
@@ -85,7 +88,7 @@ private fun Preview_AccountButton() {
     PluviaTheme {
         CenterAlignedTopAppBar(
             title = { Text("Top App Bar") },
-            actions = { AccountButton() }
+            actions = { AccountButton(onSettings = {}) }
         )
     }
 }
