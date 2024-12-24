@@ -26,6 +26,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -269,16 +270,19 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_GAMEPAD: {
-                // Log.d("WinHandler", "Request was get gamepad");
-                // boolean isXInput = receiveData.get() == 1;
+                // Log.d("WinHandler", "Request was get gamepad on port " + port);
+                boolean isXInput = receiveData.get() == 1;
                 boolean notify = receiveData.get() == 1;
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
                 // boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
 
+                // ArrayList<ExternalController> controllers = ExternalController.getControllers();
+                // for (ExternalController controller : controllers) {
+                //
+                // }
                 // if (!useVirtualGamepad && (currentController == null || !currentController.isConnected())) {
                 if (currentController == null || !currentController.isConnected()) {
                     currentController = ExternalController.getController(0);
-                    // currentController = ExternalController.getGameController(0);
                     Log.d("WinHandler", "Setting current external controller to " + currentController);
                 }
 

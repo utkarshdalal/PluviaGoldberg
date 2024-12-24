@@ -1,11 +1,14 @@
 package com.winlator.inputcontrols;
 
+import android.util.Log;
 import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.winlator.winhandler.WinHandler;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -228,6 +231,39 @@ public class ExternalController {
                 (sources & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK);
     }
 
+    // the below two static event functions do not work because the `getController` function
+    // returns a fresh object so any updateState calls do not stick
+    // public static boolean onMotionEvent(WinHandler winHandler, MotionEvent event) {
+    //     boolean handled = false;
+    //     ExternalController controller = getController(event.getDeviceId());
+    //     if (controller != null) {
+    //         handled = controller.updateStateFromMotionEvent(event);
+    //         if (handled) winHandler.sendGamepadState();
+    //     }
+    //     return handled;
+    // }
+    // public static boolean onKeyEvent(WinHandler winHandler, KeyEvent event) {
+    //     boolean handled = false;
+    //     Log.d("ExternalController", "onKeyEvent");
+    //     if (event.getRepeatCount() == 0) {
+    //         Log.d("ExternalController", "onKeyEvent repeat count is 0");
+    //         ExternalController controller = getController(event.getDeviceId());
+    //         if (controller != null) {
+    //             Log.d("ExternalController", "onKeyEvent controller found");
+    //             int action = event.getAction();
+    //
+    //             if (action == KeyEvent.ACTION_DOWN) {
+    //                 handled = controller.updateStateFromKeyEvent(event);
+    //             }
+    //             else if (action == KeyEvent.ACTION_UP) {
+    //                 handled = controller.updateStateFromKeyEvent(event);
+    //             }
+    //
+    //             if (handled) winHandler.sendGamepadState();
+    //         }
+    //     }
+    //     return handled;
+    // }
     // public boolean onKeyEvent(KeyEvent event) {
     //     if (profile != null && event.getRepeatCount() == 0) {
     //         ExternalController controller = profile.getController(event.getDeviceId());

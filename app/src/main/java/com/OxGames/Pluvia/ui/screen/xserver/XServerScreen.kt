@@ -29,6 +29,7 @@ import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.XServerState
+import com.OxGames.Pluvia.utils.logD
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.core.AppUtils
@@ -147,20 +148,34 @@ fun XServerScreen(
             exit(xServer.winHandler, xEnvironment, onExit)
         }
         val onKeyEvent: (AndroidEvent.KeyEvent) -> Boolean = {
-            // Log.d("XServerScreen", "onKeyEvent(${it.event.keyCode}):\n${it.event}")
-            if (Keyboard.isKeyboardDevice(it.event.device)) {
-                keyboard?.onKeyEvent(it.event) == true
-            } else if (ExternalController.isGameController(it.event.device)) {
-                xServer.winHandler.onKeyEvent(it.event)
-            } else false
+            val isKeyboard = Keyboard.isKeyboardDevice(it.event.device)
+            val isGamepad = ExternalController.isGameController(it.event.device)
+            // logD("onKeyEvent(${it.event.device.sources})\n\tisGamepad: $isGamepad\n\tisKeyboard: $isKeyboard\n\t${it.event}")
+
+            var handled = false
+            if (isGamepad) {
+                handled = xServer.winHandler.onKeyEvent(it.event)
+                // handled = ExternalController.onKeyEvent(xServer.winHandler, it.event)
+            }
+            if (!handled && isKeyboard) {
+                handled = keyboard?.onKeyEvent(it.event) == true
+            }
+            handled
         }
         val onMotionEvent: (AndroidEvent.MotionEvent) -> Boolean = {
-            // Log.d("XServerScreen", "dispatchGenericMotionEvent(${it.event?.deviceId}:${it.event?.device?.name}):\n${it.event}")
-            if (TouchMouse.isMouseDevice(it.event?.device)) {
-                touchMouse?.onExternalMouseEvent(it.event) == true
-            } else if (ExternalController.isGameController(it.event?.device)) {
-                xServer.winHandler.onGenericMotionEvent(it.event)
-            } else false
+            val isMouse = TouchMouse.isMouseDevice(it.event?.device)
+            val isGamepad = ExternalController.isGameController(it.event?.device)
+            // logD("onMotionEvent(${it.event?.device?.sources})\n\tisGamepad: $isGamepad\n\tisMouse: $isMouse\n\t${it.event}")
+
+            var handled = false
+            if (isGamepad) {
+                handled = xServer.winHandler.onGenericMotionEvent(it.event)
+                // handled = ExternalController.onMotionEvent(xServer.winHandler, it.event)
+            }
+            if (!handled && isMouse) {
+                handled = touchMouse?.onExternalMouseEvent(it.event) == true
+            }
+            handled
         }
         val onGuestProgramTerminated: (AndroidEvent.GuestProgramTerminated) -> Unit = {
             exit(xServer.winHandler, xEnvironment, onExit)
