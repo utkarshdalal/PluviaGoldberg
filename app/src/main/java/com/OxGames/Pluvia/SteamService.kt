@@ -89,6 +89,7 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
 import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
+import `in`.dragonbra.javasteam.util.HardwareUtils
 import `in`.dragonbra.javasteam.util.NetHelpers
 import `in`.dragonbra.javasteam.util.crypto.CryptoHelper
 import `in`.dragonbra.javasteam.util.log.DefaultLogListener
@@ -158,7 +159,6 @@ class SteamService : Service(), IChallengeUrlChanged {
     private val dbScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
-        const val STEAM_MACHINE_NAME = "Pluvia ${BuildConfig.VERSION_NAME}"
         const val MAX_RETRY_ATTEMPTS = 20
         const val LOGIN_ID = 382945
         const val AVATAR_BASE_URL =
@@ -1396,7 +1396,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // the same private ip, and same public ip.
                     // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
                     loginID = LOGIN_ID,
-                    machineName = STEAM_MACHINE_NAME,
+                    machineName = HardwareUtils.getMachineName(),
                 )
             )
         }
@@ -1416,7 +1416,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         this.password = password.trim()
                         this.persistentSession = shouldRememberPassword
                         this.authenticator = authenticator
-                        this.deviceFriendlyName = STEAM_MACHINE_NAME
+                        this.deviceFriendlyName = HardwareUtils.getMachineName()
                     }
 
                     val authSession = steamClient.authentication
@@ -1452,7 +1452,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     val authSession = steamClient.authentication
                         .beginAuthSessionViaQR(
                             AuthSessionDetails().apply {
-                                deviceFriendlyName = STEAM_MACHINE_NAME
+                                deviceFriendlyName = HardwareUtils.getMachineName()
                             }
                         )
 
