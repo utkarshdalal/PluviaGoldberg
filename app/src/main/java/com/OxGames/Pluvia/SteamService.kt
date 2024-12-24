@@ -482,6 +482,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
                                         appId = appId,
                                         clientId = clientId,
+                                        machineName = SteamUtils.getMachineName(steamInstance),
                                         ignorePendingOperations = ignorePendingOperations,
                                         osType = EOSType.AndroidUnknown,
                                     ).await()
@@ -957,6 +958,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         logD("Beginning app upload batch with ${filesToDelete.size} file(s) to delete and ${filesToUpload.size} file(s) to upload")
                         val uploadBatchResponse = steamCloud.beginAppUploadBatch(
                             appId = appInfo.appId,
+                            machineName = SteamUtils.getMachineName(steamInstance),
                             clientId = clientId,
                             filesToDelete = filesToDelete,
                             filesToUpload = filesToUpload.map { it.first },
@@ -1037,7 +1039,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                         val response = httpClient.newCall(request).execute()
 
                                         if (!response.isSuccessful) {
-                                            logE("Failed to upload part of ${file.getPrefixPath()}: ${response.message}, ${response.body.string()}")
+                                            logE("Failed to upload part of ${file.getPrefixPath()}: ${response.message}, ${response.body?.string()}")
                                             uploadFileSuccess = false
                                             uploadBatchSuccess = false
                                         }
@@ -1408,7 +1410,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // the same private ip, and same public ip.
                     // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
                     loginID = LOGIN_ID,
-                    machineName = HardwareUtils.getMachineName(),
+                    machineName = SteamUtils.getMachineName(instance!!),
                 )
             )
         }
@@ -1428,7 +1430,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         this.password = password.trim()
                         this.persistentSession = shouldRememberPassword
                         this.authenticator = authenticator
-                        this.deviceFriendlyName = HardwareUtils.getMachineName()
+                        this.deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                     }
 
                     val authSession = steamClient.authentication
@@ -1464,7 +1466,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     val authSession = steamClient.authentication
                         .beginAuthSessionViaQR(
                             AuthSessionDetails().apply {
-                                deviceFriendlyName = HardwareUtils.getMachineName()
+                                deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                             }
                         )
 
