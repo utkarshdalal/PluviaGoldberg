@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.screen.home
+package com.OxGames.Pluvia.ui.screen.library
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
@@ -31,7 +31,6 @@ import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaf
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,19 +44,18 @@ import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenuItem
 import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuState
 import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuValue
 import com.OxGames.Pluvia.ui.component.fabmenu.state.rememberFloatingActionMenuState
-import com.OxGames.Pluvia.ui.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
-import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.FabFilter
+import com.OxGames.Pluvia.ui.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.model.LibraryViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
-import kotlinx.coroutines.launch
 
 @Composable
 fun HomeLibraryScreen(
     viewModel: LibraryViewModel = viewModel(),
     onClickPlay: (Int, Boolean) -> Unit,
+    onSettings: () -> Unit,
 ) {
     val vmState by viewModel.state.collectAsStateWithLifecycle()
     val fabState = rememberFloatingActionMenuState()
@@ -67,6 +65,7 @@ fun HomeLibraryScreen(
         fabState = fabState,
         onFabFilter = viewModel::onFabFilter,
         onClickPlay = onClickPlay,
+        onSettings = onSettings
     )
 }
 
@@ -77,9 +76,9 @@ private fun LibraryScreenContent(
     fabState: FloatingActionMenuState,
     onFabFilter: (FabFilter) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
+    onSettings: () -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
 
     // Pretty much the same as 'NavigableListDetailPaneScaffold'
@@ -97,16 +96,7 @@ private fun LibraryScreenContent(
                     topBar = {
                         CenterAlignedTopAppBar(
                             title = { Text(text = "Library") },
-                            actions = {
-                                AccountButton()
-                            },
-                            navigationIcon = {
-                                BackButton {
-                                    scope.launch {
-                                        snackbarHost.showSnackbar("TODO")
-                                    }
-                                }
-                            }
+                            actions = { AccountButton(onSettings = onSettings) },
                         )
                     },
                     floatingActionButton = {
@@ -151,6 +141,10 @@ private fun LibraryScreenContent(
             AnimatedPane {
                 LibraryDetailPane(
                     appId = appId,
+                    onBack = {
+                        // We're still in Adaptive navigation.
+                        navigator.navigateBack()
+                    },
                     onClickPlay = { onClickPlay(appId, it) }
                 )
             }
@@ -183,7 +177,8 @@ private fun LibraryListPane(
 @Composable
 private fun LibraryDetailPane(
     appId: Int,
-    onClickPlay: (Boolean) -> Unit
+    onClickPlay: (Boolean) -> Unit,
+    onBack: () -> Unit,
 ) {
     Surface {
         if (appId == SteamService.INVALID_APP_ID) {
@@ -194,7 +189,8 @@ private fun LibraryDetailPane(
         } else {
             AppScreen(
                 appId = appId,
-                onClickPlay = onClickPlay
+                onClickPlay = onClickPlay,
+                onBack = onBack,
             )
         }
     }
@@ -219,6 +215,7 @@ private fun Preview_LibraryScreenContent() {
             fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),
             onFabFilter = {},
             onClickPlay = { appId, asContainer -> },
+            onSettings = {},
         )
     }
 }

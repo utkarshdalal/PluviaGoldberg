@@ -24,6 +24,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
 import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.EPersonaState
+import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 
 // https://m3.material.io/components/lists/specs#d156b3f2-6763-4fde-ba6f-0f088ce5a4e4
 
@@ -72,7 +73,7 @@ fun FriendItem(
                 // TODO get game names
                 Text(text = friend.gameName.ifEmpty { "Playing game id: ${friend.gameAppID}" })
             } else {
-                Text(text = EPersonaState.from(friend.state).name)
+                Text(text = friend.state.name)
             }
         },
         leadingContent = {
@@ -103,9 +104,9 @@ private fun Preview_FriendItem() {
                             id = index.toLong(),
                             name = entry.key,
                             nickname = entry.key,
-                            relation = EFriendRelationship.Friend.code(),
-                            state = entry.value.code(),
-                            stateFlags = 512.times(index + 1)
+                            relation = EFriendRelationship.Friend,
+                            state = entry.value,
+                            stateFlags = EPersonaStateFlag.from(512.times(index + 1))
                         ),
                         onClick = { }
                     )

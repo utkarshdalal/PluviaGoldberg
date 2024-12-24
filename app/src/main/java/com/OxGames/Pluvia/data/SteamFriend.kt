@@ -17,39 +17,64 @@ import com.OxGames.Pluvia.ui.theme.friendInGame
 import com.OxGames.Pluvia.ui.theme.friendInGameAwayOrSnooze
 import com.OxGames.Pluvia.ui.theme.friendOffline
 import com.OxGames.Pluvia.ui.theme.friendOnline
+import `in`.dragonbra.javasteam.enums.EClientPersonaStateFlag
 import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
+import `in`.dragonbra.javasteam.types.GameID
+import `in`.dragonbra.javasteam.types.SteamID
+import java.util.Date
+import java.util.EnumSet
 
 @Entity("steam_friend")
 data class SteamFriend(
     @PrimaryKey val id: Long,
-    @ColumnInfo(name = "relation") val relation: Int = 0,
-    @ColumnInfo("status_flags") val statusFlags: Int = 0,
-    @ColumnInfo("state") val state: Int = 0,
-    @ColumnInfo("state_flags") val stateFlags: Int = 0,
-    @ColumnInfo("game_app_id") val gameAppID: Int = 0,
-    @ColumnInfo("game_id") val gameID: Long = 0L,
-    @ColumnInfo("game_name") val gameName: String = "",
-    @ColumnInfo("game_server_ip") val gameServerIP: Int = 0,
-    @ColumnInfo("game_server_port") val gameServerPort: Int = 0,
-    @ColumnInfo("query_port") val queryPort: Int = 0,
-    @ColumnInfo("source_steam_id") val sourceSteamID: Long = 0L,
-    @ColumnInfo("game_data_blob") val gameDataBlob: String = "",
-    @ColumnInfo("name") val name: String = "",
-    @ColumnInfo("nickname") val nickname: String = "",
-    @ColumnInfo("avatar_hash") val avatarHash: String = "",
-    @ColumnInfo("last_log_off") val lastLogOff: Long = 0L,
-    @ColumnInfo("last_log_on") val lastLogOn: Long = 0L,
-    @ColumnInfo("clan_rank") val clanRank: Int = 0,
-    @ColumnInfo("clan_tag") val clanTag: String = "",
-    @ColumnInfo("online_session_instances") val onlineSessionInstances: Int = 0,
+    @ColumnInfo(name = "relation")
+    val relation: EFriendRelationship = EFriendRelationship.None,
+    @ColumnInfo("status_flags")
+    val statusFlags: EnumSet<EClientPersonaStateFlag> = EClientPersonaStateFlag.from(0),
+    @ColumnInfo("state")
+    val state: EPersonaState = EPersonaState.Offline,
+    @ColumnInfo("state_flags")
+    val stateFlags: EnumSet<EPersonaStateFlag> = EPersonaStateFlag.from(0),
+    @ColumnInfo("game_app_id")
+    val gameAppID: Int = 0,
+    @ColumnInfo("game_id")
+    val gameID: GameID = GameID(),
+    @ColumnInfo("game_name")
+    val gameName: String = "",
+    @ColumnInfo("game_server_ip")
+    val gameServerIP: Int = 0,
+    @ColumnInfo("game_server_port")
+    val gameServerPort: Int = 0,
+    @ColumnInfo("query_port")
+    val queryPort: Int = 0,
+    @ColumnInfo("source_steam_id")
+    val sourceSteamID: SteamID = SteamID(),
+    @ColumnInfo("game_data_blob")
+    val gameDataBlob: String = "",
+    @ColumnInfo("name")
+    val name: String = "",
+    @ColumnInfo("nickname")
+    val nickname: String = "",
+    @ColumnInfo("avatar_hash")
+    val avatarHash: String = "",
+    @ColumnInfo("last_log_off")
+    val lastLogOff: Date = Date(0),
+    @ColumnInfo("last_log_on")
+    val lastLogOn: Date = Date(0),
+    @ColumnInfo("clan_rank")
+    val clanRank: Int = 0,
+    @ColumnInfo("clan_tag")
+    val clanTag: String = "",
+    @ColumnInfo("online_session_instances")
+    val onlineSessionInstances: Int = 0,
 ) {
     val isOnline: Boolean
-        get() = (state in 1..6)
+        get() = (state.code() in 1..6)
 
     val isOffline: Boolean
-        get() = EPersonaState.from(state) == EPersonaState.Offline
+        get() = state == EPersonaState.Offline
 
     val nameOrNickname: String
         get() = nickname.ifEmpty { name.ifEmpty { "<unknown>" } }
@@ -58,7 +83,7 @@ data class SteamFriend(
         get() = if (isOnline) gameAppID > 0 || gameName.isEmpty().not() else false
 
     val isAwayOrSnooze: Boolean
-        get() = EPersonaState.from(state).let {
+        get() = state.let {
             it == EPersonaState.Away || it == EPersonaState.Snooze || it == EPersonaState.Busy
         }
 
@@ -66,15 +91,15 @@ data class SteamFriend(
         get() = isPlayingGame && isAwayOrSnooze
 
     val isRequestRecipient: Boolean
-        get() = EFriendRelationship.from(relation) == EFriendRelationship.RequestRecipient
+        get() = relation == EFriendRelationship.RequestRecipient
 
     val isBlocked: Boolean
-        get() = EFriendRelationship.from(relation) == EFriendRelationship.Blocked ||
-                EFriendRelationship.from(relation) == EFriendRelationship.Ignored ||
-                EFriendRelationship.from(relation) == EFriendRelationship.IgnoredFriend
+        get() = relation == EFriendRelationship.Blocked ||
+                relation == EFriendRelationship.Ignored ||
+                relation == EFriendRelationship.IgnoredFriend
 
     val isFriend: Boolean
-        get() = EFriendRelationship.from(relation) == EFriendRelationship.Friend
+        get() = relation == EFriendRelationship.Friend
 
     val statusColor: Color
         get() = when {
@@ -87,16 +112,13 @@ data class SteamFriend(
         }
 
     val statusIcon: ImageVector?
-        get() {
-            val flags = EPersonaStateFlag.from(stateFlags)
-            return when {
-                isRequestRecipient -> Icons.Default.PersonAddAlt1
-                isAwayOrSnooze -> Icons.Default.Bedtime
-                flags.contains(EPersonaStateFlag.ClientTypeVR) -> Icons.Default.VR
-                flags.contains(EPersonaStateFlag.ClientTypeTenfoot) -> Icons.Default.SportsEsports
-                flags.contains(EPersonaStateFlag.ClientTypeMobile) -> Icons.Default.Smartphone
-                flags.contains(EPersonaStateFlag.ClientTypeWeb) -> Icons.Default.Web
-                else -> null
-            }
+        get() = when {
+            isRequestRecipient -> Icons.Default.PersonAddAlt1
+            isAwayOrSnooze -> Icons.Default.Bedtime
+            stateFlags.contains(EPersonaStateFlag.ClientTypeVR) -> Icons.Default.VR
+            stateFlags.contains(EPersonaStateFlag.ClientTypeTenfoot) -> Icons.Default.SportsEsports
+            stateFlags.contains(EPersonaStateFlag.ClientTypeMobile) -> Icons.Default.Smartphone
+            stateFlags.contains(EPersonaStateFlag.ClientTypeWeb) -> Icons.Default.Web
+            else -> null
         }
 }
