@@ -1,16 +1,24 @@
 package com.OxGames.Pluvia
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.OrientationEventListener
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import coil.ImageLoader
@@ -21,6 +29,7 @@ import coil.util.DebugLogger
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
+import com.OxGames.Pluvia.utils.IconDecoder
 import com.skydoves.landscapist.coil.LocalCoilImageLoader
 import com.winlator.core.AppUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -64,6 +73,19 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
+            var hasNotificationPermission by remember { mutableStateOf(false) }
+            val permissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission()
+            ) { isGranted ->
+                hasNotificationPermission = isGranted
+            }
+
+            LaunchedEffect(Unit) {
+                if (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+
             val context = LocalContext.current
             val imageLoader = remember {
                 ImageLoader.Builder(context)
@@ -81,6 +103,7 @@ class MainActivity : ComponentActivity() {
                             .directory(context.cacheDir.resolve("image_cache").toOkioPath())
                             .build()
                     }
+                    .components { add(IconDecoder.Factory()) }
                     .logger(if (BuildConfig.DEBUG) DebugLogger() else null)
                     .build()
             }

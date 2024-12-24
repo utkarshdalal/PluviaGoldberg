@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.screen.home
+package com.OxGames.Pluvia.ui.screen.library
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
@@ -24,7 +24,7 @@ fun AppItem(
         modifier = modifier.clickable { onClick() },
         headlineContent = { Text(text = appInfo.name) },
         leadingContent = {
-            ListItemImage { appInfo.iconUrl }
+            ListItemImage { appInfo.clientIconUrl }
         }
     )
 }

@@ -1,42 +1,38 @@
 [versions]
 activityCompose = "1.9.3" # https://mvnrepository.com/artifact/androidx.activity/activity-compose
-agp = "8.7.2" # https://mvnrepository.com/artifact/com.android.application/com.android.application.gradle.plugin
+agp = "8.7.3" # https://mvnrepository.com/artifact/com.android.application/com.android.application.gradle.plugin
 android-preferences = "1.2.1" # https://mvnrepository.com/artifact/androidx.preference/preference-ktx
 apache-compress = "1.27.1" # https://mvnrepository.com/artifact/org.apache.commons/commons-compress
-composeBom = "2024.11.00" # https://mvnrepository.com/artifact/androidx.compose/compose-bom
-coreKtx = "1.13.1" # https://mvnrepository.com/artifact/androidx.core/core-ktx
-coroutines = "1.9.0" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+composeBom = "2024.12.01" # https://mvnrepository.com/artifact/androidx.compose/compose-bom
+coreKtx = "1.15.0" # https://mvnrepository.com/artifact/androidx.core/core-ktx
+coroutines = "1.10.0" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+dagger-hilt = "2.53.1" # https://mvnrepository.com/artifact/com.google.dagger/hilt-android
+dataStore = "1.1.1" # https://mvnrepository.com/artifact/androidx.datastore/datastore-preferences
 espressoCore = "3.6.1" # https://mvnrepository.com/artifact/androidx.test.espresso/espresso-core
-hiltAndroid = "2.52"
-hiltAndroidCompiler = "2.52"
-hiltNavigationCompose = "1.2.0"
+hiltNavigationCompose = "1.2.0" # https://mvnrepository.com/artifact/androidx.hilt/hilt-navigation-compose
 json = "1.7.3" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json
 junit = "4.13.2" # https://mvnrepository.com/artifact/junit/junit
 junitVersion = "1.2.1" # https://mvnrepository.com/artifact/androidx.test.ext/junit
 kotlin = "2.0.21" # https://mvnrepository.com/artifact/org.jetbrains.kotlin.android/org.jetbrains.kotlin.android.gradle.plugin
+ksp = "2.0.21-1.0.28" # https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
 landscapistCoil = "2.4.4" # https://mvnrepository.com/artifact/com.github.skydoves/landscapist-coil
 lifecycleRuntimeKtx = "2.8.7" # https://mvnrepository.com/artifact/androidx.lifecycle/lifecycle-runtime-ktx
 material3Adaptive = "1.0.0" # https://mvnrepository.com/artifact/androidx.compose.material3.adaptive/adaptive-layout
 material3AdaptiveNavSuite = "1.3.1" # https://mvnrepository.com/artifact/androidx.compose.material3/material3-adaptive-navigation-suite
-navigation-compose = "2.8.4" # https://mvnrepository.com/artifact/androidx.navigation/navigation-compose
+navigation-compose = "2.8.5" # https://mvnrepository.com/artifact/androidx.navigation/navigation-compose
 protobuf = "4.28.2" # https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
-roomCompiler = "2.6.1"
-roomKtx = "2.6.1"
-roomPaging = "2.6.1"
-roomRuntime = "2.6.1"
+room-runtime = "2.6.1" # https://mvnrepository.com/artifact/androidx.room/room-runtime
+settings = "2.6.0" # https://github.com/alorma/Compose-Settings/releases
 spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongycastle/prov
 steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
 zstd-jni = "1.5.2-3" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
-zxing = "3.5.1" # https://mvnrepository.com/artifact/com.google.zxing/core
-dagger-hilt = "2.52" # https://mvnrepository.com/artifact/com.google.dagger/hilt-android
-ksp = "2.0.21-1.0.28" # https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
+zxing = "3.5.3" # https://mvnrepository.com/artifact/com.google.zxing/core
 #commons-io = "2.17.0" # https://mvnrepository.com/artifact/commons-io/commons-io
 #commons-lang3 = "3.17.0" # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
 #commons-validator = "1.9.0" # https://mvnrepository.com/artifact/commons-validator/commons-validator
 #xz = "1.10" # https://mvnrepository.com/artifact/org.tukaani/xz
 
 [libraries]
-android-preferences = { group = "androidx.preference", name = "preference-ktx", version.ref = "android-preferences" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -49,10 +45,10 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 androidx-material3-adaptive-layout = { module = "androidx.compose.material3.adaptive:adaptive-layout", version.ref = "material3Adaptive" }
 androidx-material3-adaptive-nav-suite = { module = "androidx.compose.material3:material3-adaptive-navigation-suite", version.ref = "material3AdaptiveNavSuite" }
 androidx-material3-adaptive-navigation = { module = "androidx.compose.material3.adaptive:adaptive-navigation", version.ref = "material3Adaptive" }
-androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
-androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomKtx" }
-androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "roomPaging" }
-androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
+androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room-runtime" }
+androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "room-runtime" }
+androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "room-runtime" }
+androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room-runtime" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
@@ -60,8 +56,11 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 apache-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "apache-compress" }
-hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
-hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "hiltAndroidCompiler" }
+compose-settings-ui = { module = "com.github.alorma.compose-settings:ui-tiles", version.ref = "settings" }
+compose-settings-ui-extended = { module = "com.github.alorma.compose-settings:ui-tiles-extended", version.ref = "settings" }
+datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "dataStore" }
+hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "dagger-hilt" }
+hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "dagger-hilt" }
 jetbrains-kotlinx-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "json" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -70,7 +69,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 spongycastle = { group = "com.madgag.spongycastle", name = "prov", version.ref = "spongycastle" }
 steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
-zstd-jni = {group = "com.github.luben", name = "zstd-jni", version.ref = "zstd-jni"}
+zstd-jni = { group = "com.github.luben", name = "zstd-jni", version.ref = "zstd-jni" }
 zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 #commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
 #commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
@@ -111,9 +110,10 @@ compose = [
     "androidx-ui-graphics",
     "androidx-ui-tooling-preview",
     "navigation-compose",
+    "compose-settings-ui",
+    "compose-settings-ui-extended",
 ]
 winlator = [
-    "android-preferences",
     "apache-compress",
 ]
 #steamkit-dev = [

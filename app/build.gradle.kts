@@ -10,12 +10,15 @@ plugins {
 android {
     namespace = "com.OxGames.Pluvia"
     compileSdk = 35
+
     ndkVersion = "22.1.7171670"
 
     defaultConfig {
         applicationId = "com.OxGames.Pluvia"
+
         minSdk = 29
         targetSdk = 34
+
         versionCode = 1
         versionName = "1.0"
 
@@ -45,28 +48,40 @@ android {
             isMinifyEnabled = false
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
     buildFeatures {
         compose = true
         buildConfig = true
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
     }
+
+    // (For now) Uncomment for LeakCanary to work.
+    // configurations {
+    //     debugImplementation {
+    //         exclude(group = "junit", module = "junit")
+    //     }
+    // }
 }
 
 dependencies {
@@ -95,6 +110,7 @@ dependencies {
     implementation(libs.jetbrains.kotlinx.json)
     implementation(libs.kotlin.coroutines)
     implementation(libs.zxing)
+    implementation(libs.datastore.preferences)
 
     // Google Protobufs
     implementation(libs.protobuf.java)
@@ -109,7 +125,7 @@ dependencies {
     implementation(libs.bundles.room)
 
     // Memory Leak Detection
-    // debugImplementation("com.squareup.leakcanary:leakcanary-android:2.14")
+    // debugImplementation("com.squareup.leakcanary:leakcanary-android:3.0-alpha-8")
 
     // Testing
     androidTestImplementation(platform(libs.androidx.compose.bom))

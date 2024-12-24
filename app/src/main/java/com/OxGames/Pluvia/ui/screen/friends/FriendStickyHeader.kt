@@ -40,7 +40,7 @@ private fun Preview_StickyHeaderItem() {
             FriendItem(
                 friend = SteamFriend(
                     id = 0,
-                    state = EPersonaState.Online.code(),
+                    state = EPersonaState.Online,
                     gameAppID = 440,
                     gameName = "Team Fortess 2",
                     name = "Name The Game",

@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.screen.home
+package com.OxGames.Pluvia.ui.screen.library
 
 import android.content.Intent
 import android.content.res.Configuration
@@ -18,15 +18,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -41,13 +44,15 @@ import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.window.core.layout.WindowWidthSizeClass
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
@@ -56,11 +61,12 @@ import com.skydoves.landscapist.coil.CoilImage
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScreen(
     appId: Int,
     onClickPlay: (Boolean) -> Unit,
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     var downloadInfo by remember {
@@ -69,6 +75,10 @@ fun AppScreen(
     var downloadProgress by remember { mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f) }
     var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
+
+    val appInfo by remember(appId) {
+        mutableStateOf(SteamService.getAppInfoOf(appId))
+    }
 
     DisposableEffect(downloadInfo) {
         val onDownloadProgress: (Float) -> Unit = {
@@ -85,10 +95,32 @@ fun AppScreen(
         }
     }
 
-    Scaffold { paddingValues ->
+    val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
+    Scaffold(
+        topBar = {
+            // Show Top App Bar when in Compact or Medium screen space.
+            if (windowWidth == WindowWidthSizeClass.COMPACT ||
+                windowWidth == WindowWidthSizeClass.MEDIUM
+            ) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = appInfo?.name.orEmpty(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        BackButton(onClick = onBack)
+                    },
+                )
+            }
+        }
+    ) { paddingValues ->
         AppScreenContent(
             modifier = Modifier.padding(paddingValues),
-            appId = appId,
+            appInfo = appInfo,
             isInstalled = isInstalled,
             isDownloading = isDownloading(),
             downloadProgress = downloadProgress,
@@ -104,7 +136,10 @@ fun AppScreen(
                 AppMenuOption(
                     AppOptionMenuType.StorePage,
                     onClick = {
-                        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://store.steampowered.com/app/$appId/"))
+                        val browserIntent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://store.steampowered.com/app/$appId/")
+                        )
                         context.startActivity(browserIntent)
                     }
                 ),
@@ -137,7 +172,7 @@ fun AppScreen(
 @Composable
 private fun AppScreenContent(
     modifier: Modifier = Modifier,
-    appId: Int,
+    appInfo: AppInfo?,
     isInstalled: Boolean,
     isDownloading: Boolean,
     downloadProgress: Float,
@@ -145,10 +180,6 @@ private fun AppScreenContent(
     vararg optionsMenu: AppMenuOption,
 ) {
     val scrollState = rememberScrollState()
-
-    val appInfo by remember(appId) {
-        mutableStateOf(SteamService.getAppInfoOf(appId))
-    }
 
     var optionsMenuVisible by remember { mutableStateOf(false) }
 
@@ -270,11 +301,11 @@ private fun AppScreenContent(
 private fun Preview_AppScreen() {
     val context = LocalContext.current
     val intent = Intent(context, SteamService::class.java)
-    context.startService(intent)
+    context.startForegroundService(intent)
     PluviaTheme {
         Surface {
             AppScreenContent(
-                appId = 736260,
+                appInfo = null,
                 isInstalled = false,
                 isDownloading = true,
                 downloadProgress = .50f,

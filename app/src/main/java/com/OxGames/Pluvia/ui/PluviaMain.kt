@@ -25,6 +25,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.GameProcessInfo
@@ -37,12 +38,13 @@ import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
-import com.OxGames.Pluvia.ui.screen.home.HomeScreen
+import com.OxGames.Pluvia.ui.screen.HomeScreen
 import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
+import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen
 import com.OxGames.Pluvia.ui.screen.xserver.XServerScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.winlator.container.ContainerManager
@@ -194,7 +196,7 @@ fun PluviaMain(
 
         if (!isSteamConnected) {
             val intent = Intent(context, SteamService::class.java)
-            context.startService(intent)
+            context.startForegroundService(intent)
         }
 
         onDispose {
@@ -237,7 +239,10 @@ fun PluviaMain(
                 )
             }
             /** Library, Downloads, Friends **/
-            composable(route = PluviaScreen.Home.name) {
+            composable(
+                route = PluviaScreen.Home.name,
+                deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" })
+            ) {
                 val viewModel: HomeViewModel = viewModel()
                 HomeScreen(
                     viewModel = viewModel,
@@ -258,7 +263,10 @@ fun PluviaMain(
                                 }
                             }
                         )
-                    }
+                    },
+                    onSettings = {
+                        navController.navigate(PluviaScreen.Settings.name)
+                    },
                 )
             }
 
@@ -330,6 +338,15 @@ fun PluviaMain(
                                 PathType.from(prefix).toAbsPath(context, appId)
                             }.await()
                         }
+                    }
+                )
+            }
+
+            /** Settings **/
+            composable(route = PluviaScreen.Settings.name) {
+                SettingsScreen(
+                    onBack = {
+                        navController.navigateUp()
                     }
                 )
             }

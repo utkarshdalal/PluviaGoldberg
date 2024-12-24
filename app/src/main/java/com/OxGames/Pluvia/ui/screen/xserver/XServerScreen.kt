@@ -1,52 +1,38 @@
 package com.OxGames.Pluvia.ui.screen.xserver
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
-import android.view.MotionEvent
-import android.view.View
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.preference.PreferenceManager
 import com.OxGames.Pluvia.PluviaApp
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.XServerState
-import com.OxGames.Pluvia.ui.enums.Orientation
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.core.AppUtils
 import com.winlator.core.Callback
-import com.winlator.core.ProcessHelper
-import com.winlator.core.WineInfo
-import com.winlator.core.WineUtils
-import com.winlator.widget.XServerView
-import com.winlator.winhandler.WinHandler
-import com.winlator.xenvironment.ImageFs
-import com.winlator.xserver.ScreenInfo
-import com.winlator.xserver.XServer
 import com.winlator.core.DXVKHelper
 import com.winlator.core.DefaultVersion
 import com.winlator.core.EnvVars
@@ -54,13 +40,19 @@ import com.winlator.core.FileUtils
 import com.winlator.core.GPUInformation
 import com.winlator.core.KeyValueSet
 import com.winlator.core.OnExtractFileListener
+import com.winlator.core.ProcessHelper
 import com.winlator.core.TarCompressorUtils
+import com.winlator.core.WineInfo
 import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineStartMenuCreator
 import com.winlator.core.WineThemeManager
+import com.winlator.core.WineUtils
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.TouchMouse
+import com.winlator.widget.XServerView
+import com.winlator.winhandler.WinHandler
 import com.winlator.xconnector.UnixSocketConfig
+import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.XEnvironment
 import com.winlator.xenvironment.components.ALSAServerComponent
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent
@@ -72,8 +64,10 @@ import com.winlator.xenvironment.components.VirGLRendererComponent
 import com.winlator.xenvironment.components.XServerComponent
 import com.winlator.xserver.Keyboard
 import com.winlator.xserver.Property
+import com.winlator.xserver.ScreenInfo
 import com.winlator.xserver.Window
 import com.winlator.xserver.WindowManager
+import com.winlator.xserver.XServer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -81,7 +75,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.File
 import java.nio.file.Paths
-import java.util.EnumSet
 import kotlin.io.path.name
 
 @Composable
@@ -101,8 +94,8 @@ fun XServerScreen(
 
     PluviaApp.events.emit(AndroidEvent.SetAppBarVisibility(false))
     PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(false))
-    PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(
-        EnumSet.of(Orientation.LANDSCAPE, Orientation.REVERSE_LANDSCAPE)) // TOOD: add option for user to pick
+    PluviaApp.events.emit(
+        AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation)
     )
 
     val imageFs by remember { mutableStateOf(ImageFs.find(context)) }
@@ -116,7 +109,6 @@ fun XServerScreen(
 
     val envVars by remember { mutableStateOf(EnvVars()) }
     var xServerState = remember { mutableStateOf(XServerState()) }
-    val preferences = PreferenceManager.getDefaultSharedPreferences(context)
 
     val xServer by remember {
         val result = mutableStateOf(XServer(ScreenInfo(xServerState.value.screenSize)))
@@ -417,7 +409,6 @@ fun XServerScreen(
                         xServerState.value.dxwrapper,
                         xServerState.value.dxwrapperConfig!!,
                         container,
-                        preferences,
                         imageFs,
                         envVars
                     )
@@ -435,7 +426,6 @@ fun XServerScreen(
                     // xServerState.value.shortcut,
                     xServer,
                     imageFs,
-                    preferences
                 )
 
                 // xServerView!!.onResume()
@@ -523,7 +513,6 @@ private fun setupXEnvironment(
     // shortcut: Shortcut?,
     xServer: XServer,
     imageFs: ImageFs,
-    preferences: SharedPreferences
 ): XEnvironment {
     val DEFAULT_WINE_DEBUG_CHANNELS = "warn,err,fixme,loaddll" // TODO: move somewhere else more appropriate
 
@@ -531,8 +520,8 @@ private fun setupXEnvironment(
     envVars.put("MESA_NO_ERROR", "1")
     envVars.put("WINEPREFIX", ImageFs.WINEPREFIX)
 
-    val enableWineDebug = true//preferences.getBoolean("enable_wine_debug", false)
-    val wineDebugChannels = preferences.getString("wine_debug_channels", DEFAULT_WINE_DEBUG_CHANNELS)!!
+    val enableWineDebug = true //preferences.getBoolean("enable_wine_debug", false)
+    val wineDebugChannels = PrefManager.getString("wine_debug_channels", DEFAULT_WINE_DEBUG_CHANNELS)!!
     envVars.put("WINEDEBUG", if (enableWineDebug && !wineDebugChannels.isEmpty()) "+"+wineDebugChannels.replace(",", ",+") else "-all")
 
     val rootPath = imageFs.rootDir.path
@@ -975,7 +964,6 @@ private fun extractGraphicsDriverFiles(
     dxwrapper: String,
     dxwrapperConfig: KeyValueSet,
     container: Container,
-    preferences: SharedPreferences,
     imageFs: ImageFs,
     envVars: EnvVars,
 ) {
@@ -1017,7 +1005,7 @@ private fun extractGraphicsDriverFiles(
             container.envVars = userEnvVars.toString()
         }
 
-        val useDRI3 = preferences.getBoolean("use_dri3", true)
+        val useDRI3 = PrefManager.getBoolean("use_dri3", true)
         if (!useDRI3) {
             envVars.put("MESA_VK_WSI_PRESENT_MODE", "immediate")
             envVars.put("MESA_VK_WSI_DEBUG", "sw")
