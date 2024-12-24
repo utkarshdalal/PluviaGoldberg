@@ -210,9 +210,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         val defaultAppStagingPath: String
             get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
 
-        private val appChangeNumbers: MutableMap<Int, Long> = mutableMapOf()
-        private val appFileChangeLists: MutableMap<Int, List<UserFileInfo>> = mutableMapOf()
-
         fun setPersonaState(state: EPersonaState) {
             instance?._steamFriends?.setPersonaState(state)
         }
@@ -279,10 +276,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun deleteApp(appId: Int): Boolean {
-            appChangeNumbers.remove(appId)
-            appFileChangeLists.remove(appId)
-            PrefManager.appChangeNumbers = appChangeNumbers
-            PrefManager.appFileChangeLists = appFileChangeLists
+            CoroutineScope(Dispatchers.IO).launch {
+                instance?.db?.appChangeNumbers()?.deleteByAppId(appId)
+                instance?.db?.appFileChangeLists()?.deleteByAppId(appId)
+            }
             val appDirPath = getAppDirPath(appId)
             return File(appDirPath).deleteRecursively()
         }
@@ -294,17 +291,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // TODO: download shared install depots to a common location
                     val depot = depotEntry.value
                     (depot.manifests.isNotEmpty() || depot.sharedInstall) &&
-                            (
-                                    depot.osList.contains(OS.windows) ||
-                                            (
-                                                    !depot.osList.contains(OS.linux) &&
-                                                            !depot.osList.contains(OS.macos)
-                                                    )
-                                    ) &&
-                            (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
-                            (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(
-                                depot.depotId
-                            ))
+                        (
+                            depot.osList.contains(OS.windows) ||
+                                (
+                                    !depot.osList.contains(OS.linux) &&
+                                        !depot.osList.contains(OS.macos)
+                                    )
+                            ) &&
+                        (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
+                        (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(
+                            depot.depotId
+                        ))
                 }.let { depotEntries ->
                     downloadApp(appId, depotEntries.keys.toList(), "public")
                 }
@@ -403,17 +400,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                 }.filterNotNull()
                 logD(
                     "GameProcessInfo:" +
-                            gamesPlayed.map {
-                                "\n\tprocessId: ${it.processId}" +
-                                        "\n\tgameId: ${it.gameId}" +
-                                        "\n\tprocesses: ${
-                                            it.processIdList.map {
-                                                "\n\t\tprocessId: ${it.processId}" +
-                                                        "\n\t\tprocessIdParent: ${it.processIdParent}" +
-                                                        "\n\t\tparentIsSteam: ${it.parentIsSteam}"
-                                            }.joinToString("\n")
-                                        }"
-                            }.joinToString("\n")
+                        gamesPlayed.map {
+                            "\n\tprocessId: ${it.processId}" +
+                                "\n\tgameId: ${it.gameId}" +
+                                "\n\tprocesses: ${
+                                    it.processIdList.map {
+                                        "\n\t\tprocessId: ${it.processId}" +
+                                            "\n\t\tprocessIdParent: ${it.processIdParent}" +
+                                            "\n\t\tparentIsSteam: ${it.parentIsSteam}"
+                                    }.joinToString("\n")
+                                }"
+                        }.joinToString("\n")
                 )
                 steamInstance._steamApps?.notifyGamesPlayed(
                     gamesPlayed = gamesPlayed,
@@ -478,9 +475,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 ) {
                                     logD(
                                         "Signaling app launch:" +
-                                                "\n\tappId: $appId" +
-                                                "\n\tclientId: ${PrefManager.clientId}" +
-                                                "\n\tosType: ${EOSType.AndroidUnknown}"
+                                            "\n\tappId: $appId" +
+                                            "\n\tclientId: ${PrefManager.clientId}" +
+                                            "\n\tosType: ${EOSType.AndroidUnknown}"
                                     )
                                     val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
                                         appId = appId,
@@ -643,28 +640,28 @@ class SteamService : Service(), IChallengeUrlChanged {
             parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
             prefixToPath: (String) -> String,
         ): Deferred<PostSyncInfo?> = parentScope.async {
-            var postSyncInfo: PostSyncInfo? = null
+            var postSyncInfo: PostSyncInfo?
             logD("Retrieving save files of ${appInfo.name}")
 
             val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
                 logD(
                     "GetAppFileListChange($appInfo.appId):" +
-                            "\n\tTotal Files: ${fileList.files.size}" +
-                            "\n\tCurrent Change Number: ${fileList.currentChangeNumber}" +
-                            "\n\tIs Only Delta: ${fileList.isOnlyDelta}" +
-                            "\n\tApp BuildID Hwm: ${fileList.appBuildIDHwm}" +
-                            "\n\tPath Prefixes: \n\t\t${fileList.pathPrefixes.joinToString("\n\t\t")}" +
-                            "\n\tMachine Names: \n\t\t${fileList.machineNames.joinToString("\n\t\t")}" +
-                            fileList.files.map {
-                                "\n\t${it.filename}:" +
-                                        "\n\t\tshaFile: ${it.shaFile}" +
-                                        "\n\t\ttimestamp: ${it.timestamp}" +
-                                        "\n\t\trawFileSize: ${it.rawFileSize}" +
-                                        "\n\t\tpersistState: ${it.persistState}" +
-                                        "\n\t\tplatformsToSync: ${it.platformsToSync}" +
-                                        "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
-                                        "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
-                            }.joinToString()
+                        "\n\tTotal Files: ${fileList.files.size}" +
+                        "\n\tCurrent Change Number: ${fileList.currentChangeNumber}" +
+                        "\n\tIs Only Delta: ${fileList.isOnlyDelta}" +
+                        "\n\tApp BuildID Hwm: ${fileList.appBuildIDHwm}" +
+                        "\n\tPath Prefixes: \n\t\t${fileList.pathPrefixes.joinToString("\n\t\t")}" +
+                        "\n\tMachine Names: \n\t\t${fileList.machineNames.joinToString("\n\t\t")}" +
+                        fileList.files.map {
+                            "\n\t${it.filename}:" +
+                                "\n\t\tshaFile: ${it.shaFile}" +
+                                "\n\t\ttimestamp: ${it.timestamp}" +
+                                "\n\t\trawFileSize: ${it.rawFileSize}" +
+                                "\n\t\tpersistState: ${it.persistState}" +
+                                "\n\t\tplatformsToSync: ${it.platformsToSync}" +
+                                "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
+                                "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
+                        }.joinToString()
                 )
             }
             val getPathTypePairs: (AppFileChangeList) -> List<Pair<String, String>> =
@@ -728,21 +725,18 @@ class SteamService : Service(), IChallengeUrlChanged {
                     }
                     val changesExist =
                         newFiles.isNotEmpty() ||
-                                deletedFiles.isNotEmpty() ||
-                                modifiedFiles.isNotEmpty()
+                            deletedFiles.isNotEmpty() ||
+                            modifiedFiles.isNotEmpty()
                     Pair(changesExist, FileChanges(deletedFiles, modifiedFiles, newFiles))
                 }
             val hasHashConflicts: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean =
                 { localUserFiles, fileList ->
                     fileList.files.any { file ->
                         logD(
-                            "Checking for ${
-                                getFilePrefix(
-                                    file,
-                                    fileList
-                                )
-                            } in ${localUserFiles.keys}"
+                            "Checking for " +
+                                "${getFilePrefix(file, fileList)} in ${localUserFiles.keys}"
                         )
+
                         localUserFiles[getFilePrefix(file, fileList)]?.let { localUserFile ->
                             localUserFile.firstOrNull {
                                 logD("Comparing ${file.filename} and ${it.filename}")
@@ -996,18 +990,18 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                                     logD(
                                         "Block Request:" +
-                                                "\n\tblockOffset: ${blockRequest.blockOffset}" +
-                                                "\n\tblockLength: ${blockRequest.blockLength}" +
-                                                "\n\trequestHeaders:\n\t\t${
-                                                    blockRequest.requestHeaders.map { "${it.name}: ${it.value}" }
-                                                        .joinToString("\n\t\t")
-                                                }" +
-                                                "\n\texplicitBodyData: [${
-                                                    blockRequest.explicitBodyData.joinToString(
-                                                        ", "
-                                                    )
-                                                }]" +
-                                                "\n\tmayParallelize: ${blockRequest.mayParallelize}"
+                                            "\n\tblockOffset: ${blockRequest.blockOffset}" +
+                                            "\n\tblockLength: ${blockRequest.blockLength}" +
+                                            "\n\trequestHeaders:\n\t\t${
+                                                blockRequest.requestHeaders.map { "${it.name}: ${it.value}" }
+                                                    .joinToString("\n\t\t")
+                                            }" +
+                                            "\n\texplicitBodyData: [${
+                                                blockRequest.explicitBodyData.joinToString(
+                                                    ", "
+                                                )
+                                            }]" +
+                                            "\n\tmayParallelize: ${blockRequest.mayParallelize}"
                                     )
                                     val byteArray = ByteArray(blockRequest.blockLength)
                                     fs.seek(blockRequest.blockOffset)
@@ -1100,7 +1094,11 @@ class SteamService : Service(), IChallengeUrlChanged {
             var microsecUploadFiles = 0L
 
             microsecTotal = measureTime {
-                val localAppChangeNumber = appChangeNumbers[appInfo.appId] ?: -1
+                val localAppChangeNumber = runBlocking {
+                    with(instance!!) {
+                        db.appChangeNumbers().getByAppId(appInfo.appId)?.changeNumber ?: -1
+                    }
+                }
                 val appFileListChange = steamCloud.getAppFileListChange(
                     appInfo.appId,
                     if (localAppChangeNumber >= 0) localAppChangeNumber else 0
@@ -1161,11 +1159,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 return@async PostSyncInfo(syncResult)
                             }
 
-                            appFileChangeLists[appInfo.appId] =
-                                updatedLocalFiles.map { it.value }.flatten()
-                            appChangeNumbers[appInfo.appId] = cloudAppChangeNumber
-                            PrefManager.appChangeNumbers = appChangeNumbers
-                            PrefManager.appFileChangeLists = appFileChangeLists
+                            with(instance!!) {
+                                db.appFileChangeLists().insert(
+                                    appInfo.appId,
+                                    updatedLocalFiles.map { it.value }.flatten()
+                                )
+
+                                db.appChangeNumbers().insert(
+                                    appInfo.appId,
+                                    cloudAppChangeNumber
+                                )
+                            }
 
                             return@async null
                         }
@@ -1173,15 +1177,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val uploadUserFiles: (CoroutineScope) -> Deferred<Unit> = { parentScope ->
                     parentScope.async {
                         logD("Uploading local user files")
-                        val fileChanges =
-                            appFileChangeLists[appInfo.appId].let { prevLocalUserFiles ->
-                                val result =
-                                    getFilesDiff(
-                                        allLocalUserFiles,
-                                        prevLocalUserFiles ?: emptyList()
-                                    )
-                                result.second
+                        val fileChanges = runBlocking {
+                            with(instance!!) {
+                                db.appFileChangeLists().getByAppId(appInfo.appId)!!.let {
+                                    val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
+                                    result.second
+                                }
                             }
+                        }
                         uploadsRequired =
                             fileChanges.filesCreated.isNotEmpty() || fileChanges.filesModified.isNotEmpty()
                         val uploadResult: UserFilesUploadResult
@@ -1194,10 +1197,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                         }.inWholeMicroseconds
                         filesManaged = allLocalUserFiles.size
                         if (uploadResult.uploadBatchSuccess) {
-                            appFileChangeLists[appInfo.appId] = allLocalUserFiles
-                            appChangeNumbers[appInfo.appId] = uploadResult.appChangeNumber
-                            PrefManager.appChangeNumbers = appChangeNumbers
-                            PrefManager.appFileChangeLists = appFileChangeLists
+                            with(instance!!) {
+                                db.appFileChangeLists().insert(
+                                    appInfo.appId,
+                                    allLocalUserFiles
+                                )
+
+                                db.appChangeNumbers().insert(
+                                    appInfo.appId,
+                                    uploadResult.appChangeNumber
+                                )
+                            }
                         } else {
                             syncResult = SyncResult.UpdateFail
                         }
@@ -1214,10 +1224,13 @@ class SteamService : Service(), IChallengeUrlChanged {
                     microsecAcLaunch = measureTime {
                         var hasLocalChanges: Boolean
                         microsecAcPrepUserFiles = measureTime {
-                            hasLocalChanges = appFileChangeLists[appInfo.appId]
-                                ?.let { prevLocalUserFiles ->
-                                    getFilesDiff(allLocalUserFiles, prevLocalUserFiles).first
-                                } == true
+                            hasLocalChanges = runBlocking {
+                                with(instance!!) {
+                                    db.appFileChangeLists().getByAppId(appInfo.appId)?.let { it ->
+                                        getFilesDiff(allLocalUserFiles, it.userFileInfo).first
+                                    } == true
+                                }
+                            }
                         }.inWholeMicroseconds
                         if (!hasLocalChanges) {
                             // we can safely download the new changes since no changes have been
@@ -1259,16 +1272,15 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // need uploading
                     microsecAcExit = measureTime {
                         var fileChanges: FileChanges? = null
-                        val hasLocalChanges =
-                            appFileChangeLists[appInfo.appId].let { prevLocalUserFiles ->
-                                val result =
-                                    getFilesDiff(
-                                        allLocalUserFiles,
-                                        prevLocalUserFiles ?: emptyList()
-                                    )
-                                fileChanges = result.second
-                                result.first
-                            } == true
+                        val hasLocalChanges = runBlocking {
+                            with(instance!!) {
+                                db.appFileChangeLists().getByAppId(appInfo.appId)?.let {
+                                    val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
+                                    fileChanges = result.second
+                                    result.first
+                                } == true
+                            }
+                        }
                         if (hasLocalChanges) {
                             logD("Found local changes and no new cloud user files")
                             uploadUserFiles(parentScope).await()
@@ -1352,12 +1364,12 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             logD(
                 "Login Information\n\tUsername: " +
-                        "$username\n\tAccessToken: " +
-                        "$accessToken\n\tRefreshToken: " +
-                        "$refreshToken\n\tPassword: " +
-                        "$password\n\tShouldRememberPass: " +
-                        "$shouldRememberPassword\n\tTwoFactorAuth: " +
-                        "$twoFactorAuth\n\tEmailAuth: $emailAuth"
+                    "$username\n\tAccessToken: " +
+                    "$accessToken\n\tRefreshToken: " +
+                    "$refreshToken\n\tPassword: " +
+                    "$password\n\tShouldRememberPass: " +
+                    "$shouldRememberPassword\n\tTwoFactorAuth: " +
+                    "$twoFactorAuth\n\tEmailAuth: $emailAuth"
             )
 
             PrefManager.username = username
@@ -1473,9 +1485,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                         if (authPollResult != null) {
                             logD(
                                 "AccessToken: ${authPollResult.accessToken}\n" +
-                                        "AccountName: ${authPollResult.accountName}\n" +
-                                        "RefreshToken: ${authPollResult.refreshToken}\n" +
-                                        "NewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}"
+                                    "AccountName: ${authPollResult.accountName}\n" +
+                                    "RefreshToken: ${authPollResult.refreshToken}\n" +
+                                    "NewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}"
                             )
                         } else {
                             // logD("AuthPollResult is null")
@@ -1520,8 +1532,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         private fun clearUserData() {
             PrefManager.clearPreferences()
-            appChangeNumbers.clear()
-            appFileChangeLists.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                instance?.db?.appChangeNumbers()?.deleteAll()
+                instance?.db?.appFileChangeLists()?.deleteAll()
+            }
             isLoggingIn = false
         }
 
