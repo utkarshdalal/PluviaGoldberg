@@ -1,7 +1,9 @@
 package com.OxGames.Pluvia.utils
 
 import android.content.Context
+import android.provider.Settings
 import com.OxGames.Pluvia.SteamService
+import `in`.dragonbra.javasteam.util.HardwareUtils
 import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -43,6 +45,22 @@ class SteamUtils {
                         }
                     }
                 }
+            }
+        }
+
+        /**
+         * Gets the Android user-editable device name or falls back to [HardwareUtils.getMachineName]
+         */
+        fun getMachineName(context: Context): String {
+            return try {
+                // Try different methods to get device name
+                Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME)
+                    ?: Settings.System.getString(context.contentResolver, "device_name")
+                    // ?: Settings.Secure.getString(context.contentResolver, "bluetooth_name")
+                    // ?: BluetoothAdapter.getDefaultAdapter()?.name
+                    ?: HardwareUtils.getMachineName() // Fallback to machine name if all else fails
+            } catch (e: Exception) {
+                HardwareUtils.getMachineName() // Return machine name as last resort
             }
         }
     }
