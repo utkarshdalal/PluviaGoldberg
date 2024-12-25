@@ -39,8 +39,7 @@ object PrefManager {
 
     private val scope = CoroutineScope(Dispatchers.IO + CoroutineName("PrefManager"))
 
-    lateinit var dataStore: DataStore<Preferences>
-        private set
+    private lateinit var dataStore: DataStore<Preferences>
 
     fun init(context: Context) {
         dataStore = context.datastore
@@ -70,11 +69,11 @@ object PrefManager {
         }
     }
 
-    private fun <T> removePref(key: Preferences.Key<T>) {
-        scope.launch {
-            dataStore.edit { pref -> pref.remove(key) }
-        }
-    }
+    // private fun <T> removePref(key: Preferences.Key<T>) {
+    //     scope.launch {
+    //         dataStore.edit { pref -> pref.remove(key) }
+    //     }
+    // }
 
     /* Login Info */
     private val CELL_ID = intPreferencesKey("cell_id")

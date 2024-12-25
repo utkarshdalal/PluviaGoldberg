@@ -245,6 +245,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun getAppDownloadInfo(appId: Int): DownloadInfo? = downloadJobs[appId]
+
         fun isAppInstalled(appId: Int): Boolean {
             val isNotDownloading = getAppDownloadInfo(appId) == null
             val appDirPath = Paths.get(getAppDirPath(appId))
@@ -372,11 +373,9 @@ class SteamService : Service(), IChallengeUrlChanged {
         var syncInProgress: Boolean = false
         const val MAX_USER_FILE_RETRIES = 3
 
-        fun notifyRunningProcesses(
-            vararg gameProcesses: GameProcessInfo
-        ) {
+        fun notifyRunningProcesses(vararg gameProcesses: GameProcessInfo) {
             instance?.let { steamInstance ->
-                val gamesPlayed = gameProcesses.map { gameProcess ->
+                val gamesPlayed = gameProcesses.mapNotNull { gameProcess ->
                     getAppInfoOf(gameProcess.appId)?.let { appInfo ->
                         getPkgInfoOf(gameProcess.appId)?.let { pkgInfo ->
                             appInfo.branches[gameProcess.branch]?.let { branch ->
@@ -397,7 +396,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             }
                         }
                     }
-                }.filterNotNull()
+                }
                 logD(
                     "GameProcessInfo:" +
                         gamesPlayed.map {
@@ -641,7 +640,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
             prefixToPath: (String) -> String,
         ): Deferred<PostSyncInfo?> = parentScope.async {
-            var postSyncInfo: PostSyncInfo?
+            val postSyncInfo: PostSyncInfo?
             logD("Retrieving save files of ${appInfo.name}")
 
             val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
@@ -653,7 +652,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         "\n\tApp BuildID Hwm: ${fileList.appBuildIDHwm}" +
                         "\n\tPath Prefixes: \n\t\t${fileList.pathPrefixes.joinToString("\n\t\t")}" +
                         "\n\tMachine Names: \n\t\t${fileList.machineNames.joinToString("\n\t\t")}" +
-                        fileList.files.map {
+                        fileList.files.joinToString {
                             "\n\t${it.filename}:" +
                                 "\n\t\tshaFile: ${it.shaFile}" +
                                 "\n\t\ttimestamp: ${it.timestamp}" +
@@ -662,7 +661,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 "\n\t\tplatformsToSync: ${it.platformsToSync}" +
                                 "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
                                 "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
-                        }.joinToString()
+                        }
                 )
             }
             val getPathTypePairs: (AppFileChangeList) -> List<Pair<String, String>> =
@@ -799,7 +798,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             val getLocalUserFilesAsPrefixMap: () -> Map<String, List<UserFileInfo>> = {
                 appInfo.ufs.saveFilePatterns.filter { userFile ->
                     userFile.root.isWindows()
-                }.map { userFile ->
+                }.associate { userFile ->
                     Pair(
                         Paths.get(userFile.getPrefix()).pathString,
                         FileUtils.findFiles(
@@ -826,7 +825,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             )
                         }.collect(Collectors.toList())
                     )
-                }.toMap()
+                }
             }
             val fileChangeListToUserFiles: (AppFileChangeList) -> List<UserFileInfo> =
                 { appFileListChange ->
@@ -913,7 +912,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                                     withTimeout(responseBodyTimeout) {
                                         if (fileDownloadInfo.fileSize != fileDownloadInfo.rawFileSize) {
-                                            response.body.byteStream()?.use { inputStream ->
+                                            response.body?.byteStream()?.use { inputStream ->
                                                 ZipInputStream(inputStream).use { zipInput ->
                                                     val entry = zipInput.nextEntry
                                                     if (entry == null) {
@@ -928,7 +927,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                                 }
                                             }
                                         } else {
-                                            response.body.byteStream().use { inputStream ->
+                                            response.body?.byteStream()?.use { inputStream ->
                                                 copyToFile(inputStream)
                                             }
                                         }
@@ -1948,7 +1947,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         // Send off an event if we change states.
-        if (callback.friendID == getUserSteamId()) {
+        if (callback.friendID == _steamClient!!.steamID) {
             logD("Emitting PersonaStateReceived")
             dbScope.launch {
                 val id = callback.friendID.convertToUInt64()
