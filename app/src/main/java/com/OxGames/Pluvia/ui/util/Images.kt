@@ -40,7 +40,7 @@ internal fun ListItemImage(
         failure = {
             Icon(Icons.Filled.QuestionMark, null)
         },
-        previewPlaceholder = painterResource(R.drawable.ic_launcher_foreground)
+        previewPlaceholder = painterResource(R.drawable.icon_mono_foreground)
     )
 }
 
