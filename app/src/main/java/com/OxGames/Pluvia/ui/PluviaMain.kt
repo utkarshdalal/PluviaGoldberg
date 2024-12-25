@@ -26,6 +26,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
+import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.GameProcessInfo
@@ -80,14 +81,7 @@ fun PluviaMain(
     var loadingDialogVisible by remember { mutableStateOf(false) }
     var loadingProgress by remember { mutableFloatStateOf(0f) }
     var msgDialogState by remember { mutableStateOf(MessageDialogState(false)) }
-    // var msgDialogVisible by remember { mutableStateOf(false) }
-    // var msgDialogTitle by remember { mutableStateOf<String?>(null) }
-    // var msgDialogMsg by remember { mutableStateOf<String?>(null) }
-    // var msgDialogDismissBtnTxt by remember { mutableStateOf("Dismiss") }
-    // var msgDialogConfirmBtnTxt by remember { mutableStateOf("Confirm") }
-    // var msgDialogDismissClick by remember { mutableStateOf<(() -> Unit)?>(null) }
-    // var msgDialogConfirmClick by remember { mutableStateOf<(() -> Unit)?>(null) }
-    // var msgDialogDismissRequest by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var annoyingDialogShown by remember { mutableStateOf(false) }
 
     LaunchedEffect(lifecycleOwner) {
         if (!hasLaunched) {
@@ -165,6 +159,20 @@ fun PluviaMain(
                         // TODO: add preference for first screen on login
                         Log.d("PluviaMain", "Navigating to library")
                         navController.navigate(PluviaScreen.Home.name)
+                        if (!BuildConfig.GOLD && !annoyingDialogShown) {
+                            annoyingDialogShown = true
+                            msgDialogState = MessageDialogState(
+                                visible = true,
+                                message = "Thank you for using Pluvia, please consider supporting us by purchasing the app from the store",
+                                confirmBtnText = "OK",
+                                onConfirmClick = {
+                                    msgDialogState = MessageDialogState(visible = false)
+                                },
+                                onDismissRequest = {
+                                    msgDialogState = MessageDialogState(visible = false)
+                                }
+                            )
+                        }
                     }
 
                     else -> {

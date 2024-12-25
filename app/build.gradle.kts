@@ -44,6 +44,14 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        buildConfigField("boolean", "GOLD", "false")
+        val iconValue = "@mipmap/ic_launcher"
+        val iconRoundValue = "@mipmap/ic_launcher_round"
+        manifestPlaceholders.putAll(mapOf(
+            "icon" to iconValue,
+            "roundIcon" to iconRoundValue
+        ))
+
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
         }
@@ -72,6 +80,18 @@ android {
         create("release-signed") {
             isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("pluvia")
+        }
+        create("release-gold") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("pluvia")
+            applicationIdSuffix = ".gold"
+            buildConfigField("boolean", "GOLD", "true")
+            val iconValue = "@mipmap/ic_launcher_gold"
+            val iconRoundValue = "@mipmap/ic_launcher_gold_round"
+            manifestPlaceholders.putAll(mapOf(
+                "icon" to iconValue,
+                "roundIcon" to iconRoundValue
+            ))
         }
     }
 
