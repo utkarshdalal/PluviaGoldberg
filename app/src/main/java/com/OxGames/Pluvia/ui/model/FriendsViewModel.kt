@@ -2,8 +2,8 @@ package com.OxGames.Pluvia.ui.model
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
+import com.OxGames.Pluvia.ui.data.FriendsState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,10 +12,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-data class FriendsState(
-    val friendsList: Map<String, List<SteamFriend>> = mapOf()
-)
 
 @HiltViewModel
 class FriendsViewModel @Inject constructor(
