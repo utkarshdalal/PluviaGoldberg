@@ -1,7 +1,6 @@
 [versions]
 activityCompose = "1.9.3" # https://mvnrepository.com/artifact/androidx.activity/activity-compose
 agp = "8.7.3" # https://mvnrepository.com/artifact/com.android.application/com.android.application.gradle.plugin
-android-preferences = "1.2.1" # https://mvnrepository.com/artifact/androidx.preference/preference-ktx
 apache-compress = "1.27.1" # https://mvnrepository.com/artifact/org.apache.commons/commons-compress
 composeBom = "2024.12.01" # https://mvnrepository.com/artifact/androidx.compose/compose-bom
 coreKtx = "1.15.0" # https://mvnrepository.com/artifact/androidx.core/core-ktx
@@ -27,18 +26,12 @@ spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongy
 steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
 zstd-jni = "1.5.2-3" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
 zxing = "3.5.3" # https://mvnrepository.com/artifact/com.google.zxing/core
-#commons-io = "2.17.0" # https://mvnrepository.com/artifact/commons-io/commons-io
-#commons-lang3 = "3.17.0" # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
-#commons-validator = "1.9.0" # https://mvnrepository.com/artifact/commons-validator/commons-validator
-#xz = "1.10" # https://mvnrepository.com/artifact/org.tukaani/xz
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-material-icons = { group = "androidx.compose.material", name = "material-icons-extended" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
@@ -51,8 +44,6 @@ androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "ro
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room-runtime" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
-androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 apache-compress = { group = "org.apache.commons", name = "commons-compress", version.ref = "apache-compress" }
@@ -62,7 +53,6 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "dagger-hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "dagger-hilt" }
 jetbrains-kotlinx-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "json" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
 kotlin-coroutines = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
 landscapist-coil = { module = "com.github.skydoves:landscapist-coil", version.ref = "landscapistCoil" }
 navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
@@ -71,10 +61,19 @@ spongycastle = { group = "com.madgag.spongycastle", name = "prov", version.ref =
 steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
 zstd-jni = { group = "com.github.luben", name = "zstd-jni", version.ref = "zstd-jni" }
 zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
-#commons-io = { module = "commons-io:commons-io", version.ref = "commons-io" }
-#commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "commons-lang3" }
-#commons-validator = { module = "commons-validator:commons-validator", version.ref = "commons-validator" }
-#xz = { module = "org.tukaani:xz", version.ref = "xz" }
+
+# Testing
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+# Dependendies when locally building JavaSteam
+commons-io = { module = "commons-io:commons-io", version = "2.17.0" } # https://mvnrepository.com/artifact/commons-io/commons-io
+commons-lang3 = { module = "org.apache.commons:commons-lang3", version = "3.17.0" } # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+commons-validator = { module = "commons-validator:commons-validator", version = "1.9.0" } # https://mvnrepository.com/artifact/commons-validator/commons-validator
+xz = { module = "org.tukaani:xz", version = "1.10" } # https://mvnrepository.com/artifact/org.tukaani/xz
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -116,9 +115,9 @@ compose = [
 winlator = [
     "apache-compress",
 ]
-#steamkit-dev = [
-#    "commons-io",
-#    "commons-lang3",
-#    "commons-validator",
-#    "xz",
-#]
+steamkit-dev = [
+    "commons-io",
+    "commons-lang3",
+    "commons-validator",
+    "xz",
+]
