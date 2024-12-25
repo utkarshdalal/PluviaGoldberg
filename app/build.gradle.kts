@@ -21,6 +21,7 @@ android {
     namespace = "com.OxGames.Pluvia"
     compileSdk = 35
 
+    // https://developer.android.com/ndk/downloads
     ndkVersion = "22.1.7171670"
 
     signingConfigs {
@@ -75,12 +76,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "11"
     }
 
     buildFeatures {
@@ -110,12 +111,15 @@ android {
 }
 
 dependencies {
-    // implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
-    // implementation(libs.bundles.steamkit.dev) // only needed when building JavaSteam manually
-
     // JavaSteam
-    implementation(libs.steamkit) {
-        isChanging = version?.contains("SNAPSHOT") ?: false
+    val localBuild = false // Change to 'true' needed when building JavaSteam manually
+    if (localBuild) {
+        implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
+        implementation(libs.bundles.steamkit.dev)
+    } else {
+        implementation(libs.steamkit) {
+            isChanging = version?.contains("SNAPSHOT") ?: false
+        }
     }
     implementation(libs.spongycastle)
 
