@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
@@ -7,11 +10,29 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val keystorePropertiesFile = rootProject.file("app/keystores/keystore.properties")
+val keystoreProperties: Properties? = if (keystorePropertiesFile.exists()) {
+    Properties().apply {
+        load(FileInputStream(keystorePropertiesFile))
+    }
+} else null
+
 android {
     namespace = "com.OxGames.Pluvia"
     compileSdk = 35
 
     ndkVersion = "22.1.7171670"
+
+    signingConfigs {
+        create("pluvia") {
+            if (keystoreProperties != null) {
+                storeFile = file(keystoreProperties["storeFile"].toString())
+                storePassword = keystoreProperties["storePassword"].toString()
+                keyAlias = keystoreProperties["keyAlias"].toString()
+                keyPassword = keystoreProperties["keyPassword"].toString()
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.OxGames.Pluvia"
@@ -46,6 +67,10 @@ android {
         }
         release {
             isMinifyEnabled = false
+        }
+        create("release-signed") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("pluvia")
         }
     }
 

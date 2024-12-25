@@ -51,3 +51,6 @@ app/.cxx/
 /captures
 .externalNativeBuild
 
+#Private keystore data
+app/keystores/*
+!app/keystores/.gitkeep
