@@ -21,7 +21,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import coil.annotation.ExperimentalCoilApi
+import coil.imageLoader
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.ui.component.dialog.OrientationDialog
@@ -31,7 +35,7 @@ import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import kotlinx.coroutines.launch
 
-// See link for implementations
+// See link for implementation
 // https://github.com/alorma/Compose-Settings
 
 @Composable
@@ -43,7 +47,7 @@ fun SettingsScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalCoilApi::class)
 @Composable
 private fun SettingsScreenContent(
     onBack: () -> Unit,
@@ -74,6 +78,7 @@ private fun SettingsScreenContent(
         ) {
             // Once there are enough settings, they should be split into
             // seperate (composable) classes, organized by group.
+
             SettingsGroup(
                 title = { Text(text = "XServer") }
             ) {
@@ -91,10 +96,44 @@ private fun SettingsScreenContent(
                 )
             }
 
+            SettingsGroup(title = { Text(text = "Info") }) {
+                val uriHandler = LocalUriHandler.current
+
+                SettingsMenuLink(
+                    title = { Text(text = "Source code") },
+                    subtitle = { Text(text = "github.com/oxters168/Pluvia") },
+                    onClick = {
+                        uriHandler.openUri("https://github.com/oxters168/Pluvia")
+                    }
+                )
+
+                SettingsMenuLink(
+                    enabled = false,
+                    title = { Text(text = "Technologies Used") },
+                    subtitle = {
+                        Column(
+                            modifier = Modifier.padding(start = 12.dp)
+                        ) {
+                            Text(text = "JavaSteam - github.com/Longi94/JavaSteam")
+                            Text(text = "Ubuntu RootFs - releases.ubuntu.com/focal")
+                            Text(text = "Wine - winehq.org")
+                            Text(text = "Box86/Box64 - box86.org")
+                            Text(text = "PRoot - proot-me.github.io")
+                            Text(text = "Mesa (Turnip/Zink/VirGL) - mesa3d.org")
+                            Text(text = "DXVK - github.com/doitsujin/dxvk")
+                            Text(text = "VKD3D - gitlab.winehq.org/wine/vkd3d")
+                            Text(text = "D8VK - github.com/AlpyneDreams/d8vk")
+                            Text(text = "CNC DDraw - github.com/FunkyFr3sh/cnc-ddraw")
+                        }
+                    },
+                    onClick = {
+                        /* Could link to pluvia repo to credits page? */
+                    }
+                )
+            }
+
             if (BuildConfig.DEBUG) {
-                SettingsGroup(
-                    title = { Text(text = "Debug") }
-                ) {
+                SettingsGroup(title = { Text(text = "Debug") }) {
                     SettingsMenuLink(
                         title = { Text(text = "Clear Preferences") },
                         onClick = {
@@ -102,6 +141,14 @@ private fun SettingsScreenContent(
                                 PrefManager.clearPreferences()
                                 (context as ComponentActivity).finishAffinity()
                             }
+                        }
+                    )
+
+                    SettingsMenuLink(
+                        title = { Text(text = "Clear Image Cache") },
+                        onClick = {
+                            context.imageLoader.diskCache?.clear()
+                            context.imageLoader.memoryCache?.clear()
                         }
                     )
                 }
