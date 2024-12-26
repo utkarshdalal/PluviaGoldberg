@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 fun HomeFriendsScreen(
     viewModel: FriendsViewModel = hiltViewModel(),
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val state by viewModel.friendsState.collectAsStateWithLifecycle()
 
@@ -53,6 +54,7 @@ fun HomeFriendsScreen(
         state = state,
         onBack = { onBackPressedDispatcher?.onBackPressed() },
         onSettings = onSettings,
+        onLogout = onLogout,
     )
 }
 
@@ -62,6 +64,7 @@ private fun FriendsScreenContent(
     state: FriendsState,
     onBack: () -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -82,7 +85,12 @@ private fun FriendsScreenContent(
                     topBar = {
                         CenterAlignedTopAppBar(
                             title = { Text(text = "Friends") },
-                            actions = { AccountButton(onSettings = onSettings) },
+                            actions = {
+                                AccountButton(
+                                    onSettings = onSettings,
+                                    onLogout = onLogout,
+                                )
+                            },
                             navigationIcon = { BackButton(onClick = onBack) },
                         )
                     },
@@ -169,6 +177,7 @@ private fun Preview_FriendsScreenContent() {
             ),
             onBack = { },
             onSettings = { },
+            onLogout = { },
         )
     }
 }

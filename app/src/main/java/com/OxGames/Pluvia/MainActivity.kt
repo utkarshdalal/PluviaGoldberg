@@ -62,6 +62,11 @@ class MainActivity : ComponentActivity() {
         startOrientator()
     }
 
+    private val onEndProcess: (AndroidEvent.EndProcess) -> Unit = {
+        SteamService.stop()
+        finishAndRemoveTask()
+    }
+
     private var index = totalIndex++
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,6 +76,7 @@ class MainActivity : ComponentActivity() {
         PluviaApp.events.on<AndroidEvent.SetSystemUIVisibility, Unit>(onSetSystemUi)
         PluviaApp.events.on<AndroidEvent.StartOrientator, Unit>(onStartOrientator)
         PluviaApp.events.on<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
+        PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
         enableEdgeToEdge()
         setContent {
@@ -129,6 +135,11 @@ class MainActivity : ComponentActivity() {
         PluviaApp.events.off<AndroidEvent.SetSystemUIVisibility, Unit>(onSetSystemUi)
         PluviaApp.events.off<AndroidEvent.StartOrientator, Unit>(onStartOrientator)
         PluviaApp.events.off<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
+        PluviaApp.events.off<AndroidEvent.EndProcess, Unit>(onEndProcess)
+
+        if (SteamService.isConnected && !SteamService.isLoggedIn) {
+            SteamService.stop()
+        }
     }
 
     // override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {

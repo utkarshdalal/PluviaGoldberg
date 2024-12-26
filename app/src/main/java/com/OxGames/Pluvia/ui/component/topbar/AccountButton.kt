@@ -23,7 +23,10 @@ import com.OxGames.Pluvia.ui.util.ListItemImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
 
 @Composable
-fun AccountButton(onSettings: () -> Unit) {
+fun AccountButton(
+    onSettings: () -> Unit,
+    onLogout: () -> Unit,
+) {
     var persona by remember {
         var persona: SteamFriend? = null
         SteamService.userSteamId?.let { id ->
@@ -59,7 +62,7 @@ fun AccountButton(onSettings: () -> Unit) {
             showDialog = false
         },
         onLogout = {
-            // TODO logout
+            onLogout()
             showDialog = false
         },
         onDismiss = {
@@ -85,7 +88,12 @@ private fun Preview_AccountButton() {
     PluviaTheme {
         CenterAlignedTopAppBar(
             title = { Text("Top App Bar") },
-            actions = { AccountButton(onSettings = {}) },
+            actions = {
+                AccountButton(
+                    onSettings = {},
+                    onLogout = {},
+                )
+            },
         )
     }
 }

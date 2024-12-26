@@ -26,6 +26,8 @@ class LibraryViewModel : ViewModel() {
 
     init {
         PluviaApp.events.on<SteamEvent.AppInfoReceived, Unit>(onAppInfoReceived)
+
+        getAppList()
     }
 
     override fun onCleared() {

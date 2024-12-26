@@ -279,8 +279,14 @@ fun PluviaMain(
                             },
                         )
                     },
+                    onClickExit = {
+                        PluviaApp.events.emit(AndroidEvent.EndProcess)
+                    },
                     onSettings = {
                         navController.navigate(PluviaScreen.Settings.name)
+                    },
+                    onLogout = {
+                        SteamService.logOut()
                     },
                 )
             }
