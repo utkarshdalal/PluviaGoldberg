@@ -142,11 +142,13 @@ fun AppScreen(
                 if (!isInstalled) {
                     val depots = SteamService.getDownloadableDepots(appId)
                     // TODO: get space available based on where user wants to install
-                    val availableSpace = StorageUtils.formatBinarySize(StorageUtils.getAvailableSpace(context.filesDir.absolutePath))
+                    val availableBytes = StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
+                    val availableSpace = StorageUtils.formatBinarySize(availableBytes)
                     // TODO: un-hardcode "public" branch
                     val downloadSize = StorageUtils.formatBinarySize(depots.values.map { it.manifests["public"]?.download ?: 0 }.sum())
-                    val installSize = StorageUtils.formatBinarySize(depots.values.map { it.manifests["public"]?.size ?: 0 }.sum())
-                    if (availableSpace < installSize) {
+                    val installBytes = depots.values.map { it.manifests["public"]?.size ?: 0 }.sum()
+                    val installSize = StorageUtils.formatBinarySize(installBytes)
+                    if (availableBytes < installBytes) {
                         msgDialogState = MessageDialogState(
                             visible = true,
                             onDismissRequest = { msgDialogState = MessageDialogState(false) },
@@ -162,7 +164,7 @@ fun AppScreen(
                             onDismissRequest = { msgDialogState = MessageDialogState(false) },
                             title = context.getString(R.string.download_prompt_title),
                             message = "The app being installed has the following space requirements. Would you like to proceed?" +
-                                "\n\tDownload Size: $downloadSize" +
+                                "\n\n\tDownload Size: $downloadSize" +
                                 "\n\tSize on Disk: $installSize" +
                                 "\n\tAvailable Space: $availableSpace",
                             confirmBtnText = context.getString(R.string.proceed),
@@ -204,10 +206,24 @@ fun AppScreen(
                             AppMenuOption(
                                 AppOptionMenuType.Uninstall,
                                 onClick = {
+                                    val sizeOnDisk = StorageUtils.formatBinarySize(
+                                        StorageUtils.getFolderSize(SteamService.getAppDirPath(appId)),
+                                    )
                                     // TODO: exit app screen and reload installed list
-                                    // TODO: show dialog prompt "are you sure you want to delete"
                                     // TODO: show loading screen of delete progress
-                                    SteamService.deleteApp(appId)
+                                    msgDialogState = MessageDialogState(
+                                        visible = true,
+                                        title = context.getString(R.string.delete_prompt_title),
+                                        message = "Are you sure you want to delete this app?\n\n\tSize on Disk: $sizeOnDisk",
+                                        onDismissRequest = { msgDialogState = MessageDialogState(false) },
+                                        confirmBtnText = context.getString(R.string.delete_app),
+                                        onConfirmClick = {
+                                            SteamService.deleteApp(appId)
+                                            msgDialogState = MessageDialogState(false)
+                                        },
+                                        dismissBtnText = context.getString(R.string.cancel),
+                                        onDismissClick = { msgDialogState = MessageDialogState(false) },
+                                    )
                                 },
                             ),
                         )
@@ -292,7 +308,7 @@ private fun AppScreenContent(
                     if (isInstalled) {
                         stringResource(R.string.run_app)
                     } else {
-                        stringResource(R.string.download_app)
+                        stringResource(R.string.install_app)
                     },
                 )
             }

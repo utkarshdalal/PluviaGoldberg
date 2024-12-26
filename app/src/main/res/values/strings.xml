@@ -13,9 +13,11 @@
     <string name="steam_2fa_device">Please enter your 2-factor auth code from your authenticator app.</string>
     <string name="steam_2fa_email">Please enter the auth code sent to the email at %s</string>
     <string name="header_img_desc">App header image</string>
-    <string name="download_app">Download</string>
+    <string name="install_app">Install</string>
+    <string name="delete_app">Delete</string>
     <string name="run_app">Play</string>
-    <string name="download_prompt_title">Download Info</string>
+    <string name="download_prompt_title">Install App</string>
+    <string name="delete_prompt_title">Delete App</string>
     <string name="acknowledge">OK</string>
     <string name="not_enough_space">Not Enough Space</string>
     <string name="proceed">Proceed</string>
