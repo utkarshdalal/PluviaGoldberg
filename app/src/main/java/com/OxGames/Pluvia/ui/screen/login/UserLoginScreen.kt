@@ -65,7 +65,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 @Composable
 fun UserLoginScreen(
     viewModel: UserLoginViewModel,
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     val userLoginState by viewModel.loginState.collectAsState()
 
@@ -83,7 +83,7 @@ fun UserLoginScreen(
                     username = userLoginState.username,
                     password = userLoginState.password,
                     shouldRememberPassword = userLoginState.rememberPass,
-                    authenticator = viewModel.authenticator
+                    authenticator = viewModel.authenticator,
                 )
             }
         },
@@ -111,7 +111,7 @@ private fun UserLoginScreenContent(
             CenterAlignedTopAppBar(
                 title = {
                     Text(text = stringResource(R.string.app_name))
-                }
+                },
             )
         },
         floatingActionButton = {
@@ -123,7 +123,7 @@ private fun UserLoginScreenContent(
 
                 ExtendedFloatingActionButton(
                     modifier = Modifier.padding(
-                        end = systemBarPadding.calculateEndPadding(LayoutDirection.Ltr)
+                        end = systemBarPadding.calculateEndPadding(LayoutDirection.Ltr),
                     ),
                     onClick = {
                         when (userLoginState.loginScreen) {
@@ -150,13 +150,13 @@ private fun UserLoginScreenContent(
                     },
                 )
             }
-        }
+        },
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
         ) {
             if (userLoginState.isSteamConnected &&
                 userLoginState.isLoggingIn.not() &&
@@ -164,7 +164,7 @@ private fun UserLoginScreenContent(
             ) {
                 Crossfade(
                     modifier = Modifier.fillMaxSize(),
-                    targetState = userLoginState.loginScreen
+                    targetState = userLoginState.loginScreen,
                 ) { screen ->
                     when (screen) {
                         LoginScreen.CREDENTIAL -> {
@@ -195,7 +195,7 @@ private fun UserLoginScreenContent(
                                     userLoginState.loginResult == LoginResult.EmailAuth ->
                                         stringResource(
                                             R.string.steam_2fa_email,
-                                            userLoginState.email ?: "..."
+                                            userLoginState.email ?: "...",
                                         )
 
                                     else -> ""
@@ -209,7 +209,7 @@ private fun UserLoginScreenContent(
                             Column(
                                 modifier = Modifier.fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                verticalArrangement = Arrangement.Center,
                             ) {
                                 if (userLoginState.isQrFailed) {
                                     ElevatedButton(onClick = onRetry) { Text("Retry") }
@@ -251,7 +251,7 @@ private fun UsernamePassword(
             value = username,
             singleLine = true,
             onValueChange = onUsername,
-            label = { Text("Username") }
+            label = { Text("Username") },
         )
         OutlinedTextField(
             value = password,
@@ -261,16 +261,18 @@ private fun UsernamePassword(
             onValueChange = onPassword,
             label = { Text("Password") },
             trailingIcon = {
-                val image = if (passwordVisible)
+                val image = if (passwordVisible) {
                     Icons.Filled.Visibility
-                else Icons.Filled.VisibilityOff
+                } else {
+                    Icons.Filled.VisibilityOff
+                }
 
                 val description = if (passwordVisible) "Hide password" else "Show password"
 
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(imageVector = image, description)
                 }
-            }
+            },
         )
         Spacer(modifier = Modifier.height(16.dp))
         Row(horizontalArrangement = Arrangement.SpaceBetween) {
@@ -285,7 +287,7 @@ private fun UsernamePassword(
             ElevatedButton(
                 onClick = onLoginBtnClick,
                 enabled = username.isNotEmpty() && password.isNotEmpty(),
-                content = { Text(text = "Login") }
+                content = { Text(text = "Login") },
             )
         }
     }
@@ -297,7 +299,7 @@ internal class UserLoginPreview : PreviewParameterProvider<UserLoginState> {
         UserLoginState(
             isSteamConnected = true,
             loginScreen = LoginScreen.QR,
-            qrCode = "Hello World!"
+            qrCode = "Hello World!",
         ),
         UserLoginState(isSteamConnected = true, loginScreen = LoginScreen.QR, isQrFailed = true),
         UserLoginState(isSteamConnected = false),
@@ -307,7 +309,7 @@ internal class UserLoginPreview : PreviewParameterProvider<UserLoginState> {
 @Preview
 @Composable
 private fun Preview_UserLoginScreen(
-    @PreviewParameter(UserLoginPreview::class) state: UserLoginState
+    @PreviewParameter(UserLoginPreview::class) state: UserLoginState,
 ) {
     PluviaTheme(darkTheme = true) {
         Surface {

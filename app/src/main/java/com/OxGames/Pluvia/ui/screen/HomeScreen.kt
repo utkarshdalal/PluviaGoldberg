@@ -4,10 +4,8 @@ import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.currentWindowSize
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
@@ -24,10 +22,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
+import com.OxGames.Pluvia.ui.enums.HomeDestination
+import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.screen.downloads.HomeDownloadsScreen
 import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
-import com.OxGames.Pluvia.ui.enums.PluviaDestination
-import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.screen.library.HomeLibraryScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
@@ -42,41 +41,28 @@ fun HomeScreen(
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
     // When in Downloads or Friends, pressing back brings us back to Library
-    BackHandler(enabled = homeState.currentDestination != PluviaDestination.Library) {
-        viewModel.onDestination(PluviaDestination.Library)
+    BackHandler(enabled = homeState.currentDestination != HomeDestination.Library) {
+        viewModel.onDestination(HomeDestination.Library)
     }
     // Pressing back again; while logged in, confirm we want to close the app.
-    BackHandler(enabled = homeState.currentDestination == PluviaDestination.Library) {
+    BackHandler(enabled = homeState.currentDestination == HomeDestination.Library) {
         viewModel.onConfirmExit(true)
     }
 
     // Confirm to exit
-    if (homeState.confirmExit) {
-        AlertDialog(
-            onDismissRequest = {
-                viewModel.onConfirmExit(false)
-            },
-            icon = {
-                Icon(Icons.AutoMirrored.Filled.ExitToApp, null)
-            },
-            title = {
-                Text(text = "Are you sure you want to close Pluvia?")
-            },
-            confirmButton = {
-                // TODO close app
-                TextButton(
-                    onClick = { viewModel.onConfirmExit(false) },
-                    content = { Text(text = "Close") }
-                )
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = { viewModel.onConfirmExit(false) },
-                    content = { Text(text = "Cancel") }
-                )
-            }
-        )
-    }
+    MessageDialog(
+        visible = homeState.confirmExit,
+        onDismissRequest = { viewModel.onConfirmExit(false) },
+        icon = Icons.AutoMirrored.Filled.ExitToApp,
+        title = "Are you sure you want to close Pluvia?",
+        confirmBtnText = "Close",
+        onConfirmClick = {
+            // TODO close app
+            viewModel.onConfirmExit(false)
+        },
+        dismissBtnText = "Cancel",
+        onDismissClick = { viewModel.onConfirmExit(false) },
+    )
 
     HomeScreenContent(
         destination = homeState.currentDestination,
@@ -88,8 +74,8 @@ fun HomeScreen(
 
 @Composable
 private fun HomeScreenContent(
-    destination: PluviaDestination,
-    onDestination: (PluviaDestination) -> Unit,
+    destination: HomeDestination,
+    onDestination: (HomeDestination) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -98,16 +84,16 @@ private fun HomeScreenContent(
         onDestination = onDestination,
     ) {
         when (destination) {
-            PluviaDestination.Library -> HomeLibraryScreen(
+            HomeDestination.Library -> HomeLibraryScreen(
                 onClickPlay = onClickPlay,
                 onSettings = onSettings,
             )
 
-            PluviaDestination.Downloads -> HomeDownloadsScreen(
+            HomeDestination.Downloads -> HomeDownloadsScreen(
                 onSettings = onSettings,
             )
 
-            PluviaDestination.Friends -> HomeFriendsScreen(
+            HomeDestination.Friends -> HomeFriendsScreen(
                 onSettings = onSettings,
             )
         }
@@ -116,9 +102,9 @@ private fun HomeScreenContent(
 
 @Composable
 internal fun HomeNavigationWrapperUI(
-    destination: PluviaDestination,
-    onDestination: (PluviaDestination) -> Unit,
-    content: @Composable () -> Unit = {}
+    destination: HomeDestination,
+    onDestination: (HomeDestination) -> Unit,
+    content: @Composable () -> Unit = {},
 ) {
     val windowSize = with(LocalDensity.current) {
         currentWindowSize().toSize().toDpSize()
@@ -135,7 +121,7 @@ internal fun HomeNavigationWrapperUI(
     //  but also handle our nav first!
     NavigationSuiteScaffold(
         navigationSuiteItems = {
-            PluviaDestination.entries.forEach {
+            HomeDestination.entries.forEach {
                 item(
                     label = { Text(stringResource(it.title)) },
                     icon = { Icon(it.icon, stringResource(it.title)) },
@@ -145,7 +131,7 @@ internal fun HomeNavigationWrapperUI(
             }
         },
         layoutType = navLayoutType,
-        content = content
+        content = content,
     )
 }
 
@@ -157,8 +143,8 @@ internal fun HomeNavigationWrapperUI(
 @Composable
 private fun Preview_HomeScreenContent() {
     PluviaTheme {
-        var destination: PluviaDestination by remember {
-            mutableStateOf(PluviaDestination.Library)
+        var destination: HomeDestination by remember {
+            mutableStateOf(HomeDestination.Library)
         }
         HomeScreenContent(
             destination = destination,

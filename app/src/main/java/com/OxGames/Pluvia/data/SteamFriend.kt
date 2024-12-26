@@ -95,8 +95,8 @@ data class SteamFriend(
 
     val isBlocked: Boolean
         get() = relation == EFriendRelationship.Blocked ||
-                relation == EFriendRelationship.Ignored ||
-                relation == EFriendRelationship.IgnoredFriend
+            relation == EFriendRelationship.Ignored ||
+            relation == EFriendRelationship.IgnoredFriend
 
     val isFriend: Boolean
         get() = relation == EFriendRelationship.Friend

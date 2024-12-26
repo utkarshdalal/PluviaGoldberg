@@ -1,8 +1,6 @@
 package com.OxGames.Pluvia.ui.data
 
 import com.winlator.container.Container
-import com.winlator.container.Shortcut
-import com.winlator.core.EnvVars
 import com.winlator.core.KeyValueSet
 import com.winlator.core.OnExtractFileListener
 import com.winlator.core.WineInfo

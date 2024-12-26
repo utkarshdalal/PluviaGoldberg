@@ -23,13 +23,10 @@ import com.OxGames.Pluvia.ui.util.ListItemImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
 
 @Composable
-fun AccountButton(
-    contentDescription: String? = null,
-    onSettings: () -> Unit,
-) {
+fun AccountButton(onSettings: () -> Unit) {
     var persona by remember {
         var persona: SteamFriend? = null
-        SteamService.getUserSteamId()?.let { id ->
+        SteamService.userSteamId?.let { id ->
             persona = SteamService.getPersonaStateOf(id)
         }
         mutableStateOf(persona)
@@ -75,9 +72,9 @@ fun AccountButton(
         content = {
             ListItemImage(
                 image = { SteamService.getAvatarURL(persona?.avatarHash.orEmpty()) },
-                contentDescription = contentDescription,
+                contentDescription = "Logged in account user profile",
             )
-        }
+        },
     )
 }
 
@@ -88,7 +85,7 @@ private fun Preview_AccountButton() {
     PluviaTheme {
         CenterAlignedTopAppBar(
             title = { Text("Top App Bar") },
-            actions = { AccountButton(onSettings = {}) }
+            actions = { AccountButton(onSettings = {}) },
         )
     }
 }

@@ -44,7 +44,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         libraryAssets = LibraryAssetsInfo(
             libraryCapsule = LibraryCapsuleInfo(image = mapOf(), image2x = mapOf()),
             libraryHero = LibraryHeroInfo(image = mapOf(), image2x = mapOf()),
-            libraryLogo = LibraryLogoInfo(image = mapOf(), image2x = mapOf())
+            libraryLogo = LibraryLogoInfo(image = mapOf(), image2x = mapOf()),
         ),
         primaryGenre = false,
         reviewScore = 0,
@@ -67,7 +67,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         noServers = false,
         order = false,
         primaryCache = 0,
-        validOSList = EnumSet.of<OS>(OS.none),
+        validOSList = EnumSet.of(OS.none),
         thirdPartyCdKey = false,
         visibleOnlyWhenInstalled = false,
         visibleOnlyWhenSubscribed = false,
@@ -89,9 +89,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         ufs = UFS(
             quota = 0,
             maxNumFiles = 0,
-            saveFilePatterns = emptyArray()
-        )
+            saveFilePatterns = emptyArray(),
+        ),
     )
 }
-
- 

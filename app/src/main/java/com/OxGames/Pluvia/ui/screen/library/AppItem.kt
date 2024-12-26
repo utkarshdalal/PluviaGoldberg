@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia.ui.screen.library
 
+import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,18 +19,18 @@ import com.OxGames.Pluvia.ui.util.ListItemImage
 fun AppItem(
     modifier: Modifier = Modifier,
     appInfo: AppInfo,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     ListItem(
         modifier = modifier.clickable { onClick() },
         headlineContent = { Text(text = appInfo.name) },
         leadingContent = {
             ListItemImage { appInfo.clientIconUrl }
-        }
+        },
     )
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
 private fun Preview_AppItem() {
     PluviaTheme {

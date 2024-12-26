@@ -70,7 +70,7 @@ fun OrientationDialog(
                                 } else {
                                     currentSettings - orientation
                                 }
-                            }
+                            },
                         )
                         Text(text = orientation.name)
                     }
