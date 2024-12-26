@@ -120,8 +120,9 @@ fun PluviaMain(
             topAppBarVisible = true
             // reset system ui visibility
             PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(true))
+            // TODO: add option for user to set
             // reset available orientations
-            PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.UNSPECIFIED))) // TODO: add option for user to set
+            PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.UNSPECIFIED)))
             // find out if back is available
             hasBack = navController.previousBackStackEntry?.destination?.route != null
         }

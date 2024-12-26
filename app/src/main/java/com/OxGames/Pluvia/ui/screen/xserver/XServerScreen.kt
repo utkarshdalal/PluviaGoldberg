@@ -77,6 +77,11 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 
+object Constants {
+    const val DEFAULT_WINE_DEBUG_CHANNELS = "warn,err,fixme,loaddll"
+    const val CONTAINER_PATTERN_COMPRESSION_LEVEL = 9
+}
+
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 fun XServerScreen(
@@ -100,7 +105,8 @@ fun XServerScreen(
 
     val imageFs by remember { mutableStateOf(ImageFs.find(context)) }
     // var screenSize = Container.DEFAULT_SCREEN_SIZE
-    val generateWinePrefix = false // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
+    // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
+    val generateWinePrefix = false
     var firstTimeBoot = false
     val containerId = appId // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
     // val frameRatingWindowId = -1
@@ -536,14 +542,12 @@ private fun setupXEnvironment(
     xServer: XServer,
     imageFs: ImageFs,
 ): XEnvironment {
-    val DEFAULT_WINE_DEBUG_CHANNELS = "warn,err,fixme,loaddll" // TODO: move somewhere else more appropriate
-
     envVars.put("MESA_DEBUG", "silent")
     envVars.put("MESA_NO_ERROR", "1")
     envVars.put("WINEPREFIX", ImageFs.WINEPREFIX)
 
     val enableWineDebug = true // preferences.getBoolean("enable_wine_debug", false)
-    val wineDebugChannels = PrefManager.getString("wine_debug_channels", DEFAULT_WINE_DEBUG_CHANNELS)!!
+    val wineDebugChannels = PrefManager.getString("wine_debug_channels", Constants.DEFAULT_WINE_DEBUG_CHANNELS)
     envVars.put("WINEDEBUG", if (enableWineDebug && !wineDebugChannels.isEmpty()) "+" + wineDebugChannels.replace(",", ",+") else "-all")
 
     val rootPath = imageFs.rootDir.path
@@ -575,7 +579,12 @@ private fun setupXEnvironment(
     }
 
     val environment = XEnvironment(context, imageFs)
-    environment.addComponent(SysVSharedMemoryComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH)))
+    environment.addComponent(
+        SysVSharedMemoryComponent(
+            xServer,
+            UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH),
+        ),
+    )
     environment.addComponent(XServerComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.XSERVER_PATH)))
     environment.addComponent(NetworkInfoUpdateComponent())
     environment.addComponent(SteamClientComponent())
@@ -596,7 +605,12 @@ private fun setupXEnvironment(
     }
 
     if (xServerState.value.graphicsDriver == "virgl") {
-        environment.addComponent(VirGLRendererComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VIRGL_SERVER_PATH)))
+        environment.addComponent(
+            VirGLRendererComponent(
+                xServer,
+                UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VIRGL_SERVER_PATH),
+            ),
+        )
     }
 
     guestProgramLauncherComponent.envVars = envVars
@@ -679,7 +693,6 @@ private fun generateWineprefix(
 ) {
     // Intent intent = getIntent()
     // public static final @IntRange(from = 1, to = 19) byte CONTAINER_PATTERN_COMPRESSION_LEVEL = 9
-    val CONTAINER_PATTERN_COMPRESSION_LEVEL = 9 // TODO: find better place for const (originally was in MainActivity)
 
     val rootDir = imageFs.rootDir
     val installedWineDir = imageFs.installedWineDir
@@ -690,7 +703,7 @@ private fun generateWineprefix(
     imageFs.winePath = wineInfo.path
 
     val containerPatternDir = File(installedWineDir, "/preinstall/container-pattern")
-    if (containerPatternDir.isDirectory()) FileUtils.delete(containerPatternDir)
+    if (containerPatternDir.isDirectory) FileUtils.delete(containerPatternDir)
     containerPatternDir.mkdirs()
 
     val linkFile = File(rootDir, ImageFs.HOME_PATH)
@@ -731,9 +744,14 @@ private fun generateWineprefix(
 
                     val suffix = wineInfo.fullVersion() + "-" + wineInfo.arch
                     val containerPatternFile = File(installedWineDir, "/preinstall/container-pattern-$suffix.tzst")
-                    TarCompressorUtils.compress(TarCompressorUtils.Type.ZSTD, File(rootDir, ImageFs.WINEPREFIX), containerPatternFile, CONTAINER_PATTERN_COMPRESSION_LEVEL)
+                    TarCompressorUtils.compress(
+                        TarCompressorUtils.Type.ZSTD,
+                        File(rootDir, ImageFs.WINEPREFIX),
+                        containerPatternFile,
+                        Constants.CONTAINER_PATTERN_COMPRESSION_LEVEL,
+                    )
 
-                    if (!containerPatternFile.renameTo(File(installedWineDir, containerPatternFile.getName())) ||
+                    if (!containerPatternFile.renameTo(File(installedWineDir, containerPatternFile.name)) ||
                         !(File(wineInfo.path)).renameTo(File(installedWineDir, wineInfo.identifier()))
                     ) {
                         containerPatternFile.delete()
@@ -782,7 +800,15 @@ private fun setupWineSystemFiles(
     }
 
     if (xServerState.value.dxwrapper != container.getExtra("dxwrapper")) {
-        extractDXWrapperFiles(context, firstTimeBoot, container, containerManager, xServerState.value.dxwrapper, imageFs, onExtractFileListener)
+        extractDXWrapperFiles(
+            context,
+            firstTimeBoot,
+            container,
+            containerManager,
+            xServerState.value.dxwrapper,
+            imageFs,
+            onExtractFileListener,
+        )
         container.putExtra("dxwrapper", xServerState.value.dxwrapper)
         containerDataChanged = true
     }
@@ -843,8 +869,18 @@ private fun extractDXWrapperFiles(
     imageFs: ImageFs,
     onExtractFileListener: OnExtractFileListener?,
 ) {
-    val dlls =
-        arrayOf("d3d10.dll", "d3d10_1.dll", "d3d10core.dll", "d3d11.dll", "d3d12.dll", "d3d12core.dll", "d3d8.dll", "d3d9.dll", "dxgi.dll", "ddraw.dll")
+    val dlls = arrayOf(
+        "d3d10.dll",
+        "d3d10_1.dll",
+        "d3d10core.dll",
+        "d3d11.dll",
+        "d3d12.dll",
+        "d3d12core.dll",
+        "d3d8.dll",
+        "d3d9.dll",
+        "dxgi.dll",
+        "ddraw.dll",
+    )
     if (firstTimeBoot && dxwrapper != "vkd3d") cloneOriginalDllFiles(imageFs, *dlls)
     val rootDir = imageFs.rootDir
     val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
@@ -857,7 +893,7 @@ private fun extractDXWrapperFiles(
             restoreOriginalDllFiles(container, containerManager, imageFs, *dlls)
             val assetDir = "dxwrapper/cnc-ddraw-" + DefaultVersion.CNC_DDRAW
             val configFile = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/ProgramData/cnc-ddraw/ddraw.ini")
-            if (!configFile.isFile()) FileUtils.copy(context, "$assetDir/ddraw.ini", configFile)
+            if (!configFile.isFile) FileUtils.copy(context, "$assetDir/ddraw.ini", configFile)
             val shadersDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/ProgramData/cnc-ddraw/Shaders")
             FileUtils.delete(shadersDir)
             FileUtils.copy(context, "$assetDir/Shaders", shadersDir)
@@ -872,7 +908,13 @@ private fun extractDXWrapperFiles(
                 TarCompressorUtils.Type.ZSTD, context,
                 "dxwrapper/dxvk-" + (dxvkVersions[dxvkVersions.size - 1]) + ".tzst", windowsDir, onExtractFileListener,
             )
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "dxwrapper/vkd3d-" + DefaultVersion.VKD3D + ".tzst", windowsDir, onExtractFileListener)
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD,
+                context,
+                "dxwrapper/vkd3d-" + DefaultVersion.VKD3D + ".tzst",
+                windowsDir,
+                onExtractFileListener,
+            )
         }
         else -> {
             restoreOriginalDllFiles(container, containerManager, imageFs, "d3d12.dll", "d3d12core.dll", "ddraw.dll")
@@ -880,21 +922,27 @@ private fun extractDXWrapperFiles(
                 TarCompressorUtils.Type.ZSTD, context,
                 "dxwrapper/$dxwrapper.tzst", windowsDir, onExtractFileListener,
             )
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "dxwrapper/d8vk-" + DefaultVersion.D8VK + ".tzst", windowsDir, onExtractFileListener)
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD,
+                context,
+                "dxwrapper/d8vk-${DefaultVersion.D8VK}.tzst",
+                windowsDir,
+                onExtractFileListener,
+            )
         }
     }
 }
 private fun cloneOriginalDllFiles(imageFs: ImageFs, vararg dlls: String) {
     val rootDir = imageFs.rootDir
     val cacheDir = File(rootDir, ImageFs.CACHE_PATH + "/original_dlls")
-    if (!cacheDir.isDirectory()) cacheDir.mkdirs()
+    if (!cacheDir.isDirectory) cacheDir.mkdirs()
     val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
     val dirnames = arrayOf("system32", "syswow64")
 
     for (dll in dlls) {
         for (dirname in dirnames) {
             val dllFile = File(windowsDir, "$dirname/$dll")
-            if (dllFile.isFile()) FileUtils.copy(dllFile, File(cacheDir, "$dirname/$dll"))
+            if (dllFile.isFile) FileUtils.copy(dllFile, File(cacheDir, "$dirname/$dll"))
         }
     }
 }
@@ -906,7 +954,7 @@ private fun restoreOriginalDllFiles(
 ) {
     val rootDir = imageFs.rootDir
     val cacheDir = File(rootDir, ImageFs.CACHE_PATH + "/original_dlls")
-    if (cacheDir.isDirectory()) {
+    if (cacheDir.isDirectory) {
         val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
         val dirnames = cacheDir.list()
         var filesCopied = 0
@@ -1057,8 +1105,18 @@ private fun extractGraphicsDriverFiles(
         }
 
         if (changed) {
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "graphics_driver/turnip-" + DefaultVersion.TURNIP + ".tzst", rootDir)
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "graphics_driver/zink-" + DefaultVersion.ZINK + ".tzst", rootDir)
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD,
+                context,
+                "graphics_driver/turnip-${DefaultVersion.TURNIP}.tzst",
+                rootDir,
+            )
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD,
+                context,
+                "graphics_driver/zink-${DefaultVersion.ZINK}.tzst",
+                rootDir,
+            )
         }
     } else if (graphicsDriver == "virgl") {
         envVars.put("GALLIUM_DRIVER", "virpipe")
