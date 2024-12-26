@@ -6,6 +6,7 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 
 # Rules: https://pinterest.github.io/ktlint/latest/
+max_line_length = 140
 ij_kotlin_allow_trailing_comma = true
 ij_kotlin_allow_trailing_comma_on_call_site = true
 ktlint_code_style = android_studio
