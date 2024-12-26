@@ -1,10 +1,14 @@
 package com.OxGames.Pluvia.ui.component.dialog
 
 import android.content.res.Configuration
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
@@ -16,17 +20,17 @@ fun MessageDialog(
     onDismissClick: (() -> Unit)? = null,
     confirmBtnText: String = "Confirm",
     dismissBtnText: String = "Dismiss",
+    icon: ImageVector? = null,
     title: String? = null,
     message: String? = null,
 ) {
     when {
         visible -> {
             AlertDialog(
+                icon = icon?.let { { Icon(imageVector = icon, contentDescription = null) } },
                 title = title?.let { { Text(it) } },
                 text = message?.let { { Text(it) } },
-                onDismissRequest = {
-                    onDismissRequest?.invoke()
-                },
+                onDismissRequest = { onDismissRequest?.invoke() },
                 dismissButton = onDismissClick?.let {
                     {
                         TextButton(onClick = it) {
@@ -52,6 +56,7 @@ private fun Preview_MessageDialog() {
     PluviaTheme {
         MessageDialog(
             visible = true,
+            icon = Icons.Default.Gamepad,
             title = "Title",
             message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed " +
                 "do eiusmod tempor incididunt ut labore et dolore magna aliqua. " +
