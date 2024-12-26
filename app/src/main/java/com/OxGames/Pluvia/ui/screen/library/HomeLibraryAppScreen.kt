@@ -52,10 +52,13 @@ import androidx.window.core.layout.WindowWidthSizeClass
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
+import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.OxGames.Pluvia.utils.StorageUtils
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 
@@ -79,6 +82,8 @@ fun AppScreen(
     val appInfo by remember(appId) {
         mutableStateOf(SteamService.getAppInfoOf(appId))
     }
+
+    var msgDialogState by remember { mutableStateOf(MessageDialogState(false)) }
 
     DisposableEffect(downloadInfo) {
         val onDownloadProgress: (Float) -> Unit = {
@@ -116,6 +121,17 @@ fun AppScreen(
             }
         },
     ) { paddingValues ->
+        MessageDialog(
+            visible = msgDialogState.visible,
+            onDismissRequest = msgDialogState.onDismissRequest,
+            onConfirmClick = msgDialogState.onConfirmClick,
+            confirmBtnText = msgDialogState.confirmBtnText,
+            onDismissClick = msgDialogState.onDismissClick,
+            dismissBtnText = msgDialogState.dismissBtnText,
+            icon = msgDialogState.icon,
+            title = msgDialogState.title,
+            message = msgDialogState.message,
+        )
         AppScreenContent(
             modifier = Modifier.padding(paddingValues),
             appInfo = appInfo,
@@ -124,8 +140,43 @@ fun AppScreen(
             downloadProgress = downloadProgress,
             onDownloadBtnClick = {
                 if (!isInstalled) {
-                    downloadProgress = 0f
-                    downloadInfo = SteamService.downloadApp(appId)
+                    val depots = SteamService.getDownloadableDepots(appId)
+                    // TODO: get space available based on where user wants to install
+                    val availableSpace = StorageUtils.formatBinarySize(StorageUtils.getAvailableSpace(context.filesDir.absolutePath))
+                    // TODO: un-hardcode "public" branch
+                    val downloadSize = StorageUtils.formatBinarySize(depots.values.map { it.manifests["public"]?.download ?: 0 }.sum())
+                    val installSize = StorageUtils.formatBinarySize(depots.values.map { it.manifests["public"]?.size ?: 0 }.sum())
+                    if (availableSpace < installSize) {
+                        msgDialogState = MessageDialogState(
+                            visible = true,
+                            onDismissRequest = { msgDialogState = MessageDialogState(false) },
+                            title = context.getString(R.string.not_enough_space),
+                            message = "The app being installed needs $installSize of space but " +
+                                "there is only $availableSpace left on this device",
+                            confirmBtnText = context.getString(R.string.acknowledge),
+                            onConfirmClick = { msgDialogState = MessageDialogState(false) },
+                        )
+                    } else {
+                        msgDialogState = MessageDialogState(
+                            visible = true,
+                            onDismissRequest = { msgDialogState = MessageDialogState(false) },
+                            title = context.getString(R.string.download_prompt_title),
+                            message = "The app being installed has the following space requirements. Would you like to proceed?" +
+                                "\n\tDownload Size: $downloadSize" +
+                                "\n\tSize on Disk: $installSize" +
+                                "\n\tAvailable Space: $availableSpace",
+                            confirmBtnText = context.getString(R.string.proceed),
+                            onConfirmClick = {
+                                downloadProgress = 0f
+                                downloadInfo = SteamService.downloadApp(appId)
+                                msgDialogState = MessageDialogState(false)
+                            },
+                            dismissBtnText = context.getString(R.string.cancel),
+                            onDismissClick = {
+                                msgDialogState = MessageDialogState(false)
+                            },
+                        )
+                    }
                 } else {
                     onClickPlay(false)
                 }

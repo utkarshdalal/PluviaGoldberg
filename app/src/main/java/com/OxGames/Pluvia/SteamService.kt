@@ -278,6 +278,15 @@ class SteamService : Service(), IChallengeUrlChanged {
             } == true
         }
 
+        fun getDownloadableDepots(appId: Int): Map<Int, DepotInfo> = getAppInfoOf(appId)?.depots?.filter { depotEntry ->
+            val depot = depotEntry.value
+
+            (depot.manifests.isNotEmpty() || depot.sharedInstall) &&
+                (depot.osList.contains(OS.windows) || (!depot.osList.contains(OS.linux) && !depot.osList.contains(OS.macos))) &&
+                (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
+                (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(depot.depotId))
+        } ?: emptyMap()
+
         fun getAppDirPath(appId: Int): String {
             var appName = getAppInfoOf(appId)?.config?.installDir.orEmpty()
 
@@ -302,19 +311,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun downloadApp(appId: Int): DownloadInfo? {
             return getAppInfoOf(appId)?.let { appInfo ->
                 logD("App contains ${appInfo.depots.size} depot(s): ${appInfo.depots.keys}")
-
-                appInfo.depots.filter { depotEntry ->
-                    // TODO: download shared install depots to a common location
-
-                    val depot = depotEntry.value
-
-                    (depot.manifests.isNotEmpty() || depot.sharedInstall) &&
-                        (depot.osList.contains(OS.windows) || (!depot.osList.contains(OS.linux) && !depot.osList.contains(OS.macos))) &&
-                        (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
-                        (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(depot.depotId))
-                }.let { depotEntries ->
-                    downloadApp(appId, depotEntries.keys.toList(), "public")
-                }
+                downloadApp(appId, getDownloadableDepots(appId).keys.toList(), "public")
             }
         }
 

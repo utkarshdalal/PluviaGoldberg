@@ -15,6 +15,11 @@
     <string name="header_img_desc">App header image</string>
     <string name="download_app">Download</string>
     <string name="run_app">Play</string>
+    <string name="download_prompt_title">Download Info</string>
+    <string name="acknowledge">OK</string>
+    <string name="not_enough_space">Not Enough Space</string>
+    <string name="proceed">Proceed</string>
+    <string name="cancel">Cancel</string>
 
     <string name="destination_library">Library</string>
     <string name="destination_downloads">Downloads</string>
