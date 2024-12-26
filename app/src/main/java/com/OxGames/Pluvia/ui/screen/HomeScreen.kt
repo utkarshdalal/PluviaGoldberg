@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
-import com.OxGames.Pluvia.ui.enums.PluviaDestination
+import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.screen.downloads.HomeDownloadsScreen
 import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
@@ -41,11 +41,11 @@ fun HomeScreen(
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
     // When in Downloads or Friends, pressing back brings us back to Library
-    BackHandler(enabled = homeState.currentDestination != PluviaDestination.Library) {
-        viewModel.onDestination(PluviaDestination.Library)
+    BackHandler(enabled = homeState.currentDestination != HomeDestination.Library) {
+        viewModel.onDestination(HomeDestination.Library)
     }
     // Pressing back again; while logged in, confirm we want to close the app.
-    BackHandler(enabled = homeState.currentDestination == PluviaDestination.Library) {
+    BackHandler(enabled = homeState.currentDestination == HomeDestination.Library) {
         viewModel.onConfirmExit(true)
     }
 
@@ -74,8 +74,8 @@ fun HomeScreen(
 
 @Composable
 private fun HomeScreenContent(
-    destination: PluviaDestination,
-    onDestination: (PluviaDestination) -> Unit,
+    destination: HomeDestination,
+    onDestination: (HomeDestination) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -84,16 +84,16 @@ private fun HomeScreenContent(
         onDestination = onDestination,
     ) {
         when (destination) {
-            PluviaDestination.Library -> HomeLibraryScreen(
+            HomeDestination.Library -> HomeLibraryScreen(
                 onClickPlay = onClickPlay,
                 onSettings = onSettings,
             )
 
-            PluviaDestination.Downloads -> HomeDownloadsScreen(
+            HomeDestination.Downloads -> HomeDownloadsScreen(
                 onSettings = onSettings,
             )
 
-            PluviaDestination.Friends -> HomeFriendsScreen(
+            HomeDestination.Friends -> HomeFriendsScreen(
                 onSettings = onSettings,
             )
         }
@@ -102,8 +102,8 @@ private fun HomeScreenContent(
 
 @Composable
 internal fun HomeNavigationWrapperUI(
-    destination: PluviaDestination,
-    onDestination: (PluviaDestination) -> Unit,
+    destination: HomeDestination,
+    onDestination: (HomeDestination) -> Unit,
     content: @Composable () -> Unit = {},
 ) {
     val windowSize = with(LocalDensity.current) {
@@ -121,7 +121,7 @@ internal fun HomeNavigationWrapperUI(
     //  but also handle our nav first!
     NavigationSuiteScaffold(
         navigationSuiteItems = {
-            PluviaDestination.entries.forEach {
+            HomeDestination.entries.forEach {
                 item(
                     label = { Text(stringResource(it.title)) },
                     icon = { Icon(it.icon, stringResource(it.title)) },
@@ -143,8 +143,8 @@ internal fun HomeNavigationWrapperUI(
 @Composable
 private fun Preview_HomeScreenContent() {
     PluviaTheme {
-        var destination: PluviaDestination by remember {
-            mutableStateOf(PluviaDestination.Library)
+        var destination: HomeDestination by remember {
+            mutableStateOf(HomeDestination.Library)
         }
         HomeScreenContent(
             destination = destination,
