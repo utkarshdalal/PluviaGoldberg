@@ -208,6 +208,11 @@ fun PluviaMain(
             context.startForegroundService(intent)
         }
 
+        // Go to the Home screen if we're already logged in.
+        if (SteamService.isLoggedIn) {
+            navController.navigate(PluviaScreen.Home.name)
+        }
+
         onDispose {
             PluviaApp.events.off<AndroidEvent.SetAppBarVisibility, Unit>(onHideAppBar)
             PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
