@@ -230,6 +230,7 @@ fun PluviaMain(
             confirmBtnText = msgDialogState.confirmBtnText,
             onDismissClick = msgDialogState.onDismissClick,
             dismissBtnText = msgDialogState.dismissBtnText,
+            icon = msgDialogState.icon,
             title = msgDialogState.title,
             message = msgDialogState.message,
         )
@@ -456,6 +457,7 @@ fun launchApp(
                     ),
                 )
             }
+
             SyncResult.InProgress,
             SyncResult.UnknownFail,
             SyncResult.DownloadFail,
@@ -476,6 +478,7 @@ fun launchApp(
                     ),
                 )
             }
+
             SyncResult.PendingOperations -> {
                 Log.d(
                     "PluviaMain",
@@ -511,6 +514,7 @@ fun launchApp(
                                 ),
                             )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationUploadPending -> {
                             setMessageDialogState(
                                 MessageDialogState(
@@ -548,6 +552,7 @@ fun launchApp(
                                 ),
                             )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionActive -> {
                             setMessageDialogState(
                                 MessageDialogState(
@@ -583,6 +588,7 @@ fun launchApp(
                                 ),
                             )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionSuspended -> {
                             // I don't know what this means, yet
                             setMessageDialogState(
@@ -600,6 +606,7 @@ fun launchApp(
                                 ),
                             )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationNone -> {
                             // why are we here
                             setMessageDialogState(
@@ -636,6 +643,7 @@ fun launchApp(
                     )
                 }
             }
+
             SyncResult.UpToDate,
             SyncResult.Success,
             -> onSuccess()
