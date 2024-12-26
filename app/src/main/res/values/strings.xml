@@ -18,7 +18,10 @@
     <string name="run_app">Play</string>
     <string name="download_prompt_title">Install App</string>
     <string name="delete_prompt_title">Delete App</string>
+    <string name="cancel_download_prompt_title">Cancel Download</string>
     <string name="acknowledge">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
     <string name="not_enough_space">Not Enough Space</string>
     <string name="proceed">Proceed</string>
     <string name="cancel">Cancel</string>
