@@ -16,13 +16,13 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 @Composable
 fun LoadingScreen() {
     Column(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
-    ) {
-        CircularProgressIndicator(modifier = Modifier.size(64.dp))
-    }
+        content = {
+            CircularProgressIndicator(modifier = Modifier.size(64.dp))
+        },
+    )
 }
 
 @Preview

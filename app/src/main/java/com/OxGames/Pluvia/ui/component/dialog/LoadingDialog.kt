@@ -62,7 +62,7 @@ private fun Preview_LoadingDialog() {
     PluviaTheme {
         LoadingDialog(
             visible = true,
-            progress = -1f,
+            progress = .75f,
         )
     }
 }

@@ -100,9 +100,7 @@ fun AppScreen(
     Scaffold(
         topBar = {
             // Show Top App Bar when in Compact or Medium screen space.
-            if (windowWidth == WindowWidthSizeClass.COMPACT ||
-                windowWidth == WindowWidthSizeClass.MEDIUM
-            ) {
+            if (windowWidth == WindowWidthSizeClass.COMPACT || windowWidth == WindowWidthSizeClass.MEDIUM) {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(

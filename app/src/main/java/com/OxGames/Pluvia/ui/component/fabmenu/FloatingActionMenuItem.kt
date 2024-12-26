@@ -33,8 +33,10 @@ fun FloatingActionMenuItem(
     interactionSource: MutableInteractionSource? = null,
     content: @Composable (() -> Unit),
 ) {
+    // Modifier: Padding (start) fix to stop rendering clip,
+    // FAB has an interactable padding which takes care of the end side.
     Row(
-        modifier = modifier.padding(start = 4.dp), // Don't like this right now, FAB has an interactable padding which takes care of the end side.
+        modifier = modifier.padding(start = 4.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
