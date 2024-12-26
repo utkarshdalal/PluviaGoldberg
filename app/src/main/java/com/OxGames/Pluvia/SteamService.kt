@@ -1595,6 +1595,14 @@ class SteamService : Service(), IChallengeUrlChanged {
             isWaitingForQRAuth = false
         }
 
+        fun stop() {
+            instance?.let { steamInstance ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    steamInstance.stop()
+                }
+            }
+        }
+
         fun logOut() {
             CoroutineScope(Dispatchers.Default).launch {
                 // isConnected = false

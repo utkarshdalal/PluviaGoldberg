@@ -56,6 +56,7 @@ fun HomeLibraryScreen(
     viewModel: LibraryViewModel = viewModel(),
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val vmState by viewModel.state.collectAsStateWithLifecycle()
     val fabState = rememberFloatingActionMenuState()
@@ -66,6 +67,7 @@ fun HomeLibraryScreen(
         onFabFilter = viewModel::onFabFilter,
         onClickPlay = onClickPlay,
         onSettings = onSettings,
+        onLogout = onLogout,
     )
 }
 
@@ -77,6 +79,7 @@ private fun LibraryScreenContent(
     onFabFilter: (FabFilter) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
@@ -96,7 +99,12 @@ private fun LibraryScreenContent(
                     topBar = {
                         CenterAlignedTopAppBar(
                             title = { Text(text = "Library") },
-                            actions = { AccountButton(onSettings = onSettings) },
+                            actions = {
+                                AccountButton(
+                                    onSettings = onSettings,
+                                    onLogout = onLogout,
+                                )
+                            },
                         )
                     },
                     floatingActionButton = {
@@ -216,6 +224,7 @@ private fun Preview_LibraryScreenContent() {
             onFabFilter = {},
             onClickPlay = { _, _ -> },
             onSettings = {},
+            onLogout = {},
         )
     }
 }

@@ -34,12 +34,14 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 @Composable
 fun HomeDownloadsScreen(
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     DownloadsScreenContent(
         onBack = { onBackPressedDispatcher?.onBackPressed() },
         onSettings = onSettings,
+        onLogout = onLogout,
     )
 }
 
@@ -48,6 +50,7 @@ fun HomeDownloadsScreen(
 private fun DownloadsScreenContent(
     onBack: () -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     val navigator = rememberListDetailPaneScaffoldNavigator<Long>()
@@ -69,6 +72,7 @@ private fun DownloadsScreenContent(
                     },
                     onBack = onBack,
                     onSettings = onSettings,
+                    onLogout = onLogout,
                 )
             }
         },
@@ -88,13 +92,19 @@ private fun DownloadsScreenPane(
     onClick: () -> Unit,
     onBack: () -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(text = "Downloads") },
-                actions = { AccountButton(onSettings = onSettings) },
+                actions = {
+                    AccountButton(
+                        onSettings = onSettings,
+                        onLogout = onLogout,
+                    )
+                },
                 navigationIcon = { BackButton(onClick = onBack) },
             )
         },
@@ -144,6 +154,7 @@ private fun Preview_DownloadsScreenContent() {
             DownloadsScreenContent(
                 onBack = {},
                 onSettings = {},
+                onLogout = {},
             )
         }
     }

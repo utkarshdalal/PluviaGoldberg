@@ -36,7 +36,9 @@ private val WINDOW_WIDTH_LARGE = 1200.dp
 fun HomeScreen(
     viewModel: HomeViewModel,
     onClickPlay: (Int, Boolean) -> Unit,
+    onClickExit: () -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
@@ -57,8 +59,8 @@ fun HomeScreen(
         title = "Are you sure you want to close Pluvia?",
         confirmBtnText = "Close",
         onConfirmClick = {
-            // TODO close app
             viewModel.onConfirmExit(false)
+            onClickExit()
         },
         dismissBtnText = "Cancel",
         onDismissClick = { viewModel.onConfirmExit(false) },
@@ -69,6 +71,7 @@ fun HomeScreen(
         onDestination = viewModel::onDestination,
         onClickPlay = onClickPlay,
         onSettings = onSettings,
+        onLogout = onLogout,
     )
 }
 
@@ -78,6 +81,7 @@ private fun HomeScreenContent(
     onDestination: (HomeDestination) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     HomeNavigationWrapperUI(
         destination = destination,
@@ -87,14 +91,17 @@ private fun HomeScreenContent(
             HomeDestination.Library -> HomeLibraryScreen(
                 onClickPlay = onClickPlay,
                 onSettings = onSettings,
+                onLogout = onLogout,
             )
 
             HomeDestination.Downloads -> HomeDownloadsScreen(
                 onSettings = onSettings,
+                onLogout = onLogout,
             )
 
             HomeDestination.Friends -> HomeFriendsScreen(
                 onSettings = onSettings,
+                onLogout = onLogout,
             )
         }
     }
@@ -151,6 +158,7 @@ private fun Preview_HomeScreenContent() {
             onDestination = { destination = it },
             onClickPlay = { appId, asContainer -> },
             onSettings = {},
+            onLogout = {},
         )
     }
 }
