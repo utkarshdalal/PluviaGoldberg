@@ -83,9 +83,9 @@ private fun FriendsScreenContent(
                         CenterAlignedTopAppBar(
                             title = { Text(text = "Friends") },
                             actions = { AccountButton(onSettings = onSettings) },
-                            navigationIcon = { BackButton(onClick = onBack) }
+                            navigationIcon = { BackButton(onClick = onBack) },
                         )
-                    }
+                    },
                 ) { paddingValues ->
                     FriendsListPane(
                         paddingValues = paddingValues,
@@ -115,10 +115,10 @@ private fun FriendsScreenContent(
                         } else {
                             Text("Hi Friend $value")
                         }
-                    }
+                    },
                 )
             }
-        }
+        },
     )
 }
 
@@ -133,7 +133,7 @@ private fun FriendsListPane(
         modifier = Modifier
             .padding(paddingValues)
             .fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 72.dp) // Extra space for fab
+        contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
     ) {
         list.forEach { (key, value) ->
             stickyHeader {
@@ -141,7 +141,7 @@ private fun FriendsListPane(
                     isCollapsed = false,
                     header = key,
                     count = value.size,
-                    onHeaderAction = { }
+                    onHeaderAction = { },
                 )
             }
 
@@ -149,7 +149,7 @@ private fun FriendsListPane(
                 FriendItem(
                     modifier = Modifier.animateItem(),
                     friend = item,
-                    onClick = onItemClick
+                    onClick = onItemClick,
                 )
             }
         }
@@ -165,8 +165,8 @@ private fun Preview_FriendsScreenContent() {
                 friendsList = mapOf(
                     "TEST A" to List(3) { SteamFriend(id = it.toLong()) },
                     "TEST B" to List(3) { SteamFriend(id = it.toLong() + 5) },
-                    "TEST C" to List(3) { SteamFriend(id = it.toLong() + 10) }
-                )
+                    "TEST C" to List(3) { SteamFriend(id = it.toLong() + 10) },
+                ),
             ),
             onBack = { },
             onSettings = { },

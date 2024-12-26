@@ -55,7 +55,7 @@ fun QrCodeImage(
 
     Crossfade(
         modifier = Modifier,
-        targetState = qrBitmap
+        targetState = qrBitmap,
     ) { bitmap ->
         Box(
             modifier = modifier
@@ -150,7 +150,6 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
 
     return bitmap
 }
-
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable

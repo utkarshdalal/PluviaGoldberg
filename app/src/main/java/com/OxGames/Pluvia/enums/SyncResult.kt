@@ -8,5 +8,5 @@ enum class SyncResult {
     Conflict,
     UpdateFail,
     DownloadFail,
-    UnknownFail;
+    UnknownFail,
 }

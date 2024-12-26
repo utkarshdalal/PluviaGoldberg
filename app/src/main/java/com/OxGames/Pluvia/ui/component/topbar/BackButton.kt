@@ -12,6 +12,6 @@ fun BackButton(
 ) {
     IconButton(
         onClick = onClick,
-        content = { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Navigate Back") }
+        content = { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Navigate Back") },
     )
 }

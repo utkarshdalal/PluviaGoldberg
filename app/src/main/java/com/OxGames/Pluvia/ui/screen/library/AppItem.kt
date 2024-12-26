@@ -18,14 +18,14 @@ import com.OxGames.Pluvia.ui.util.ListItemImage
 fun AppItem(
     modifier: Modifier = Modifier,
     appInfo: AppInfo,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     ListItem(
         modifier = modifier.clickable { onClick() },
         headlineContent = { Text(text = appInfo.name) },
         leadingContent = {
             ListItemImage { appInfo.clientIconUrl }
-        }
+        },
     )
 }
 

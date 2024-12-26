@@ -31,8 +31,9 @@ class FileUtils {
             val file = File(filepath)
             var dirs = filepath
             // if the file path is not a directory and if we're not at the root directory then get the parent directory
-            if (!filepath.endsWith('/') && filepath.lastIndexOf('/') > 0)
+            if (!filepath.endsWith('/') && filepath.lastIndexOf('/') > 0) {
                 dirs = file.parent!!
+            }
             makeDir(dirs)
         }
 
@@ -92,14 +93,15 @@ class FileUtils {
         fun findFiles(
             rootPath: Path,
             pattern: String,
-            includeDirectories: Boolean = false
+            includeDirectories: Boolean = false,
         ): Stream<Path> {
             val patternParts = pattern.split("*").filter { it.isNotEmpty() }
             Log.d("FileUtils", "$pattern -> $patternParts")
             if (!Files.exists(rootPath)) return emptyList<Path>().stream()
             return Files.list(rootPath).filter { path ->
-                if (path.isDirectory() && !includeDirectories) false
-                else {
+                if (path.isDirectory() && !includeDirectories) {
+                    false
+                } else {
                     val fileName = path.name
                     Log.d("FileUtils", "Checking $fileName for pattern $pattern")
                     var startIndex = 0

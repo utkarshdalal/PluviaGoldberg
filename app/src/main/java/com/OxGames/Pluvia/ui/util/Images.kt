@@ -22,7 +22,7 @@ import com.skydoves.landscapist.coil.CoilImage
 @Composable
 internal fun ListItemImage(
     contentDescription: String? = null,
-    size : Dp = 40.dp,
+    size: Dp = 40.dp,
     image: () -> Any?,
 ) {
     CoilImage(
@@ -32,7 +32,7 @@ internal fun ListItemImage(
         imageModel = image,
         imageOptions = ImageOptions(
             contentScale = ContentScale.Crop,
-            contentDescription = contentDescription
+            contentDescription = contentDescription,
         ),
         loading = {
             CircularProgressIndicator()
@@ -40,7 +40,7 @@ internal fun ListItemImage(
         failure = {
             Icon(Icons.Filled.QuestionMark, null)
         },
-        previewPlaceholder = painterResource(R.drawable.icon_mono_foreground)
+        previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
     )
 }
 

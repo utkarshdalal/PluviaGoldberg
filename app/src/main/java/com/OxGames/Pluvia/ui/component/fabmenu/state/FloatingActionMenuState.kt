@@ -4,11 +4,11 @@ import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CancellationException
 
 /**
@@ -21,7 +21,7 @@ class FloatingActionMenuState(
     /**
      * Callback to confirm state changes.
      */
-    private var confirmStateChange: (FloatingActionMenuValue) -> Boolean = { true }
+    private var confirmStateChange: (FloatingActionMenuValue) -> Boolean = { true },
 ) {
     /**
      * Whether the component is opening or closing.
@@ -92,15 +92,15 @@ class FloatingActionMenuState(
          * The default [Saver] implementation for [FloatingActionMenuState].
          */
         fun Saver(
-            confirmStateChange: (FloatingActionMenuValue) -> Boolean
+            confirmStateChange: (FloatingActionMenuValue) -> Boolean,
         ): Saver<FloatingActionMenuState, String> = Saver(
             save = { state -> state.currentValue.name },
             restore = { savedValue ->
                 FloatingActionMenuState(
                     initialValue = FloatingActionMenuValue.valueOf(savedValue),
-                    confirmStateChange = confirmStateChange
+                    confirmStateChange = confirmStateChange,
                 )
-            }
+            },
         )
     }
 }
@@ -111,7 +111,7 @@ class FloatingActionMenuState(
 @Composable
 fun rememberFloatingActionMenuState(
     initialValue: FloatingActionMenuValue = FloatingActionMenuValue.Closed,
-    confirmStateChange: (FloatingActionMenuValue) -> Boolean = { true }
+    confirmStateChange: (FloatingActionMenuValue) -> Boolean = { true },
 ): FloatingActionMenuState {
     return rememberSaveable(saver = FloatingActionMenuState.Saver(confirmStateChange)) {
         FloatingActionMenuState(initialValue, confirmStateChange)

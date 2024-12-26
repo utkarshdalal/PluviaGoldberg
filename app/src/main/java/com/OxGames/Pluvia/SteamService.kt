@@ -89,27 +89,10 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
 import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
-import `in`.dragonbra.javasteam.util.HardwareUtils
 import `in`.dragonbra.javasteam.util.NetHelpers
 import `in`.dragonbra.javasteam.util.crypto.CryptoHelper
 import `in`.dragonbra.javasteam.util.log.DefaultLogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.future.await
-import kotlinx.coroutines.job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import okhttp3.Headers
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.BufferedReader
 import java.io.Closeable
 import java.io.File
@@ -129,6 +112,22 @@ import javax.inject.Inject
 import kotlin.io.path.name
 import kotlin.io.path.pathString
 import kotlin.time.measureTime
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.future.await
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import okhttp3.Headers
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -300,9 +299,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     )
                             ) &&
                         (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
-                        (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(
-                            depot.depotId
-                        ))
+                        (
+                            depot.dlcAppId == INVALID_APP_ID ||
+                                getOwnedAppDlc(appId).containsKey(
+                                    depot.depotId,
+                                )
+                            )
                 }.let { depotEntries ->
                     downloadApp(appId, depotEntries.keys.toList(), "public")
                 }
@@ -334,7 +336,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     branch,
                                     // maxDownloads = 1,
                                     onDownloadProgress = { downloadInfo.setProgress(it, jobIndex) },
-                                    parentScope = coroutineContext.job as CoroutineScope
+                                    parentScope = coroutineContext.job as CoroutineScope,
                                 ).await()
                             }
                         } finally {
@@ -342,7 +344,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         }
 
                         downloadJobs.remove(appId)
-                    }
+                    },
                 )
             }
 
@@ -391,7 +393,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     // TODO: figure out what this is and un-hardcode
                                     launchSource = 100,
                                     gameBuildId = branch.buildId.toInt(),
-                                    processIdList = gameProcess.processes
+                                    processIdList = gameProcess.processes,
                                 )
                             }
                         }
@@ -409,7 +411,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                             "\n\t\tparentIsSteam: ${it.parentIsSteam}"
                                     }.joinToString("\n")
                                 }"
-                        }.joinToString("\n")
+                        }.joinToString("\n"),
                 )
                 steamInstance._steamApps?.notifyGamesPlayed(
                     gamesPlayed = gamesPlayed,
@@ -476,7 +478,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                         "Signaling app launch:" +
                                             "\n\tappId: $appId" +
                                             "\n\tclientId: ${PrefManager.clientId}" +
-                                            "\n\tosType: ${EOSType.AndroidUnknown}"
+                                            "\n\tosType: ${EOSType.AndroidUnknown}",
                                     )
                                     val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
                                         appId = appId,
@@ -490,9 +492,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                                             SyncResult.PendingOperations,
                                             pendingRemoteOperations = pendingRemoteOperations,
                                         )
-                                    } else if (ignorePendingOperations && pendingRemoteOperations.any {
+                                    } else if (ignorePendingOperations &&
+                                        pendingRemoteOperations.any {
                                             it.operation == ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionActive
-                                        }) {
+                                        }
+                                    ) {
                                         steamInstance._steamUser!!.kickPlayingSession()
                                     }
                                     // else {
@@ -540,7 +544,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 steamInstance = steamInstance,
                                 steamCloud = steamCloud,
                                 parentScope = parentScope,
-                                prefixToPath = prefixToPath
+                                prefixToPath = prefixToPath,
                             ).await()
                             // steamCloud.appCloudSyncStats(
                             //     appId = appId,
@@ -579,8 +583,9 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun getProotTime(context: Context): Long {
             val imageFs = ImageFs.find(context)
-            if (!imageFs.rootDir.exists())
+            if (!imageFs.rootDir.exists()) {
                 return 0
+            }
             val nativeLibraryDir = context.applicationInfo.nativeLibraryDir
             val command = arrayOf(
                 "$nativeLibraryDir/libproot.so",
@@ -596,10 +601,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                 "USER=${ImageFs.USER}",
                 "TMPDIR=/tmp",
                 "LC_ALL=en_US.utf8",
-                "PATH=${imageFs.winePath}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",  // Set PATH environment variable
+                "PATH=${imageFs.winePath}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", // Set PATH environment variable
                 "LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib/arm-linux-gnueabihf",
                 "date",
-                "+%s%3N"
+                "+%s%3N",
             )
             val envVars = arrayOf(
                 "PROOT_TMP_DIR=${Paths.get(context.filesDir.absolutePath, "tmp")}",
@@ -661,7 +666,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 "\n\t\tplatformsToSync: ${it.platformsToSync}" +
                                 "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
                                 "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
-                        }
+                        },
                 )
             }
             val getPathTypePairs: (AppFileChangeList) -> List<Pair<String, String>> =
@@ -687,10 +692,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 }
             }
             val getFilePrefix: (AppFileInfo, AppFileChangeList) -> String = { file, fileList ->
-                if (file.pathPrefixIndex < fileList.pathPrefixes.size)
+                if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
                     Paths.get(fileList.pathPrefixes[file.pathPrefixIndex]).pathString
-                else
+                } else {
                     Paths.get("%${PathType.GameInstall.name}%").pathString
+                }
             }
             val getFilePrefixPath: (AppFileInfo, AppFileChangeList) -> String =
                 { file, fileList ->
@@ -698,10 +704,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 }
             val getFullFilePath: (AppFileInfo, AppFileChangeList) -> Path = { file, fileList ->
                 val convertedPrefixes = convertPrefixes(fileList)
-                if (file.pathPrefixIndex < fileList.pathPrefixes.size)
+                if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
                     Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
-                else
+                } else {
                     Paths.get(getAppDirPath(appInfo.appId), file.filename)
+                }
             }
             val getFilesDiff: (List<UserFileInfo>, List<UserFileInfo>) -> Pair<Boolean, FileChanges> =
                 { currentFiles, oldFiles ->
@@ -734,7 +741,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     fileList.files.any { file ->
                         logD(
                             "Checking for " +
-                                "${getFilePrefix(file, fileList)} in ${localUserFiles.keys}"
+                                "${getFilePrefix(file, fileList)} in ${localUserFiles.keys}",
                         )
 
                         localUserFiles[getFilePrefix(file, fileList)]?.let { localUserFile ->
@@ -746,16 +753,16 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     "Comparing SHA of ${
                                         getFilePrefixPath(
                                             file,
-                                            fileList
+                                            fileList,
                                         )
-                                    } and ${it.getPrefixPath()}"
+                                    } and ${it.getPrefixPath()}",
                                 )
                                 logD(
                                     "[${file.shaFile.joinToString(", ")}]\n[${
                                         it.sha.joinToString(
-                                            ", "
+                                            ", ",
                                         )
-                                    }]"
+                                    }]",
                                 )
                                 !file.shaFile.contentEquals(it.sha)
                             }
@@ -770,7 +777,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 val cloudFilePath = getFilePrefixPath(cloudFile, fileList)
                                 val localFilePath = Paths.get(
                                     localUserFile.getPrefix(),
-                                    localUserFile.filename
+                                    localUserFile.filename,
                                 ).pathString
                                 logD("Comparing $cloudFilePath and $localFilePath")
                                 cloudFilePath == localFilePath
@@ -779,16 +786,16 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     "Comparing SHA of ${
                                         getFilePrefixPath(
                                             it,
-                                            fileList
+                                            fileList,
                                         )
-                                    } and ${localUserFile.getPrefixPath()}"
+                                    } and ${localUserFile.getPrefixPath()}",
                                 )
                                 logD(
                                     "[${it.shaFile.joinToString(", ")}]\n[${
                                         localUserFile.sha.joinToString(
-                                            ", "
+                                            ", ",
                                         )
-                                    }]"
+                                    }]",
                                 )
                                 it.shaFile.contentEquals(localUserFile.sha)
                             } != true
@@ -804,26 +811,26 @@ class SteamService : Service(), IChallengeUrlChanged {
                         FileUtils.findFiles(
                             Paths.get(
                                 prefixToPath(userFile.root.toString()),
-                                userFile.path
+                                userFile.path,
                             ),
-                            userFile.pattern
+                            userFile.pattern,
                         ).map {
                             val sha = CryptoHelper.shaHash(Files.readAllBytes(it))
                             logD(
                                 "Found ${it.pathString}\n\tin ${userFile.getPrefix()}\n\twith sha [${
                                     sha.joinToString(
-                                        ", "
+                                        ", ",
                                     )
-                                }]"
+                                }]",
                             )
                             UserFileInfo(
                                 userFile.root,
                                 userFile.path,
                                 it.name,
                                 Files.getLastModifiedTime(it).toMillis(),
-                                sha
+                                sha,
                             )
-                        }.collect(Collectors.toList())
+                        }.collect(Collectors.toList()),
                     )
                 }
             }
@@ -832,14 +839,16 @@ class SteamService : Service(), IChallengeUrlChanged {
                     val pathTypePairs = getPathTypePairs(appFileListChange)
                     appFileListChange.files.map {
                         UserFileInfo(
-                            root = if (it.pathPrefixIndex < pathTypePairs.size)
+                            root = if (it.pathPrefixIndex < pathTypePairs.size) {
                                 PathType.from(pathTypePairs[it.pathPrefixIndex].first)
-                            else
-                                PathType.GameInstall,
-                            path = if (it.pathPrefixIndex < pathTypePairs.size)
+                            } else {
+                                PathType.GameInstall
+                            },
+                            path = if (it.pathPrefixIndex < pathTypePairs.size) {
                                 appFileListChange.pathPrefixes[it.pathPrefixIndex]
-                            else
-                                "",
+                            } else {
+                                ""
+                            },
                             filename = it.filename,
                             timestamp = it.timestamp.time,
                             sha = it.shaFile,
@@ -848,7 +857,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 }
             val buildUrl: (Boolean, String, String) -> String = { useHttps, urlHost, urlPath ->
                 val scheme = if (useHttps) "https://" else "http://"
-                "$scheme${urlHost}${urlPath}"
+                "$scheme${urlHost}$urlPath"
             }
 
             val prootTimestampToDate: (Long) -> Date = { originalTimestamp ->
@@ -877,17 +886,19 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 val httpUrl = buildUrl(
                                     fileDownloadInfo.useHttps,
                                     fileDownloadInfo.urlHost,
-                                    fileDownloadInfo.urlPath
+                                    fileDownloadInfo.urlPath,
                                 )
                                 logD("Downloading $httpUrl")
                                 val request = Request.Builder()
                                     .url(httpUrl)
-                                    .headers(Headers.headersOf
-                                        (*fileDownloadInfo.requestHeaders
-                                        .map { listOf(it.name, it.value) }
-                                        .flatten()
-                                        .toTypedArray()
-                                    )
+                                    .headers(
+                                        Headers.headersOf
+                                            (
+                                                *fileDownloadInfo.requestHeaders
+                                                    .map { listOf(it.name, it.value) }
+                                                    .flatten()
+                                                    .toTypedArray(),
+                                            ),
                                     )
                                     .build()
                                 val httpClient =
@@ -954,7 +965,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                         val filesToUpload =
                             fileChanges.filesCreated.union(fileChanges.filesModified)
                                 .map { Pair(it.getPrefixPath(), it) }
-                        logD("Beginning app upload batch with ${filesToDelete.size} file(s) to delete and ${filesToUpload.size} file(s) to upload")
+
+                        logD(
+                            "Beginning app upload batch with ${filesToDelete.size} file(s) to delete " +
+                                "and ${filesToUpload.size} file(s) to upload",
+                        )
+
                         val uploadBatchResponse = steamCloud.beginAppUploadBatch(
                             appId = appInfo.appId,
                             machineName = SteamUtils.getMachineName(steamInstance),
@@ -962,7 +978,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             filesToDelete = filesToDelete,
                             filesToUpload = filesToUpload.map { it.first },
                             // TODO: have branch be user selected and use that selection here
-                            appBuildId = appInfo.branches["public"]?.buildId ?: 0
+                            appBuildId = appInfo.branches["public"]?.buildId ?: 0,
                         ).await()
                         var uploadBatchSuccess = true
                         filesToUpload.map { it.second }.forEach { file ->
@@ -985,7 +1001,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     val httpUrl = buildUrl(
                                         blockRequest.useHttps,
                                         blockRequest.urlHost,
-                                        blockRequest.urlPath
+                                        blockRequest.urlPath,
                                     )
                                     logD("Uploading to $httpUrl")
 
@@ -999,10 +1015,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                                             }" +
                                             "\n\texplicitBodyData: [${
                                                 blockRequest.explicitBodyData.joinToString(
-                                                    ", "
+                                                    ", ",
                                                 )
                                             }]" +
-                                            "\n\tmayParallelize: ${blockRequest.mayParallelize}"
+                                            "\n\tmayParallelize: ${blockRequest.mayParallelize}",
                                     )
                                     val byteArray = ByteArray(blockRequest.blockLength)
                                     fs.seek(blockRequest.blockOffset)
@@ -1018,7 +1034,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                         *blockRequest.requestHeaders
                                             .map { listOf(it.name, it.value) }
                                             .flatten()
-                                            .toTypedArray()
+                                            .toTypedArray(),
                                     )
 
                                     val request = Request.Builder()
@@ -1060,7 +1076,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         steamCloud.completeAppUploadBatch(
                             appId = appInfo.appId,
                             batchId = uploadBatchResponse.batchID,
-                            batchEResult = if (uploadBatchSuccess) EResult.OK else EResult.Fail
+                            batchEResult = if (uploadBatchSuccess) EResult.OK else EResult.Fail,
                         ).await()
                         UserFilesUploadResult(
                             uploadBatchSuccess,
@@ -1102,7 +1118,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 }
                 val appFileListChange = steamCloud.getAppFileListChange(
                     appInfo.appId,
-                    if (localAppChangeNumber >= 0) localAppChangeNumber else 0
+                    if (localAppChangeNumber >= 0) localAppChangeNumber else 0,
                 ).await()
                 val cloudAppChangeNumber = appFileListChange.currentChangeNumber
                 logD("AppChangeNumber: $localAppChangeNumber -> $cloudAppChangeNumber")
@@ -1163,12 +1179,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                             with(instance!!) {
                                 db.appFileChangeLists().insert(
                                     appInfo.appId,
-                                    updatedLocalFiles.map { it.value }.flatten()
+                                    updatedLocalFiles.map { it.value }.flatten(),
                                 )
 
                                 db.appChangeNumbers().insert(
                                     appInfo.appId,
-                                    cloudAppChangeNumber
+                                    cloudAppChangeNumber,
                                 )
                             }
 
@@ -1187,26 +1203,28 @@ class SteamService : Service(), IChallengeUrlChanged {
                             }
                         }
                         uploadsRequired =
-                            fileChanges.filesCreated.isNotEmpty() || fileChanges.filesModified.isNotEmpty()
+                            fileChanges.filesCreated.isNotEmpty() ||
+                            fileChanges.filesModified.isNotEmpty()
                         val uploadResult: UserFilesUploadResult
                         microsecUploadFiles = measureTime {
                             uploadResult = uploadFiles(fileChanges, parentScope).await()
                             filesUploaded = uploadResult.filesUploaded
                             bytesUploaded = uploadResult.bytesUploaded
                             uploadsCompleted =
-                                uploadsRequired && uploadResult.uploadBatchSuccess
+                                uploadsRequired &&
+                                uploadResult.uploadBatchSuccess
                         }.inWholeMicroseconds
                         filesManaged = allLocalUserFiles.size
                         if (uploadResult.uploadBatchSuccess) {
                             with(instance!!) {
                                 db.appFileChangeLists().insert(
                                     appInfo.appId,
-                                    allLocalUserFiles
+                                    allLocalUserFiles,
                                 )
 
                                 db.appChangeNumbers().insert(
                                     appInfo.appId,
-                                    uploadResult.appChangeNumber
+                                    uploadResult.appChangeNumber,
                                 )
                             }
                         } else {
@@ -1370,14 +1388,15 @@ class SteamService : Service(), IChallengeUrlChanged {
                     "$refreshToken\n\tPassword: " +
                     "$password\n\tShouldRememberPass: " +
                     "$shouldRememberPassword\n\tTwoFactorAuth: " +
-                    "$twoFactorAuth\n\tEmailAuth: $emailAuth"
+                    "$twoFactorAuth\n\tEmailAuth: $emailAuth",
             )
 
             PrefManager.username = username
 
             if ((password != null && shouldRememberPassword) || refreshToken != null) {
-                if (password != null)
+                if (password != null) {
                     PrefManager.password = password
+                }
                 if (accessToken != null) {
                     PrefManager.password = ""
                     PrefManager.accessToken = accessToken
@@ -1399,8 +1418,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
                     // more: https://github.com/winauth/winauth/issues/368#issuecomment-224631002
                     username = SteamUtils.removeSpecialChars(username).trim(),
-                    password = if (password != null) SteamUtils.removeSpecialChars(password)
-                        .trim() else null,
+                    password = if (password != null) {
+                        SteamUtils.removeSpecialChars(password)
+                            .trim()
+                    } else {
+                        null
+                    },
                     shouldRememberPassword = shouldRememberPassword,
                     twoFactorCode = twoFactorAuth,
                     authCode = emailAuth,
@@ -1410,7 +1433,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
                     loginID = LOGIN_ID,
                     machineName = SteamUtils.getMachineName(instance!!),
-                )
+                ),
             )
         }
 
@@ -1466,7 +1489,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         .beginAuthSessionViaQR(
                             AuthSessionDetails().apply {
                                 deviceFriendlyName = SteamUtils.getMachineName(instance!!)
-                            }
+                            },
                         )
 
                     // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
@@ -1488,7 +1511,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 "AccessToken: ${authPollResult.accessToken}\n" +
                                     "AccountName: ${authPollResult.accountName}\n" +
                                     "RefreshToken: ${authPollResult.refreshToken}\n" +
-                                    "NewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}"
+                                    "NewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}",
                             )
                         } else {
                             // logD("AuthPollResult is null")
@@ -1506,7 +1529,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             clientId = authSession.clientID,
                             username = authPollResult.accountName,
                             accessToken = authPollResult.accessToken,
-                            refreshToken = authPollResult.refreshToken
+                            refreshToken = authPollResult.refreshToken,
                         )
                     }
                 } else {
@@ -1655,7 +1678,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     _steamClient!!.servers.tryMark(
                         _steamClient!!.currentEndpoint,
                         PROTOCOL_TYPES,
-                        ServerQuality.BAD
+                        ServerQuality.BAD,
                     )
                 } catch (e: Exception) {
                     logE("Failed to mark endpoint as bad:", e)
@@ -1741,7 +1764,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 username = PrefManager.username,
                 refreshToken = PrefManager.refreshToken,
                 password = PrefManager.password.ifEmpty { null },
-                shouldRememberPassword = PrefManager.password.isNotEmpty()
+                shouldRememberPassword = PrefManager.password.isNotEmpty(),
             )
         }
 
@@ -1871,14 +1894,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                         // Not in the DB, create them.
                         val friendToAdd = SteamFriend(
                             id = filteredFriend.steamID.convertToUInt64(),
-                            relation = filteredFriend.relationship
+                            relation = filteredFriend.relationship,
                         )
 
                         db.steamFriendDao().insert(friendToAdd)
                     } else {
                         // In the DB, update them.
                         db.steamFriendDao().update(
-                            friend.copy(relation = filteredFriend.relationship)
+                            friend.copy(relation = filteredFriend.relationship),
                         )
                     }
                 }
@@ -1941,7 +1964,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         clanRank = callback.clanRank,
                         clanTag = callback.clanTag,
                         onlineSessionInstances = callback.onlineSessionInstances,
-                    )
+                    ),
                 )
             }
         }
@@ -1981,7 +2004,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             isRequestingPkgInfo = true
             _steamApps!!.picsGetProductInfo(
                 apps = emptyList(),
-                packages = callback.licenseList.map { PICSRequest(it.packageID, it.accessToken) }
+                packages = callback.licenseList.map { PICSRequest(it.packageID, it.accessToken) },
             )
         }
 
@@ -2007,7 +2030,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 apps = packageInfo.values
                     .flatMap { it.appIds.asIterable() }
                     .map { PICSRequest(it) },
-                packages = emptyList()
+                packages = emptyList(),
             )
         }
 
@@ -2057,22 +2080,23 @@ class SteamService : Service(), IChallengeUrlChanged {
                             // val currentDepot = app.keyValues["depots"]["$depotId"]
                             val manifests = generateManifest(currentDepot["manifests"].children)
                             val encryptedManifests = generateManifest(
-                                currentDepot["encryptedManifests"].children
+                                currentDepot["encryptedManifests"].children,
                             )
 
                             Pair(
-                                depotId, DepotInfo(
+                                depotId,
+                                DepotInfo(
                                     depotId = depotId,
                                     dlcAppId = currentDepot["dlcappid"].asInteger(INVALID_APP_ID),
                                     depotFromApp = currentDepot["depotfromapp"].asInteger(
-                                        INVALID_APP_ID
+                                        INVALID_APP_ID,
                                     ),
                                     sharedInstall = currentDepot["sharedinstall"].asBoolean(),
                                     osList = OS.from(currentDepot["config"]["oslist"].value),
                                     osArch = OSArch.from(currentDepot["config"]["osarch"].value),
                                     manifests = manifests,
                                     encryptedManifests = encryptedManifests,
-                                )
+                                ),
                             )
                         }.toMap(),
                     branches = app.keyValues["depots"]["branches"].children.map {
@@ -2082,17 +2106,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 name = it.name,
                                 buildId = it["buildid"].asLong(),
                                 pwdRequired = it["pwdrequired"].asBoolean(),
-                                timeUpdated = Date(it["timeupdated"].asLong() * 1000L)
-                            )
+                                timeUpdated = Date(it["timeupdated"].asLong() * 1000L),
+                            ),
                         )
                     }.toMap(),
                     name = app.keyValues["common"]["name"].value.orEmpty(),
                     type = AppType.valueOf(
-                        app.keyValues["common"]["type"].value?.lowercase() ?: "invalid"
+                        app.keyValues["common"]["type"].value?.lowercase() ?: "invalid",
                     ),
                     osList = OS.from(app.keyValues["common"]["oslist"].value),
                     releaseState = ReleaseState.valueOf(
-                        app.keyValues["common"]["releasestate"].value ?: "released"
+                        app.keyValues["common"]["releasestate"].value ?: "released",
                     ),
                     metacriticScore = app.keyValues["common"]["metacritic_score"].asByte(),
                     metacriticFullUrl = app.keyValues["common"]["metacritic_fullurl"].value.orEmpty(),
@@ -2106,22 +2130,22 @@ class SteamService : Service(), IChallengeUrlChanged {
                     libraryAssets = LibraryAssetsInfo(
                         libraryCapsule = LibraryCapsuleInfo(
                             image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image"].children),
-                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image2x"].children)
+                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image2x"].children),
                         ),
                         libraryHero = LibraryHeroInfo(
                             image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_hero"]["image"].children),
-                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_hero"]["image2x"].children)
+                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_hero"]["image2x"].children),
                         ),
                         libraryLogo = LibraryLogoInfo(
                             image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_logo"]["image"].children),
-                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_logo"]["image2x"].children)
-                        )
+                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_logo"]["image2x"].children),
+                        ),
                     ),
                     primaryGenre = app.keyValues["common"]["primary_genre"].asBoolean(),
                     reviewScore = app.keyValues["common"]["review_score"].asByte(),
                     reviewPercentage = app.keyValues["common"]["review_percentage"].asByte(),
                     controllerSupport = ControllerSupport.valueOf(
-                        app.keyValues["common"]["controller_support"].value ?: "none"
+                        app.keyValues["common"]["controller_support"].value ?: "none",
                     ),
                     demoOfAppId = app.keyValues["common"]["extended"]["demoofappid"].asInteger(),
                     developer = app.keyValues["common"]["extended"]["developer"].value.orEmpty(),
@@ -2164,7 +2188,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 description = it["description"].value.orEmpty(),
                                 type = it["type"].value.orEmpty(),
                                 configOS = OS.from(it["config"]["oslist"].value),
-                                configArch = OSArch.from(it["config"]["osarch"].value)
+                                configArch = OSArch.from(it["config"]["osarch"].value),
                             )
                         }.toTypedArray(),
                         steamControllerTemplateIndex = app.keyValues["config"]["steamcontrollertemplateindex"].asInteger(),
@@ -2177,10 +2201,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                             SaveFilePattern(
                                 root = PathType.from(it["root"].value),
                                 path = it["path"].value.orEmpty(),
-                                pattern = it["pattern"].value.orEmpty()
+                                pattern = it["pattern"].value.orEmpty(),
                             )
-                        }.toTypedArray()
-                    )
+                        }.toTypedArray(),
+                    ),
                 )
 
                 // // val isBaba = app.id == 736260

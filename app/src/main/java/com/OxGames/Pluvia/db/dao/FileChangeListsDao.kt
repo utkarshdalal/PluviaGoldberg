@@ -32,8 +32,8 @@ interface FileChangeListsDao {
     @Query("DELETE FROM app_file_change_lists WHERE appId = :appId")
     suspend fun deleteByAppId(appId: Int)
 
-     @Query("SELECT * FROM app_file_change_lists WHERE appId = :appId")
-     suspend fun getByAppId(appId: Int): FileChangeLists?
+    @Query("SELECT * FROM app_file_change_lists WHERE appId = :appId")
+    suspend fun getByAppId(appId: Int): FileChangeLists?
 
     @Query("SELECT * FROM app_file_change_lists")
     suspend fun getAll(): List<FileChangeLists>

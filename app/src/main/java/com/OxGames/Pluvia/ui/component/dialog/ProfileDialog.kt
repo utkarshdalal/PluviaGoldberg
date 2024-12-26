@@ -45,7 +45,7 @@ fun ProfileDialog(
     onStatusChange: (EPersonaState) -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     if (!openDialog) {
         return
@@ -60,12 +60,12 @@ fun ProfileDialog(
                 /* Icon, Name, and Status */
                 ListItem(
                     colors = ListItemDefaults.colors(
-                        containerColor = Color.Transparent
+                        containerColor = Color.Transparent,
                     ),
                     leadingContent = {
                         ListItemImage(
                             size = 48.dp,
-                            image = { SteamService.getAvatarURL(avatarHash) }
+                            image = { SteamService.getAvatarURL(avatarHash) },
                         )
                     },
                     headlineContent = {
@@ -73,7 +73,7 @@ fun ProfileDialog(
                     },
                     supportingContent = {
                         Text(text = state.name)
-                    }
+                    },
                 )
                 /* Online Status */
                 Spacer(modifier = Modifier.height(16.dp))
@@ -85,7 +85,7 @@ fun ProfileDialog(
                         SegmentedButton(
                             shape = SegmentedButtonDefaults.itemShape(
                                 index = index,
-                                count = status.size
+                                count = status.size,
                             ),
                             onClick = {
                                 selectedItem = state
@@ -94,7 +94,7 @@ fun ProfileDialog(
                             selected = state == selectedItem,
                             label = {
                                 Text(state.name)
-                            }
+                            },
                         )
                     }
                 }
@@ -118,7 +118,7 @@ fun ProfileDialog(
             TextButton(onClick = onDismiss) {
                 Text(text = "Close")
             }
-        }
+        },
     )
 }
 
@@ -134,7 +134,7 @@ private fun Preview_ProfileDialog() {
             onStatusChange = {},
             onSettings = {},
             onLogout = {},
-            onDismiss = {}
+            onDismiss = {},
         )
     }
 }

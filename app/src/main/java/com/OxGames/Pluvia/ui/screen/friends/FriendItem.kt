@@ -32,14 +32,14 @@ import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 fun FriendItem(
     modifier: Modifier = Modifier,
     friend: SteamFriend,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     // Can't use CompositionLocal for colors. Instead we can use ListItemDefault.colors()
     ListItem(
         modifier = modifier.clickable { onClick() },
         colors = ListItemDefaults.colors(
             headlineColor = friend.statusColor,
-            supportingColor = friend.statusColor
+            supportingColor = friend.statusColor,
         ),
         headlineContent = {
             Text(
@@ -53,19 +53,19 @@ fun FriendItem(
                         Placeholder(
                             width = 14.sp,
                             height = 14.sp,
-                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
                         ),
                         children = {
                             friend.statusIcon?.let {
                                 Icon(
                                     imageVector = it,
                                     tint = Color.LightGray,
-                                    contentDescription = it.name
+                                    contentDescription = it.name,
                                 )
                             }
-                        }
-                    )
-                )
+                        },
+                    ),
+                ),
             )
         },
         supportingContent = {
@@ -78,7 +78,7 @@ fun FriendItem(
         },
         leadingContent = {
             ListItemImage { SteamService.getAvatarURL(friend.avatarHash) }
-        }
+        },
     )
 }
 
@@ -90,7 +90,7 @@ private fun Preview_FriendItem() {
         "Friend Away" to EPersonaState.Away,
         "Friend Offline" to EPersonaState.Offline,
         "Friend In Game" to EPersonaState.Online,
-        "Friend Away In Game" to EPersonaState.Away
+        "Friend Away In Game" to EPersonaState.Away,
     )
 
     PluviaTheme {
@@ -106,9 +106,9 @@ private fun Preview_FriendItem() {
                             nickname = entry.key,
                             relation = EFriendRelationship.Friend,
                             state = entry.value,
-                            stateFlags = EPersonaStateFlag.from(512.times(index + 1))
+                            stateFlags = EPersonaStateFlag.from(512.times(index + 1)),
                         ),
-                        onClick = { }
+                        onClick = { },
                     )
                 }
             }

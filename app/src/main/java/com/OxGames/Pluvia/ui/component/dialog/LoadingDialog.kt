@@ -31,20 +31,20 @@ fun LoadingDialog(
     when {
         visible -> {
             Dialog(
-                onDismissRequest = onDismissRequest
+                onDismissRequest = onDismissRequest,
             ) {
                 Card {
                     Column(
                         modifier = Modifier
                             .padding(16.dp),
                         verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(message)
                         Spacer(modifier = Modifier.height(16.dp))
                         if (progress >= 0) {
                             LinearProgressIndicator(
-                                progress = { progress }
+                                progress = { progress },
                             )
                         } else {
                             LinearProgressIndicator()

@@ -15,7 +15,7 @@ import okio.ByteString.Companion.toByteString
  */
 class IconDecoder(
     private val source: SourceResult,
-    private val options: Options
+    private val options: Options,
 ) : Decoder {
     override suspend fun decode(): DecodeResult? {
         return try {
@@ -24,7 +24,7 @@ class IconDecoder(
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
             DecodeResult(
                 drawable = BitmapDrawable(options.context.resources, bitmap),
-                isSampled = false
+                isSampled = false,
             )
         } catch (e: Exception) {
             logE("Something happened while decoding an ico file.", e)
@@ -35,7 +35,7 @@ class IconDecoder(
         override fun create(
             result: SourceResult,
             options: Options,
-            imageLoader: ImageLoader
+            imageLoader: ImageLoader,
         ): Decoder? {
             val mimeType = result.mimeType ?: return null
             val validMimeType = mimeType.contains("ico", ignoreCase = true)

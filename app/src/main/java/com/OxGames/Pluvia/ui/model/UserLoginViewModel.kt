@@ -11,13 +11,13 @@ import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.UserLoginState
 import `in`.dragonbra.javasteam.steam.authentication.IAuthenticator
+import java.util.concurrent.CompletableFuture
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.concurrent.CompletableFuture
 
 class UserLoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow(UserLoginState())
@@ -32,7 +32,7 @@ class UserLoginViewModel : ViewModel() {
                 currentState.copy(
                     loginResult = LoginResult.DeviceConfirm,
                     loginScreen = LoginScreen.TWO_FACTOR,
-                    isLoggingIn = false
+                    isLoggingIn = false,
                 )
             }
             return CompletableFuture.completedFuture(true)
@@ -45,7 +45,7 @@ class UserLoginViewModel : ViewModel() {
                     loginResult = LoginResult.DeviceAuth,
                     loginScreen = LoginScreen.TWO_FACTOR,
                     isLoggingIn = false,
-                    previousCodeIncorrect = previousCodeWasIncorrect
+                    previousCodeIncorrect = previousCodeWasIncorrect,
                 )
             }
 
@@ -59,7 +59,7 @@ class UserLoginViewModel : ViewModel() {
 
         override fun getEmailCode(
             email: String?,
-            previousCodeWasIncorrect: Boolean
+            previousCodeWasIncorrect: Boolean,
         ): CompletableFuture<String> {
             Log.d("UserLoginViewModel", "getEmailCode")
 
@@ -69,7 +69,7 @@ class UserLoginViewModel : ViewModel() {
                     loginScreen = LoginScreen.TWO_FACTOR,
                     isLoggingIn = false,
                     email = email,
-                    previousCodeIncorrect = previousCodeWasIncorrect
+                    previousCodeIncorrect = previousCodeWasIncorrect,
                 )
             }
 
@@ -87,7 +87,7 @@ class UserLoginViewModel : ViewModel() {
         _loginState.update { currentState ->
             currentState.copy(
                 isLoggingIn = it.isAutoLoggingIn,
-                isSteamConnected = true
+                isSteamConnected = true,
             )
         }
     }
@@ -107,7 +107,7 @@ class UserLoginViewModel : ViewModel() {
         _loginState.update { currentState ->
             currentState.copy(
                 isLoggingIn = false,
-                loginResult = it.loginResult
+                loginResult = it.loginResult,
             )
         }
         if (it.loginResult != LoginResult.Success) {

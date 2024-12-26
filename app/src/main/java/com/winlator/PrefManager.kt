@@ -27,7 +27,7 @@ object PrefManager {
         corruptionHandler = ReplaceFileCorruptionHandler {
             Log.e("PrefManager", "Preferences (somehow got) corrupted, resetting.")
             emptyPreferences()
-        }
+        },
     )
 
     private val scope = CoroutineScope(Dispatchers.IO + CoroutineName("PrefManager"))

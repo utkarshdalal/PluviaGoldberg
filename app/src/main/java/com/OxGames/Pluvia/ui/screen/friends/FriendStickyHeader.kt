@@ -27,7 +27,7 @@ fun StickyHeaderItem(isCollapsed: Boolean, header: String, count: Int, onHeaderA
             IconButton(onClick = onHeaderAction) {
                 Icon(imageVector = button, contentDescription = null)
             }
-        }
+        },
     )
 }
 

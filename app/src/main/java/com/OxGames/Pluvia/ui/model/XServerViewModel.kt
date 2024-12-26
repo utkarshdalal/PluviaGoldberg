@@ -3,9 +3,6 @@ package com.OxGames.Pluvia.ui.model
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.OxGames.Pluvia.ui.data.XServerState
-import com.winlator.container.Container
-import com.winlator.container.Shortcut
-import com.winlator.core.EnvVars
 import com.winlator.core.KeyValueSet
 import com.winlator.core.WineInfo
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +30,7 @@ class XServerViewModel : ViewModel() {
             currentState.copy(dxwrapperConfig = dxwrapperConfig)
         }
     }
+
     // fun setShortcut(shortcut: Shortcut?) {
     //     _xServerState.update { currentState ->
     //         currentState.copy(shortcut = shortcut)

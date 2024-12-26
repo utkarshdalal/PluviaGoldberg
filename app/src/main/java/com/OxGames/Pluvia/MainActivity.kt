@@ -15,10 +15,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import coil.ImageLoader
 import coil.disk.DiskCache
@@ -33,10 +33,10 @@ import com.OxGames.Pluvia.utils.logD
 import com.skydoves.landscapist.coil.LocalCoilImageLoader
 import com.winlator.core.AppUtils
 import dagger.hilt.android.AndroidEntryPoint
-import okio.Path.Companion.toOkioPath
 import java.util.EnumSet
 import kotlin.math.abs
 import kotlin.math.min
+import okio.Path.Companion.toOkioPath
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -51,7 +51,6 @@ class MainActivity : ComponentActivity() {
     private val onStartOrientator: (AndroidEvent.StartOrientator) -> Unit = {
         startOrientator()
     }
-
 
     companion object {
         private var totalIndex = 0
@@ -75,7 +74,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             var hasNotificationPermission by remember { mutableStateOf(false) }
             val permissionLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
+                contract = ActivityResultContracts.RequestPermission(),
             ) { isGranted ->
                 hasNotificationPermission = isGranted
             }
@@ -217,15 +216,19 @@ class MainActivity : ComponentActivity() {
 
         // find the nearest orientation to the reported
         val distances = orientations.map {
-            Pair(it, it.angleRanges.map {
-                it.map {
-                    // since 0 can be represented as 360 and vice versa
-                    if (adjustedOrientation == 0 || adjustedOrientation == 360)
-                        min(abs(it - 0), abs(it - 360))
-                    else
-                        abs(it - adjustedOrientation)
-                }.min()
-            }.min())
+            Pair(
+                it,
+                it.angleRanges.map {
+                    it.map {
+                        // since 0 can be represented as 360 and vice versa
+                        if (adjustedOrientation == 0 || adjustedOrientation == 360) {
+                            min(abs(it - 0), abs(it - 360))
+                        } else {
+                            abs(it - adjustedOrientation)
+                        }
+                    }.min()
+                }.min(),
+            )
         }
 
         val nearest = distances.sortedBy { it.second }.first()
@@ -241,7 +244,7 @@ class MainActivity : ComponentActivity() {
                 "$adjustedOrientation => currentOrientation(" +
                     "${Orientation.fromActivityInfoValue(requestedOrientation)}) " +
                     "!= nearestOrientation(${nearest.first}) && " +
-                    "currentDistance($currentOrientationDist) > nearestDistance(${nearest.second})"
+                    "currentDistance($currentOrientationDist) > nearestDistance(${nearest.second})",
             )
             requestedOrientation = nearest.first.activityInfoValue
         }
