@@ -106,8 +106,7 @@ private fun FriendsScreenContent(
             val value = navigator.currentDestination?.content ?: SteamID()
             AnimatedPane {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize(),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
                     content = {
                         if (value.convertToUInt64() == 0L) {

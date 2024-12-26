@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -88,15 +87,7 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
         mutableStateOf<Bitmap?>(null)
     }
 
-    val isPreview = LocalInspectionMode.current
-    val ioScope = rememberCoroutineScope {
-        // Hack to preview things for the time being.
-        if (isPreview) {
-            Dispatchers.Main
-        } else {
-            Dispatchers.IO
-        }
-    }
+    val ioScope = rememberCoroutineScope { Dispatchers.IO }
     val bgColor = MaterialTheme.colorScheme.background.toArgb()
     val onBgColor = MaterialTheme.colorScheme.onBackground.toArgb()
 

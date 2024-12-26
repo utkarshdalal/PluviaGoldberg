@@ -67,7 +67,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         noServers = false,
         order = false,
         primaryCache = 0,
-        validOSList = EnumSet.of<OS>(OS.none),
+        validOSList = EnumSet.of(OS.none),
         thirdPartyCdKey = false,
         visibleOnlyWhenInstalled = false,
         visibleOnlyWhenSubscribed = false,

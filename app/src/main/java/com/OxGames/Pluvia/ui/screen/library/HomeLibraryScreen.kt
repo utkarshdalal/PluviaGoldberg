@@ -214,7 +214,7 @@ private fun Preview_LibraryScreenContent() {
             ),
             fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),
             onFabFilter = {},
-            onClickPlay = { appId, asContainer -> },
+            onClickPlay = { _, _ -> },
             onSettings = {},
         )
     }
