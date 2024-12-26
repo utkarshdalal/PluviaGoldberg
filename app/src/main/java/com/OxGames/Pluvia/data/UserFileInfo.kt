@@ -17,12 +17,12 @@ data class UserFileInfo(
     val timestamp: Long,
     val sha: ByteArray,
 ) {
-    fun getPrefix(): String {
-        return Paths.get("%${root.name}%$path").pathString
-    }
-    fun getPrefixPath(): String {
-        return Paths.get(getPrefix(), filename).pathString
-    }
+    val prefix: String
+        get() = Paths.get("%${root.name}%$path").pathString
+
+    val prefixPath: String
+        get() = Paths.get(prefix, filename).pathString
+
     fun getAbsPath(prefixToPath: (String) -> String): Path {
         return Paths.get(prefixToPath(root.toString()), path, filename)
     }
