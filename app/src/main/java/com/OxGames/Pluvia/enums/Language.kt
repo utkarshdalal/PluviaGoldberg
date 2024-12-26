@@ -25,5 +25,5 @@ enum class Language {
     turkish,
     thai,
     czech,
-    unknown
+    unknown,
 }

@@ -8,11 +8,11 @@ import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.FabFilter
+import java.util.EnumSet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import java.util.EnumSet
 
 class LibraryViewModel : ViewModel() {
     private val _state = MutableStateFlow(LibraryState())
@@ -55,8 +55,11 @@ class LibraryViewModel : ViewModel() {
                 .filter { if (searchInstalled) SteamService.isAppInstalled(it.appId) else true }
                 .filter { it.name.contains(searchText, true) }
                 .let {
-                    if (searchAlphabetic) it.sortedBy { appInfo -> appInfo.name }
-                    else it.sortedBy { appInfo -> appInfo.receiveIndex }.reversed()
+                    if (searchAlphabetic) {
+                        it.sortedBy { appInfo -> appInfo.name }
+                    } else {
+                        it.sortedBy { appInfo -> appInfo.receiveIndex }.reversed()
+                    }
                 }
         }
 

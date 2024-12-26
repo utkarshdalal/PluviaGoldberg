@@ -5,9 +5,7 @@ import com.OxGames.Pluvia.enums.ControllerSupport
 import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.ReleaseState
-import java.nio.file.Files
 import java.util.EnumSet
-import kotlin.io.path.Path
 
 data class AppInfo(
     val appId: Int,

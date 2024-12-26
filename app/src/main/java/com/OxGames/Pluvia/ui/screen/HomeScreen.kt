@@ -24,10 +24,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.OxGames.Pluvia.ui.screen.downloads.HomeDownloadsScreen
-import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
 import com.OxGames.Pluvia.ui.enums.PluviaDestination
 import com.OxGames.Pluvia.ui.model.HomeViewModel
+import com.OxGames.Pluvia.ui.screen.downloads.HomeDownloadsScreen
+import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
 import com.OxGames.Pluvia.ui.screen.library.HomeLibraryScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
@@ -66,15 +66,15 @@ fun HomeScreen(
                 // TODO close app
                 TextButton(
                     onClick = { viewModel.onConfirmExit(false) },
-                    content = { Text(text = "Close") }
+                    content = { Text(text = "Close") },
                 )
             },
             dismissButton = {
                 TextButton(
                     onClick = { viewModel.onConfirmExit(false) },
-                    content = { Text(text = "Cancel") }
+                    content = { Text(text = "Cancel") },
                 )
-            }
+            },
         )
     }
 
@@ -118,7 +118,7 @@ private fun HomeScreenContent(
 internal fun HomeNavigationWrapperUI(
     destination: PluviaDestination,
     onDestination: (PluviaDestination) -> Unit,
-    content: @Composable () -> Unit = {}
+    content: @Composable () -> Unit = {},
 ) {
     val windowSize = with(LocalDensity.current) {
         currentWindowSize().toSize().toDpSize()
@@ -145,7 +145,7 @@ internal fun HomeNavigationWrapperUI(
             }
         },
         layoutType = navLayoutType,
-        content = content
+        content = content,
     )
 }
 

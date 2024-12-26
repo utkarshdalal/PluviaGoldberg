@@ -77,7 +77,7 @@ fun AccountButton(
                 image = { SteamService.getAvatarURL(persona?.avatarHash.orEmpty()) },
                 contentDescription = contentDescription,
             )
-        }
+        },
     )
 }
 
@@ -88,7 +88,7 @@ private fun Preview_AccountButton() {
     PluviaTheme {
         CenterAlignedTopAppBar(
             title = { Text("Top App Bar") },
-            actions = { AccountButton(onSettings = {}) }
+            actions = { AccountButton(onSettings = {}) },
         )
     }
 }

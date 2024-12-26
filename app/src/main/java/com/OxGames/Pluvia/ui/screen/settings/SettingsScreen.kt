@@ -43,7 +43,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     SettingsScreenContent(
-        onBack = onBack
+        onBack = onBack,
     )
 }
 
@@ -74,25 +74,25 @@ private fun SettingsScreenContent(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .verticalScroll(scrollState)
+                .verticalScroll(scrollState),
         ) {
             // Once there are enough settings, they should be split into
             // seperate (composable) classes, organized by group.
 
             SettingsGroup(
-                title = { Text(text = "XServer") }
+                title = { Text(text = "XServer") },
             ) {
                 var orientationDialog by remember { mutableStateOf(false) }
 
                 OrientationDialog(
                     openDialog = orientationDialog,
-                    onDismiss = { orientationDialog = false }
+                    onDismiss = { orientationDialog = false },
                 )
 
                 SettingsMenuLink(
                     title = { Text(text = "Allowed Orientations") },
                     subtitle = { Text(text = "Choose which orientations XServer can rotate.") },
-                    onClick = { orientationDialog = true }
+                    onClick = { orientationDialog = true },
                 )
             }
 
@@ -104,7 +104,7 @@ private fun SettingsScreenContent(
                     subtitle = { Text(text = "github.com/oxters168/Pluvia") },
                     onClick = {
                         uriHandler.openUri("https://github.com/oxters168/Pluvia")
-                    }
+                    },
                 )
 
                 SettingsMenuLink(
@@ -112,7 +112,7 @@ private fun SettingsScreenContent(
                     title = { Text(text = "Technologies Used") },
                     subtitle = {
                         Column(
-                            modifier = Modifier.padding(start = 12.dp)
+                            modifier = Modifier.padding(start = 12.dp),
                         ) {
                             Text(text = "JavaSteam - github.com/Longi94/JavaSteam")
                             Text(text = "Ubuntu RootFs - releases.ubuntu.com/focal")
@@ -128,7 +128,7 @@ private fun SettingsScreenContent(
                     },
                     onClick = {
                         /* Could link to pluvia repo to credits page? */
-                    }
+                    },
                 )
             }
 
@@ -141,7 +141,7 @@ private fun SettingsScreenContent(
                                 PrefManager.clearPreferences()
                                 (context as ComponentActivity).finishAffinity()
                             }
-                        }
+                        },
                     )
 
                     SettingsMenuLink(
@@ -149,7 +149,7 @@ private fun SettingsScreenContent(
                         onClick = {
                             context.imageLoader.diskCache?.clear()
                             context.imageLoader.memoryCache?.clear()
-                        }
+                        },
                     )
                 }
             }
@@ -162,7 +162,7 @@ private fun SettingsScreenContent(
 private fun Preview_SettingsScreen() {
     PluviaTheme {
         SettingsScreenContent(
-            onBack = {}
+            onBack = {},
         )
     }
 }

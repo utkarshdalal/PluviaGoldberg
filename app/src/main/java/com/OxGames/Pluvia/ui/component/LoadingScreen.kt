@@ -19,7 +19,7 @@ fun LoadingScreen() {
         modifier = Modifier
             .fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         CircularProgressIndicator(modifier = Modifier.size(64.dp))
     }

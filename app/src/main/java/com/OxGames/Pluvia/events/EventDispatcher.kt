@@ -10,7 +10,7 @@ class EventDispatcher {
 
     open class EventListener<E : Event<T>, T>(
         val listener: (E) -> T,
-        val once: Boolean = false
+        val once: Boolean = false,
     )
 
     inline fun <reified E : Event<T>, T> on(noinline listener: (E) -> T) {
@@ -24,13 +24,16 @@ class EventDispatcher {
     @Suppress("UNCHECKED_CAST")
     inline fun <reified E : Event<T>, T> addListener(
         noinline listener: (E) -> T,
-        once: Boolean
+        once: Boolean,
     ) {
         val eventClass = E::class
-        val typedListener = Pair(listener.toString(), EventListener<Event<T>, T>({ event ->
-            // Log.d("EventDispatcher", "Dispatching event $event to $listener")
-            listener(event as E)
-        }, once))
+        val typedListener = Pair(
+            listener.toString(),
+            EventListener<Event<T>, T>({ event ->
+                // Log.d("EventDispatcher", "Dispatching event $event to $listener")
+                listener(event as E)
+            }, once),
+        )
         // Log.d("EventDispatcher", "Putting $typedListener in $eventClass")
         listeners.getOrPut(eventClass) { mutableListOf() }.add(typedListener as Pair<String, EventListener<Event<*>, *>>)
     }
@@ -45,9 +48,11 @@ class EventDispatcher {
 
     inline fun <reified E : Event<*>> clearAllListenersOf() {
         val currentKeys = listeners.keys.toList()
-        for (key in currentKeys)
-            if (key is E)
+        for (key in currentKeys) {
+            if (key is E) {
                 listeners.remove(key)
+            }
+        }
     }
     fun clearAllListeners() {
         listeners.clear()

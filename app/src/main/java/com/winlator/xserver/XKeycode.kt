@@ -102,5 +102,5 @@ enum class XKeycode(val id: Byte) {
     KEY_NEXT(117),
     KEY_INSERT(118),
     KEY_DEL(119),
-    KEY_MAX(KEY_DEL.id);
+    KEY_MAX(KEY_DEL.id),
 }

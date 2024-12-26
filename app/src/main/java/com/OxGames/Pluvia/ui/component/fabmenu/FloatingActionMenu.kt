@@ -49,25 +49,25 @@ fun FloatingActionMenu(
     elevation: FloatingActionButtonElevation = FloatingActionButtonDefaults.elevation(),
     interactionSource: MutableInteractionSource? = null,
     state: FloatingActionMenuState = rememberFloatingActionMenuState(),
-    content: @Composable (ColumnScope.() -> Unit)
+    content: @Composable (ColumnScope.() -> Unit),
 ) {
     val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         AnimatedVisibility(
             visible = state.isOpen,
             enter = fadeIn() + expandVertically(expandFrom = Alignment.Bottom),
-            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom)
+            exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom),
         ) {
             Column(
                 modifier = Modifier.offset(x = (-4).dp).padding(start = 4.dp),
                 content = content,
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(0.dp)
+                verticalArrangement = Arrangement.spacedBy(0.dp),
             )
         }
         FloatingActionButton(
@@ -84,7 +84,7 @@ fun FloatingActionMenu(
                         state.open()
                     }
                 }
-            }
+            },
         ) {
             Icon(
                 imageVector = if (state.isOpen && closeImageVector != null) closeImageVector else imageVector,
@@ -107,17 +107,17 @@ private fun Preview_FloatingActionMenu() {
                 content = {
                     FloatingActionMenuItem(
                         labelText = "Search",
-                        onClick = { }
+                        onClick = { },
                     ) { Icon(Icons.Filled.Search, "Search") }
                     FloatingActionMenuItem(
                         labelText = "Installed",
-                        onClick = { }
+                        onClick = { },
                     ) { Icon(Icons.Filled.InstallMobile, "Installed") }
                     FloatingActionMenuItem(
                         labelText = "Alphabetic",
-                        onClick = { }
+                        onClick = { },
                     ) { Icon(Icons.Filled.SortByAlpha, "Alphabetic") }
-                }
+                },
             )
         }
     }

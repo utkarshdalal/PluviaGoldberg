@@ -18,5 +18,5 @@ enum class PluviaScreen(@StringRes val title: Int) {
     LoginUser(title = R.string.login_user),
     Home(title = R.string.home),
     XServer(title = R.string.unknown_app),
-    Settings(title = R.string.settings)
+    Settings(title = R.string.settings),
 }

@@ -44,7 +44,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         libraryAssets = LibraryAssetsInfo(
             libraryCapsule = LibraryCapsuleInfo(image = mapOf(), image2x = mapOf()),
             libraryHero = LibraryHeroInfo(image = mapOf(), image2x = mapOf()),
-            libraryLogo = LibraryLogoInfo(image = mapOf(), image2x = mapOf())
+            libraryLogo = LibraryLogoInfo(image = mapOf(), image2x = mapOf()),
         ),
         primaryGenre = false,
         reviewScore = 0,
@@ -89,9 +89,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         ufs = UFS(
             quota = 0,
             maxNumFiles = 0,
-            saveFilePatterns = emptyArray()
-        )
+            saveFilePatterns = emptyArray(),
+        ),
     )
 }
-
- 

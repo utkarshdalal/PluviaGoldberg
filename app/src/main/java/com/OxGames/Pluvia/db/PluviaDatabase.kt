@@ -25,7 +25,7 @@ const val DATABASE_NAME = "pluvia.db"
     FriendConverter::class,
     PathTypeConverter::class,
     ByteArrayConverter::class,
-    UserFileInfoListConverter::class
+    UserFileInfoListConverter::class,
 )
 abstract class PluviaDatabase : RoomDatabase() {
 

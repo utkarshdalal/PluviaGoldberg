@@ -12,17 +12,15 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.OxGames.Pluvia.data.UserFileInfo
-import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.ui.enums.Orientation
 import `in`.dragonbra.javasteam.enums.EPersonaState
+import java.util.EnumSet
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import java.util.EnumSet
 
 /**
  * Kind of ugly, but works to be a universal preference manager.
@@ -34,7 +32,7 @@ object PrefManager {
         corruptionHandler = ReplaceFileCorruptionHandler {
             Log.e("PrefManager", "Preferences (somehow got) corrupted, resetting.")
             emptyPreferences()
-        }
+        },
     )
 
     private val scope = CoroutineScope(Dispatchers.IO + CoroutineName("PrefManager"))
@@ -159,7 +157,7 @@ object PrefManager {
     var allowedOrientation: EnumSet<Orientation>
         get() {
             val defaultValue = Orientation.toInt(
-                EnumSet.of(Orientation.LANDSCAPE, Orientation.REVERSE_LANDSCAPE)
+                EnumSet.of(Orientation.LANDSCAPE, Orientation.REVERSE_LANDSCAPE),
             )
             val value = getPref(ALLOWED_ORIENTATION, defaultValue)
             return Orientation.fromInt(value)

@@ -28,9 +28,11 @@ fun MessageDialog(
                     onDismissRequest?.invoke()
                 },
                 dismissButton = onDismissClick?.let {
-                    { TextButton(onClick = it) {
-                        Text(dismissBtnText)
-                    } }
+                    {
+                        TextButton(onClick = it) {
+                            Text(dismissBtnText)
+                        }
+                    }
                 },
                 confirmButton = {
                     onConfirmClick?.let {
@@ -52,13 +54,13 @@ private fun Preview_MessageDialog() {
             visible = true,
             title = "Title",
             message = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed " +
-                    "do eiusmod tempor incididunt ut labore et dolore magna aliqua. " +
-                    "Ut enim ad minim veniam, quis nostrud exercitation ullamco " +
-                    "laboris nisi ut aliquip ex ea commodo consequat. Duis aute " +
-                    "irure dolor in reprehenderit in voluptate velit esse cillum " +
-                    "dolore eu fugiat nulla pariatur. Excepteur sint occaecat " +
-                    "cupidatat non proident, sunt in culpa qui officia deserunt " +
-                    "mollit anim id est laborum.",
+                "do eiusmod tempor incididunt ut labore et dolore magna aliqua. " +
+                "Ut enim ad minim veniam, quis nostrud exercitation ullamco " +
+                "laboris nisi ut aliquip ex ea commodo consequat. Duis aute " +
+                "irure dolor in reprehenderit in voluptate velit esse cillum " +
+                "dolore eu fugiat nulla pariatur. Excepteur sint occaecat " +
+                "cupidatat non proident, sunt in culpa qui officia deserunt " +
+                "mollit anim id est laborum.",
             onDismissRequest = {},
             onDismissClick = {},
             onConfirmClick = {},

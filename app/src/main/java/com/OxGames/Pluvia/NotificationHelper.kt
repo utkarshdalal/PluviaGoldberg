@@ -28,7 +28,7 @@ class NotificationHelper(private val context: Context) {
         val channel = NotificationChannel(
             CHANNEL_ID,
             CHANNEL_NAME,
-            NotificationManager.IMPORTANCE_LOW
+            NotificationManager.IMPORTANCE_LOW,
         ).apply {
             description = "Allows to display Pluvia foreground notifications"
             setShowBadge(false)
@@ -51,7 +51,7 @@ class NotificationHelper(private val context: Context) {
             Intent.ACTION_VIEW,
             "pluvia://home".toUri(),
             context,
-            MainActivity::class.java
+            MainActivity::class.java,
         ).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -60,7 +60,7 @@ class NotificationHelper(private val context: Context) {
             context,
             0,
             intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
         return NotificationCompat.Builder(context, CHANNEL_ID)
