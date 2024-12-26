@@ -39,12 +39,12 @@ import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
-import com.OxGames.Pluvia.ui.screen.HomeScreen
-import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.model.UserLoginViewModel
+import com.OxGames.Pluvia.ui.screen.HomeScreen
+import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen
 import com.OxGames.Pluvia.ui.screen.xserver.XServerScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
@@ -54,18 +54,18 @@ import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xserver.Window
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.AppProcessInfo
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.nio.file.Paths
 import java.util.Date
 import java.util.EnumSet
 import kotlin.io.path.name
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun PluviaMain(
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
 ) {
     val context = LocalContext.current
 
@@ -73,8 +73,8 @@ fun PluviaMain(
     var currentScreen by rememberSaveable {
         mutableStateOf(
             PluviaScreen.valueOf(
-                resettedScreen?.name ?: PluviaScreen.LoginUser.name
-            )
+                resettedScreen?.name ?: PluviaScreen.LoginUser.name,
+            ),
         )
     }
     var hasLaunched by rememberSaveable { mutableStateOf(false) }
@@ -170,7 +170,7 @@ fun PluviaMain(
                                 },
                                 onDismissRequest = {
                                     msgDialogState = MessageDialogState(visible = false)
-                                }
+                                },
                             )
                         }
                     }
@@ -189,7 +189,7 @@ fun PluviaMain(
                 navController.popBackStack(
                     route = PluviaScreen.LoginUser.name,
                     inclusive = false,
-                    saveState = false
+                    saveState = false,
                 )
             }
         }
@@ -230,6 +230,7 @@ fun PluviaMain(
             confirmBtnText = msgDialogState.confirmBtnText,
             onDismissClick = msgDialogState.onDismissClick,
             dismissBtnText = msgDialogState.dismissBtnText,
+            icon = msgDialogState.icon,
             title = msgDialogState.title,
             message = msgDialogState.message,
         )
@@ -243,13 +244,13 @@ fun PluviaMain(
             composable(route = PluviaScreen.LoginUser.name) {
                 val viewModel: UserLoginViewModel = viewModel()
                 UserLoginScreen(
-                    viewModel = viewModel
+                    viewModel = viewModel,
                 )
             }
             /** Library, Downloads, Friends **/
             composable(
                 route = PluviaScreen.Home.name,
-                deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" })
+                deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" }),
             ) {
                 val viewModel: HomeViewModel = viewModel()
                 HomeScreen(
@@ -269,7 +270,7 @@ fun PluviaMain(
                                 CoroutineScope(Dispatchers.Main).launch {
                                     navController.navigate(PluviaScreen.XServer.name)
                                 }
-                            }
+                            },
                         )
                     },
                     onSettings = {
@@ -317,14 +318,14 @@ fun PluviaMain(
                                         AppProcessInfo(
                                             processId,
                                             parentProcessId,
-                                            false
+                                            false,
                                         )
                                     } else {
                                         parentWindow = null
                                         AppProcessInfo(
                                             currentWindow.processId,
                                             steamProcessId,
-                                            true
+                                            true,
                                         )
                                     }
                                     processes.add(process)
@@ -333,8 +334,8 @@ fun PluviaMain(
                                 SteamService.notifyRunningProcesses(
                                     GameProcessInfo(
                                         appId = appId,
-                                        processes = processes
-                                    )
+                                        processes = processes,
+                                    ),
                                 )
                             }
                         }
@@ -346,7 +347,7 @@ fun PluviaMain(
                                 PathType.from(prefix).toAbsPath(context, appId)
                             }.await()
                         }
-                    }
+                    },
                 )
             }
 
@@ -355,7 +356,7 @@ fun PluviaMain(
                 SettingsScreen(
                     onBack = {
                         navController.navigateUp()
-                    }
+                    },
                 )
             }
         }
@@ -417,95 +418,109 @@ fun launchApp(
 
         when (postSyncInfo.syncResult) {
             SyncResult.Conflict -> {
-                setMessageDialogState(MessageDialogState(
-                    visible = true,
-                    title = "Save Conflict",
-                    message = "There is a new remote save and a new local save, which would you " +
+                setMessageDialogState(
+                    MessageDialogState(
+                        visible = true,
+                        title = "Save Conflict",
+                        message = "There is a new remote save and a new local save, which would you " +
                             "like to keep?\n\nLocal save:\n\t${Date(postSyncInfo.localTimestamp)}" +
                             "\nRemote save:\n\t${Date(postSyncInfo.remoteTimestamp)}",
-                    dismissBtnText = "Keep local",
-                    confirmBtnText = "Keep remote",
-                    onConfirmClick = {
-                        launchApp(
-                            context = context,
-                            appId = appId,
-                            preferredSave = SaveLocation.Remote,
-                            setLoadingDialogVisible = setLoadingDialogVisible,
-                            setLoadingProgress = setLoadingProgress,
-                            setMessageDialogState = setMessageDialogState,
-                            onSuccess = onSuccess,
-                        )
-                        setMessageDialogState(MessageDialogState(false))
-                    },
-                    onDismissClick = {
-                        launchApp(
-                            context = context,
-                            appId = appId,
-                            preferredSave = SaveLocation.Local,
-                            setLoadingDialogVisible = setLoadingDialogVisible,
-                            setLoadingProgress = setLoadingProgress,
-                            setMessageDialogState = setMessageDialogState,
-                            onSuccess = onSuccess,
-                        )
-                        setMessageDialogState(MessageDialogState(false))
-                    },
-                    onDismissRequest = {
-                        setMessageDialogState(MessageDialogState(false))
-                    },
-                ))
+                        dismissBtnText = "Keep local",
+                        confirmBtnText = "Keep remote",
+                        onConfirmClick = {
+                            launchApp(
+                                context = context,
+                                appId = appId,
+                                preferredSave = SaveLocation.Remote,
+                                setLoadingDialogVisible = setLoadingDialogVisible,
+                                setLoadingProgress = setLoadingProgress,
+                                setMessageDialogState = setMessageDialogState,
+                                onSuccess = onSuccess,
+                            )
+                            setMessageDialogState(MessageDialogState(false))
+                        },
+                        onDismissClick = {
+                            launchApp(
+                                context = context,
+                                appId = appId,
+                                preferredSave = SaveLocation.Local,
+                                setLoadingDialogVisible = setLoadingDialogVisible,
+                                setLoadingProgress = setLoadingProgress,
+                                setMessageDialogState = setMessageDialogState,
+                                onSuccess = onSuccess,
+                            )
+                            setMessageDialogState(MessageDialogState(false))
+                        },
+                        onDismissRequest = {
+                            setMessageDialogState(MessageDialogState(false))
+                        },
+                    ),
+                )
             }
+
             SyncResult.InProgress,
             SyncResult.UnknownFail,
             SyncResult.DownloadFail,
-            SyncResult.UpdateFail -> {
-                setMessageDialogState(MessageDialogState(
-                    visible = true,
-                    title = "Sync Error",
-                    message = "Failed to sync save files: ${postSyncInfo.syncResult}",
-                    dismissBtnText = "Ok",
-                    onDismissClick = {
-                        setMessageDialogState(MessageDialogState(false))
-                    },
-                    onDismissRequest = {
-                        setMessageDialogState(MessageDialogState(false))
-                    },
-                ))
+            SyncResult.UpdateFail,
+            -> {
+                setMessageDialogState(
+                    MessageDialogState(
+                        visible = true,
+                        title = "Sync Error",
+                        message = "Failed to sync save files: ${postSyncInfo.syncResult}",
+                        dismissBtnText = "Ok",
+                        onDismissClick = {
+                            setMessageDialogState(MessageDialogState(false))
+                        },
+                        onDismissRequest = {
+                            setMessageDialogState(MessageDialogState(false))
+                        },
+                    ),
+                )
             }
+
             SyncResult.PendingOperations -> {
-                Log.d("PluviaMain", "Pending remote operations:${
-                    postSyncInfo.pendingRemoteOperations.map { pro ->
-                        "\n\tmachineName: ${pro.machineName}" +
-                        "\n\ttimestamp: ${Date(pro.timeLastUpdated * 1000L)}" +
-                        "\n\toperation: ${pro.operation}"
-                    }.joinToString("\n")
-                }")
+                Log.d(
+                    "PluviaMain",
+                    "Pending remote operations:${
+                        postSyncInfo.pendingRemoteOperations.map { pro ->
+                            "\n\tmachineName: ${pro.machineName}" +
+                                "\n\ttimestamp: ${Date(pro.timeLastUpdated * 1000L)}" +
+                                "\n\toperation: ${pro.operation}"
+                        }.joinToString("\n")
+                    }",
+                )
                 if (postSyncInfo.pendingRemoteOperations.size == 1) {
                     val pro = postSyncInfo.pendingRemoteOperations.first()
                     when (pro.operation) {
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationUploadInProgress -> {
                             // maybe this should instead wait for the upload to finish and then
                             // launch the app
-                            setMessageDialogState(MessageDialogState(
-                                visible = true,
-                                title = "Upload in Progress",
-                                message = "You played ${SteamService.getAppInfoOf(appId)?.name} " +
+                            setMessageDialogState(
+                                MessageDialogState(
+                                    visible = true,
+                                    title = "Upload in Progress",
+                                    message = "You played ${SteamService.getAppInfoOf(appId)?.name} " +
                                         "on the device ${pro.machineName} " +
                                         "(${Date(pro.timeLastUpdated * 1000L)}) and the save of " +
                                         "that session is still uploading.\nTry again later.",
-                                dismissBtnText = "Ok",
-                                onDismissClick = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                                onDismissRequest = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                            ))
+                                    dismissBtnText = "Ok",
+                                    onDismissClick = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                    onDismissRequest = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                ),
+                            )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationUploadPending -> {
-                            setMessageDialogState(MessageDialogState(
-                                visible = true,
-                                title = "Pending Upload",
-                                message = "You played " +
+                            setMessageDialogState(
+                                MessageDialogState(
+                                    visible = true,
+                                    title = "Pending Upload",
+                                    message = "You played " +
                                         "${SteamService.getAppInfoOf(appId)?.name} " +
                                         "on the device ${pro.machineName} " +
                                         "(${Date(pro.timeLastUpdated * 1000L)}), " +
@@ -514,110 +529,124 @@ fun launchApp(
                                         "this game, but that may create a conflict " +
                                         "when your previous game progress " +
                                         "successfully uploads.",
-                                confirmBtnText = "Play anyway",
-                                dismissBtnText = "Cancel",
-                                onConfirmClick = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                    launchApp(
-                                        context = context,
-                                        appId = appId,
-                                        ignorePendingOperations = true,
-                                        setLoadingDialogVisible = setLoadingDialogVisible,
-                                        setLoadingProgress = setLoadingProgress,
-                                        setMessageDialogState = setMessageDialogState,
-                                        onSuccess = onSuccess,
-                                    )
-                                },
-                                onDismissClick = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                                onDismissRequest = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                            ))
+                                    confirmBtnText = "Play anyway",
+                                    dismissBtnText = "Cancel",
+                                    onConfirmClick = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                        launchApp(
+                                            context = context,
+                                            appId = appId,
+                                            ignorePendingOperations = true,
+                                            setLoadingDialogVisible = setLoadingDialogVisible,
+                                            setLoadingProgress = setLoadingProgress,
+                                            setMessageDialogState = setMessageDialogState,
+                                            onSuccess = onSuccess,
+                                        )
+                                    },
+                                    onDismissClick = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                    onDismissRequest = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                ),
+                            )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionActive -> {
-                            setMessageDialogState(MessageDialogState(
-                                visible = true,
-                                title = "App Running",
-                                message = "You are logged in on another device (${pro.machineName}) " +
+                            setMessageDialogState(
+                                MessageDialogState(
+                                    visible = true,
+                                    title = "App Running",
+                                    message = "You are logged in on another device (${pro.machineName}) " +
                                         "already playing ${SteamService.getAppInfoOf(appId)?.name} " +
                                         "(${Date(pro.timeLastUpdated * 1000L)}), and that save " +
                                         "is not yet in the cloud. \nYou can still play this game, " +
                                         "but that will disconnect the other session from Steam " +
                                         "and may create a save conflict when that session " +
                                         "progress is synced",
-                                confirmBtnText = "Play anyway",
-                                dismissBtnText = "Cancel",
-                                onConfirmClick = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                    launchApp(
-                                        context = context,
-                                        appId = appId,
-                                        ignorePendingOperations = true,
-                                        setLoadingDialogVisible = setLoadingDialogVisible,
-                                        setLoadingProgress = setLoadingProgress,
-                                        setMessageDialogState = setMessageDialogState,
-                                        onSuccess = onSuccess,
-                                    )
-                                },
-                                onDismissClick = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                                onDismissRequest = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                            ))
+                                    confirmBtnText = "Play anyway",
+                                    dismissBtnText = "Cancel",
+                                    onConfirmClick = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                        launchApp(
+                                            context = context,
+                                            appId = appId,
+                                            ignorePendingOperations = true,
+                                            setLoadingDialogVisible = setLoadingDialogVisible,
+                                            setLoadingProgress = setLoadingProgress,
+                                            setMessageDialogState = setMessageDialogState,
+                                            onSuccess = onSuccess,
+                                        )
+                                    },
+                                    onDismissClick = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                    onDismissRequest = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                ),
+                            )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationAppSessionSuspended -> {
                             // I don't know what this means, yet
-                            setMessageDialogState(MessageDialogState(
-                                visible = true,
-                                title = "Sync Error",
-                                message = "App session suspended",
-                                dismissBtnText = "Ok",
-                                onDismissClick = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                                onDismissRequest = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                            ))
+                            setMessageDialogState(
+                                MessageDialogState(
+                                    visible = true,
+                                    title = "Sync Error",
+                                    message = "App session suspended",
+                                    dismissBtnText = "Ok",
+                                    onDismissClick = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                    onDismissRequest = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                ),
+                            )
                         }
+
                         ECloudPendingRemoteOperation.k_ECloudPendingRemoteOperationNone -> {
                             // why are we here
-                            setMessageDialogState(MessageDialogState(
-                                visible = true,
-                                title = "Sync Error",
-                                message = "Received pending remote operations whose operation was 'none'",
-                                dismissBtnText = "Ok",
-                                onDismissClick = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                                onDismissRequest = {
-                                    setMessageDialogState(MessageDialogState(false))
-                                },
-                            ))
+                            setMessageDialogState(
+                                MessageDialogState(
+                                    visible = true,
+                                    title = "Sync Error",
+                                    message = "Received pending remote operations whose operation was 'none'",
+                                    dismissBtnText = "Ok",
+                                    onDismissClick = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                    onDismissRequest = {
+                                        setMessageDialogState(MessageDialogState(false))
+                                    },
+                                ),
+                            )
                         }
                     }
                 } else {
                     // this should probably be handled differently
-                    setMessageDialogState(MessageDialogState(
-                        visible = true,
-                        title = "Sync Error",
-                        message = "Multiple pending remote operations, try again later",
-                        dismissBtnText = "Ok",
-                        onDismissClick = {
-                            setMessageDialogState(MessageDialogState(false))
-                        },
-                        onDismissRequest = {
-                            setMessageDialogState(MessageDialogState(false))
-                        },
-                    ))
+                    setMessageDialogState(
+                        MessageDialogState(
+                            visible = true,
+                            title = "Sync Error",
+                            message = "Multiple pending remote operations, try again later",
+                            dismissBtnText = "Ok",
+                            onDismissClick = {
+                                setMessageDialogState(MessageDialogState(false))
+                            },
+                            onDismissRequest = {
+                                setMessageDialogState(MessageDialogState(false))
+                            },
+                        ),
+                    )
                 }
             }
+
             SyncResult.UpToDate,
-            SyncResult.Success -> onSuccess()
+            SyncResult.Success,
+            -> onSuccess()
         }
     }
 }

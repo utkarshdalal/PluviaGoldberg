@@ -5,5 +5,5 @@ package com.OxGames.Pluvia.ui.component.fabmenu.state
  */
 enum class FloatingActionMenuValue {
     Open,
-    Closed
+    Closed,
 }

@@ -50,7 +50,7 @@ fun TwoFactorAuthScreenContent(
             .height(IntrinsicSize.Max)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        verticalArrangement = Arrangement.Center,
     ) {
         Text(text = message, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(16.dp))
@@ -67,7 +67,7 @@ fun TwoFactorAuthScreenContent(
             ElevatedButton(
                 enabled = userLoginState.twoFactorCode.length == 5,
                 onClick = onLogin,
-                content = { Text(text = "Login") }
+                content = { Text(text = "Login") },
             )
         }
     }
@@ -77,7 +77,7 @@ fun TwoFactorAuthScreenContent(
 @Composable
 private fun TwoFactorTextField(
     twoFactorText: String,
-    onTwoFactorTextChange: (String) -> Unit
+    onTwoFactorTextChange: (String) -> Unit,
 ) {
     val focusRequester = remember { FocusRequester() }
 
@@ -95,8 +95,8 @@ private fun TwoFactorTextField(
         singleLine = true,
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Done
-        )
+            imeAction = ImeAction.Done,
+        ),
     )
 }
 
@@ -112,7 +112,7 @@ internal class TwoFactorPreview : PreviewParameterProvider<UserLoginState> {
 @Preview
 @Composable
 private fun Preview_TwoFactorAuthScreen(
-    @PreviewParameter(TwoFactorPreview::class) state: UserLoginState
+    @PreviewParameter(TwoFactorPreview::class) state: UserLoginState,
 ) {
     var currentState by remember { mutableStateOf(state) }
     PluviaTheme(darkTheme = true) {
@@ -128,7 +128,7 @@ private fun Preview_TwoFactorAuthScreen(
                         LoginResult.DeviceConfirm -> stringResource(R.string.steam_2fa_confirmation)
                         LoginResult.EmailAuth -> stringResource(
                             R.string.steam_2fa_email,
-                            "pluvia@email.com"
+                            "pluvia@email.com",
                         )
 
                         else -> "???"

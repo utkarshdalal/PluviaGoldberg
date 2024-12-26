@@ -1,0 +1,22 @@
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Rules: https://pinterest.github.io/ktlint/latest/
+max_line_length = 140
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ktlint_code_style = android_studio
+ktlint_function_naming_ignore_when_annotated_with = Composable
+ktlint_standard_argument-list-wrapping = disabled
+ktlint_standard_backing-property-naming = disabled
+ktlint_standard_class-signature = disabled
+ktlint_standard_enum-entry-name-case = disabled
+ktlint_standard_function-expression-body = disabled
+ktlint_standard_function-signature = disabled
+ktlint_standard_no-blank-line-in-list = disabled
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_package-name = disabled

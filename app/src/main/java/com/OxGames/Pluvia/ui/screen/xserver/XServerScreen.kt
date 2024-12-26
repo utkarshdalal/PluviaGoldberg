@@ -29,7 +29,6 @@ import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.XServerState
-import com.OxGames.Pluvia.utils.logD
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.core.AppUtils
@@ -69,14 +68,14 @@ import com.winlator.xserver.ScreenInfo
 import com.winlator.xserver.Window
 import com.winlator.xserver.WindowManager
 import com.winlator.xserver.XServer
+import java.io.File
+import java.nio.file.Paths
+import kotlin.io.path.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.File
-import java.nio.file.Paths
-import kotlin.io.path.name
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -96,7 +95,7 @@ fun XServerScreen(
     PluviaApp.events.emit(AndroidEvent.SetAppBarVisibility(false))
     PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(false))
     PluviaApp.events.emit(
-        AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation)
+        AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation),
     )
 
     val imageFs by remember { mutableStateOf(ImageFs.find(context)) }
@@ -190,7 +189,6 @@ fun XServerScreen(
             Log.d("ProcessOutput", outputLine ?: "")
         }
 
-
         PluviaApp.events.on<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
         PluviaApp.events.on<AndroidEvent.KeyEvent, Boolean>(onKeyEvent)
         PluviaApp.events.on<AndroidEvent.MotionEvent, Boolean>(onMotionEvent)
@@ -235,7 +233,7 @@ fun XServerScreen(
                 graphicsDriver = container.graphicsDriver,
                 audioDriver = container.audioDriver,
                 dxwrapper = container.dxWrapper,
-                screenSize = container.screenSize
+                screenSize = container.screenSize,
             )
             var dxwrapperConfigRaw = container.dxWrapperConfig
 
@@ -252,24 +250,35 @@ fun XServerScreen(
             //     if (!dinputMapperType.isEmpty()) xServer.winHandler.dInputMapperType = dinputMapperType.toByte()
             // }
 
-            val parsedConfig = if (xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER) DXVKHelper.parseConfig(dxwrapperConfigRaw) else null
+            val parsedConfig = if (xServerState.value.dxwrapper ==
+                Container.DEFAULT_DXWRAPPER
+            ) {
+                DXVKHelper.parseConfig(dxwrapperConfigRaw)
+            } else {
+                null
+            }
             xServerState.value = xServerState.value.copy(dxwrapperConfig = parsedConfig)
             // xServerViewModel.setDxwrapperConfig(parsedConfig)
             // Log.d("XServerScreen", "dxwrapperConfig is ${xServerState.value.dxwrapperConfig} based on container dxWrapper of ${container.dxWrapper} which now in xServerState is ${xServerState.value.dxwrapper} and when checked against ${Container.DEFAULT_DXWRAPPER} if is equal is ${xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER} and so when parsed is $parsedConfig")
 
             xServerState.value.onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
-                object: OnExtractFileListener {
+                object : OnExtractFileListener {
                     override fun onExtractFile(destination: File?, size: Long): File? {
                         return destination?.path?.let {
-                            if (it.contains("system32/")) null
-                            else File(it.replace("syswow64/", "system32/"))
+                            if (it.contains("system32/")) {
+                                null
+                            } else {
+                                File(it.replace("syswow64/", "system32/"))
+                            }
                         }
                     }
                 }
-            } else { null }
+            } else {
+                null
+            }
         }
 
-        xServer.windowManager.addOnWindowModificationListener(object: WindowManager.OnWindowModificationListener {
+        xServer.windowManager.addOnWindowModificationListener(object : WindowManager.OnWindowModificationListener {
             override fun onUpdateWindowContent(window: Window) {
                 // Log.d("XServerScreen", "onUpdateWindowContent:" +
                 //     "\n\twindowName: ${window.name}" +
@@ -329,8 +338,7 @@ fun XServerScreen(
                 Log.d("XServerScreen", "PointerInteropFilter:\n\t$it")
                 touchMouse?.onTouchEvent(it)
                 true
-            }
-        ,
+            },
         factory = { context ->
             // Creates view
             Log.d("XServerScreen", "Creating XServerView")
@@ -384,68 +392,68 @@ fun XServerScreen(
             //     view.removePointerEventListener(pointerEventListener)
             //     view.onRelease()
             // }
-        }
+        },
     )
 
     // var settingUpContainer by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(lifecycleOwner) {
         // if (!settingUpContainer) {
         //     settingUpContainer = true
-            Log.d("XServerScreen", "Doing things once")
-            CoroutineScope(Dispatchers.IO).launch {
-                // withTimeout(10000L) {
-                //     while (isActive && xServerView == null) {
-                //         delay(100)
-                //     }
-                // }
-                // Log.d("XServerScreen", "Got xServerView")
+        Log.d("XServerScreen", "Doing things once")
+        CoroutineScope(Dispatchers.IO).launch {
+            // withTimeout(10000L) {
+            //     while (isActive && xServerView == null) {
+            //         delay(100)
+            //     }
+            // }
+            // Log.d("XServerScreen", "Got xServerView")
 
-                // setupUI()
+            // setupUI()
 
-                val containerManager = ContainerManager(context)
-                val container = containerManager.getContainerById(containerId)
-                if (!generateWinePrefix) {
-                    setupWineSystemFiles(
-                        context,
-                        firstTimeBoot,
-                        xServer,
-                        xServerState,
-                        // xServerViewModel,
-                        container!!,
-                        containerManager,
-                        // xServerState.value.shortcut,
-                        envVars,
-                        imageFs,
-                        xServerState.value.onExtractFileListener
-                    )
-                    extractGraphicsDriverFiles(
-                        context,
-                        xServerState.value.graphicsDriver,
-                        xServerState.value.dxwrapper,
-                        xServerState.value.dxwrapperConfig!!,
-                        container,
-                        imageFs,
-                        envVars
-                    )
-                    changeWineAudioDriver(xServerState.value.audioDriver, container, imageFs)
-                }
-                xEnvironment = setupXEnvironment(
+            val containerManager = ContainerManager(context)
+            val container = containerManager.getContainerById(containerId)
+            if (!generateWinePrefix) {
+                setupWineSystemFiles(
                     context,
-                    appId,
-                    bootToContainer,
-                    xServerState,
-                    envVars,
-                    generateWinePrefix,
-                    container,
-                    appLaunchInfo,
-                    // xServerState.value.shortcut,
+                    firstTimeBoot,
                     xServer,
+                    xServerState,
+                    // xServerViewModel,
+                    container!!,
+                    containerManager,
+                    // xServerState.value.shortcut,
+                    envVars,
                     imageFs,
+                    xServerState.value.onExtractFileListener,
                 )
-
-                // xServerView!!.onResume()
-                // xEnvironment!!.onResume()
+                extractGraphicsDriverFiles(
+                    context,
+                    xServerState.value.graphicsDriver,
+                    xServerState.value.dxwrapper,
+                    xServerState.value.dxwrapperConfig!!,
+                    container,
+                    imageFs,
+                    envVars,
+                )
+                changeWineAudioDriver(xServerState.value.audioDriver, container, imageFs)
             }
+            xEnvironment = setupXEnvironment(
+                context,
+                appId,
+                bootToContainer,
+                xServerState,
+                envVars,
+                generateWinePrefix,
+                container,
+                appLaunchInfo,
+                // xServerState.value.shortcut,
+                xServer,
+                imageFs,
+            )
+
+            // xServerView!!.onResume()
+            // xEnvironment!!.onResume()
+        }
         // }
     }
 }
@@ -454,7 +462,7 @@ private fun assignTaskAffinity(
     window: Window,
     winHandler: WinHandler,
     taskAffinityMask: Int,
-    taskAffinityMaskWoW64: Int
+    taskAffinityMaskWoW64: Int,
 ) {
     if (taskAffinityMask == 0) return
     val processId = window.getProcessId()
@@ -463,8 +471,7 @@ private fun assignTaskAffinity(
 
     if (processId > 0) {
         winHandler.setProcessAffinity(processId, processAffinity)
-    }
-    else if (!className.isEmpty()) {
+    } else if (!className.isEmpty()) {
         winHandler.setProcessAffinity(window.getClassName(), processAffinity)
     }
 }
@@ -535,9 +542,9 @@ private fun setupXEnvironment(
     envVars.put("MESA_NO_ERROR", "1")
     envVars.put("WINEPREFIX", ImageFs.WINEPREFIX)
 
-    val enableWineDebug = true //preferences.getBoolean("enable_wine_debug", false)
+    val enableWineDebug = true // preferences.getBoolean("enable_wine_debug", false)
     val wineDebugChannels = PrefManager.getString("wine_debug_channels", DEFAULT_WINE_DEBUG_CHANNELS)!!
-    envVars.put("WINEDEBUG", if (enableWineDebug && !wineDebugChannels.isEmpty()) "+"+wineDebugChannels.replace(",", ",+") else "-all")
+    envVars.put("WINEDEBUG", if (enableWineDebug && !wineDebugChannels.isEmpty()) "+" + wineDebugChannels.replace(",", ",+") else "-all")
 
     val rootPath = imageFs.rootDir.path
     FileUtils.clear(imageFs.tmpDir)
@@ -548,7 +555,9 @@ private fun setupXEnvironment(
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
 
         val wow64Mode = container.isWoW64Mode
-        val guestExecutable = xServerState.value.wineInfo.getExecutable(context, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+ getWineStartCommand(container, bootToContainer, appLaunchInfo)
+        val guestExecutable =
+            xServerState.value.wineInfo.getExecutable(context, wow64Mode) + " explorer /desktop=shell," + xServer.screenInfo + " " +
+                getWineStartCommand(container, bootToContainer, appLaunchInfo)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
@@ -581,8 +590,7 @@ private fun setupXEnvironment(
         envVars.put("ANDROID_ALSA_SERVER", UnixSocketConfig.ALSA_SERVER_PATH)
         envVars.put("ANDROID_ASERVER_USE_SHM", "true")
         environment.addComponent(ALSAServerComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.ALSA_SERVER_PATH)))
-    }
-    else if (xServerState.value.audioDriver == "pulseaudio") {
+    } else if (xServerState.value.audioDriver == "pulseaudio") {
         envVars.put("PULSE_SERVER", UnixSocketConfig.PULSE_SERVER_PATH)
         environment.addComponent(PulseAudioComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.PULSE_SERVER_PATH)))
     }
@@ -597,14 +605,15 @@ private fun setupXEnvironment(
     }
     environment.addComponent(guestProgramLauncherComponent)
 
-    if (generateWinePrefix)
+    if (generateWinePrefix) {
         generateWineprefix(
             context,
             imageFs,
             xServerState.value.wineInfo,
             envVars,
-            environment
+            environment,
         )
+    }
     environment.startEnvironmentComponents()
 
     xServer.winHandler.start()
@@ -616,7 +625,7 @@ private fun setupXEnvironment(
 private fun getWineStartCommand(
     container: Container,
     bootToContainer: Boolean,
-    appLaunchInfo: LaunchInfo?
+    appLaunchInfo: LaunchInfo?,
 ): String {
     val tempDir = File(container.rootDir, ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
@@ -666,7 +675,7 @@ private fun generateWineprefix(
     imageFs: ImageFs,
     wineInfo: WineInfo,
     envVars: EnvVars,
-    environment: XEnvironment
+    environment: XEnvironment,
 ) {
     // Intent intent = getIntent()
     // public static final @IntRange(from = 1, to = 19) byte CONTAINER_PATTERN_COMPRESSION_LEVEL = 9
@@ -686,55 +695,59 @@ private fun generateWineprefix(
 
     val linkFile = File(rootDir, ImageFs.HOME_PATH)
     linkFile.delete()
-    FileUtils.symlink(".."+FileUtils.toRelativePath(rootDir.path, containerPatternDir.path), linkFile.path)
+    FileUtils.symlink(".." + FileUtils.toRelativePath(rootDir.path, containerPatternDir.path), linkFile.path)
 
-    val guestProgramLauncherComponent = environment.getComponent(GuestProgramLauncherComponent :: class.java)
-    guestProgramLauncherComponent.guestExecutable = wineInfo.getExecutable(context, false)+" explorer /desktop=shell,"+Container.DEFAULT_SCREEN_SIZE+" winecfg"
+    val guestProgramLauncherComponent = environment.getComponent(GuestProgramLauncherComponent::class.java)
+    guestProgramLauncherComponent.guestExecutable =
+        wineInfo.getExecutable(context, false) + " explorer /desktop=shell," + Container.DEFAULT_SCREEN_SIZE + " winecfg"
 
     // val preloaderDialog = PreloaderDialog(context)
-    guestProgramLauncherComponent.terminationCallback = (object: Callback<Int> {
-        override fun call(status: Int) {
-            CoroutineScope(Dispatchers.IO).launch {
-                if (status > 0) {
-                    // AppUtils.showToast(context, R.string.unable_to_install_wine)
-                    FileUtils.delete(File(installedWineDir, "/preinstall"))
-                    AppUtils.restartApplication(context)
-                    return@launch
-                }
+    guestProgramLauncherComponent.terminationCallback = (
+        object : Callback<Int> {
+            override fun call(status: Int) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    if (status > 0) {
+                        // AppUtils.showToast(context, R.string.unable_to_install_wine)
+                        FileUtils.delete(File(installedWineDir, "/preinstall"))
+                        AppUtils.restartApplication(context)
+                        return@launch
+                    }
 
-                // preloaderDialog.showOnUiThread(R.string.finishing_installation)
-                // TODO: show loading modal
-                FileUtils.writeString(File(rootDir, ImageFs.WINEPREFIX+"/.update-timestamp"), "disable\n")
+                    // preloaderDialog.showOnUiThread(R.string.finishing_installation)
+                    // TODO: show loading modal
+                    FileUtils.writeString(File(rootDir, ImageFs.WINEPREFIX + "/.update-timestamp"), "disable\n")
 
-                val userDir = File(rootDir, ImageFs.WINEPREFIX+"/drive_c/users/xuser")
-                val userFiles = userDir.listFiles()
-                if (userFiles != null) {
-                    for (userFile in userFiles) {
-                        if (FileUtils.isSymlink(userFile)) {
-                            val path = userFile.path
-                            userFile.delete()
-                            File(path).mkdirs()
+                    val userDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/users/xuser")
+                    val userFiles = userDir.listFiles()
+                    if (userFiles != null) {
+                        for (userFile in userFiles) {
+                            if (FileUtils.isSymlink(userFile)) {
+                                val path = userFile.path
+                                userFile.delete()
+                                File(path).mkdirs()
+                            }
                         }
                     }
+
+                    val suffix = wineInfo.fullVersion() + "-" + wineInfo.arch
+                    val containerPatternFile = File(installedWineDir, "/preinstall/container-pattern-$suffix.tzst")
+                    TarCompressorUtils.compress(TarCompressorUtils.Type.ZSTD, File(rootDir, ImageFs.WINEPREFIX), containerPatternFile, CONTAINER_PATTERN_COMPRESSION_LEVEL)
+
+                    if (!containerPatternFile.renameTo(File(installedWineDir, containerPatternFile.getName())) ||
+                        !(File(wineInfo.path)).renameTo(File(installedWineDir, wineInfo.identifier()))
+                    ) {
+                        containerPatternFile.delete()
+                    }
+
+                    FileUtils.delete(File(installedWineDir, "/preinstall"))
+
+                    // preloaderDialog.closeOnUiThread()
+                    // TODO: put away loading modal
+                    // AppUtils.restartApplication(context, R.id.main_menu_settings)
                 }
-
-                val suffix = wineInfo.fullVersion()+"-"+wineInfo.arch
-                val containerPatternFile = File(installedWineDir, "/preinstall/container-pattern-$suffix.tzst")
-                TarCompressorUtils.compress(TarCompressorUtils.Type.ZSTD, File(rootDir, ImageFs.WINEPREFIX), containerPatternFile, CONTAINER_PATTERN_COMPRESSION_LEVEL)
-
-                if (!containerPatternFile.renameTo(File(installedWineDir, containerPatternFile.getName())) ||
-                        !(File(wineInfo.path)).renameTo(File(installedWineDir, wineInfo.identifier()))) {
-                    containerPatternFile.delete()
-                }
-
-                FileUtils.delete(File(installedWineDir, "/preinstall"))
-
-                // preloaderDialog.closeOnUiThread()
-                // TODO: put away loading modal
-                // AppUtils.restartApplication(context, R.id.main_menu_settings)
             }
         }
-    })
+        )
 }
 
 private fun setupWineSystemFiles(
@@ -748,7 +761,7 @@ private fun setupWineSystemFiles(
     // shortcut: Shortcut?,
     envVars: EnvVars,
     imageFs: ImageFs,
-    onExtractFileListener: OnExtractFileListener?
+    onExtractFileListener: OnExtractFileListener?,
 ) {
     val appVersion = AppUtils.getVersionCode(context).toString()
     val imgVersion = imageFs.getVersion().toString()
@@ -762,7 +775,11 @@ private fun setupWineSystemFiles(
     }
 
     // val dxwrapper = this.dxwrapper
-    if (xServerState.value.dxwrapper == "dxvk") xServerState.value = xServerState.value.copy(dxwrapper = "dxvk-"+xServerState.value.dxwrapperConfig?.get("version"))
+    if (xServerState.value.dxwrapper ==
+        "dxvk"
+    ) {
+        xServerState.value = xServerState.value.copy(dxwrapper = "dxvk-" + xServerState.value.dxwrapperConfig?.get("version"))
+    }
 
     if (xServerState.value.dxwrapper != container.getExtra("dxwrapper")) {
         extractDXWrapperFiles(context, firstTimeBoot, container, containerManager, xServerState.value.dxwrapper, imageFs, onExtractFileListener)
@@ -782,9 +799,9 @@ private fun setupWineSystemFiles(
     }
 
     val desktopTheme = container.desktopTheme
-    if ((desktopTheme+","+xServer.screenInfo) != container.getExtra("desktopTheme")) {
+    if ((desktopTheme + "," + xServer.screenInfo) != container.getExtra("desktopTheme")) {
         WineThemeManager.apply(context, WineThemeManager.ThemeInfo(desktopTheme), xServer.screenInfo)
-        container.putExtra("desktopTheme", desktopTheme+","+xServer.screenInfo)
+        container.putExtra("desktopTheme", desktopTheme + "," + xServer.screenInfo)
         containerDataChanged = true
     }
 
@@ -806,7 +823,7 @@ private fun applyGeneralPatches(
     container: Container,
     imageFs: ImageFs,
     wineInfo: WineInfo,
-    onExtractFileListener: OnExtractFileListener?
+    onExtractFileListener: OnExtractFileListener?,
 ) {
     val rootDir = imageFs.rootDir
     FileUtils.delete(File(rootDir, "/opt/apps"))
@@ -824,12 +841,13 @@ private fun extractDXWrapperFiles(
     containerManager: ContainerManager,
     dxwrapper: String,
     imageFs: ImageFs,
-    onExtractFileListener: OnExtractFileListener?
+    onExtractFileListener: OnExtractFileListener?,
 ) {
-    val dlls = arrayOf("d3d10.dll", "d3d10_1.dll", "d3d10core.dll", "d3d11.dll", "d3d12.dll", "d3d12core.dll", "d3d8.dll", "d3d9.dll", "dxgi.dll", "ddraw.dll")
+    val dlls =
+        arrayOf("d3d10.dll", "d3d10_1.dll", "d3d10core.dll", "d3d11.dll", "d3d12.dll", "d3d12core.dll", "d3d8.dll", "d3d9.dll", "dxgi.dll", "ddraw.dll")
     if (firstTimeBoot && dxwrapper != "vkd3d") cloneOriginalDllFiles(imageFs, *dlls)
     val rootDir = imageFs.rootDir
-    val windowsDir = File(rootDir, ImageFs.WINEPREFIX+"/drive_c/windows")
+    val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
 
     when (dxwrapper) {
         "wined3d" -> {
@@ -837,33 +855,40 @@ private fun extractDXWrapperFiles(
         }
         "cnc-ddraw" -> {
             restoreOriginalDllFiles(container, containerManager, imageFs, *dlls)
-            val assetDir = "dxwrapper/cnc-ddraw-"+DefaultVersion.CNC_DDRAW
-            val configFile = File(rootDir, ImageFs.WINEPREFIX+"/drive_c/ProgramData/cnc-ddraw/ddraw.ini")
+            val assetDir = "dxwrapper/cnc-ddraw-" + DefaultVersion.CNC_DDRAW
+            val configFile = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/ProgramData/cnc-ddraw/ddraw.ini")
             if (!configFile.isFile()) FileUtils.copy(context, "$assetDir/ddraw.ini", configFile)
-            val shadersDir = File(rootDir, ImageFs.WINEPREFIX+"/drive_c/ProgramData/cnc-ddraw/Shaders")
+            val shadersDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/ProgramData/cnc-ddraw/Shaders")
             FileUtils.delete(shadersDir)
             FileUtils.copy(context, "$assetDir/Shaders", shadersDir)
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context,
-                "$assetDir/ddraw.tzst", windowsDir, onExtractFileListener)
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD, context,
+                "$assetDir/ddraw.tzst", windowsDir, onExtractFileListener,
+            )
         }
         "vkd3d" -> {
             val dxvkVersions = context.resources.getStringArray(R.array.dxvk_version_entries)
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "dxwrapper/dxvk-"+(dxvkVersions[dxvkVersions.size-1])+".tzst", windowsDir, onExtractFileListener)
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "dxwrapper/vkd3d-"+DefaultVersion.VKD3D+".tzst", windowsDir, onExtractFileListener)
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD, context,
+                "dxwrapper/dxvk-" + (dxvkVersions[dxvkVersions.size - 1]) + ".tzst", windowsDir, onExtractFileListener,
+            )
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "dxwrapper/vkd3d-" + DefaultVersion.VKD3D + ".tzst", windowsDir, onExtractFileListener)
         }
         else -> {
             restoreOriginalDllFiles(container, containerManager, imageFs, "d3d12.dll", "d3d12core.dll", "ddraw.dll")
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context,
-                "dxwrapper/$dxwrapper.tzst", windowsDir, onExtractFileListener)
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "dxwrapper/d8vk-"+DefaultVersion.D8VK+".tzst", windowsDir, onExtractFileListener)
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD, context,
+                "dxwrapper/$dxwrapper.tzst", windowsDir, onExtractFileListener,
+            )
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "dxwrapper/d8vk-" + DefaultVersion.D8VK + ".tzst", windowsDir, onExtractFileListener)
         }
     }
 }
 private fun cloneOriginalDllFiles(imageFs: ImageFs, vararg dlls: String) {
     val rootDir = imageFs.rootDir
-    val cacheDir = File(rootDir, ImageFs.CACHE_PATH+"/original_dlls")
+    val cacheDir = File(rootDir, ImageFs.CACHE_PATH + "/original_dlls")
     if (!cacheDir.isDirectory()) cacheDir.mkdirs()
-    val windowsDir = File(rootDir, ImageFs.WINEPREFIX+"/drive_c/windows")
+    val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
     val dirnames = arrayOf("system32", "syswow64")
 
     for (dll in dlls) {
@@ -877,12 +902,12 @@ private fun restoreOriginalDllFiles(
     container: Container,
     containerManager: ContainerManager,
     imageFs: ImageFs,
-    vararg dlls: String
+    vararg dlls: String,
 ) {
     val rootDir = imageFs.rootDir
-    val cacheDir = File(rootDir, ImageFs.CACHE_PATH+"/original_dlls")
+    val cacheDir = File(rootDir, ImageFs.CACHE_PATH + "/original_dlls")
     if (cacheDir.isDirectory()) {
-        val windowsDir = File(rootDir, ImageFs.WINEPREFIX+"/drive_c/windows")
+        val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
         val dirnames = cacheDir.list()
         var filesCopied = 0
 
@@ -899,17 +924,20 @@ private fun restoreOriginalDllFiles(
         if (filesCopied == dlls.size) return
     }
 
-    containerManager.extractContainerPatternFile(container.wineVersion, container.rootDir, object: OnExtractFileListener {
-        override fun onExtractFile(file: File, size: Long): File? {
-            val path = file.path
-            if (path.contains("system32/") || path.contains("syswow64/")) {
-                for (dll in dlls) {
-                    if (path.endsWith("system32/$dll") || path.endsWith("syswow64/$dll")) return file
+    containerManager.extractContainerPatternFile(
+        container.wineVersion, container.rootDir,
+        object : OnExtractFileListener {
+            override fun onExtractFile(file: File, size: Long): File? {
+                val path = file.path
+                if (path.contains("system32/") || path.contains("syswow64/")) {
+                    for (dll in dlls) {
+                        if (path.endsWith("system32/$dll") || path.endsWith("syswow64/$dll")) return file
+                    }
                 }
+                return null
             }
-            return null
-        }
-    })
+        },
+    )
 
     cloneOriginalDllFiles(imageFs, *dlls)
 }
@@ -920,11 +948,11 @@ private fun extractWinComponentFiles(
     container: Container,
     containerManager: ContainerManager,
     // shortcut: Shortcut?,
-    onExtractFileListener: OnExtractFileListener?
+    onExtractFileListener: OnExtractFileListener?,
 ) {
     val rootDir = imageFs.rootDir
-    val windowsDir = File(rootDir, ImageFs.WINEPREFIX+"/drive_c/windows")
-    val systemRegFile = File(rootDir, ImageFs.WINEPREFIX+"/system.reg")
+    val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
+    val systemRegFile = File(rootDir, ImageFs.WINEPREFIX + "/system.reg")
 
     try {
         val wincomponentsJSONObject = JSONObject(FileUtils.readString(context, "wincomponents/wincomponents.json"))
@@ -953,8 +981,10 @@ private fun extractWinComponentFiles(
             val useNative = wincomponent[1].equals("1")
 
             if (useNative) {
-                TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context,
-                    "wincomponents/$identifier.tzst", windowsDir, onExtractFileListener)
+                TarCompressorUtils.extract(
+                    TarCompressorUtils.Type.ZSTD, context,
+                    "wincomponents/$identifier.tzst", windowsDir, onExtractFileListener,
+                )
             } else {
                 val dlnames = wincomponentsJSONObject.getJSONArray(identifier)
                 for (i in 0 until dlnames.length()) {
@@ -984,10 +1014,9 @@ private fun extractGraphicsDriverFiles(
 ) {
     var cacheId = graphicsDriver
     if (graphicsDriver == "turnip") {
-        cacheId += "-"+DefaultVersion.TURNIP+"-"+DefaultVersion.ZINK
-    }
-    else if (graphicsDriver == "virgl") {
-        cacheId += "-"+DefaultVersion.VIRGL
+        cacheId += "-" + DefaultVersion.TURNIP + "-" + DefaultVersion.ZINK
+    } else if (graphicsDriver == "virgl") {
+        cacheId += "-" + DefaultVersion.VIRGL
     }
 
     val changed = cacheId != container.getExtra("graphicsDriver")
@@ -1005,8 +1034,9 @@ private fun extractGraphicsDriverFiles(
     if (graphicsDriver == "turnip") {
         if (dxwrapper == "dxvk") {
             DXVKHelper.setEnvVars(context, dxwrapperConfig, envVars)
+        } else if (dxwrapper == "vkd3d") {
+            envVars.put("VKD3D_FEATURE_LEVEL", "12_1")
         }
-        else if (dxwrapper == "vkd3d") envVars.put("VKD3D_FEATURE_LEVEL", "12_1")
 
         envVars.put("GALLIUM_DRIVER", "zink")
         envVars.put("TU_OVERRIDE_HEAP_SIZE", "4096")
@@ -1016,7 +1046,7 @@ private fun extractGraphicsDriverFiles(
         if (!GPUInformation.isAdreno6xx(context)) {
             val userEnvVars = EnvVars(container.envVars)
             val tuDebug = userEnvVars.get("TU_DEBUG")
-            if (!tuDebug.contains("sysmem")) userEnvVars.put("TU_DEBUG", (if (!tuDebug.isEmpty()) "$tuDebug," else "")+"sysmem")
+            if (!tuDebug.contains("sysmem")) userEnvVars.put("TU_DEBUG", (if (!tuDebug.isEmpty()) "$tuDebug," else "") + "sysmem")
             container.envVars = userEnvVars.toString()
         }
 
@@ -1027,29 +1057,32 @@ private fun extractGraphicsDriverFiles(
         }
 
         if (changed) {
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "graphics_driver/turnip-"+DefaultVersion.TURNIP+".tzst", rootDir)
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "graphics_driver/zink-"+DefaultVersion.ZINK+".tzst", rootDir)
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "graphics_driver/turnip-" + DefaultVersion.TURNIP + ".tzst", rootDir)
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "graphics_driver/zink-" + DefaultVersion.ZINK + ".tzst", rootDir)
         }
-    }
-    else if (graphicsDriver == "virgl") {
+    } else if (graphicsDriver == "virgl") {
         envVars.put("GALLIUM_DRIVER", "virpipe")
         envVars.put("VIRGL_NO_READBACK", "true")
         envVars.put("VIRGL_SERVER_PATH", UnixSocketConfig.VIRGL_SERVER_PATH)
         envVars.put("MESA_EXTENSION_OVERRIDE", "-GL_EXT_vertex_array_bgra")
         envVars.put("MESA_GL_VERSION_OVERRIDE", "3.1")
         envVars.put("vblank_mode", "0")
-        if (changed) TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "graphics_driver/virgl-"+DefaultVersion.VIRGL+".tzst", rootDir)
+        if (changed) {
+            TarCompressorUtils.extract(
+                TarCompressorUtils.Type.ZSTD, context,
+                "graphics_driver/virgl-" + DefaultVersion.VIRGL + ".tzst", rootDir,
+            )
+        }
     }
 }
 private fun changeWineAudioDriver(audioDriver: String, container: Container, imageFs: ImageFs) {
     if (audioDriver != container.getExtra("audioDriver")) {
         val rootDir = imageFs.rootDir
-        val userRegFile = File(rootDir, ImageFs.WINEPREFIX+"/user.reg")
+        val userRegFile = File(rootDir, ImageFs.WINEPREFIX + "/user.reg")
         WineRegistryEditor(userRegFile).use { registryEditor ->
             if (audioDriver == "alsa") {
                 registryEditor.setStringValue("Software\\Wine\\Drivers", "Audio", "alsa")
-            }
-            else if (audioDriver == "pulseaudio") {
+            } else if (audioDriver == "pulseaudio") {
                 registryEditor.setStringValue("Software\\Wine\\Drivers", "Audio", "pulse")
             }
         }

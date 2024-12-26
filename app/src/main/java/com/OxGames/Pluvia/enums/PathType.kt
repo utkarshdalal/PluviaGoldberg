@@ -18,7 +18,8 @@ enum class PathType {
     LinuxXdgConfigHome,
     MacHome,
     MacAppSupport,
-    None;
+    None,
+    ;
 
     /**
      * Turns a path type to a full path through the android system to the expected directory in
@@ -34,35 +35,35 @@ enum class PathType {
                 ImageFs.WINEPREFIX,
                 "/drive_c/users/",
                 ImageFs.USER,
-                "Documents/"
+                "Documents/",
             ).toString()
             WinAppDataLocal -> Paths.get(
                 ImageFs.find(context).rootDir.absolutePath,
                 ImageFs.WINEPREFIX,
                 "/drive_c/users/",
                 ImageFs.USER,
-                "AppData/Local/"
+                "AppData/Local/",
             ).toString()
             WinAppDataLocalLow -> Paths.get(
                 ImageFs.find(context).rootDir.absolutePath,
                 ImageFs.WINEPREFIX,
                 "/drive_c/users/",
                 ImageFs.USER,
-                "AppData/LocalLow/"
+                "AppData/LocalLow/",
             ).toString()
             WinAppDataRoaming -> Paths.get(
                 ImageFs.find(context).rootDir.absolutePath,
                 ImageFs.WINEPREFIX,
                 "/drive_c/users/",
                 ImageFs.USER,
-                "AppData/Roaming/"
+                "AppData/Roaming/",
             ).toString()
             WinSavedGames -> Paths.get(
                 ImageFs.find(context).rootDir.absolutePath,
                 ImageFs.WINEPREFIX,
                 "/drive_c/users/",
                 ImageFs.USER,
-                "Saved Games/"
+                "Saved Games/",
             ).toString()
             else -> {
                 Log.e("PathType", "Did not recognize or unsupported path type $this")
@@ -78,7 +79,8 @@ enum class PathType {
         WinAppDataLocal,
         WinAppDataLocalLow,
         WinAppDataRoaming,
-        WinSavedGames -> true
+        WinSavedGames,
+        -> true
         else -> false
     }
 
@@ -86,27 +88,38 @@ enum class PathType {
         fun from(keyValue: String?): PathType {
             return when (keyValue?.lowercase()) {
                 "%${GameInstall.name.lowercase()}%",
-                GameInstall.name.lowercase() -> GameInstall
+                GameInstall.name.lowercase(),
+                -> GameInstall
                 "%${WinMyDocuments.name.lowercase()}%",
-                WinMyDocuments.name.lowercase() -> WinMyDocuments
+                WinMyDocuments.name.lowercase(),
+                -> WinMyDocuments
                 "%${WinAppDataLocal.name.lowercase()}%",
-                WinAppDataLocal.name.lowercase() -> WinAppDataLocal
+                WinAppDataLocal.name.lowercase(),
+                -> WinAppDataLocal
                 "%${WinAppDataLocalLow.name.lowercase()}%",
-                WinAppDataLocalLow.name.lowercase() -> WinAppDataLocalLow
+                WinAppDataLocalLow.name.lowercase(),
+                -> WinAppDataLocalLow
                 "%${WinAppDataRoaming.name.lowercase()}%",
-                WinAppDataRoaming.name.lowercase() -> WinAppDataRoaming
+                WinAppDataRoaming.name.lowercase(),
+                -> WinAppDataRoaming
                 "%${WinSavedGames.name.lowercase()}%",
-                WinSavedGames.name.lowercase() -> WinSavedGames
+                WinSavedGames.name.lowercase(),
+                -> WinSavedGames
                 "%${LinuxHome.name.lowercase()}%",
-                LinuxHome.name.lowercase() -> LinuxHome
+                LinuxHome.name.lowercase(),
+                -> LinuxHome
                 "%${LinuxXdgDataHome.name.lowercase()}%",
-                LinuxXdgDataHome.name.lowercase() -> LinuxXdgDataHome
+                LinuxXdgDataHome.name.lowercase(),
+                -> LinuxXdgDataHome
                 "%${LinuxXdgConfigHome.name.lowercase()}%",
-                LinuxXdgConfigHome.name.lowercase() -> LinuxXdgConfigHome
+                LinuxXdgConfigHome.name.lowercase(),
+                -> LinuxXdgConfigHome
                 "%${MacHome.name.lowercase()}%",
-                MacHome.name.lowercase() -> MacHome
+                MacHome.name.lowercase(),
+                -> MacHome
                 "%${MacAppSupport.name.lowercase()}%",
-                MacAppSupport.name.lowercase() -> MacAppSupport
+                MacAppSupport.name.lowercase(),
+                -> MacAppSupport
                 else -> {
                     if (keyValue != null) {
                         Log.w("PathType", "Could not identify $keyValue as PathType")

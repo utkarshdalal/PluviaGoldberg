@@ -1,7 +1,6 @@
 package com.OxGames.Pluvia.ui.screen.settings
 
 import android.content.res.Configuration
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,24 +13,13 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import com.OxGames.Pluvia.BuildConfig
-import com.OxGames.Pluvia.PrefManager
-import com.OxGames.Pluvia.ui.component.dialog.OrientationDialog
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
-import com.alorma.compose.settings.ui.SettingsGroup
-import com.alorma.compose.settings.ui.SettingsMenuLink
-import kotlinx.coroutines.launch
 
-// See link for implementations
+// See link for implementation
 // https://github.com/alorma/Compose-Settings
 
 @Composable
@@ -39,7 +27,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
 ) {
     SettingsScreenContent(
-        onBack = onBack
+        onBack = onBack,
     )
 }
 
@@ -48,10 +36,8 @@ fun SettingsScreen(
 private fun SettingsScreenContent(
     onBack: () -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
     val snackBarHostState = remember { SnackbarHostState() }
     val scrollState = rememberScrollState()
-    val context = LocalContext.current
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
@@ -59,9 +45,7 @@ private fun SettingsScreenContent(
             CenterAlignedTopAppBar(
                 title = { Text(text = "Settings") },
                 navigationIcon = {
-                    BackButton {
-                        onBack()
-                    }
+                    BackButton(onClick = onBack)
                 },
             )
         },
@@ -70,42 +54,11 @@ private fun SettingsScreenContent(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
-                .verticalScroll(scrollState)
+                .verticalScroll(scrollState),
         ) {
-            // Once there are enough settings, they should be split into
-            // seperate (composable) classes, organized by group.
-            SettingsGroup(
-                title = { Text(text = "XServer") }
-            ) {
-                var orientationDialog by remember { mutableStateOf(false) }
-
-                OrientationDialog(
-                    openDialog = orientationDialog,
-                    onDismiss = { orientationDialog = false }
-                )
-
-                SettingsMenuLink(
-                    title = { Text(text = "Allowed Orientations") },
-                    subtitle = { Text(text = "Choose which orientations XServer can rotate.") },
-                    onClick = { orientationDialog = true }
-                )
-            }
-
-            if (BuildConfig.DEBUG) {
-                SettingsGroup(
-                    title = { Text(text = "Debug") }
-                ) {
-                    SettingsMenuLink(
-                        title = { Text(text = "Clear Preferences") },
-                        onClick = {
-                            scope.launch {
-                                PrefManager.clearPreferences()
-                                (context as ComponentActivity).finishAffinity()
-                            }
-                        }
-                    )
-                }
-            }
+            SettingsGroupXServer()
+            SettingsGroupInfo()
+            SettingsGroupDebug()
         }
     }
 }
@@ -115,7 +68,7 @@ private fun SettingsScreenContent(
 private fun Preview_SettingsScreen() {
     PluviaTheme {
         SettingsScreenContent(
-            onBack = {}
+            onBack = {},
         )
     }
 }

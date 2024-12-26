@@ -77,7 +77,7 @@ private fun DownloadsScreenContent(
             AnimatedPane {
                 DownloadsScreenDetail(value = value)
             }
-        }
+        },
     )
 }
 
@@ -95,9 +95,9 @@ private fun DownloadsScreenPane(
             CenterAlignedTopAppBar(
                 title = { Text(text = "Downloads") },
                 actions = { AccountButton(onSettings = onSettings) },
-                navigationIcon = { BackButton(onClick = onBack) }
+                navigationIcon = { BackButton(onClick = onBack) },
             )
-        }
+        },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -109,9 +109,9 @@ private fun DownloadsScreenPane(
                 Text("TODO Downloads View!")
                 OutlinedButton(
                     onClick = onClick,
-                    content = { Text("Click me!") }
+                    content = { Text("Click me!") },
                 )
-            }
+            },
         )
     }
 }
@@ -128,13 +128,14 @@ private fun DownloadsScreenDetail(value: Long) {
             } else {
                 Text("Hi Download $value")
             }
-        }
+        },
     )
 }
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
-@Preview(device = "spec:width=1920px,height=1080px,dpi=440",
-    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
+@Preview(
+    device = "spec:width=1920px,height=1080px,dpi=440",
+    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
 ) // Odin2 Mini
 @Composable
 private fun Preview_DownloadsScreenContent() {
@@ -142,7 +143,7 @@ private fun Preview_DownloadsScreenContent() {
         Surface {
             DownloadsScreenContent(
                 onBack = {},
-                onSettings = {}
+                onSettings = {},
             )
         }
     }

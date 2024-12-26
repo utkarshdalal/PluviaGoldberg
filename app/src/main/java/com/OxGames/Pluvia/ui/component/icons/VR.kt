@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
+@Suppress("UnusedReceiverParameter")
 val Icons.Filled.VR: ImageVector
     get() {
         if (vr != null) {
@@ -20,7 +21,7 @@ val Icons.Filled.VR: ImageVector
             defaultWidth = 24.0.dp,
             defaultHeight = 24.0.dp,
             viewportWidth = 36.0F,
-            viewportHeight = 36.0F
+            viewportHeight = 36.0F,
         ).materialPath {
             moveTo(11.45F, 26.5F)
             horizontalLineTo(7.625F)

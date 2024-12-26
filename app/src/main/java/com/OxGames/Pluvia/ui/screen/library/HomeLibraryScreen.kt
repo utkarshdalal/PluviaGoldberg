@@ -65,7 +65,7 @@ fun HomeLibraryScreen(
         fabState = fabState,
         onFabFilter = viewModel::onFabFilter,
         onClickPlay = onClickPlay,
-        onSettings = onSettings
+        onSettings = onSettings,
     )
 }
 
@@ -103,25 +103,25 @@ private fun LibraryScreenContent(
                         FloatingActionMenu(
                             state = fabState,
                             imageVector = Icons.Filled.FilterList,
-                            closeImageVector = Icons.Filled.Close
+                            closeImageVector = Icons.Filled.Close,
                         ) {
                             FloatingActionMenuItem(
                                 labelText = "Search",
                                 onClick = { onFabFilter(FabFilter.SEARCH) },
-                                content = { Icon(Icons.Filled.Search, "Search") }
+                                content = { Icon(Icons.Filled.Search, "Search") },
                             )
                             FloatingActionMenuItem(
                                 labelText = "Installed",
                                 onClick = { onFabFilter(FabFilter.INSTALLED) },
-                                content = { Icon(Icons.Filled.InstallMobile, "Installed") }
+                                content = { Icon(Icons.Filled.InstallMobile, "Installed") },
                             )
                             FloatingActionMenuItem(
                                 labelText = "Alphabetic",
                                 onClick = { onFabFilter(FabFilter.ALPHABETIC) },
-                                content = { Icon(Icons.Filled.SortByAlpha, "Alphabetic") }
+                                content = { Icon(Icons.Filled.SortByAlpha, "Alphabetic") },
                             )
                         }
-                    }
+                    },
                 ) { paddingValues ->
                     LibraryListPane(
                         paddingValues = paddingValues,
@@ -129,9 +129,9 @@ private fun LibraryScreenContent(
                         onItemClick = { item ->
                             navigator.navigateTo(
                                 pane = ListDetailPaneScaffoldRole.Detail,
-                                content = item
+                                content = item,
                             )
-                        }
+                        },
                     )
                 }
             }
@@ -145,10 +145,10 @@ private fun LibraryScreenContent(
                         // We're still in Adaptive navigation.
                         navigator.navigateBack()
                     },
-                    onClickPlay = { onClickPlay(appId, it) }
+                    onClickPlay = { onClickPlay(appId, it) },
                 )
             }
-        }
+        },
     )
 }
 
@@ -162,13 +162,13 @@ private fun LibraryListPane(
         modifier = Modifier
             .padding(paddingValues)
             .fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 72.dp) // Extra space for fab
+        contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
     ) {
         items(list, key = { it.appId }) { item ->
             AppItem(
                 modifier = Modifier.animateItem(),
                 appInfo = item,
-                onClick = { onItemClick(item.appId) }
+                onClick = { onItemClick(item.appId) },
             )
         }
     }
@@ -203,18 +203,18 @@ private fun LibraryDetailPane(
 )
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
-    device = "id:pixel_tablet"
+    device = "id:pixel_tablet",
 )
 @Composable
 private fun Preview_LibraryScreenContent() {
     PluviaTheme {
         LibraryScreenContent(
             vmState = LibraryState(
-                appInfoList = List(15) { fakeAppInfo(it).copy(appId = it) }
+                appInfoList = List(15) { fakeAppInfo(it).copy(appId = it) },
             ),
             fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),
             onFabFilter = {},
-            onClickPlay = { appId, asContainer -> },
+            onClickPlay = { _, _ -> },
             onSettings = {},
         )
     }

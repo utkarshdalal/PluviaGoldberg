@@ -13,6 +13,7 @@ json = "1.7.3" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlin
 junit = "4.13.2" # https://mvnrepository.com/artifact/junit/junit
 junitVersion = "1.2.1" # https://mvnrepository.com/artifact/androidx.test.ext/junit
 kotlin = "2.0.21" # https://mvnrepository.com/artifact/org.jetbrains.kotlin.android/org.jetbrains.kotlin.android.gradle.plugin
+kotlinter = "5.0.1" # https://plugins.gradle.org/plugin/org.jmailen.kotlinter
 ksp = "2.0.21-1.0.28" # https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
 landscapistCoil = "2.4.4" # https://mvnrepository.com/artifact/com.github.skydoves/landscapist-coil
 lifecycleRuntimeKtx = "2.8.7" # https://mvnrepository.com/artifact/androidx.lifecycle/lifecycle-runtime-ktx
@@ -82,6 +83,7 @@ dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "dagger-hil
 jetbrains-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 jetbrains-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlinter = {  id = "org.jmailen.kotlinter", version.ref = "kotlinter"}
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 [bundles]

@@ -100,15 +100,13 @@ fun AppScreen(
     Scaffold(
         topBar = {
             // Show Top App Bar when in Compact or Medium screen space.
-            if (windowWidth == WindowWidthSizeClass.COMPACT ||
-                windowWidth == WindowWidthSizeClass.MEDIUM
-            ) {
+            if (windowWidth == WindowWidthSizeClass.COMPACT || windowWidth == WindowWidthSizeClass.MEDIUM) {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
                             text = appInfo?.name.orEmpty(),
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     },
                     navigationIcon = {
@@ -116,7 +114,7 @@ fun AppScreen(
                     },
                 )
             }
-        }
+        },
     ) { paddingValues ->
         AppScreenContent(
             modifier = Modifier.padding(paddingValues),
@@ -138,32 +136,34 @@ fun AppScreen(
                     onClick = {
                         val browserIntent = Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://store.steampowered.com/app/$appId/")
+                            Uri.parse("https://store.steampowered.com/app/$appId/"),
                         )
                         context.startActivity(browserIntent)
-                    }
+                    },
                 ),
-                *(if (isInstalled) {
-                    arrayOf(
-                        AppMenuOption(
-                            AppOptionMenuType.RunContainer,
-                            onClick = {
-                                onClickPlay(true)
-                            }
-                        ),
-                        AppMenuOption(
-                            AppOptionMenuType.Uninstall,
-                            onClick = {
-                                // TODO: exit app screen and reload installed list
-                                // TODO: show dialog prompt "are you sure you want to delete"
-                                // TODO: show loading screen of delete progress
-                                SteamService.deleteApp(appId)
-                            }
+                *(
+                    if (isInstalled) {
+                        arrayOf(
+                            AppMenuOption(
+                                AppOptionMenuType.RunContainer,
+                                onClick = {
+                                    onClickPlay(true)
+                                },
+                            ),
+                            AppMenuOption(
+                                AppOptionMenuType.Uninstall,
+                                onClick = {
+                                    // TODO: exit app screen and reload installed list
+                                    // TODO: show dialog prompt "are you sure you want to delete"
+                                    // TODO: show loading screen of delete progress
+                                    SteamService.deleteApp(appId)
+                                },
+                            ),
                         )
-                    )
-                } else {
-                    emptyArray()
-                })
+                    } else {
+                        emptyArray()
+                    }
+                    ),
             ),
         )
     }
@@ -186,7 +186,7 @@ private fun AppScreenContent(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .verticalScroll(scrollState)
+            .verticalScroll(scrollState),
     ) {
         Box {
             // Hero Logo
@@ -194,7 +194,7 @@ private fun AppScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 imageModel = { appInfo?.getHeroUrl() },
                 imageOptions = ImageOptions(
-                    contentScale = ContentScale.Crop
+                    contentScale = ContentScale.Crop,
                 ),
                 loading = {
                     CircularProgressIndicator()
@@ -202,7 +202,7 @@ private fun AppScreenContent(
                 failure = {
                     Icon(Icons.Filled.QuestionMark, null)
                 },
-                previewPlaceholder = painterResource(R.drawable.testhero)
+                previewPlaceholder = painterResource(R.drawable.testhero),
             )
 
             // Library Logo
@@ -213,7 +213,7 @@ private fun AppScreenContent(
                 imageModel = { appInfo?.getLogoUrl() },
                 imageOptions = ImageOptions(
                     contentScale = FixedScale(1f),
-                    requestSize = IntSize(640, 360)
+                    requestSize = IntSize(640, 360),
                 ),
                 loading = {
                     CircularProgressIndicator()
@@ -221,7 +221,7 @@ private fun AppScreenContent(
                 failure = {
                     Icon(Icons.Filled.QuestionMark, null)
                 },
-                previewPlaceholder = painterResource(R.drawable.testliblogo)
+                previewPlaceholder = painterResource(R.drawable.testliblogo),
             )
         }
 
@@ -230,18 +230,19 @@ private fun AppScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp)
-                .wrapContentHeight()
+                .wrapContentHeight(),
         ) {
             Button(
                 shape = RoundedCornerShape(8.dp),
                 enabled = !isDownloading,
-                onClick = onDownloadBtnClick
+                onClick = onDownloadBtnClick,
             ) {
                 Text(
-                    if (isInstalled)
+                    if (isInstalled) {
                         stringResource(R.string.run_app)
-                    else
+                    } else {
                         stringResource(R.string.download_app)
+                    },
                 )
             }
 
@@ -250,15 +251,16 @@ private fun AppScreenContent(
                     modifier = Modifier
                         .align(Alignment.CenterVertically)
                         .weight(1f)
-                        .padding(4.dp)
+                        .padding(4.dp),
                 ) {
                     Text(
                         modifier = Modifier.align(Alignment.End),
-                        text = "${(downloadProgress * 100f).toInt()}%"
+                        text = "${(downloadProgress * 100f).toInt()}%",
                     )
                     LinearProgressIndicator(
                         modifier = Modifier.fillMaxWidth(),
-                        progress = { downloadProgress })
+                        progress = { downloadProgress },
+                    )
                 }
             } else {
                 Spacer(Modifier.weight(1f))
@@ -271,11 +273,11 @@ private fun AppScreenContent(
                     },
                     content = {
                         Icon(Icons.Filled.MoreVert, "Options")
-                    }
+                    },
                 )
                 DropdownMenu(
                     expanded = optionsMenuVisible,
-                    onDismissRequest = { optionsMenuVisible = false }
+                    onDismissRequest = { optionsMenuVisible = false },
                 ) {
                     optionsMenu.forEach { menuOption ->
                         DropdownMenuItem(
@@ -283,7 +285,7 @@ private fun AppScreenContent(
                             onClick = {
                                 menuOption.onClick()
                                 optionsMenuVisible = false
-                            }
+                            },
                         )
                     }
                 }
@@ -295,7 +297,7 @@ private fun AppScreenContent(
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(
     device = "spec:width=1920px,height=1080px,dpi=440",
-    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL
+    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
 ) // Odin2 Mini
 @Composable
 private fun Preview_AppScreen() {

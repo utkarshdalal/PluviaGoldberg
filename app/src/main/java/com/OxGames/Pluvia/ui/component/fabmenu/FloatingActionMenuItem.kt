@@ -31,10 +31,12 @@ fun FloatingActionMenuItem(
     contentColor: Color = contentColorFor(containerColor),
     elevation: FloatingActionButtonElevation = FloatingActionButtonDefaults.elevation(),
     interactionSource: MutableInteractionSource? = null,
-    content: @Composable (() -> Unit)
+    content: @Composable (() -> Unit),
 ) {
+    // Modifier: Padding (start) fix to stop rendering clip,
+    // FAB has an interactable padding which takes care of the end side.
     Row(
-        modifier = modifier.padding(start = 4.dp), // Don't like this right now, FAB has an interactable padding which takes care of the end side.
+        modifier = modifier.padding(start = 4.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -47,7 +49,7 @@ fun FloatingActionMenuItem(
             contentColor = contentColor,
             elevation = elevation,
             interactionSource = interactionSource,
-            content = content
+            content = content,
         )
     }
 }
@@ -60,7 +62,7 @@ private fun Preview_FloatingActionMenuItem() {
             FloatingActionMenuItem(
                 labelText = "Hello World",
                 onClick = { },
-                content = { Icon(Icons.Filled.SortByAlpha, null) }
+                content = { Icon(Icons.Filled.SortByAlpha, null) },
             )
         }
     }
