@@ -336,6 +336,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             depotIds.forEachIndexed { jobIndex, depotId ->
+                                // TODO: download shared install depots to a common location
                                 ContentDownloader(instance!!._steamClient!!).downloadApp(
                                     appId = appId,
                                     depotId = depotId,
@@ -626,7 +627,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                 "USER=${ImageFs.USER}",
                 "TMPDIR=/tmp",
                 "LC_ALL=en_US.utf8",
-                "PATH=${imageFs.winePath}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", // Set PATH environment variable
+                // Set PATH environment variable
+                "PATH=${imageFs.winePath}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
                 "LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib/arm-linux-gnueabihf",
                 "date",
                 "+%s%3N",
