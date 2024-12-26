@@ -1,6 +1,7 @@
 package com.OxGames.Pluvia.utils
 
 import android.os.StatFs
+import java.io.File
 
 class StorageUtils {
     companion object {
@@ -8,6 +9,18 @@ class StorageUtils {
         fun getAvailableSpace(path: String): Long {
             val stat = StatFs(path)
             return stat.blockSizeLong * stat.availableBlocksLong
+        }
+
+        fun getFolderSize(folderPath: String): Long {
+            val folder = File(folderPath)
+            return if (folder.exists()) {
+                folder.walkTopDown()
+                    .filter { it.isFile }
+                    .map { it.length() }
+                    .sum()
+            } else {
+                0L
+            }
         }
 
         fun formatBinarySize(bytes: Long, decimalPlaces: Int = 2): String {
