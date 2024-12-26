@@ -17,6 +17,7 @@ class IconDecoder(
     private val source: SourceResult,
     private val options: Options,
 ) : Decoder {
+
     override suspend fun decode(): DecodeResult? {
         return try {
             val bufferedSource: BufferedSource = source.source.source() // nice
@@ -31,6 +32,7 @@ class IconDecoder(
             null
         }
     }
+
     class Factory : Decoder.Factory {
         override fun create(
             result: SourceResult,
@@ -39,13 +41,18 @@ class IconDecoder(
         ): Decoder? {
             val mimeType = result.mimeType ?: return null
             val validMimeType = mimeType.contains("ico", ignoreCase = true)
-            val validHeader = result.source.source()
-                .peek().rangeEquals(0, ICO_HEADER.toByteString())
+            val validHeader = result.source
+                .source()
+                .peek()
+                .rangeEquals(0, ICO_HEADER.toByteString())
+
             if (validMimeType || validHeader) {
                 return IconDecoder(result, options)
             }
+
             return null
         }
+
         companion object {
             // https://en.wikipedia.org/wiki/ICO_(file_format)#Header
             private val ICO_HEADER = byteArrayOf(0, 0, 1, 0)

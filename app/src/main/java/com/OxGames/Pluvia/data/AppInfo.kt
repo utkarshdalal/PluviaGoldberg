@@ -85,11 +85,13 @@ data class AppInfo(
             "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
         }
     }
+
     fun getHeaderImageUrl(language: Language = Language.english): String? {
         return headerImage[language]?.let {
             "https://cdn.akamai.steamstatic.com/steam/apps/$appId/$it"
         }
     }
+
     fun getCapsuleUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryCapsule.image2x[language]?.let {
@@ -101,6 +103,7 @@ data class AppInfo(
             }
         }
     }
+
     fun getHeroUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryHero.image2x[language]?.let {
@@ -112,6 +115,7 @@ data class AppInfo(
             }
         }
     }
+
     fun getLogoUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryLogo.image2x[language]?.let {

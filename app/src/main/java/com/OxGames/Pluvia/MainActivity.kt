@@ -40,24 +40,26 @@ import okio.Path.Companion.toOkioPath
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val onSetSystemUi: (AndroidEvent.SetSystemUIVisibility) -> Unit = {
-        AppUtils.hideSystemUI(this, !it.visible)
-    }
-    private val onSetAllowedOrientation: (AndroidEvent.SetAllowedOrientation) -> Unit = {
-        // Log.d("MainActivity", "Requested allowed orientations of $it")
-        availableOrientations = it.orientations
-        setOrientationTo(currentOrientationChangeValue, availableOrientations)
-    }
-    private val onStartOrientator: (AndroidEvent.StartOrientator) -> Unit = {
-        startOrientator()
-    }
 
     companion object {
         private var totalIndex = 0
 
         private var currentOrientationChangeValue: Int = 0
-        private var availableOrientations: EnumSet<Orientation> =
-            EnumSet.of(Orientation.UNSPECIFIED)
+        private var availableOrientations: EnumSet<Orientation> = EnumSet.of(Orientation.UNSPECIFIED)
+    }
+
+    private val onSetSystemUi: (AndroidEvent.SetSystemUIVisibility) -> Unit = {
+        AppUtils.hideSystemUI(this, !it.visible)
+    }
+
+    private val onSetAllowedOrientation: (AndroidEvent.SetAllowedOrientation) -> Unit = {
+        // Log.d("MainActivity", "Requested allowed orientations of $it")
+        availableOrientations = it.orientations
+        setOrientationTo(currentOrientationChangeValue, availableOrientations)
+    }
+
+    private val onStartOrientator: (AndroidEvent.StartOrientator) -> Unit = {
+        startOrientator()
     }
 
     private var index = totalIndex++
@@ -246,6 +248,7 @@ class MainActivity : ComponentActivity() {
                     "!= nearestOrientation(${nearest.first}) && " +
                     "currentDistance($currentOrientationDist) > nearestDistance(${nearest.second})",
             )
+
             requestedOrientation = nearest.first.activityInfoValue
         }
     }

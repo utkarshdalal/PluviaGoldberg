@@ -29,7 +29,7 @@ fun AccountButton(
 ) {
     var persona by remember {
         var persona: SteamFriend? = null
-        SteamService.getUserSteamId()?.let { id ->
+        SteamService.userSteamId?.let { id ->
             persona = SteamService.getPersonaStateOf(id)
         }
         mutableStateOf(persona)

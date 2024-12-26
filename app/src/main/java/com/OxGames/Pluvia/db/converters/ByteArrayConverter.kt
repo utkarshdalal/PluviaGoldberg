@@ -5,12 +5,8 @@ import androidx.room.TypeConverter
 
 class ByteArrayConverter {
     @TypeConverter
-    fun fromByteArray(byteArray: ByteArray): String {
-        return Base64.encodeToString(byteArray, Base64.DEFAULT)
-    }
+    fun fromByteArray(byteArray: ByteArray): String = Base64.encodeToString(byteArray, Base64.DEFAULT)
 
     @TypeConverter
-    fun toByteArray(value: String): ByteArray {
-        return Base64.decode(value, Base64.DEFAULT)
-    }
+    fun toByteArray(value: String): ByteArray = Base64.decode(value, Base64.DEFAULT)
 }
