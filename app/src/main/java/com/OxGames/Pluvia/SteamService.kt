@@ -255,7 +255,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun isAppInstalled(appId: Int): Boolean {
-            val isNotDownloading = getAppDownloadInfo(appId) == null
+            val appDownloadInfo = getAppDownloadInfo(appId)
+            val isNotDownloading = appDownloadInfo == null || appDownloadInfo.getProgress() >= 1f
             val appDirPath = Paths.get(getAppDirPath(appId))
             val pathExists = Files.exists(appDirPath)
 
@@ -345,8 +346,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     parentScope = coroutineContext.job as CoroutineScope,
                                 ).await()
                             }
-                        } finally {
-                            /* Nothing */
+                        } catch (e: Exception) {
+                            logE("Download failed: $e")
                         }
 
                         downloadJobs.remove(appId)
@@ -1924,7 +1925,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         notificationHelper.notify("Disconnected...")
 
-        if (isLoggingOut) {
+        if (isLoggingOut || callback.result == EResult.LogonSessionReplaced) {
             performLogOffDuties()
 
             CoroutineScope(Dispatchers.IO).launch {
