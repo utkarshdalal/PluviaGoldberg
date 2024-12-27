@@ -202,6 +202,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
 
         // ProcessHelper.exec(nativeLibraryDir+"/libproot.so ulimit -a", envVars.toStringArray(), rootDir);
         return ProcessHelper.exec(command, envVars.toStringArray(), rootDir, (status) -> {
+            Log.d("GuestProgramLauncherComponent", "Process terminated " + pid + " with status " + status);
             synchronized (lock) {
                 pid = -1;
             }

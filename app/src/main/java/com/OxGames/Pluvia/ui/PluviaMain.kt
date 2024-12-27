@@ -83,13 +83,14 @@ fun PluviaMain(
     var msgDialogState by remember { mutableStateOf(MessageDialogState(false)) }
     var annoyingDialogShown by remember { mutableStateOf(false) }
 
-    LaunchedEffect(lifecycleOwner) {
+    LaunchedEffect(navController) {
+        Log.d("PluviaMain", "navController changed")
         if (!hasLaunched) {
             hasLaunched = true
-            // Log.d("PluviaMain", "Creating on destination changed listener")
+            Log.d("PluviaMain", "Creating on destination changed listener")
             PluviaApp.onDestinationChangedListener =
                 NavController.OnDestinationChangedListener { controller, destination, arguments ->
-                    // Log.d("PluviaMain", "onDestinationChanged to ${destination.route}")
+                    Log.d("PluviaMain", "onDestinationChanged to ${destination.route}")
                     // in order not to trigger the screen changed launch effect
                     currentScreen =
                         PluviaScreen.valueOf(destination.route ?: PluviaScreen.LoginUser.name)
@@ -209,7 +210,7 @@ fun PluviaMain(
         }
 
         // Go to the Home screen if we're already logged in.
-        if (SteamService.isLoggedIn) {
+        if (SteamService.isLoggedIn && currentScreen == PluviaScreen.LoginUser) {
             navController.navigate(PluviaScreen.Home.name)
         }
 
