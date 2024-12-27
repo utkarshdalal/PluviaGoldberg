@@ -23,6 +23,7 @@ import java.util.ArrayList;
 public class XServerView extends GLSurfaceView {
     private final GLRenderer renderer;
     // private final ArrayList<Callback<MotionEvent>> mouseEventCallbacks = new ArrayList<>();
+    private final XServer xServer;
 
     public XServerView(Context context, XServer xServer) {
         super(context);
@@ -30,6 +31,7 @@ public class XServerView extends GLSurfaceView {
         setEGLContextClientVersion(3);
         setEGLConfigChooser(8, 8, 8, 8, 0, 0);
         setPreserveEGLContextOnPause(true);
+        this.xServer = xServer;
         renderer = new GLRenderer(this, xServer);
         setRenderer(renderer);
         setRenderMode(RENDERMODE_WHEN_DIRTY);
@@ -39,6 +41,9 @@ public class XServerView extends GLSurfaceView {
         // });
         //
         // requestFocus();
+    }
+    public XServer getxServer() {
+        return xServer;
     }
     // public void onRelease() {
     //     releasePointerCapture();
