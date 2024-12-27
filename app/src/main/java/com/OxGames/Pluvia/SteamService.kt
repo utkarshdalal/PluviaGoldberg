@@ -159,7 +159,6 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     companion object {
         const val MAX_RETRY_ATTEMPTS = 20
-        const val LOGIN_ID = 382945
         const val AVATAR_BASE_URL = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/"
         const val MISSING_AVATAR_URL = "${AVATAR_BASE_URL}fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
         const val INVALID_APP_ID: Int = Int.MAX_VALUE
@@ -1472,7 +1471,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // Set LoginID to a non-zero value if you have another client connected using the same account,
                     // the same private ip, and same public ip.
                     // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
-                    loginID = LOGIN_ID,
+                    loginID = SteamUtils.getUniqueDeviceId(instance!!),
                     machineName = SteamUtils.getMachineName(instance!!),
                 ),
             )

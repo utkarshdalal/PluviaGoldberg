@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia.utils
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.provider.Settings
 import com.OxGames.Pluvia.SteamService
@@ -62,6 +63,19 @@ class SteamUtils {
             } catch (e: Exception) {
                 HardwareUtils.getMachineName() // Return machine name as last resort
             }
+        }
+
+        /**
+         * This ID is unique to the device and app combination
+         */
+        @SuppressLint("HardwareIds")
+        fun getUniqueDeviceId(context: Context): Int {
+            val androidId = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ANDROID_ID
+            )
+
+            return androidId.hashCode()
         }
     }
 }
