@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.screen.settings
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -53,6 +54,7 @@ private fun SettingsScreenContent(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
+                .displayCutoutPadding()
                 .fillMaxSize()
                 .verticalScroll(scrollState),
         ) {
