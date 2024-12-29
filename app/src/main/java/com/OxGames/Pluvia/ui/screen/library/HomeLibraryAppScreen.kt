@@ -3,7 +3,6 @@ package com.OxGames.Pluvia.ui.screen.library
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
-import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,7 +32,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -174,7 +172,7 @@ fun AppScreen(
                             onDismissRequest = { msgDialogState = MessageDialogState(false) },
                             title = context.getString(R.string.not_enough_space),
                             message = "The app being installed needs $installSize of space but " +
-                                    "there is only $availableSpace left on this device",
+                                "there is only $availableSpace left on this device",
                             confirmBtnText = context.getString(R.string.acknowledge),
                             onConfirmClick = { msgDialogState = MessageDialogState(false) },
                         )
@@ -184,9 +182,9 @@ fun AppScreen(
                             onDismissRequest = { msgDialogState = MessageDialogState(false) },
                             title = context.getString(R.string.download_prompt_title),
                             message = "The app being installed has the following space requirements. Would you like to proceed?" +
-                                    "\n\n\tDownload Size: $downloadSize" +
-                                    "\n\tSize on Disk: $installSize" +
-                                    "\n\tAvailable Space: $availableSpace",
+                                "\n\n\tDownload Size: $downloadSize" +
+                                "\n\tSize on Disk: $installSize" +
+                                "\n\tAvailable Space: $availableSpace",
                             confirmBtnText = context.getString(R.string.proceed),
                             onConfirmClick = {
                                 downloadProgress = 0f
