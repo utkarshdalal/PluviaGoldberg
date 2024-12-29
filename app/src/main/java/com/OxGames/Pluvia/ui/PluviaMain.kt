@@ -28,6 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.PluviaApp
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.enums.LoginResult
@@ -117,13 +118,16 @@ fun PluviaMain(
         if (resettedScreen != currentScreen) {
             resettedScreen = currentScreen
             // Log.d("PluviaMain", "Screen changed to $currentScreen, resetting some values")
-            // reset top app bar visibility
-            topAppBarVisible = true
-            // reset system ui visibility
-            PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(true))
-            // TODO: add option for user to set
-            // reset available orientations
-            PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.UNSPECIFIED)))
+            // TODO: remove this if statement once XServerScreen orientation change bug is fixed
+            if (currentScreen != PluviaScreen.XServer) {
+                // reset top app bar visibility
+                topAppBarVisible = true
+                // reset system ui visibility
+                PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(true))
+                // TODO: add option for user to set
+                // reset available orientations
+                PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.UNSPECIFIED)))
+            }
             // find out if back is available
             hasBack = navController.previousBackStackEntry?.destination?.route != null
         }
@@ -272,9 +276,15 @@ fun PluviaMain(
                             setLoadingProgress = { loadingProgress = it },
                             setMessageDialogState = { msgDialogState = it },
                             onSuccess = {
-                                // SteamUtils.replaceSteamApi(context, appId)
-
                                 CoroutineScope(Dispatchers.Main).launch {
+                                    // SteamUtils.replaceSteamApi(context, appId)
+
+                                    // TODO: fix XServerScreen change orientation issue rather than setting the orientation
+                                    //  before entering XServerScreen
+                                    PluviaApp.events.emit(
+                                        AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation),
+                                    )
+
                                     navController.navigate(PluviaScreen.XServer.name)
                                 }
                             },
