@@ -362,6 +362,107 @@ fun XServerScreen(
                         xEnvironment = PluviaApp.xEnvironment!!,
                         getxServer(),
                     )
+                } else {
+                    var container: Container? = null
+                    var containerManager: ContainerManager? = null
+                    var onExtractFileListener: OnExtractFileListener? = null
+                    // if (!generateWinePrefix) {
+                    containerManager = ContainerManager(context)
+                    container = containerManager.getContainerById(containerId)
+                    containerManager.activateContainer(container)
+
+                    taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
+                    taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
+                    firstTimeBoot = container.getExtra("appVersion").isEmpty()
+                    Log.d("XServerScreen", "First time boot: $firstTimeBoot")
+
+                    val wineVersion = container.wineVersion
+                    xServerState.value = xServerState.value.copy(
+                        wineInfo = WineInfo.fromIdentifier(context, wineVersion)
+                    )
+
+                    if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) ImageFs.find(context).winePath =
+                        xServerState.value.wineInfo.path
+
+                    // val shortcutPath: String? = null // TODO: set to executable path within container (intent extra "shortcut_path")
+                    // xServerState.value.shortcut = if (shortcutPath != null && !shortcutPath.isEmpty()) Shortcut(container, File(shortcutPath)) else null
+
+                    xServerState.value = xServerState.value.copy(
+                        graphicsDriver = container.graphicsDriver,
+                        audioDriver = container.audioDriver,
+                        dxwrapper = container.dxWrapper,
+                        screenSize = container.screenSize,
+                    )
+                    var dxwrapperConfigRaw = container.dxWrapperConfig
+
+                    val parsedConfig = if (xServerState.value.dxwrapper ==
+                        Container.DEFAULT_DXWRAPPER
+                    ) {
+                        DXVKHelper.parseConfig(dxwrapperConfigRaw)
+                    } else {
+                        null
+                    }
+                    xServerState.value = xServerState.value.copy(
+                        dxwrapperConfig = parsedConfig
+                    )
+                    // xServerViewModel.setDxwrapperConfig(parsedConfig)
+                    // Log.d("XServerScreen", "dxwrapperConfig is ${xServerState.value.dxwrapperConfig} based on container dxWrapper of ${container.dxWrapper} which now in xServerState is ${xServerState.value.dxwrapper} and when checked against ${Container.DEFAULT_DXWRAPPER} if is equal is ${xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER} and so when parsed is $parsedConfig")
+
+                    onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
+                        object : OnExtractFileListener {
+                            override fun onExtractFile(destination: File?, size: Long): File? {
+                                return destination?.path?.let {
+                                    if (it.contains("system32/")) {
+                                        null
+                                    } else {
+                                        File(it.replace("syswow64/", "system32/"))
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        null
+                    }
+                    // }
+
+                    Log.d("XServerScreen", "Doing things once")
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val containerManager = ContainerManager(context)
+                        val container = containerManager.getContainerById(containerId)
+                        val envVars = EnvVars()
+                        // if (!generateWinePrefix) {
+                        setupWineSystemFiles(
+                            context,
+                            firstTimeBoot,
+                            xServerView!!.getxServer().screenInfo,
+                            xServerState,
+                            container!!,
+                            containerManager,
+                            envVars,
+                            onExtractFileListener,
+                        )
+                        extractGraphicsDriverFiles(
+                            context,
+                            xServerState.value.graphicsDriver,
+                            xServerState.value.dxwrapper,
+                            xServerState.value.dxwrapperConfig!!,
+                            container,
+                            envVars,
+                        )
+                        changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
+                        // }
+                        PluviaApp.xEnvironment = setupXEnvironment(
+                            context,
+                            appId,
+                            bootToContainer,
+                            xServerState,
+                            envVars,
+                            // generateWinePrefix,
+                            container,
+                            appLaunchInfo,
+                            xServerView!!.getxServer(),
+                        )
+                    }
                 }
             }
 
@@ -385,113 +486,14 @@ fun XServerScreen(
         },
     )
 
-    var ranSetup by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(lifecycleOwner) {
-        if (!ranSetup) {
-            ranSetup = true
-
-            var container: Container? = null
-            var containerManager: ContainerManager? = null
-            var onExtractFileListener: OnExtractFileListener? = null
-            // if (!generateWinePrefix) {
-                containerManager = ContainerManager(context)
-                container = containerManager.getContainerById(containerId)
-                containerManager.activateContainer(container)
-
-                taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
-                taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
-                firstTimeBoot = container.getExtra("appVersion").isEmpty()
-                Log.d("XServerScreen", "First time boot: $firstTimeBoot")
-
-                val wineVersion = container.wineVersion
-                xServerState.value = xServerState.value.copy(
-                    wineInfo = WineInfo.fromIdentifier(context, wineVersion)
-                )
-
-                if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) ImageFs.find(context).winePath =
-                    xServerState.value.wineInfo.path
-
-                // val shortcutPath: String? = null // TODO: set to executable path within container (intent extra "shortcut_path")
-                // xServerState.value.shortcut = if (shortcutPath != null && !shortcutPath.isEmpty()) Shortcut(container, File(shortcutPath)) else null
-
-                xServerState.value = xServerState.value.copy(
-                    graphicsDriver = container.graphicsDriver,
-                    audioDriver = container.audioDriver,
-                    dxwrapper = container.dxWrapper,
-                    screenSize = container.screenSize,
-                )
-                var dxwrapperConfigRaw = container.dxWrapperConfig
-
-                val parsedConfig = if (xServerState.value.dxwrapper ==
-                    Container.DEFAULT_DXWRAPPER
-                ) {
-                    DXVKHelper.parseConfig(dxwrapperConfigRaw)
-                } else {
-                    null
-                }
-                xServerState.value = xServerState.value.copy(
-                    dxwrapperConfig = parsedConfig
-                )
-                // xServerViewModel.setDxwrapperConfig(parsedConfig)
-                // Log.d("XServerScreen", "dxwrapperConfig is ${xServerState.value.dxwrapperConfig} based on container dxWrapper of ${container.dxWrapper} which now in xServerState is ${xServerState.value.dxwrapper} and when checked against ${Container.DEFAULT_DXWRAPPER} if is equal is ${xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER} and so when parsed is $parsedConfig")
-
-                onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
-                    object : OnExtractFileListener {
-                        override fun onExtractFile(destination: File?, size: Long): File? {
-                            return destination?.path?.let {
-                                if (it.contains("system32/")) {
-                                    null
-                                } else {
-                                    File(it.replace("syswow64/", "system32/"))
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    null
-                }
-            // }
-
-            Log.d("XServerScreen", "Doing things once")
-            CoroutineScope(Dispatchers.IO).launch {
-                val containerManager = ContainerManager(context)
-                val container = containerManager.getContainerById(containerId)
-                val envVars = EnvVars()
-                // if (!generateWinePrefix) {
-                    setupWineSystemFiles(
-                        context,
-                        firstTimeBoot,
-                        xServerView!!.getxServer().screenInfo,
-                        xServerState,
-                        container!!,
-                        containerManager,
-                        envVars,
-                        onExtractFileListener,
-                    )
-                    extractGraphicsDriverFiles(
-                        context,
-                        xServerState.value.graphicsDriver,
-                        xServerState.value.dxwrapper,
-                        xServerState.value.dxwrapperConfig!!,
-                        container,
-                        envVars,
-                    )
-                    changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
-                // }
-                PluviaApp.xEnvironment = setupXEnvironment(
-                    context,
-                    appId,
-                    bootToContainer,
-                    xServerState,
-                    envVars,
-                    // generateWinePrefix,
-                    container,
-                    appLaunchInfo,
-                    xServerView!!.getxServer(),
-                )
-            }
-        }
-    }
+    // var ranSetup by rememberSaveable { mutableStateOf(false) }
+    // LaunchedEffect(lifecycleOwner) {
+    //     if (!ranSetup) {
+    //         ranSetup = true
+    //
+    //
+    //     }
+    // }
 }
 
 private fun assignTaskAffinity(
