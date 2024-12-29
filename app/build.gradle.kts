@@ -72,18 +72,20 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            // applicationIdSuffix = ".debug"
-            // versionNameSuffix = "-debug"
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("debug")
         }
         create("release-signed") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("pluvia")
         }
         create("release-gold") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("pluvia")
             applicationIdSuffix = ".gold"
             buildConfigField("boolean", "GOLD", "true")
@@ -121,12 +123,13 @@ android {
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
-    }
+    // cmake on release builds a proot that fails to process ld-2.31.so
+    // externalNativeBuild {
+    //     cmake {
+    //         path = file("src/main/cpp/CMakeLists.txt")
+    //         version = "3.22.1"
+    //     }
+    // }
 
     // (For now) Uncomment for LeakCanary to work.
     // configurations {
