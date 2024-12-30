@@ -1,6 +1,7 @@
 package com.winlator.xenvironment;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.util.Log;
 
 // import com.winlator.MainActivity;
@@ -42,7 +43,7 @@ public abstract class ImageFsInstaller {
         }
     }
 
-    private static Future<Boolean> installFromAssetsFuture(final Context context, Callback<Integer> onProgress) {
+    private static Future<Boolean> installFromAssetsFuture(final Context context, AssetManager assetManager, Callback<Integer> onProgress) {
         // AppUtils.keepScreenOn(context);
         ImageFs imageFs = ImageFs.find(context);
         final File rootDir = imageFs.getRootDir();
@@ -54,10 +55,10 @@ public abstract class ImageFsInstaller {
         return Executors.newSingleThreadExecutor().submit(() -> {
             clearRootDir(rootDir);
             final byte compressionRatio = 22;
-            final long contentLength = (long)(FileUtils.getSize(context, "imagefs.txz") * (100.0f / compressionRatio));
+            final long contentLength = (long)(FileUtils.getSize(assetManager, "imagefs.txz") * (100.0f / compressionRatio));
             AtomicLong totalSizeRef = new AtomicLong();
 
-            boolean success = TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, context, "imagefs.txz", rootDir, (file, size) -> {
+            boolean success = TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, assetManager, "imagefs.txz", rootDir, (file, size) -> {
                 if (size > 0) {
                     long totalSize = totalSizeRef.addAndGet(size);
                     if (onProgress != null) {
@@ -82,13 +83,13 @@ public abstract class ImageFsInstaller {
     }
 
 
-    public static Future<Boolean> installIfNeededFuture(final Context context) {
-        return installIfNeededFuture(context, null);
+    public static Future<Boolean> installIfNeededFuture(final Context context, AssetManager assetManager) {
+        return installIfNeededFuture(context, assetManager, null);
     }
-    public static Future<Boolean> installIfNeededFuture(final Context context, Callback<Integer> onProgress) {
+    public static Future<Boolean> installIfNeededFuture(final Context context, AssetManager assetManager, Callback<Integer> onProgress) {
         ImageFs imageFs = ImageFs.find(context);
         if (!imageFs.isValid() || imageFs.getVersion() < LATEST_VERSION) {
-            return installFromAssetsFuture(context, onProgress);
+            return installFromAssetsFuture(context, assetManager, onProgress);
         } else {
             Log.d("ImageFsInstaller", "Image FS already valid and at latest version");
             return Executors.newSingleThreadExecutor().submit(() -> true);
@@ -124,7 +125,7 @@ public abstract class ImageFsInstaller {
         else rootDir.mkdirs();
     }
 
-    public static void generateCompactContainerPattern(final Context context) {
+    public static void generateCompactContainerPattern(final Context context, AssetManager assetManager) {
         // AppUtils.keepScreenOn(context);
         // PreloaderDialog preloaderDialog = new PreloaderDialog(context);
         // preloaderDialog.show(R.string.loading);
@@ -136,7 +137,7 @@ public abstract class ImageFsInstaller {
 
             File containerPatternDir = new File(context.getCacheDir(), "container_pattern");
             FileUtils.delete(containerPatternDir);
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "container_pattern.tzst", containerPatternDir);
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, assetManager, "container_pattern.tzst", containerPatternDir);
 
             File containerSystem32Dir = new File(containerPatternDir, ".wine/drive_c/windows/system32");
             File containerSysWoW64Dir = new File(containerPatternDir, ".wine/drive_c/windows/syswow64");

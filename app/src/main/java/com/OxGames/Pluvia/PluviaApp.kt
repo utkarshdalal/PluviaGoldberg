@@ -1,15 +1,15 @@
 package com.OxGames.Pluvia
 
-import android.app.Application
 import androidx.navigation.NavController
 import com.OxGames.Pluvia.events.EventDispatcher
+import com.google.android.play.core.splitcompat.SplitCompatApplication
 import com.winlator.xenvironment.XEnvironment
 import dagger.hilt.android.HiltAndroidApp
 
 typealias NavChangedListener = NavController.OnDestinationChangedListener
 
 @HiltAndroidApp
-class PluviaApp : Application() {
+class PluviaApp : SplitCompatApplication() {
 
     override fun onCreate() {
         super.onCreate()

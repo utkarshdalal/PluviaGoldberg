@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.jetbrains.serialization) apply false
     alias(libs.plugins.kotlinter) apply false
     alias(libs.plugins.ksp) apply false
+    alias(libs.plugins.android.dynamic.feature) apply false
 }
 
 configurations.configureEach {

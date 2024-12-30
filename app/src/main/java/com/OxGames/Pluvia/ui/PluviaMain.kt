@@ -49,6 +49,7 @@ import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen
 import com.OxGames.Pluvia.ui.screen.xserver.XServerScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
 import com.winlator.core.WineInfo
 import com.winlator.xenvironment.ImageFsInstaller
@@ -401,8 +402,9 @@ fun launchApp(
     // TODO: add fail conditions
     CoroutineScope(Dispatchers.IO).launch {
         // set up Ubuntu file system
+        SplitCompat.install(context)
         val imageFsInstallSuccess =
-            ImageFsInstaller.installIfNeededFuture(context) { progress ->
+            ImageFsInstaller.installIfNeededFuture(context, context.assets) { progress ->
                 // Log.d("XServerScreen", "$progress")
                 setLoadingProgress(progress / 100f)
             }.get()

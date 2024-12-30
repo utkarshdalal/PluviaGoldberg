@@ -8,6 +8,7 @@ coroutines = "1.10.0" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx
 dagger-hilt = "2.53.1" # https://mvnrepository.com/artifact/com.google.dagger/hilt-android
 dataStore = "1.1.1" # https://mvnrepository.com/artifact/androidx.datastore/datastore-preferences
 espressoCore = "3.6.1" # https://mvnrepository.com/artifact/androidx.test.espresso/espresso-core
+feature-delivery = "2.1.0" # https://mvnrepository.com/artifact/com.google.android.play/feature-delivery
 hiltNavigationCompose = "1.2.0" # https://mvnrepository.com/artifact/androidx.hilt/hilt-navigation-compose
 json = "1.7.3" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json
 junit = "4.13.2" # https://mvnrepository.com/artifact/junit/junit
@@ -51,6 +52,7 @@ apache-compress = { group = "org.apache.commons", name = "commons-compress", ver
 compose-settings-ui = { module = "com.github.alorma.compose-settings:ui-tiles", version.ref = "settings" }
 compose-settings-ui-extended = { module = "com.github.alorma.compose-settings:ui-tiles-extended", version.ref = "settings" }
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "dataStore" }
+feature-delivery = { module = "com.google.android.play:feature-delivery-ktx", version.ref = "feature-delivery" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "dagger-hilt" }
 hilt-android-compiler = { module = "com.google.dagger:hilt-android-compiler", version.ref = "dagger-hilt" }
 jetbrains-kotlinx-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "json" }
@@ -85,6 +87,7 @@ jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = 
 jetbrains-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlinter = {  id = "org.jmailen.kotlinter", version.ref = "kotlinter"}
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+android-dynamic-feature = { id = "com.android.dynamic-feature", version.ref = "agp" }
 
 [bundles]
 hilt = [
@@ -122,4 +125,7 @@ steamkit-dev = [
     "commons-lang3",
     "commons-validator",
     "xz",
+]
+google = [
+    "feature-delivery",
 ]

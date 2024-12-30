@@ -2,6 +2,7 @@ package com.winlator.core;
 
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.StatFs;
@@ -328,8 +329,8 @@ public abstract class FileUtils {
         }
     }
 
-    public static long getSize(Context context, String assetFile) {
-        try (InputStream inStream = context.getAssets().open(assetFile)) {
+    public static long getSize(AssetManager assetManager, String assetFile) {
+        try (InputStream inStream = assetManager.open(assetFile)) {
             return inStream.available();
         }
         catch (IOException e) {

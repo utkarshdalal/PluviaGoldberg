@@ -1,10 +1,12 @@
 package com.OxGames.Pluvia.utils
 
+import android.content.res.AssetManager
 import android.util.Log
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
 import java.io.FileReader
+import java.io.IOException
 import java.io.OutputStreamWriter
 import java.nio.file.Files
 import java.nio.file.Path
@@ -117,6 +119,16 @@ class FileUtils {
                         index
                     }.any { it < 0 }
                 }
+            }
+        }
+
+        fun assetExists(assetManager: AssetManager, assetPath: String): Boolean {
+            return try {
+                assetManager.open(assetPath).use {
+                    true
+                }
+            } catch (e: IOException) {
+                false
             }
         }
     }
