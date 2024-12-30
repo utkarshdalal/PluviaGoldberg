@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -43,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -112,6 +114,15 @@ private fun UserLoginScreenContent(
             CenterAlignedTopAppBar(
                 title = {
                     Text(text = stringResource(R.string.app_name))
+                },
+                actions = {
+                    val uriHandler = LocalUriHandler.current
+                    IconButton(
+                        onClick = {
+                            uriHandler.openUri("https://github.com/oxters168/Pluvia/tree/master/PrivacyPolicy")
+                        },
+
+                    ) { Icon(imageVector = Icons.Filled.PrivacyTip, contentDescription = "Privacy policy") }
                 },
             )
         },
