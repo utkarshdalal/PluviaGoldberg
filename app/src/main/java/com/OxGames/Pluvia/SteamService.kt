@@ -42,6 +42,15 @@ import com.OxGames.Pluvia.utils.SteamUtils
 import com.OxGames.Pluvia.utils.logD
 import com.OxGames.Pluvia.utils.logE
 import com.OxGames.Pluvia.utils.logW
+import com.google.android.play.core.ktx.bytesDownloaded
+import com.google.android.play.core.ktx.requestCancelInstall
+import com.google.android.play.core.ktx.requestInstall
+import com.google.android.play.core.ktx.requestSessionState
+import com.google.android.play.core.ktx.status
+import com.google.android.play.core.ktx.totalBytesToDownload
+import com.google.android.play.core.splitcompat.SplitCompat
+import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
+import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import com.winlator.xenvironment.ImageFs
 import dagger.hilt.android.AndroidEntryPoint
 import `in`.dragonbra.javasteam.enums.EOSType
@@ -117,9 +126,11 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.future.await
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -328,10 +339,50 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             logD("Found ${depotIds.size} depot(s) to download: $depotIds")
 
-            val downloadInfo = DownloadInfo(depotIds.size).also { downloadInfo ->
+            val needsImageFsDownload = !ImageFs.find(instance!!).rootDir.exists() && !FileUtils.assetExists(instance!!.assets, "imagefs.txz")
+            val indexOffset = if (needsImageFsDownload) 1 else 0
+            var moduleInstallSessionId = -1
+            val downloadInfo = DownloadInfo(depotIds.size + indexOffset).also { downloadInfo ->
                 downloadInfo.setDownloadJob(
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
+                            // TODO: put this somewhere more appropriate and deal with user confirmation status
+                            if (needsImageFsDownload) {
+                                logD("imagefs.txz will be downloaded")
+                                val splitManager = SplitInstallManagerFactory.create(instance!!)
+                                if (!splitManager.installedModules.contains("ubuntufs")) {
+                                    moduleInstallSessionId = splitManager.requestInstall(listOf("ubuntufs"))
+                                    var isInstalling = true
+                                    do {
+                                        val sessionState = splitManager.requestSessionState(moduleInstallSessionId)
+                                        // logD("imagefs.txz session state status: ${sessionState.status}")
+                                        when (sessionState.status) {
+                                            SplitInstallSessionStatus.INSTALLED -> isInstalling = false
+                                            SplitInstallSessionStatus.PENDING,
+                                            SplitInstallSessionStatus.INSTALLING,
+                                            SplitInstallSessionStatus.DOWNLOADED,
+                                            SplitInstallSessionStatus.DOWNLOADING -> {
+                                                if (!isActive) {
+                                                    splitManager.cancelInstall(moduleInstallSessionId)
+                                                    break
+                                                }
+                                                val downloadPercent =
+                                                    sessionState.bytesDownloaded.toFloat() / sessionState.totalBytesToDownload
+                                                // logD("imagefs.txz download percent: $downloadPercent")
+                                                downloadInfo.setProgress(downloadPercent, 0)
+                                                delay(100)
+                                            }
+                                            else -> {
+                                                cancel("Failed to install ubuntufs module: ${sessionState.status}")
+                                            }
+                                        }
+                                    } while (isInstalling)
+                                    val installedProperly = splitManager.installedModules.contains("ubuntufs")
+                                    logD("imagefs.txz module installed properly: $installedProperly")
+                                } else {
+                                    logW("Missing imagefs.txz but ubuntufs module already installed")
+                                }
+                            }
                             depotIds.forEachIndexed { jobIndex, depotId ->
                                 // TODO: download shared install depots to a common location
                                 ContentDownloader(instance!!._steamClient!!).downloadApp(
@@ -341,12 +392,22 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     stagingPath = PrefManager.appStagingPath,
                                     branch = branch,
                                     // maxDownloads = 1,
-                                    onDownloadProgress = { downloadInfo.setProgress(it, jobIndex) },
+                                    onDownloadProgress = { downloadInfo.setProgress(it, jobIndex + indexOffset) },
                                     parentScope = coroutineContext.job as CoroutineScope,
                                 ).await()
                             }
                         } catch (e: Exception) {
                             logE("Download failed: $e")
+                            if (moduleInstallSessionId != -1) {
+                                val splitManager = SplitInstallManagerFactory.create(instance!!)
+                                val sessionState = splitManager.requestSessionState(moduleInstallSessionId)
+                                if (sessionState.status == SplitInstallSessionStatus.DOWNLOADING ||
+                                    sessionState.status == SplitInstallSessionStatus.DOWNLOADED ||
+                                    sessionState.status == SplitInstallSessionStatus.INSTALLING
+                                ) {
+                                    splitManager.requestCancelInstall(moduleInstallSessionId)
+                                }
+                            }
                         }
 
                         downloadJobs.remove(appId)

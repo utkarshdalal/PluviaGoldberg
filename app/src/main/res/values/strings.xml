@@ -36,4 +36,5 @@
     <string name="compatibility">Compatibility</string>
     <string name="intermediate">Intermediate</string>
     <string name="performance">Performance</string>
+    <string name="title_ubuntufs">Ubuntu FS</string>
 </resources>

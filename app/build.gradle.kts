@@ -121,7 +121,13 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+        jniLibs {
+            // 'extractNativeLibs' was not enough to keep the jniLibs and
+            // the libs went missing after adding on-demand feature delivery
+            useLegacyPackaging = true
+        }
     }
+    dynamicFeatures += setOf(":ubuntufs")
 
     // cmake on release builds a proot that fails to process ld-2.31.so
     // externalNativeBuild {
@@ -151,6 +157,9 @@ dependencies {
         }
     }
     implementation(libs.spongycastle)
+
+    // Split Modules
+    implementation(libs.bundles.google)
 
     // Winlator
     implementation(libs.bundles.winlator)

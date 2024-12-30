@@ -22,4 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Pluvia"
 include(":app")
- 
+include(":ubuntufs")

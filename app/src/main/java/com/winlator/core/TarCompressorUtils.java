@@ -1,6 +1,7 @@
 package com.winlator.core;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.util.Log;
 
@@ -101,13 +102,13 @@ public abstract class TarCompressorUtils {
         }
     }
 
-    public static boolean extract(Type type, Context context, String assetFile, File destination) {
-        return extract(type, context, assetFile, destination, null);
+    public static boolean extract(Type type, AssetManager assetManager, String assetFile, File destination) {
+        return extract(type, assetManager, assetFile, destination, null);
     }
 
-    public static boolean extract(Type type, Context context, String assetFile, File destination, OnExtractFileListener onExtractFileListener) {
+    public static boolean extract(Type type, AssetManager assetManager, String assetFile, File destination, OnExtractFileListener onExtractFileListener) {
         try {
-            return extract(type, context.getAssets().open(assetFile), destination, onExtractFileListener);
+            return extract(type, assetManager.open(assetFile), destination, onExtractFileListener);
         }
         catch (IOException e) {
             return false;

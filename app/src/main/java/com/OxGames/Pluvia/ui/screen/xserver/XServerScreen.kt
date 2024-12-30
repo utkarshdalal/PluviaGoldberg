@@ -878,8 +878,8 @@ private fun applyGeneralPatches(
 ) {
     val rootDir = imageFs.rootDir
     FileUtils.delete(File(rootDir, "/opt/apps"))
-    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "imagefs_patches.tzst", rootDir, onExtractFileListener)
-    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "pulseaudio.tzst", File(context.filesDir, "pulseaudio"))
+    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "imagefs_patches.tzst", rootDir, onExtractFileListener)
+    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "pulseaudio.tzst", File(context.filesDir, "pulseaudio"))
     WineUtils.applySystemTweaks(context, wineInfo)
     container.putExtra("graphicsDriver", null)
     container.putExtra("desktopTheme", null)
@@ -923,19 +923,19 @@ private fun extractDXWrapperFiles(
             FileUtils.delete(shadersDir)
             FileUtils.copy(context, "$assetDir/Shaders", shadersDir)
             TarCompressorUtils.extract(
-                TarCompressorUtils.Type.ZSTD, context,
+                TarCompressorUtils.Type.ZSTD, context.assets,
                 "$assetDir/ddraw.tzst", windowsDir, onExtractFileListener,
             )
         }
         "vkd3d" -> {
             val dxvkVersions = context.resources.getStringArray(R.array.dxvk_version_entries)
             TarCompressorUtils.extract(
-                TarCompressorUtils.Type.ZSTD, context,
+                TarCompressorUtils.Type.ZSTD, context.assets,
                 "dxwrapper/dxvk-" + (dxvkVersions[dxvkVersions.size - 1]) + ".tzst", windowsDir, onExtractFileListener,
             )
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD,
-                context,
+                context.assets,
                 "dxwrapper/vkd3d-" + DefaultVersion.VKD3D + ".tzst",
                 windowsDir,
                 onExtractFileListener,
@@ -944,12 +944,12 @@ private fun extractDXWrapperFiles(
         else -> {
             restoreOriginalDllFiles(container, containerManager, imageFs, "d3d12.dll", "d3d12core.dll", "ddraw.dll")
             TarCompressorUtils.extract(
-                TarCompressorUtils.Type.ZSTD, context,
+                TarCompressorUtils.Type.ZSTD, context.assets,
                 "dxwrapper/$dxwrapper.tzst", windowsDir, onExtractFileListener,
             )
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD,
-                context,
+                context.assets,
                 "dxwrapper/d8vk-${DefaultVersion.D8VK}.tzst",
                 windowsDir,
                 onExtractFileListener,
@@ -1055,7 +1055,7 @@ private fun extractWinComponentFiles(
 
             if (useNative) {
                 TarCompressorUtils.extract(
-                    TarCompressorUtils.Type.ZSTD, context,
+                    TarCompressorUtils.Type.ZSTD, context.assets,
                     "wincomponents/$identifier.tzst", windowsDir, onExtractFileListener,
                 )
             } else {
@@ -1132,13 +1132,13 @@ private fun extractGraphicsDriverFiles(
         if (changed) {
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD,
-                context,
+                context.assets,
                 "graphics_driver/turnip-${DefaultVersion.TURNIP}.tzst",
                 rootDir,
             )
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD,
-                context,
+                context.assets,
                 "graphics_driver/zink-${DefaultVersion.ZINK}.tzst",
                 rootDir,
             )
@@ -1152,7 +1152,7 @@ private fun extractGraphicsDriverFiles(
         envVars.put("vblank_mode", "0")
         if (changed) {
             TarCompressorUtils.extract(
-                TarCompressorUtils.Type.ZSTD, context,
+                TarCompressorUtils.Type.ZSTD, context.assets,
                 "graphics_driver/virgl-" + DefaultVersion.VIRGL + ".tzst", rootDir,
             )
         }
