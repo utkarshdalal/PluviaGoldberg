@@ -46,5 +46,12 @@ fun SettingsGroupInfo() {
                 /* Could link to pluvia repo to credits page? */
             },
         )
+
+        SettingsMenuLink(
+            title = { Text(text = "Privacy Policy") },
+            onClick = {
+                uriHandler.openUri("https://github.com/oxters168/Pluvia/tree/master/PrivacyPolicy")
+            },
+        )
     }
 }
