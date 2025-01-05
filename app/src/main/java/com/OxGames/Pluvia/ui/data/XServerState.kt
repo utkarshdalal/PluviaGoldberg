@@ -2,7 +2,6 @@ package com.OxGames.Pluvia.ui.data
 
 import com.winlator.container.Container
 import com.winlator.core.KeyValueSet
-import com.winlator.core.OnExtractFileListener
 import com.winlator.core.WineInfo
 
 data class XServerState(
