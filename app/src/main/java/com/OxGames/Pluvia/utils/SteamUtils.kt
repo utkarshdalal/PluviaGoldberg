@@ -70,10 +70,7 @@ class SteamUtils {
          */
         @SuppressLint("HardwareIds")
         fun getUniqueDeviceId(context: Context): Int {
-            val androidId = Settings.Secure.getString(
-                context.contentResolver,
-                Settings.Secure.ANDROID_ID
-            )
+            val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
 
             return androidId.hashCode()
         }

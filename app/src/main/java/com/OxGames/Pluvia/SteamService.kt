@@ -48,7 +48,6 @@ import com.google.android.play.core.ktx.requestInstall
 import com.google.android.play.core.ktx.requestSessionState
 import com.google.android.play.core.ktx.status
 import com.google.android.play.core.ktx.totalBytesToDownload
-import com.google.android.play.core.splitcompat.SplitCompat
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import com.winlator.xenvironment.ImageFs
@@ -100,7 +99,7 @@ import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
 import `in`.dragonbra.javasteam.util.NetHelpers
 import `in`.dragonbra.javasteam.util.crypto.CryptoHelper
-import `in`.dragonbra.javasteam.util.log.DefaultLogListener
+import `in`.dragonbra.javasteam.util.log.LogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
 import java.io.BufferedReader
 import java.io.Closeable
@@ -339,7 +338,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             logD("Found ${depotIds.size} depot(s) to download: $depotIds")
 
-            val needsImageFsDownload = !ImageFs.find(instance!!).rootDir.exists() && !FileUtils.assetExists(instance!!.assets, "imagefs.txz")
+            val needsImageFsDownload = !ImageFs.find(instance!!).rootDir.exists() &&
+                !FileUtils.assetExists(instance!!.assets, "imagefs.txz")
             val indexOffset = if (needsImageFsDownload) 1 else 0
             var moduleInstallSessionId = -1
             val downloadInfo = DownloadInfo(depotIds.size + indexOffset).also { downloadInfo ->
@@ -361,7 +361,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                                             SplitInstallSessionStatus.PENDING,
                                             SplitInstallSessionStatus.INSTALLING,
                                             SplitInstallSessionStatus.DOWNLOADED,
-                                            SplitInstallSessionStatus.DOWNLOADING -> {
+                                            SplitInstallSessionStatus.DOWNLOADING,
+                                            -> {
                                                 if (!isActive) {
                                                     splitManager.cancelInstall(moduleInstallSessionId)
                                                     break
@@ -372,6 +373,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                                 downloadInfo.setProgress(downloadPercent, 0)
                                                 delay(100)
                                             }
+
                                             else -> {
                                                 cancel("Failed to install ubuntufs module: ${sessionState.status}")
                                             }
@@ -1558,11 +1560,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                         this.deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                     }
 
-                    val authSession = steamClient.authentication.beginAuthSessionViaCredentials(authDetails)
+                    val authSession = steamClient.authentication.beginAuthSessionViaCredentials(authDetails, this).await()
 
                     PluviaApp.events.emit(SteamEvent.LogonStarted(username))
 
-                    val pollResult = authSession.pollingWaitForResult()
+                    val pollResult = authSession.pollingWaitForResult().await()
 
                     if (pollResult.accountName.isNotEmpty() && pollResult.refreshToken.isNotEmpty()) {
                         login(
@@ -1594,7 +1596,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                     }
 
-                    val authSession = steamClient.authentication.beginAuthSessionViaQR(authDetails)
+                    val authSession = steamClient.authentication.beginAuthSessionViaQR(authDetails, this).await()
 
                     // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
                     authSession.challengeUrlChanged = instance
@@ -1607,7 +1609,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                     while (isWaitingForQRAuth && authPollResult == null) {
                         try {
-                            authPollResult = authSession.pollAuthSessionStatus()
+                            authPollResult = authSession.pollAuthSessionStatus(this).await()
                         } catch (e: Exception) {
                             logW("Poll auth session status error: $e")
 
@@ -1702,8 +1704,23 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         notificationHelper = NotificationHelper(applicationContext)
 
-        // to view log messages in logcat
-        LogManager.addListener(DefaultLogListener())
+        // To view log messages in android logcat properly
+        val logger = object : LogListener {
+            override fun onLog(clazz: Class<*>, message: String, throwable: Throwable?) {
+                if (BuildConfig.DEBUG) {
+                    logD(message, throwable, clazz.simpleName)
+                } else {
+                    throwable?.let { throwMsg ->
+                        logW(message, throwMsg, clazz.simpleName)
+                    }
+                }
+            }
+
+            override fun onError(clazz: Class<*>, message: String, throwable: Throwable?) {
+                logE(message, throwable, clazz.simpleName)
+            }
+        }
+        LogManager.addListener(logger)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -1729,7 +1746,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             // create the callback manager which will route callbacks to function calls
             _callbackManager = CallbackManager(_steamClient!!)
-            _unifiedMessages = _steamClient!!.getHandler(SteamUnifiedMessages::class.java)
+            _unifiedMessages = _steamClient!!.getHandler<SteamUnifiedMessages>()
 
             // get the different handlers to be used throughout the service
             _steamUser = _steamClient!!.getHandler(SteamUser::class.java)
