@@ -6,7 +6,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,7 +115,8 @@ fun XServerScreen(
     var taskAffinityMaskWoW64 = 0
 
     val xServerStateSaver = run {
-        mapSaver(  // Explicitly specify the types
+        // Explicitly specify the types
+        mapSaver(
             save = { state ->
                 mapOf(
                     "winStarted" to state.winStarted,
@@ -125,7 +125,7 @@ fun XServerScreen(
                     "screenSize" to state.screenSize,
                     "wineInfo" to state.wineInfo,
                     "graphicsDriver" to state.graphicsDriver,
-                    "audioDriver" to state.audioDriver
+                    "audioDriver" to state.audioDriver,
                 )
             },
             restore = { map ->
@@ -136,9 +136,9 @@ fun XServerScreen(
                     screenSize = map["screenSize"] as String,
                     wineInfo = map["wineInfo"] as WineInfo,
                     graphicsDriver = map["graphicsDriver"] as String,
-                    audioDriver = map["audioDriver"] as String
+                    audioDriver = map["audioDriver"] as String,
                 )
-            }
+            },
         )
     }
 
@@ -257,13 +257,13 @@ fun XServerScreen(
         factory = { context ->
             // Creates view
             // if (PluviaApp.xServer == null) {
-                Log.d("XServerScreen", "Creating XServerView and XServer")
-                // if (PluviaApp.xServerState == null) {
-                //     PluviaApp.xServerState = XServerState()
-                // }
-                // if (PluviaApp.xServer == null) {
-                //     PluviaApp.xServer = XServer(ScreenInfo(xServerState.value.screenSize))
-                // }
+            Log.d("XServerScreen", "Creating XServerView and XServer")
+            // if (PluviaApp.xServerState == null) {
+            //     PluviaApp.xServerState = XServerState()
+            // }
+            // if (PluviaApp.xServer == null) {
+            //     PluviaApp.xServer = XServer(ScreenInfo(xServerState.value.screenSize))
+            // }
             XServerView(
                 context,
                 XServer(ScreenInfo(xServerState.value.screenSize)),
@@ -378,11 +378,12 @@ fun XServerScreen(
 
                     val wineVersion = container.wineVersion
                     xServerState.value = xServerState.value.copy(
-                        wineInfo = WineInfo.fromIdentifier(context, wineVersion)
+                        wineInfo = WineInfo.fromIdentifier(context, wineVersion),
                     )
 
-                    if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) ImageFs.find(context).winePath =
-                        xServerState.value.wineInfo.path
+                    if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) {
+                        ImageFs.find(context).winePath = xServerState.value.wineInfo.path
+                    }
 
                     // val shortcutPath: String? = null // TODO: set to executable path within container (intent extra "shortcut_path")
                     // xServerState.value.shortcut = if (shortcutPath != null && !shortcutPath.isEmpty()) Shortcut(container, File(shortcutPath)) else null
@@ -403,7 +404,7 @@ fun XServerScreen(
                         null
                     }
                     xServerState.value = xServerState.value.copy(
-                        dxwrapperConfig = parsedConfig
+                        dxwrapperConfig = parsedConfig,
                     )
                     // xServerViewModel.setDxwrapperConfig(parsedConfig)
                     // Log.d("XServerScreen", "dxwrapperConfig is ${xServerState.value.dxwrapperConfig} based on container dxWrapper of ${container.dxWrapper} which now in xServerState is ${xServerState.value.dxwrapper} and when checked against ${Container.DEFAULT_DXWRAPPER} if is equal is ${xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER} and so when parsed is $parsedConfig")
@@ -524,7 +525,7 @@ private fun shiftXEnvironmentToContext(
     xEnvironment.getComponent<SysVSharedMemoryComponent>(SysVSharedMemoryComponent::class.java).stop()
     val sysVSharedMemoryComponent = SysVSharedMemoryComponent(
         xServer,
-        UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH)
+        UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.SYSVSHM_SERVER_PATH),
     )
     // val sysVSharedMemoryComponent = xEnvironment.getComponent<SysVSharedMemoryComponent>(SysVSharedMemoryComponent::class.java)
     // sysVSharedMemoryComponent.connectToXServer(xServer)
@@ -820,7 +821,7 @@ private fun setupWineSystemFiles(
     // val dxwrapper = this.dxwrapper
     if (xServerState.value.dxwrapper == "dxvk") {
         xServerState.value = xServerState.value.copy(
-            dxwrapper = "dxvk-" + xServerState.value.dxwrapperConfig?.get("version")
+            dxwrapper = "dxvk-" + xServerState.value.dxwrapperConfig?.get("version"),
         )
     }
 

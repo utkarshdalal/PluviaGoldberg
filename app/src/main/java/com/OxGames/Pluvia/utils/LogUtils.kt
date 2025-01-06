@@ -8,16 +8,16 @@ import android.util.Log
  * Utility methods to use instead of [Log]
  */
 
-fun Any.logD(message: String, tag: String? = null) {
-    Log.d(tag ?: this::class.java.simpleName, message)
+fun Any.logD(message: String, throwable: Throwable? = null, tag: String? = null) {
+    Log.d(tag ?: this::class.java.simpleName, message, throwable)
 }
 
-fun Any.logI(message: String, tag: String? = null) {
-    Log.i(tag ?: this::class.java.simpleName, message)
+fun Any.logI(message: String, throwable: Throwable? = null, tag: String? = null) {
+    Log.i(tag ?: this::class.java.simpleName, message, throwable)
 }
 
-fun Any.logW(message: String, tag: String? = null) {
-    Log.w(tag ?: this::class.java.simpleName, message)
+fun Any.logW(message: String, throwable: Throwable? = null, tag: String? = null) {
+    Log.w(tag ?: this::class.java.simpleName, message, throwable)
 }
 
 fun Any.logE(message: String, throwable: Throwable? = null, tag: String? = null) {
