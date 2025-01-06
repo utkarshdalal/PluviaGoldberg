@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia
 
+import android.os.StrictMode
 import androidx.navigation.NavController
 import com.OxGames.Pluvia.events.EventDispatcher
 import com.google.android.play.core.splitcompat.SplitCompatApplication
@@ -13,6 +14,16 @@ class PluviaApp : SplitCompatApplication() {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Allows to find resource streams not closed within Pluvia and JavaSteam
+        if (BuildConfig.DEBUG) {
+            StrictMode.setVmPolicy(
+                StrictMode.VmPolicy.Builder()
+                    .detectLeakedClosableObjects()
+                    .penaltyLog()
+                    .build(),
+            )
+        }
 
         // Init our datastore preferences.
         PrefManager.init(this)
