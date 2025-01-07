@@ -560,7 +560,7 @@ private fun shiftXEnvironmentToContext(
     }
     environment.addComponent(xEnvironment.getComponent<GuestProgramLauncherComponent>(GuestProgramLauncherComponent::class.java))
 
-    FileUtils.clear(xEnvironment.tmpDir)
+    FileUtils.clear(XEnvironment.getTmpDir(context))
     sysVSharedMemoryComponent.start()
     xServerComponent.start()
     networkInfoComponent.start()
