@@ -9,6 +9,7 @@ import com.winlator.core.FileUtils;
 import com.winlator.core.ProcessHelper;
 import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.EnvironmentComponent;
+import com.winlator.xenvironment.XEnvironment;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -66,7 +67,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
         ArrayList<String> envVars = new ArrayList<>();
         envVars.add("LD_LIBRARY_PATH="+systemLibPath+":"+nativeLibraryDir+":"+modulesDir);
         envVars.add("HOME="+workingDir);
-        envVars.add("TMPDIR="+environment.getTmpDir());
+        envVars.add("TMPDIR="+XEnvironment.getTmpDir(context));
 
         String command = nativeLibraryDir+"/libpulseaudio.so";
         command += " --system=false";
