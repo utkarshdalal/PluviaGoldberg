@@ -44,7 +44,7 @@ public class XEnvironment implements Iterable<EnvironmentComponent> {
         return components.iterator();
     }
 
-    public File getTmpDir() {
+    public static File getTmpDir(Context context) {
         File tmpDir = new File(context.getFilesDir(), "tmp");
         if (!tmpDir.isDirectory()) {
             tmpDir.mkdirs();
@@ -54,7 +54,7 @@ public class XEnvironment implements Iterable<EnvironmentComponent> {
     }
 
     public void startEnvironmentComponents() {
-        FileUtils.clear(getTmpDir());
+        FileUtils.clear(getTmpDir(getContext()));
         for (EnvironmentComponent environmentComponent : this) environmentComponent.start();
     }
 
