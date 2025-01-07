@@ -16,9 +16,11 @@ import com.winlator.core.TarCompressorUtils;
 import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.ImageFs;
+import com.winlator.xenvironment.XEnvironment;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.List;
 
 public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
@@ -50,6 +52,16 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
                 Process.killProcess(pid);
                 Log.d("GuestProgramLauncherComponent", "Stopped process " + pid);
                 pid = -1;
+                List<ProcessHelper.ProcessInfo> subProcesses = ProcessHelper.listSubProcesses();
+                for (ProcessHelper.ProcessInfo subProcess : subProcesses) {
+                    Log.d("GuestProgramLauncherComponent",
+                            "Sub-process still running: "
+                                    + subProcess.name + " | "
+                                    + subProcess.pid + " | "
+                                    + subProcess.ppid + ", stopping..."
+                    );
+                    Process.killProcess(subProcess.pid);
+                }
             }
         }
     }
@@ -111,11 +123,28 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     }
 
     private int execGuestProgram() {
-        Log.d("GuestProgramLauncherComponent", "Executing guest program");
         Context context = environment.getContext();
-        ImageFs imageFs = environment.getImageFs();
+
+        PrefManager.init(context);
+        boolean enableBox86_64Logs = PrefManager.getBoolean("enable_box86_64_logs", false);
+
+        EnvVars envVars = new EnvVars();
+        if (!wow64Mode) addBox86EnvVars(envVars, enableBox86_64Logs);
+        addBox64EnvVars(envVars, enableBox86_64Logs);
+        if (this.envVars != null) envVars.putAll(this.envVars);
+
+        return exec(context, !wow64Mode, bindingPaths, envVars, terminationCallback, "box64 " + guestExecutable);
+    }
+    public static int exec(Context context, String prootCmd) {
+        return exec(context, false, new String[0], null, null, prootCmd);
+    }
+    public static int exec(Context context, boolean proot32, String[] bindingPaths, EnvVars extraVars, Callback<Integer> terminationCallback, String prootCmd) {
+        Log.d("GuestProgramLauncherComponent", "Executing guest program");
+        // Context context = environment.getContext();
+        // ImageFs imageFs = environment.getImageFs();
+        ImageFs imageFs = ImageFs.find(context);
         File rootDir = imageFs.getRootDir();
-        File tmpDir = environment.getTmpDir();
+        File tmpDir = XEnvironment.getTmpDir(context);
         String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
         File nativeLibs = new File(nativeLibraryDir);
         // Log.d("GuestProgramLauncherComponent", nativeLibraryDir + " exists: " + nativeLibs.exists());
@@ -140,12 +169,12 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         //     Log.e("GuestProgramLauncherComponent", "Failed to copy steam_api.dll.so to /usr/lib " + e);
         // }
 
-        PrefManager.init(context);
-        boolean enableBox86_64Logs = PrefManager.getBoolean("enable_box86_64_logs", false);
+        // PrefManager.init(context);
+        // boolean enableBox86_64Logs = PrefManager.getBoolean("enable_box86_64_logs", false);
 
         EnvVars envVars = new EnvVars();
-        if (!wow64Mode) addBox86EnvVars(envVars, enableBox86_64Logs);
-        addBox64EnvVars(envVars, enableBox86_64Logs);
+        // if (!wow64Mode) addBox86EnvVars(envVars, enableBox86_64Logs);
+        // addBox64EnvVars(envVars, enableBox86_64Logs);
 
         TimeZone androidTz = TimeZone.getDefault();
         String tzId = androidTz.getID();
@@ -164,7 +193,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         if ((new File(imageFs.getLib64Dir(), "libandroid-sysvshm.so")).exists() ||
                 (new File(imageFs.getLib32Dir(), "libandroid-sysvshm.so")).exists())
             envVars.put("LD_PRELOAD", "libandroid-sysvshm.so");
-        if (this.envVars != null) envVars.putAll(this.envVars);
+        if (extraVars != null) envVars.putAll(extraVars);
 
         boolean bindSHM = envVars.get("WINEESYNC").equals("1");
 
@@ -193,12 +222,12 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         // envVars.put("WINEDLLOVERRIDES", "\"steam_api=n\"");
         envVars.put("WINEESYNC", "0");
 
-        command += " /usr/bin/env " + envVars.toEscapedString() + " box64 " + guestExecutable;
+        command += " /usr/bin/env " + envVars.toEscapedString() + " " + prootCmd;
 
         envVars.clear();
         envVars.put("PROOT_TMP_DIR", tmpDir);
         envVars.put("PROOT_LOADER", nativeLibraryDir + "/libproot-loader.so");
-        if (!wow64Mode) envVars.put("PROOT_LOADER_32", nativeLibraryDir + "/libproot-loader32.so");
+        if (proot32) envVars.put("PROOT_LOADER_32", nativeLibraryDir + "/libproot-loader32.so");
 
         // ProcessHelper.exec(nativeLibraryDir+"/libproot.so ulimit -a", envVars.toStringArray(), rootDir);
         return ProcessHelper.exec(command, envVars.toStringArray(), rootDir, (status) -> {
