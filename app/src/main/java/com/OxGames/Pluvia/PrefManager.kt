@@ -165,4 +165,14 @@ object PrefManager {
         set(value) {
             setPref(ALLOWED_ORIENTATION, Orientation.toInt(value))
         }
+
+    private val TIPPED = booleanPreferencesKey("tipped")
+    var tipped: Boolean
+        get() {
+            val value = getPref(TIPPED, false)
+            return value
+        }
+        set(value) {
+            setPref(TIPPED, value)
+        }
 }
