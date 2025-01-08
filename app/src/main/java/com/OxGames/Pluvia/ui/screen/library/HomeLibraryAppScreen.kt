@@ -32,10 +32,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +58,7 @@ import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
+import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.StorageUtils
 import com.skydoves.landscapist.ImageOptions
@@ -83,7 +85,9 @@ fun AppScreen(
         mutableStateOf(SteamService.getAppInfoOf(appId))
     }
 
-    var msgDialogState by remember { mutableStateOf(MessageDialogState(false)) }
+    var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
+        mutableStateOf(MessageDialogState(false))
+    }
 
     DisposableEffect(downloadInfo) {
         val onDownloadProgress: (Float) -> Unit = {
@@ -101,6 +105,53 @@ fun AppScreen(
     }
 
     val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
+    val onDismissRequest: (() -> Unit)?
+    val onDismissClick: (() -> Unit)?
+    val onConfirmClick: (() -> Unit)?
+    when (msgDialogState.type) {
+        DialogType.CANCEL_APP_DOWNLOAD -> {
+            onConfirmClick = {
+                downloadInfo?.cancel()
+                SteamService.deleteApp(appId)
+                downloadInfo = null
+                downloadProgress = 0f
+                isInstalled = SteamService.isAppInstalled(appId)
+                msgDialogState = MessageDialogState(false)
+            }
+            onDismissRequest = { msgDialogState = MessageDialogState(false) }
+            onDismissClick = { msgDialogState = MessageDialogState(false) }
+        }
+        DialogType.NOT_ENOUGH_SPACE -> {
+            onDismissRequest = { msgDialogState = MessageDialogState(false) }
+            onConfirmClick = { msgDialogState = MessageDialogState(false) }
+            onDismissClick = null
+        }
+        DialogType.INSTALL_APP -> {
+            onDismissRequest = { msgDialogState = MessageDialogState(false) }
+            onConfirmClick = {
+                downloadProgress = 0f
+                downloadInfo = SteamService.downloadApp(appId)
+                msgDialogState = MessageDialogState(false)
+            }
+            onDismissClick = { msgDialogState = MessageDialogState(false) }
+        }
+        DialogType.DELETE_APP -> {
+            onConfirmClick = {
+                SteamService.deleteApp(appId)
+                msgDialogState = MessageDialogState(false)
+
+                isInstalled = SteamService.isAppInstalled(appId)
+            }
+            onDismissRequest = { msgDialogState = MessageDialogState(false) }
+            onDismissClick = { msgDialogState = MessageDialogState(false) }
+        }
+        else -> {
+            onDismissRequest = null
+            onDismissClick = null
+            onConfirmClick = null
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -123,10 +174,10 @@ fun AppScreen(
     ) { paddingValues ->
         MessageDialog(
             visible = msgDialogState.visible,
-            onDismissRequest = msgDialogState.onDismissRequest,
-            onConfirmClick = msgDialogState.onConfirmClick,
+            onDismissRequest = onDismissRequest,
+            onConfirmClick = onConfirmClick,
             confirmBtnText = msgDialogState.confirmBtnText,
-            onDismissClick = msgDialogState.onDismissClick,
+            onDismissClick = onDismissClick,
             dismissBtnText = msgDialogState.dismissBtnText,
             icon = msgDialogState.icon,
             title = msgDialogState.title,
@@ -142,20 +193,11 @@ fun AppScreen(
                 if (isDownloading()) {
                     msgDialogState = MessageDialogState(
                         visible = true,
-                        onDismissRequest = { msgDialogState = MessageDialogState(false) },
+                        type = DialogType.CANCEL_APP_DOWNLOAD,
                         title = context.getString(R.string.cancel_download_prompt_title),
                         message = "Are you sure you want to cancel the download of the app?",
                         confirmBtnText = context.getString(R.string.yes),
-                        onConfirmClick = {
-                            downloadInfo?.cancel()
-                            SteamService.deleteApp(appId)
-                            downloadInfo = null
-                            downloadProgress = 0f
-                            isInstalled = SteamService.isAppInstalled(appId)
-                            msgDialogState = MessageDialogState(false)
-                        },
                         dismissBtnText = context.getString(R.string.no),
-                        onDismissClick = { msgDialogState = MessageDialogState(false) },
                     )
                 } else if (!isInstalled) {
                     val depots = SteamService.getDownloadableDepots(appId)
@@ -169,30 +211,23 @@ fun AppScreen(
                     if (availableBytes < installBytes) {
                         msgDialogState = MessageDialogState(
                             visible = true,
-                            onDismissRequest = { msgDialogState = MessageDialogState(false) },
+                            type = DialogType.NOT_ENOUGH_SPACE,
                             title = context.getString(R.string.not_enough_space),
                             message = "The app being installed needs $installSize of space but " +
                                 "there is only $availableSpace left on this device",
                             confirmBtnText = context.getString(R.string.acknowledge),
-                            onConfirmClick = { msgDialogState = MessageDialogState(false) },
                         )
                     } else {
                         msgDialogState = MessageDialogState(
                             visible = true,
-                            onDismissRequest = { msgDialogState = MessageDialogState(false) },
+                            type = DialogType.INSTALL_APP,
                             title = context.getString(R.string.download_prompt_title),
                             message = "The app being installed has the following space requirements. Would you like to proceed?" +
                                 "\n\n\tDownload Size: $downloadSize" +
                                 "\n\tSize on Disk: $installSize" +
                                 "\n\tAvailable Space: $availableSpace",
                             confirmBtnText = context.getString(R.string.proceed),
-                            onConfirmClick = {
-                                downloadProgress = 0f
-                                downloadInfo = SteamService.downloadApp(appId)
-                                msgDialogState = MessageDialogState(false)
-                            },
                             dismissBtnText = context.getString(R.string.cancel),
-                            onDismissClick = { msgDialogState = MessageDialogState(false) },
                         )
                     }
                 } else {
@@ -229,18 +264,11 @@ fun AppScreen(
                                     // TODO: show loading screen of delete progress
                                     msgDialogState = MessageDialogState(
                                         visible = true,
+                                        type = DialogType.DELETE_APP,
                                         title = context.getString(R.string.delete_prompt_title),
                                         message = "Are you sure you want to delete this app?\n\n\tSize on Disk: $sizeOnDisk",
-                                        onDismissRequest = { msgDialogState = MessageDialogState(false) },
                                         confirmBtnText = context.getString(R.string.delete_app),
-                                        onConfirmClick = {
-                                            SteamService.deleteApp(appId)
-                                            msgDialogState = MessageDialogState(false)
-
-                                            isInstalled = SteamService.isAppInstalled(appId)
-                                        },
                                         dismissBtnText = context.getString(R.string.cancel),
-                                        onDismissClick = { msgDialogState = MessageDialogState(false) },
                                     )
                                 },
                             ),
