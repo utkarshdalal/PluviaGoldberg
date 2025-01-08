@@ -40,6 +40,7 @@ import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
+import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.HomeViewModel
@@ -82,8 +83,14 @@ fun PluviaMain(
     var hasLaunched by rememberSaveable { mutableStateOf(false) }
     var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
     var loadingProgress by rememberSaveable { mutableFloatStateOf(0f) }
-    var msgDialogState by remember { mutableStateOf(MessageDialogState(false)) }
-    var annoyingDialogShown by remember { mutableStateOf(false) }
+    var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
+        mutableStateOf(MessageDialogState(false))
+    }
+    var annoyingDialogShown by rememberSaveable { mutableStateOf(false) }
+
+    val setLoadingDialogVisible: (Boolean) -> Unit = { loadingDialogVisible = it }
+    val setLoadingProgress: (Float) -> Unit = { loadingProgress = it }
+    val setMessageDialogState: (MessageDialogState) -> Unit = { msgDialogState = it }
 
     LaunchedEffect(navController) {
         Log.d("PluviaMain", "navController changed")
@@ -170,14 +177,9 @@ fun PluviaMain(
                             annoyingDialogShown = true
                             msgDialogState = MessageDialogState(
                                 visible = true,
+                                type = DialogType.SUPPORT,
                                 message = "Thank you for using Pluvia, please consider supporting us by purchasing the app from the store",
                                 confirmBtnText = "OK",
-                                onConfirmClick = {
-                                    msgDialogState = MessageDialogState(visible = false)
-                                },
-                                onDismissRequest = {
-                                    msgDialogState = MessageDialogState(visible = false)
-                                },
                             )
                         }
                     }
@@ -230,6 +232,154 @@ fun PluviaMain(
         }
     }
 
+    val launchApp: () -> Unit = {
+        CoroutineScope(Dispatchers.Main).launch {
+            // SteamUtils.replaceSteamApi(context, appId)
+
+            // TODO: fix XServerScreen change orientation issue rather than setting the orientation
+            //  before entering XServerScreen
+            PluviaApp.events.emit(
+                AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation),
+            )
+
+            navController.navigate(PluviaScreen.XServer.name)
+        }
+    }
+
+    val onDismissRequest: (() -> Unit)?
+    val onDismissClick: (() -> Unit)?
+    val onConfirmClick: (() -> Unit)?
+    when (msgDialogState.type) {
+        DialogType.SUPPORT -> {
+            onConfirmClick = {
+                msgDialogState = MessageDialogState(visible = false)
+            }
+            onDismissRequest = {
+                msgDialogState = MessageDialogState(visible = false)
+            }
+            onDismissClick = null
+        }
+        DialogType.SYNC_CONFLICT -> {
+            onConfirmClick = {
+                preLaunchApp(
+                    context = context,
+                    appId = appId,
+                    preferredSave = SaveLocation.Remote,
+                    setLoadingDialogVisible = setLoadingDialogVisible,
+                    setLoadingProgress = setLoadingProgress,
+                    setMessageDialogState = setMessageDialogState,
+                    onSuccess = launchApp,
+                )
+                msgDialogState = MessageDialogState(false)
+            }
+            onDismissClick = {
+                preLaunchApp(
+                    context = context,
+                    appId = appId,
+                    preferredSave = SaveLocation.Local,
+                    setLoadingDialogVisible = setLoadingDialogVisible,
+                    setLoadingProgress = setLoadingProgress,
+                    setMessageDialogState = setMessageDialogState,
+                    onSuccess = launchApp,
+                )
+                msgDialogState = MessageDialogState(false)
+            }
+            onDismissRequest = {
+                msgDialogState = MessageDialogState(false)
+            }
+        }
+        DialogType.SYNC_FAIL -> {
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onConfirmClick = null
+        }
+        DialogType.PENDING_UPLOAD_IN_PROGRESS -> {
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onConfirmClick = null
+        }
+        DialogType.PENDING_UPLOAD -> {
+            onConfirmClick = {
+                setMessageDialogState(MessageDialogState(false))
+                preLaunchApp(
+                    context = context,
+                    appId = appId,
+                    ignorePendingOperations = true,
+                    setLoadingDialogVisible = setLoadingDialogVisible,
+                    setLoadingProgress = setLoadingProgress,
+                    setMessageDialogState = setMessageDialogState,
+                    onSuccess = launchApp,
+                )
+            }
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+        }
+        DialogType.APP_SESSION_ACTIVE -> {
+            onConfirmClick = {
+                setMessageDialogState(MessageDialogState(false))
+                preLaunchApp(
+                    context = context,
+                    appId = appId,
+                    ignorePendingOperations = true,
+                    setLoadingDialogVisible = setLoadingDialogVisible,
+                    setLoadingProgress = setLoadingProgress,
+                    setMessageDialogState = setMessageDialogState,
+                    onSuccess = launchApp,
+                )
+            }
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+        }
+        DialogType.APP_SESSION_SUSPENDED -> {
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onConfirmClick = null
+        }
+        DialogType.PENDING_OPERATION_NONE -> {
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onConfirmClick = null
+        }
+        DialogType.MULTIPLE_PENDING_OPERATIONS -> {
+            onDismissClick = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onDismissRequest = {
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onConfirmClick = null
+        }
+        else -> {
+            onDismissRequest = null
+            onDismissClick = null
+            onConfirmClick = null
+        }
+    }
+
     PluviaTheme {
         LoadingDialog(
             visible = loadingDialogVisible,
@@ -237,10 +387,10 @@ fun PluviaMain(
         )
         MessageDialog(
             visible = msgDialogState.visible,
-            onDismissRequest = msgDialogState.onDismissRequest,
-            onConfirmClick = msgDialogState.onConfirmClick,
+            onDismissRequest = onDismissRequest,
+            onConfirmClick = onConfirmClick,
             confirmBtnText = msgDialogState.confirmBtnText,
-            onDismissClick = msgDialogState.onDismissClick,
+            onDismissClick = onDismissClick,
             dismissBtnText = msgDialogState.dismissBtnText,
             icon = msgDialogState.icon,
             title = msgDialogState.title,
@@ -270,25 +420,13 @@ fun PluviaMain(
                     onClickPlay = { launchAppId, asContainer ->
                         appId = launchAppId
                         bootToContainer = asContainer
-                        launchApp(
+                        preLaunchApp(
                             context = context,
                             appId = appId,
                             setLoadingDialogVisible = { loadingDialogVisible = it },
                             setLoadingProgress = { loadingProgress = it },
                             setMessageDialogState = { msgDialogState = it },
-                            onSuccess = {
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    // SteamUtils.replaceSteamApi(context, appId)
-
-                                    // TODO: fix XServerScreen change orientation issue rather than setting the orientation
-                                    //  before entering XServerScreen
-                                    PluviaApp.events.emit(
-                                        AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation),
-                                    )
-
-                                    navController.navigate(PluviaScreen.XServer.name)
-                                }
-                            },
+                            onSuccess = launchApp,
                         )
                     },
                     onClickExit = {
@@ -387,7 +525,7 @@ fun PluviaMain(
     }
 }
 
-fun launchApp(
+fun preLaunchApp(
     context: Context,
     appId: Int,
     ignorePendingOperations: Boolean = false,
@@ -446,39 +584,13 @@ fun launchApp(
                 setMessageDialogState(
                     MessageDialogState(
                         visible = true,
+                        type = DialogType.SYNC_CONFLICT,
                         title = "Save Conflict",
                         message = "There is a new remote save and a new local save, which would you " +
                             "like to keep?\n\nLocal save:\n\t${Date(postSyncInfo.localTimestamp)}" +
                             "\nRemote save:\n\t${Date(postSyncInfo.remoteTimestamp)}",
                         dismissBtnText = "Keep local",
                         confirmBtnText = "Keep remote",
-                        onConfirmClick = {
-                            launchApp(
-                                context = context,
-                                appId = appId,
-                                preferredSave = SaveLocation.Remote,
-                                setLoadingDialogVisible = setLoadingDialogVisible,
-                                setLoadingProgress = setLoadingProgress,
-                                setMessageDialogState = setMessageDialogState,
-                                onSuccess = onSuccess,
-                            )
-                            setMessageDialogState(MessageDialogState(false))
-                        },
-                        onDismissClick = {
-                            launchApp(
-                                context = context,
-                                appId = appId,
-                                preferredSave = SaveLocation.Local,
-                                setLoadingDialogVisible = setLoadingDialogVisible,
-                                setLoadingProgress = setLoadingProgress,
-                                setMessageDialogState = setMessageDialogState,
-                                onSuccess = onSuccess,
-                            )
-                            setMessageDialogState(MessageDialogState(false))
-                        },
-                        onDismissRequest = {
-                            setMessageDialogState(MessageDialogState(false))
-                        },
                     ),
                 )
             }
@@ -491,15 +603,10 @@ fun launchApp(
                 setMessageDialogState(
                     MessageDialogState(
                         visible = true,
+                        type = DialogType.SYNC_FAIL,
                         title = "Sync Error",
                         message = "Failed to sync save files: ${postSyncInfo.syncResult}",
                         dismissBtnText = "Ok",
-                        onDismissClick = {
-                            setMessageDialogState(MessageDialogState(false))
-                        },
-                        onDismissRequest = {
-                            setMessageDialogState(MessageDialogState(false))
-                        },
                     ),
                 )
             }
@@ -524,18 +631,13 @@ fun launchApp(
                             setMessageDialogState(
                                 MessageDialogState(
                                     visible = true,
+                                    type = DialogType.PENDING_UPLOAD_IN_PROGRESS,
                                     title = "Upload in Progress",
                                     message = "You played ${SteamService.getAppInfoOf(appId)?.name} " +
                                         "on the device ${pro.machineName} " +
                                         "(${Date(pro.timeLastUpdated * 1000L)}) and the save of " +
                                         "that session is still uploading.\nTry again later.",
                                     dismissBtnText = "Ok",
-                                    onDismissClick = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
-                                    onDismissRequest = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
                                 ),
                             )
                         }
@@ -544,6 +646,7 @@ fun launchApp(
                             setMessageDialogState(
                                 MessageDialogState(
                                     visible = true,
+                                    type = DialogType.PENDING_UPLOAD,
                                     title = "Pending Upload",
                                     message = "You played " +
                                         "${SteamService.getAppInfoOf(appId)?.name} " +
@@ -556,24 +659,6 @@ fun launchApp(
                                         "successfully uploads.",
                                     confirmBtnText = "Play anyway",
                                     dismissBtnText = "Cancel",
-                                    onConfirmClick = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                        launchApp(
-                                            context = context,
-                                            appId = appId,
-                                            ignorePendingOperations = true,
-                                            setLoadingDialogVisible = setLoadingDialogVisible,
-                                            setLoadingProgress = setLoadingProgress,
-                                            setMessageDialogState = setMessageDialogState,
-                                            onSuccess = onSuccess,
-                                        )
-                                    },
-                                    onDismissClick = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
-                                    onDismissRequest = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
                                 ),
                             )
                         }
@@ -582,6 +667,7 @@ fun launchApp(
                             setMessageDialogState(
                                 MessageDialogState(
                                     visible = true,
+                                    type = DialogType.APP_SESSION_ACTIVE,
                                     title = "App Running",
                                     message = "You are logged in on another device (${pro.machineName}) " +
                                         "already playing ${SteamService.getAppInfoOf(appId)?.name} " +
@@ -592,24 +678,6 @@ fun launchApp(
                                         "progress is synced",
                                     confirmBtnText = "Play anyway",
                                     dismissBtnText = "Cancel",
-                                    onConfirmClick = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                        launchApp(
-                                            context = context,
-                                            appId = appId,
-                                            ignorePendingOperations = true,
-                                            setLoadingDialogVisible = setLoadingDialogVisible,
-                                            setLoadingProgress = setLoadingProgress,
-                                            setMessageDialogState = setMessageDialogState,
-                                            onSuccess = onSuccess,
-                                        )
-                                    },
-                                    onDismissClick = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
-                                    onDismissRequest = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
                                 ),
                             )
                         }
@@ -619,15 +687,10 @@ fun launchApp(
                             setMessageDialogState(
                                 MessageDialogState(
                                     visible = true,
+                                    type = DialogType.APP_SESSION_SUSPENDED,
                                     title = "Sync Error",
                                     message = "App session suspended",
                                     dismissBtnText = "Ok",
-                                    onDismissClick = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
-                                    onDismissRequest = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
                                 ),
                             )
                         }
@@ -637,15 +700,10 @@ fun launchApp(
                             setMessageDialogState(
                                 MessageDialogState(
                                     visible = true,
+                                    type = DialogType.PENDING_OPERATION_NONE,
                                     title = "Sync Error",
                                     message = "Received pending remote operations whose operation was 'none'",
                                     dismissBtnText = "Ok",
-                                    onDismissClick = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
-                                    onDismissRequest = {
-                                        setMessageDialogState(MessageDialogState(false))
-                                    },
                                 ),
                             )
                         }
@@ -655,15 +713,10 @@ fun launchApp(
                     setMessageDialogState(
                         MessageDialogState(
                             visible = true,
+                            type = DialogType.MULTIPLE_PENDING_OPERATIONS,
                             title = "Sync Error",
                             message = "Multiple pending remote operations, try again later",
                             dismissBtnText = "Ok",
-                            onDismissClick = {
-                                setMessageDialogState(MessageDialogState(false))
-                            },
-                            onDismissRequest = {
-                                setMessageDialogState(MessageDialogState(false))
-                            },
                         ),
                     )
                 }
