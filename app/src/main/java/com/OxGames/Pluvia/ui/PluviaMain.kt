@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -71,6 +72,7 @@ fun PluviaMain(
     navController: NavHostController = rememberNavController(),
 ) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
 
     var resettedScreen by rememberSaveable { mutableStateOf<PluviaScreen?>(null) }
     var currentScreen by rememberSaveable {
@@ -173,13 +175,14 @@ fun PluviaMain(
                         // TODO: add preference for first screen on login
                         Log.d("PluviaMain", "Navigating to library")
                         navController.navigate(PluviaScreen.Home.name)
-                        if (!BuildConfig.GOLD && !annoyingDialogShown) {
+                        if (!(PrefManager.tipped || BuildConfig.GOLD) && !annoyingDialogShown) {
                             annoyingDialogShown = true
                             msgDialogState = MessageDialogState(
                                 visible = true,
                                 type = DialogType.SUPPORT,
-                                message = "Thank you for using Pluvia, please consider supporting us by purchasing the app from the store",
-                                confirmBtnText = "OK",
+                                message = "Thank you for using Pluvia, please consider supporting us by tipping whatever amount is comfortable to you",
+                                confirmBtnText = "Tip",
+                                dismissBtnText = "Close",
                             )
                         }
                     }
@@ -252,12 +255,16 @@ fun PluviaMain(
     when (msgDialogState.type) {
         DialogType.SUPPORT -> {
             onConfirmClick = {
+                uriHandler.openUri("https://buy.stripe.com/5kAaFU1bx2RFeLmbII")
+                PrefManager.tipped = true
                 msgDialogState = MessageDialogState(visible = false)
             }
             onDismissRequest = {
                 msgDialogState = MessageDialogState(visible = false)
             }
-            onDismissClick = null
+            onDismissClick = {
+                msgDialogState = MessageDialogState(visible = false)
+            }
         }
         DialogType.SYNC_CONFLICT -> {
             onConfirmClick = {
