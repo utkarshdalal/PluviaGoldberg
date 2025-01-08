@@ -80,8 +80,8 @@ fun PluviaMain(
         )
     }
     var hasLaunched by rememberSaveable { mutableStateOf(false) }
-    var loadingDialogVisible by remember { mutableStateOf(false) }
-    var loadingProgress by remember { mutableFloatStateOf(0f) }
+    var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var loadingProgress by rememberSaveable { mutableFloatStateOf(0f) }
     var msgDialogState by remember { mutableStateOf(MessageDialogState(false)) }
     var annoyingDialogShown by remember { mutableStateOf(false) }
 
