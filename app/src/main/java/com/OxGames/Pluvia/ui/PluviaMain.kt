@@ -3,7 +3,6 @@ package com.OxGames.Pluvia.ui
 import android.content.Context
 import android.content.Intent
 import android.os.Process
-import android.util.Log
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -65,6 +64,7 @@ import kotlin.io.path.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Composable
 fun PluviaMain(
@@ -95,13 +95,13 @@ fun PluviaMain(
     val setMessageDialogState: (MessageDialogState) -> Unit = { msgDialogState = it }
 
     LaunchedEffect(navController) {
-        Log.d("PluviaMain", "navController changed")
+        Timber.i( "navController changed")
         if (!hasLaunched) {
             hasLaunched = true
-            Log.d("PluviaMain", "Creating on destination changed listener")
+            Timber.i("Creating on destination changed listener")
             PluviaApp.onDestinationChangedListener =
                 NavController.OnDestinationChangedListener { controller, destination, arguments ->
-                    Log.d("PluviaMain", "onDestinationChanged to ${destination.route}")
+                    Timber.i("onDestinationChanged to ${destination.route}")
                     // in order not to trigger the screen changed launch effect
                     currentScreen =
                         PluviaScreen.valueOf(destination.route ?: PluviaScreen.LoginUser.name)
@@ -156,24 +156,24 @@ fun PluviaMain(
             }
         }
         val onSteamConnected: (SteamEvent.Connected) -> Unit = {
-            Log.d("PluviaMain", "Received is connected")
+            Timber.i("Received is connected")
             isSteamConnected = true
         }
         val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
-            Log.d("PluviaMain", "Received disconnected from Steam")
+            Timber.i("Received disconnected from Steam")
             isSteamConnected = false
         }
         val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = {
-            Log.d("PluviaMain", "Received logon started")
+            Timber.i("Received logon started")
         }
         val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
             CoroutineScope(Dispatchers.Main).launch {
-                Log.d("PluviaMain", "Received logon ended")
+                Timber.i("Received logon ended")
 
                 when (it.loginResult) {
                     LoginResult.Success -> {
                         // TODO: add preference for first screen on login
-                        Log.d("PluviaMain", "Navigating to library")
+                        Timber.i("Navigating to library")
                         navController.navigate(PluviaScreen.Home.name)
                         if (!(PrefManager.tipped || BuildConfig.GOLD) && !annoyingDialogShown) {
                             annoyingDialogShown = true
@@ -188,14 +188,14 @@ fun PluviaMain(
                     }
 
                     else -> {
-                        Log.d("PluviaMain", "Received non-result: ${it.loginResult}")
+                        Timber.i("Received non-result: ${it.loginResult}")
                     }
                 }
             }
         }
         val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
             CoroutineScope(Dispatchers.Main).launch {
-                Log.d("PluviaMain", "Received logged out")
+                Timber.i("Received logged out")
 
                 // Pop stack and go back to login.
                 navController.popBackStack(
@@ -619,8 +619,7 @@ fun preLaunchApp(
             }
 
             SyncResult.PendingOperations -> {
-                Log.d(
-                    "PluviaMain",
+                Timber.i(
                     "Pending remote operations:${
                         postSyncInfo.pendingRemoteOperations.map { pro ->
                             "\n\tmachineName: ${pro.machineName}" +

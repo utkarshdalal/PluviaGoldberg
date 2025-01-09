@@ -1,6 +1,6 @@
 package com.OxGames.Pluvia.enums
 
-import android.util.Log
+import timber.log.Timber
 
 enum class OSArch(val keyValName: String) {
     Arch32(keyValName = "32"),
@@ -15,7 +15,7 @@ enum class OSArch(val keyValName: String) {
                 Arch64.keyValName -> Arch64
                 else -> {
                     if (keyValue != null) {
-                        Log.w("OSArch", "Could not identify $keyValue as OSArch")
+                        Timber.w("Could not identify $keyValue as OSArch")
                     }
                     Unknown
                 }
