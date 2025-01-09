@@ -16,7 +16,7 @@ class NotificationHelper(private val context: Context) {
         private const val CHANNEL_NAME = "Pluvia Foreground Service"
         private const val NOTIFICATION_ID = 1
 
-        const val ACTION_LOGOUT = "com.oxgames.pluvia.LOGOUT"
+        const val ACTION_EXIT = "com.oxgames.pluvia.EXIT"
     }
 
     private val notificationManager: NotificationManager =
@@ -66,7 +66,7 @@ class NotificationHelper(private val context: Context) {
         )
 
         val stopIntent = Intent(context, SteamService::class.java).apply {
-            action = ACTION_LOGOUT
+            action = ACTION_EXIT
         }
         val stopPendingIntent = PendingIntent.getService(
             context,
