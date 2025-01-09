@@ -1728,7 +1728,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         // Notification intents
         when (intent?.action) {
-            NotificationHelper.ACTION_LOGOUT -> {
+            NotificationHelper.ACTION_EXIT -> {
                 PluviaApp.events.emit(AndroidEvent.EndProcess)
                 return START_NOT_STICKY
             }
