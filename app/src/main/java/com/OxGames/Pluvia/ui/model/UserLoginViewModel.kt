@@ -9,7 +9,6 @@ import com.OxGames.Pluvia.enums.LoginScreen
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.UserLoginState
-import com.OxGames.Pluvia.utils.logD
 import `in`.dragonbra.javasteam.steam.authentication.IAuthenticator
 import java.util.concurrent.CompletableFuture
 import kotlinx.coroutines.channels.Channel
@@ -18,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 class UserLoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow(UserLoginState())
@@ -27,7 +27,7 @@ class UserLoginViewModel : ViewModel() {
 
     val authenticator = object : IAuthenticator {
         override fun acceptDeviceConfirmation(): CompletableFuture<Boolean> {
-            logD("acceptDeviceConfirmation")
+            Timber.i("Two-Factor, device confirmation")
 
             _loginState.update { currentState ->
                 currentState.copy(
@@ -41,7 +41,7 @@ class UserLoginViewModel : ViewModel() {
         }
 
         override fun getDeviceCode(previousCodeWasIncorrect: Boolean): CompletableFuture<String> {
-            logD("getDeviceCode")
+            Timber.d("Two-Factor, device code")
 
             _loginState.update { currentState ->
                 currentState.copy(
@@ -64,7 +64,7 @@ class UserLoginViewModel : ViewModel() {
             email: String?,
             previousCodeWasIncorrect: Boolean,
         ): CompletableFuture<String> {
-            logD("getEmailCode: $email")
+            Timber.d("Two-Factor, asking for email code")
 
             _loginState.update { currentState ->
                 currentState.copy(
@@ -86,7 +86,7 @@ class UserLoginViewModel : ViewModel() {
     }
 
     private val onSteamConnected: (SteamEvent.Connected) -> Unit = {
-        logD("Received is connected")
+        Timber.i("Received is connected")
 
         _loginState.update { currentState ->
             currentState.copy(
@@ -97,7 +97,7 @@ class UserLoginViewModel : ViewModel() {
     }
 
     private val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
-        logD("Received disconnected from Steam")
+        Timber.i("Received disconnected from Steam")
         _loginState.update { currentState ->
             currentState.copy(isSteamConnected = false)
         }
@@ -110,7 +110,7 @@ class UserLoginViewModel : ViewModel() {
     }
 
     private val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
-        logD("Received login result: ${it.loginResult}")
+        Timber.i("Received login result: ${it.loginResult}")
         _loginState.update { currentState ->
             currentState.copy(
                 isLoggingIn = false,
@@ -155,7 +155,7 @@ class UserLoginViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        logD("onCleared")
+        Timber.d("onCleared")
 
         PluviaApp.events.off<SteamEvent.Connected, Unit>(onSteamConnected)
         PluviaApp.events.off<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
