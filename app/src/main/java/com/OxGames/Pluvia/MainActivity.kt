@@ -29,7 +29,6 @@ import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.ui.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.utils.IconDecoder
-import com.OxGames.Pluvia.utils.logD
 import com.skydoves.landscapist.coil.LocalCoilImageLoader
 import com.winlator.core.AppUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -37,6 +36,7 @@ import java.util.EnumSet
 import kotlin.math.abs
 import kotlin.math.min
 import okio.Path.Companion.toOkioPath
+import timber.log.Timber
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -128,7 +128,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        logD("onDestroy - Index: $index")
+        Timber.d("onDestroy - Index: $index")
 
         PluviaApp.events.emit(AndroidEvent.ActivityDestroyed)
 
@@ -253,7 +253,7 @@ class MainActivity : ComponentActivity() {
             ?: Int.MAX_VALUE
 
         if (requestedOrientation != nearest.first.activityInfoValue && currentOrientationDist > nearest.second) {
-            logD(
+            Timber.d(
                 "$adjustedOrientation => currentOrientation(" +
                     "${Orientation.fromActivityInfoValue(requestedOrientation)}) " +
                     "!= nearestOrientation(${nearest.first}) && " +

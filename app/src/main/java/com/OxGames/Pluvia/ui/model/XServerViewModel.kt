@@ -2,13 +2,13 @@ package com.OxGames.Pluvia.ui.model
 
 import androidx.lifecycle.ViewModel
 import com.OxGames.Pluvia.ui.data.XServerState
-import com.OxGames.Pluvia.utils.logD
 import com.winlator.core.KeyValueSet
 import com.winlator.core.WineInfo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import timber.log.Timber
 
 class XServerViewModel : ViewModel() {
     private val _xServerState = MutableStateFlow(XServerState())
@@ -28,7 +28,7 @@ class XServerViewModel : ViewModel() {
 
     fun setDxwrapperConfig(dxwrapperConfig: KeyValueSet?) {
         _xServerState.update { currentState ->
-            logD("Setting dxwrapperConfig to $dxwrapperConfig")
+            Timber.i("Setting dxwrapperConfig to $dxwrapperConfig")
             currentState.copy(dxwrapperConfig = dxwrapperConfig)
         }
     }

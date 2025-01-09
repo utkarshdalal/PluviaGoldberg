@@ -6,6 +6,7 @@ import com.OxGames.Pluvia.events.EventDispatcher
 import com.google.android.play.core.splitcompat.SplitCompatApplication
 import com.winlator.xenvironment.XEnvironment
 import dagger.hilt.android.HiltAndroidApp
+import timber.log.Timber
 
 typealias NavChangedListener = NavController.OnDestinationChangedListener
 
@@ -23,6 +24,10 @@ class PluviaApp : SplitCompatApplication() {
                     .penaltyLog()
                     .build(),
             )
+
+            Timber.plant(Timber.DebugTree())
+        } else {
+            Timber.plant(ReleaseTree())
         }
 
         // Init our datastore preferences.

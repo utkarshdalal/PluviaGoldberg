@@ -26,6 +26,7 @@ room-runtime = "2.6.1" # https://mvnrepository.com/artifact/androidx.room/room-r
 settings = "2.6.0" # https://github.com/alorma/Compose-Settings/releases
 spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongycastle/prov
 steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
+timber = "5.0.1" # https://mvnrepository.com/artifact/com.jakewharton.timber/timber
 zstd-jni = "1.5.2-3" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
 zxing = "3.5.3" # https://mvnrepository.com/artifact/com.google.zxing/core
 
@@ -62,6 +63,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
 spongycastle = { group = "com.madgag.spongycastle", name = "prov", version.ref = "spongycastle" }
 steamkit = { group = "in.dragonbra", name = "javasteam", version.ref = "steamkit" }
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 zstd-jni = { group = "com.github.luben", name = "zstd-jni", version.ref = "zstd-jni" }
 zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 
@@ -81,11 +83,11 @@ xz = { module = "org.tukaani:xz", version = "1.10" } # https://mvnrepository.com
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "dagger-hilt"}
+dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "dagger-hilt" }
 jetbrains-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 jetbrains-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-kotlinter = {  id = "org.jmailen.kotlinter", version.ref = "kotlinter"}
+kotlinter = { id = "org.jmailen.kotlinter", version.ref = "kotlinter" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 android-dynamic-feature = { id = "com.android.dynamic-feature", version.ref = "agp" }
 
