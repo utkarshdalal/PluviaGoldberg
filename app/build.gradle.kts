@@ -178,6 +178,7 @@ dependencies {
     implementation(libs.kotlin.coroutines)
     implementation(libs.zxing)
     implementation(libs.datastore.preferences)
+    implementation(libs.timber)
 
     // Google Protobufs
     implementation(libs.protobuf.java)
