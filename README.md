@@ -8,19 +8,24 @@ Pluvia is a lightweight unofficial Steam client for Android with the ability to 
 > Steam is a trademark of the Valve Corporation
 
 ## Features
-- View and download games (*)
+- View, download, and play games (*)
 - Steam Cloud integration for your cloud saves, allowing you to resume where you left off. 
 - Manage and Chat with your friends (**)
 
-
-"*" Due to technical limitations some games may not work correctly or at all.
+"*" Due to technical limitations some games may not work correctly or at all, such as DRM games.
 
 "**" Some features are still in development and may not be working. 
 
 See the [Wiki](https://github.com/oxters168/Pluvia/wiki) for more information
 
 ## Development
-Want to contribute? Check out the [Wiki](https://github.com/oxters168/Pluvia/wiki) for information on how to get started. 
+Want to contribute? 
+
+Check out [Contributing](https://github.com/oxters168/Pluvia/wiki/Contributing) in the Wiki for information on how to get started. 
+
+Also check out the [project board](https://github.com/users/oxters168/projects/1) to see what issues, features, and ideas are being tracked.
+
+See an issue, bug, or something isn't right? File an [issue](https://github.com/oxters168/Pluvia/issues) and let us know!
 
 ## License
 [GPL 3.0](https://github.com/oxters168/Pluvia/blob/master/LICENSE)
