@@ -550,10 +550,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                                 if (it.syncResult == SyncResult.Success || it.syncResult == SyncResult.UpToDate) {
                                     Timber.i(
-                                        "Signaling app launch:" +
-                                            "\n\tappId: $appId" +
-                                            "\n\tclientId: ${PrefManager.clientId}" +
-                                            "\n\tosType: ${EOSType.AndroidUnknown}",
+                                        "Signaling app launch:\n\tappId: %d\n\tclientId: %s\n\tosType: %s",
+                                        appId,
+                                        PrefManager.clientId,
+                                        EOSType.AndroidUnknown,
                                     )
 
                                     val pendingRemoteOperations = steamCloud.signalAppLaunchIntent(
@@ -739,6 +739,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             Timber.i("Retrieving save files of ${appInfo.name}")
 
             val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
+                @SuppressLint("BinaryOperationInTimber")
                 Timber.i(
                     "GetAppFileListChange($appInfo.appId):" +
                         "\n\tTotal Files: ${fileList.files.size}" +
@@ -1093,6 +1094,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 )
 
                                 Timber.i("Uploading to $httpUrl")
+                                @SuppressLint("BinaryOperationInTimber")
                                 Timber.i(
                                     "Block Request:" +
                                         "\n\tblockOffset: ${blockRequest.blockOffset}" +
@@ -1620,10 +1622,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                         // Sensitive info, only print in DEBUG build.
                         if (BuildConfig.DEBUG && authPollResult != null) {
                             Timber.d(
-                                "AccessToken: ${authPollResult.accessToken}\n" +
-                                    "AccountName: ${authPollResult.accountName}\n" +
-                                    "RefreshToken: ${authPollResult.refreshToken}\n" +
-                                    "NewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}",
+                                "AccessToken: %s\nAccountName: %s\nRefreshToken: %s\nNewGuardData: %s",
+                                authPollResult.accessToken,
+                                authPollResult.accountName,
+                                authPollResult.refreshToken,
+                                authPollResult.newGuardData ?: "No new guard data",
                             )
                         } else {
                             // logD("AuthPollResult is null")
@@ -1891,7 +1894,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         PluviaApp.events.clearAllListenersOf<SteamEvent<Any>>()
     }
 
-    @Suppress("UNUSED_PARAMETER")
+    @Suppress("UNUSED_PARAMETER", "unused")
     private fun onConnected(callback: ConnectedCallback) {
         Timber.i("Connected to Steam")
 
@@ -1917,7 +1920,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     @Suppress("UNUSED_PARAMETER")
     private fun onDisconnected(callback: DisconnectedCallback) {
-        Timber.i("Disconnected from Steam")
+        Timber.i("Disconnected from Steam. User initiated: ${callback.isUserInitiated}")
 
         isConnected = false
 
