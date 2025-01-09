@@ -25,7 +25,9 @@ Check out [Contributing](https://github.com/oxters168/Pluvia/wiki/Contributing) 
 
 Also check out the [project board](https://github.com/users/oxters168/projects/1) to see what issues, features, and ideas are being tracked.
 
-See an issue, bug, or something isn't right? File an [issue](https://github.com/oxters168/Pluvia/issues) and let us know!
+See an issue, bug, or something isn't right? 
+
+File an [issue](https://github.com/oxters168/Pluvia/issues) and let us know!
 
 ## License
 [GPL 3.0](https://github.com/oxters168/Pluvia/blob/master/LICENSE)
