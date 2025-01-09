@@ -1,6 +1,6 @@
 package com.OxGames.Pluvia.enums
 
-import android.util.Log
+import timber.log.Timber
 import java.util.EnumSet
 
 enum class OS {
@@ -18,7 +18,7 @@ enum class OS {
                     try {
                         OS.valueOf(it.trim())
                     } catch (_: Exception) {
-                        Log.w("OS", "Could not identify OS $it")
+                        Timber.e("Could not identify OS $it")
                         none
                     }
                 },

@@ -1,9 +1,9 @@
 package com.OxGames.Pluvia.enums
 
 import android.content.Context
-import android.util.Log
 import com.OxGames.Pluvia.SteamService
 import com.winlator.xenvironment.ImageFs
+import timber.log.Timber
 import java.nio.file.Paths
 
 enum class PathType {
@@ -66,7 +66,7 @@ enum class PathType {
                 "Saved Games/",
             ).toString()
             else -> {
-                Log.e("PathType", "Did not recognize or unsupported path type $this")
+                Timber.e("Did not recognize or unsupported path type $this")
                 SteamService.getAppDirPath(appId)
             }
         }
@@ -122,7 +122,7 @@ enum class PathType {
                 -> MacAppSupport
                 else -> {
                     if (keyValue != null) {
-                        Log.w("PathType", "Could not identify $keyValue as PathType")
+                        Timber.w("Could not identify $keyValue as PathType")
                     }
                     None
                 }

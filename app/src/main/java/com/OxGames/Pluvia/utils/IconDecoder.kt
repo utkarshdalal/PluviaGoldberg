@@ -9,6 +9,7 @@ import coil.fetch.SourceResult
 import coil.request.Options
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
+import timber.log.Timber
 
 /**
  * Coil .ico file decoder
@@ -28,7 +29,7 @@ class IconDecoder(
                 isSampled = false,
             )
         } catch (e: Exception) {
-            logE("Something happened while decoding an ico file.", e)
+            Timber.e(e, "Something happened while decoding an ico file.")
             null
         }
     }

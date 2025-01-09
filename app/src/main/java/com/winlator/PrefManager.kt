@@ -16,6 +16,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 
 /**
  * Kind of ugly, but works to be a universal preference manager.
@@ -25,7 +26,7 @@ object PrefManager {
     private val Context.datastore by preferencesDataStore(
         name = "WinlatorPreferences",
         corruptionHandler = ReplaceFileCorruptionHandler {
-            Log.e("PrefManager", "Preferences (somehow got) corrupted, resetting.")
+            Timber.e("Preferences (somehow got) corrupted, resetting.")
             emptyPreferences()
         },
     )

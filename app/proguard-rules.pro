@@ -29,3 +29,8 @@
 
 # From Winlator
 -dontobfuscate
+
+# Timber Logging
+-keep class timber.log.Timber { *; }
+-keep class com.OxGames.Pluvia.ReleaseTree { *; }
+

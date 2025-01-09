@@ -1,7 +1,6 @@
 package com.OxGames.Pluvia.ui.screen.xserver
 
 import android.content.Context
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -77,11 +76,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
+import timber.log.Timber
 
 object Constants {
     const val DEFAULT_WINE_DEBUG_CHANNELS = "warn,err,fixme,loaddll"
     const val CONTAINER_PATTERN_COMPRESSION_LEVEL = 9
 }
+
+// TODO logs in composables are 'unstable' which can cause recomposition (performance issues)
 
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
@@ -95,7 +97,7 @@ fun XServerScreen(
     onWindowUnmapped: ((Window) -> Unit)? = null,
     // xServerViewModel: XServerViewModel = viewModel()
 ) {
-    Log.d("XServerScreen", "Starting up XServerScreen")
+    Timber.i("Starting up XServerScreen")
     val context = LocalContext.current
 
     PluviaApp.events.emit(AndroidEvent.SetAppBarVisibility(false))
@@ -156,7 +158,7 @@ fun XServerScreen(
     // }
     var touchMouse by remember {
         val result = mutableStateOf<TouchMouse?>(null)
-        Log.d("XServerScreen", "Remembering touchMouse as $result")
+        Timber.i("Remembering touchMouse as $result")
         result
     }
     var keyboard by remember { mutableStateOf<Keyboard?>(null) }
@@ -168,18 +170,18 @@ fun XServerScreen(
 
     var xServerView: XServerView? by remember {
         val result = mutableStateOf<XServerView?>(null)
-        Log.d("XServerScreen", "Remembering xServerView as $result")
+        Timber.i("Remembering xServerView as $result")
         result
     }
 
     BackHandler {
-        Log.d("XServerScreen", "BackHandler")
+        Timber.i("BackHandler")
         exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
     }
 
     DisposableEffect(lifecycleOwner) {
         val onActivityDestroyed: (AndroidEvent.ActivityDestroyed) -> Unit = {
-            Log.d("XServerScreen", "onActivityDestroyed")
+            Timber.i("onActivityDestroyed")
             exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
         }
         val onKeyEvent: (AndroidEvent.KeyEvent) -> Boolean = {
@@ -213,18 +215,18 @@ fun XServerScreen(
             handled
         }
         val onGuestProgramTerminated: (AndroidEvent.GuestProgramTerminated) -> Unit = {
-            Log.d("XServerScreen", "onGuestProgramTerminated")
+            Timber.i("onGuestProgramTerminated")
             exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
             navigateBack()
             // PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
         }
         val onForceCloseApp: (SteamEvent.ForceCloseApp) -> Unit = {
-            Log.d("XServerScreen", "onForceCloseApp")
+            Timber.i("onForceCloseApp")
             exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
             navigateBack()
         }
         val debugCallback = Callback<String> { outputLine ->
-            Log.d("ProcessOutput", outputLine ?: "")
+            Timber.i(outputLine ?: "")
         }
 
         PluviaApp.events.on<AndroidEvent.ActivityDestroyed, Unit>(onActivityDestroyed)
@@ -257,7 +259,7 @@ fun XServerScreen(
         factory = { context ->
             // Creates view
             // if (PluviaApp.xServer == null) {
-            Log.d("XServerScreen", "Creating XServerView and XServer")
+            Timber.i("Creating XServerView and XServer")
             // if (PluviaApp.xServerState == null) {
             //     PluviaApp.xServerState = XServerState()
             // }
@@ -374,7 +376,7 @@ fun XServerScreen(
                     taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
                     taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
                     firstTimeBoot = container.getExtra("appVersion").isEmpty()
-                    Log.d("XServerScreen", "First time boot: $firstTimeBoot")
+                    Timber.i("First time boot: $firstTimeBoot")
 
                     val wineVersion = container.wineVersion
                     xServerState.value = xServerState.value.copy(
@@ -426,7 +428,7 @@ fun XServerScreen(
                     }
                     // }
 
-                    Log.d("XServerScreen", "Doing things once")
+                    Timber.i("Doing things once")
                     CoroutineScope(Dispatchers.IO).launch {
                         val containerManager = ContainerManager(context)
                         val container = containerManager.getContainerById(containerId)
@@ -697,7 +699,7 @@ private fun getWineStartCommand(
     return "winhandler.exe $args"
 }
 private fun exit(winHandler: WinHandler?, environment: XEnvironment?, onExit: () -> Unit) {
-    Log.d("XServerScreen", "Exit called")
+    Timber.i("Exit called")
     winHandler?.stop()
     environment?.stopEnvironmentComponents()
     // AppUtils.restartApplication(this)
@@ -1073,7 +1075,7 @@ private fun extractWinComponentFiles(
         if (!dlls.isEmpty()) restoreOriginalDllFiles(container, containerManager, imageFs, *dlls.toTypedArray())
         WineUtils.overrideWinComponentDlls(context, container, wincomponents)
     } catch (e: JSONException) {
-        Log.e("XServerScreen", "Failed to read JSON: $e")
+        Timber.e("Failed to read JSON: $e")
     }
 }
 
