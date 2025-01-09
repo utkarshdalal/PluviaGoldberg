@@ -15,6 +15,8 @@ class NotificationHelper(private val context: Context) {
         private const val CHANNEL_ID = "pluvia_foreground_service"
         private const val CHANNEL_NAME = "Pluvia Foreground Service"
         private const val NOTIFICATION_ID = 1
+
+        const val ACTION_LOGOUT = "com.oxgames.pluvia.LOGOUT"
     }
 
     private val notificationManager: NotificationManager =
@@ -63,6 +65,16 @@ class NotificationHelper(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
+        val stopIntent = Intent(context, SteamService::class.java).apply {
+            action = ACTION_LOGOUT
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            context,
+            0,
+            stopIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(content)
@@ -71,6 +83,7 @@ class NotificationHelper(private val context: Context) {
             .setAutoCancel(false)
             .setOngoing(true)
             .setContentIntent(pendingIntent)
+            .addAction(0, "Exit", stopPendingIntent) // 0 = no icon
             .build()
     }
 }

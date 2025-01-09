@@ -36,6 +36,7 @@ import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.ReleaseState
 import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
+import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
@@ -1724,6 +1725,15 @@ class SteamService : Service(), IChallengeUrlChanged {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
+        // Notification intents
+        when (intent?.action) {
+            NotificationHelper.ACTION_LOGOUT -> {
+                PluviaApp.events.emit(AndroidEvent.EndProcess)
+                return START_NOT_STICKY
+            }
+        }
+
         if (!isRunning) {
             logD("Using server list path: $serverListPath")
 
