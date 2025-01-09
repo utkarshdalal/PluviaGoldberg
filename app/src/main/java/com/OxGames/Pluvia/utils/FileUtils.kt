@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.utils
 
 import android.content.res.AssetManager
-import android.util.Log
+import timber.log.Timber
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -30,7 +30,8 @@ class FileUtils {
                     file.createNewFile()
                 }
             } catch (e: Exception) {
-                Log.e(errorTag, errorMsg?.invoke(e) ?: "Error creating file: $e")
+                Timber.e("%s encountered an issue in makeFile()", errorTag)
+                Timber.e(errorMsg?.invoke(e) ?: "Error creating file: $e")
             }
         }
 
@@ -59,7 +60,8 @@ class FileUtils {
 
                 fileData = total.toString()
             } catch (e: Exception) {
-                Log.e(errorTag, errorMsg?.invoke(e) ?: "Error reading file: $e")
+                Timber.e("%s encountered an issue in readFileAsString()", errorTag)
+                Timber.e(errorMsg?.invoke(e) ?: "Error reading file: $e")
             }
 
             return fileData
@@ -76,7 +78,8 @@ class FileUtils {
                 fOut.flush()
                 fOut.close()
             } catch (e: Exception) {
-                Log.e(errorTag, errorMsg?.invoke(e) ?: "Error writing to file: $e")
+                Timber.e("%s encounted an issue in writeStringToFile()", errorTag)
+                Timber.e(errorMsg?.invoke(e) ?: "Error writing to file: $e")
             }
         }
 
@@ -102,14 +105,14 @@ class FileUtils {
 
         fun findFiles(rootPath: Path, pattern: String, includeDirectories: Boolean = false): Stream<Path> {
             val patternParts = pattern.split("*").filter { it.isNotEmpty() }
-            Log.d("FileUtils", "$pattern -> $patternParts")
+            Timber.i("$pattern -> $patternParts")
             if (!Files.exists(rootPath)) return emptyList<Path>().stream()
             return Files.list(rootPath).filter { path ->
                 if (path.isDirectory() && !includeDirectories) {
                     false
                 } else {
                     val fileName = path.name
-                    Log.d("FileUtils", "Checking $fileName for pattern $pattern")
+                    Timber.i("Checking $fileName for pattern $pattern")
                     var startIndex = 0
                     !patternParts.map {
                         val index = fileName.indexOf(it, startIndex)
@@ -128,6 +131,7 @@ class FileUtils {
                     true
                 }
             } catch (e: IOException) {
+                // Timber.e(e)
                 false
             }
         }
