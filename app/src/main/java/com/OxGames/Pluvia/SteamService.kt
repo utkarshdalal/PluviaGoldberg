@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -318,7 +319,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun downloadApp(appId: Int): DownloadInfo? {
             return getAppInfoOf(appId)?.let { appInfo ->
-                Timber.d("App contains ${appInfo.depots.size} depot(s): ${appInfo.depots.keys}")
+                Timber.i("App contains ${appInfo.depots.size} depot(s): ${appInfo.depots.keys}")
                 downloadApp(appId, getDownloadableDepots(appId).keys.toList(), "public")
             }
         }
@@ -346,7 +347,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         try {
                             // TODO: put this somewhere more appropriate and deal with user confirmation status
                             if (needsImageFsDownload) {
-                                Timber.d("imagefs.txz will be downloaded")
+                                Timber.i("imagefs.txz will be downloaded")
                                 val splitManager = SplitInstallManagerFactory.create(instance!!)
                                 if (!splitManager.installedModules.contains("ubuntufs")) {
                                     moduleInstallSessionId = splitManager.requestInstall(listOf("ubuntufs"))
@@ -469,7 +470,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     }
                 }
 
-                Timber.d(
+                Timber.i(
                     "GameProcessInfo:" +
                         gamesPlayed.joinToString("\n") {
                             "\n\tprocessId: ${it.processId}" +
@@ -481,7 +482,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                             "\n\t\tparentIsSteam: ${it.parentIsSteam}"
                                     }
                                 }"
-                        }
+                        },
                 )
 
                 steamInstance._steamApps?.notifyGamesPlayed(
@@ -548,7 +549,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 syncResult = it
 
                                 if (it.syncResult == SyncResult.Success || it.syncResult == SyncResult.UpToDate) {
-                                    Timber.d(
+                                    Timber.i(
                                         "Signaling app launch:" +
                                             "\n\tappId: $appId" +
                                             "\n\tclientId: ${PrefManager.clientId}" +
@@ -710,7 +711,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             val output = reader.readLine().orEmpty()
             process.waitFor()
 
-            Timber.d("ProotTime: Output: $output")
+            Timber.i("ProotTime: Output: $output")
 
             return output.toLongOrNull() ?: 0
         }
@@ -738,7 +739,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             Timber.i("Retrieving save files of ${appInfo.name}")
 
             val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
-                Timber.d(
+                Timber.i(
                     "GetAppFileListChange($appInfo.appId):" +
                         "\n\tTotal Files: ${fileList.files.size}" +
                         "\n\tCurrent Change Number: ${fileList.currentChangeNumber}" +
@@ -764,7 +765,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     .map {
                         val matchResults = Regex("%\\w+%").findAll(it).map { it.value }.toList()
 
-                        Timber.d("Mapping prefix $it and found $matchResults")
+                        Timber.i("Mapping prefix $it and found $matchResults")
 
                         matchResults
                     }
@@ -826,8 +827,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                     oldFiles.first {
                         it.prefixPath == file.prefixPath
                     }.let {
-                        Timber.d("Comparing SHA of ${it.prefixPath} and ${file.prefixPath}")
-                        Timber.d("[${it.sha.joinToString(", ")}]\n[${file.sha.joinToString(", ")}]")
+                        Timber.i("Comparing SHA of ${it.prefixPath} and ${file.prefixPath}")
+                        Timber.i("[${it.sha.joinToString(", ")}]\n[${file.sha.joinToString(", ")}]")
 
                         !it.sha.contentEquals(file.sha)
                     }
@@ -841,16 +842,16 @@ class SteamService : Service(), IChallengeUrlChanged {
             val hasHashConflicts: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean =
                 { localUserFiles, fileList ->
                     fileList.files.any { file ->
-                        Timber.d("Checking for " + "${getFilePrefix(file, fileList)} in ${localUserFiles.keys}")
+                        Timber.i("Checking for " + "${getFilePrefix(file, fileList)} in ${localUserFiles.keys}")
 
                         localUserFiles[getFilePrefix(file, fileList)]?.let { localUserFile ->
                             localUserFile.firstOrNull {
-                                Timber.d("Comparing ${file.filename} and ${it.filename}")
+                                Timber.i("Comparing ${file.filename} and ${it.filename}")
 
                                 it.filename == file.filename
                             }?.let {
-                                Timber.d("Comparing SHA of ${getFilePrefixPath(file, fileList)} and ${it.prefixPath}")
-                                Timber.d("[${file.shaFile.joinToString(", ")}]\n[${it.sha.joinToString(", ")}]")
+                                Timber.i("Comparing SHA of ${getFilePrefixPath(file, fileList)} and ${it.prefixPath}")
+                                Timber.i("[${file.shaFile.joinToString(", ")}]\n[${it.sha.joinToString(", ")}]")
 
                                 !file.shaFile.contentEquals(it.sha)
                             }
@@ -870,12 +871,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     localUserFile.filename,
                                 ).pathString
 
-                                Timber.d("Comparing $cloudFilePath and $localFilePath")
+                                Timber.i("Comparing $cloudFilePath and $localFilePath")
 
                                 cloudFilePath == localFilePath
                             }?.let {
-                                Timber.d("Comparing SHA of ${getFilePrefixPath(it, fileList)} and ${localUserFile.prefixPath}")
-                                Timber.d("[${it.shaFile.joinToString(", ")}]\n[${localUserFile.sha.joinToString(", ")}]")
+                                Timber.i("Comparing SHA of ${getFilePrefixPath(it, fileList)} and ${localUserFile.prefixPath}")
+                                Timber.i("[${it.shaFile.joinToString(", ")}]\n[${localUserFile.sha.joinToString(", ")}]")
 
                                 it.shaFile.contentEquals(localUserFile.sha)
                             } != true
@@ -895,7 +896,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             ).map {
                                 val sha = CryptoHelper.shaHash(Files.readAllBytes(it))
 
-                                Timber.d("Found ${it.pathString}\n\tin ${userFile.prefix}\n\twith sha [${sha.joinToString(", ")}]")
+                                Timber.i("Found ${it.pathString}\n\tin ${userFile.prefix}\n\twith sha [${sha.joinToString(", ")}]")
 
                                 UserFileInfo(userFile.root, userFile.path, it.name, Files.getLastModifiedTime(it).toMillis(), sha)
                             }.collect(Collectors.toList()),
@@ -961,7 +962,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 buildUrl(useHttps, urlHost, urlPath)
                             }
 
-                            Timber.d("Downloading $httpUrl")
+                            Timber.i("Downloading $httpUrl")
 
                             val headers = Headers.headersOf(
                                 *fileDownloadInfo.requestHeaders
@@ -1068,7 +1069,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                         val fileSize = Files.size(absFilePath).toInt()
 
-                        Timber.d("Beginning upload of ${file.prefixPath} whose timestamp is ${file.timestamp}")
+                        Timber.i("Beginning upload of ${file.prefixPath} whose timestamp is ${file.timestamp}")
 
                         val uploadInfo = steamCloud.beginFileUpload(
                             appId = appInfo.appId,
@@ -1091,9 +1092,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     blockRequest.urlPath,
                                 )
 
-                                Timber.d("Uploading to $httpUrl")
-
-                                Timber.d(
+                                Timber.i("Uploading to $httpUrl")
+                                Timber.i(
                                     "Block Request:" +
                                         "\n\tblockOffset: ${blockRequest.blockOffset}" +
                                         "\n\tblockLength: ${blockRequest.blockLength}" +
@@ -1114,7 +1114,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                                 val bytesRead = fs.read(byteArray, 0, blockRequest.blockLength)
 
-                                Timber.d("Read $bytesRead byte(s) for block")
+                                Timber.i("Read $bytesRead byte(s) for block")
 
                                 val mediaType = "application/octet-stream".toMediaTypeOrNull()
 
@@ -1141,7 +1141,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                                 val httpClient = steamInstance._steamClient!!.configuration.httpClient
 
-                                Timber.d("Sending request to ${request.url} using\n$request")
+                                Timber.i("Sending request to ${request.url} using\n$request")
 
                                 withTimeout(requestTimeout) {
                                     val response = httpClient.newCall(request).execute()
@@ -1168,7 +1168,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             filename = file.prefixPath,
                         ).await()
 
-                        Timber.d("File ${file.prefixPath} commit success: $commitSuccess")
+                        Timber.i("File ${file.prefixPath} commit success: $commitSuccess")
                     }
 
                     steamCloud.completeAppUploadBatch(
@@ -1618,17 +1618,15 @@ class SteamService : Service(), IChallengeUrlChanged {
                         }
 
                         // Sensitive info, only print in DEBUG build.
-                        if (BuildConfig.DEBUG) {
-                            if (authPollResult != null) {
-                                Timber.d(
-                                    "AccessToken: ${authPollResult.accessToken}\n" +
-                                        "AccountName: ${authPollResult.accountName}\n" +
-                                        "RefreshToken: ${authPollResult.refreshToken}\n" +
-                                        "NewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}",
-                                )
-                            } else {
-                                // logD("AuthPollResult is null")
-                            }
+                        if (BuildConfig.DEBUG && authPollResult != null) {
+                            Timber.d(
+                                "AccessToken: ${authPollResult.accessToken}\n" +
+                                    "AccountName: ${authPollResult.accountName}\n" +
+                                    "RefreshToken: ${authPollResult.refreshToken}\n" +
+                                    "NewGuardData: ${authPollResult.newGuardData ?: "No new guard data"}",
+                            )
+                        } else {
+                            // logD("AuthPollResult is null")
                         }
 
                         delay(authSession.pollingInterval.toLong())
@@ -1656,7 +1654,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun stopLoginWithQr() {
-            Timber.d("Stopping QR polling")
+            Timber.i("Stopping QR polling")
 
             isWaitingForQRAuth = false
         }
@@ -1711,17 +1709,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         // To view log messages in android logcat properly
         val logger = object : LogListener {
             override fun onLog(clazz: Class<*>, message: String, throwable: Throwable?) {
-                if (BuildConfig.DEBUG) {
-                    Timber.d(message, throwable, clazz.simpleName)
-                } else {
-                    throwable?.let { throwMsg ->
-                        Timber.i(throwMsg, message)
-                    }
-                }
+                Timber.i(throwable, "[${clazz.simpleName}] -> $message")
             }
 
             override fun onError(clazz: Class<*>, message: String, throwable: Throwable?) {
-                Timber.e(message, throwable, clazz.simpleName)
+                Timber.e(throwable, "[${clazz.simpleName}] -> $message")
             }
         }
         LogManager.addListener(logger)
@@ -1729,7 +1721,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!isRunning) {
-            Timber.d("Using server list path: $serverListPath")
+            Timber.i("Using server list path: $serverListPath")
 
             val configuration = SteamConfiguration.create {
                 it.withProtocolTypes(PROTOCOL_TYPES)
@@ -2032,7 +2024,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     }
 
     override fun onChanged(qrAuthSession: QrAuthSession?) {
-        Timber.d("QR code changed: ${qrAuthSession?.challengeUrl}")
+        Timber.i("QR code changed -> ${if (BuildConfig.DEBUG) qrAuthSession?.challengeUrl else "[redacted]"}")
 
         if (qrAuthSession != null) {
             PluviaApp.events.emit(SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl))
