@@ -180,16 +180,17 @@ class UserLoginViewModel : ViewModel() {
 
     fun onRetry() {
         _loginState.update { currentState ->
-            currentState.copy(isSteamConnected = SteamService.isConnected)
             if (SteamService.isLoggedIn) {
                 // TODO: Can this be handled better?
                 // We're already logged in when 'onRetry' is called on 'init'. Show loading screen.
                 currentState.copy(
+                    isSteamConnected = SteamService.isConnected,
                     isLoggingIn = true,
                     loginResult = LoginResult.Success,
                 )
             } else {
                 currentState.copy(
+                    isSteamConnected = SteamService.isConnected,
                     isLoggingIn = SteamService.isLoggingIn,
                     attemptCount = currentState.attemptCount.plus(1),
                     isQrFailed = false,
