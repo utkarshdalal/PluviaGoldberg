@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -104,7 +104,7 @@ fun SettingsGroupDebug() {
                             navigationIcon = {
                                 IconButton(
                                     onClick = { showLogcatDialog = false },
-                                    content = { Icon(Icons.Default.Save, null) },
+                                    content = { Icon(Icons.Default.Close, null) },
                                 )
                             },
                             actions = {
@@ -112,7 +112,7 @@ fun SettingsGroupDebug() {
                                     onClick = {
                                         saveResultContract.launch(latestCrashFile!!.name)
                                     },
-                                    content = { Icon(Icons.Default.Share, null) },
+                                    content = { Icon(Icons.Default.Save, null) },
                                 )
                             },
                         )
@@ -145,15 +145,12 @@ fun SettingsGroupDebug() {
         SettingsMenuLink(
             title = { Text(text = "View Logcats") },
             subtitle = {
-                val subtitle by remember {
-                    val text = if (latestCrashFile != null) {
-                        "Shows the most recent crash log"
-                    } else {
-                        "No recent crash logs found"
-                    }
-                    mutableStateOf(text)
+                val text = if (latestCrashFile != null) {
+                    "Shows the most recent crash log"
+                } else {
+                    "No recent crash logs found"
                 }
-                Text(text = subtitle)
+                Text(text = text)
             },
             enabled = latestCrashFile != null,
             onClick = { showLogcatDialog = true },
