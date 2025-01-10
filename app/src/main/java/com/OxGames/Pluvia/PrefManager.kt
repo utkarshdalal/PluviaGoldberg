@@ -73,6 +73,14 @@ object PrefManager {
     //     }
     // }
 
+    /* Recent Crash Flag */
+    private val RECENTLY_CRASHED = booleanPreferencesKey("recently_crashed")
+    var recentlyCrashed: Boolean
+        get() = getPref(RECENTLY_CRASHED, false)
+        set(value) {
+            setPref(RECENTLY_CRASHED, value)
+        }
+
     /* Login Info */
     private val CELL_ID = intPreferencesKey("cell_id")
     var cellId: Int
