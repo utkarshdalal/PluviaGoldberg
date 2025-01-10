@@ -187,7 +187,7 @@ fun PluviaMain(
                                 title = "Recent Crash",
                                 message = "Sorry about that!\n" +
                                     "It would be nice to know about the recent issue you've had.\n" +
-                                    "You can export the most recent crash logs in the app's settings " +
+                                    "You can view and export the most recent crash log in the app's settings " +
                                     "and attach it as a Github issue in the project's repository.\n" +
                                     "Link to the Github repo is also in settings!",
                                 confirmBtnText = "OK",
