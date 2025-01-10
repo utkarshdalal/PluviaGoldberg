@@ -362,7 +362,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                             SplitInstallSessionStatus.INSTALLING,
                                             SplitInstallSessionStatus.DOWNLOADED,
                                             SplitInstallSessionStatus.DOWNLOADING,
-                                                -> {
+                                            -> {
                                                 if (!isActive) {
                                                     splitManager.cancelInstall(moduleInstallSessionId)
                                                     break
@@ -1724,7 +1724,6 @@ class SteamService : Service(), IChallengeUrlChanged {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-
         // Notification intents
         when (intent?.action) {
             NotificationHelper.ACTION_EXIT -> {

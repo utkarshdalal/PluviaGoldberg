@@ -1,6 +1,7 @@
 package com.OxGames.Pluvia.ui.enums
 
 enum class DialogType {
+    CRASH,
     SUPPORT,
     SYNC_CONFLICT,
     SYNC_FAIL,

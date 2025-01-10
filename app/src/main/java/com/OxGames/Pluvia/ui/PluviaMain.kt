@@ -89,13 +89,14 @@ fun PluviaMain(
         mutableStateOf(MessageDialogState(false))
     }
     var annoyingDialogShown by rememberSaveable { mutableStateOf(false) }
+    var hasCrashedRecently by rememberSaveable { mutableStateOf(PrefManager.recentlyCrashed) }
 
     val setLoadingDialogVisible: (Boolean) -> Unit = { loadingDialogVisible = it }
     val setLoadingProgress: (Float) -> Unit = { loadingProgress = it }
     val setMessageDialogState: (MessageDialogState) -> Unit = { msgDialogState = it }
 
     LaunchedEffect(navController) {
-        Timber.i( "navController changed")
+        Timber.i("navController changed")
         if (!hasLaunched) {
             hasLaunched = true
             Timber.i("Creating on destination changed listener")
@@ -175,7 +176,23 @@ fun PluviaMain(
                         // TODO: add preference for first screen on login
                         Timber.i("Navigating to library")
                         navController.navigate(PluviaScreen.Home.name)
-                        if (!(PrefManager.tipped || BuildConfig.GOLD) && !annoyingDialogShown) {
+
+                        // If a crash happen, lets not ask for a tip yet.
+                        // Instead, ask the user to contribute their issues to be addressed.
+                        if (!annoyingDialogShown && hasCrashedRecently) {
+                            annoyingDialogShown = true
+                            msgDialogState = MessageDialogState(
+                                visible = true,
+                                type = DialogType.CRASH,
+                                title = "Recent Crash",
+                                message = "Sorry about that!\n" +
+                                    "It would be nice to know about the recent issue you've had.\n" +
+                                    "You can export the most recent crash logs in the app's settings " +
+                                    "and attach it as a Github issue in the project's repository.\n" +
+                                    "Link to the Github repo is also in settings!",
+                                confirmBtnText = "OK",
+                            )
+                        } else if (!(PrefManager.tipped || BuildConfig.GOLD) && !annoyingDialogShown) {
                             annoyingDialogShown = true
                             msgDialogState = MessageDialogState(
                                 visible = true,
@@ -266,6 +283,7 @@ fun PluviaMain(
                 msgDialogState = MessageDialogState(visible = false)
             }
         }
+
         DialogType.SYNC_CONFLICT -> {
             onConfirmClick = {
                 preLaunchApp(
@@ -295,6 +313,7 @@ fun PluviaMain(
                 msgDialogState = MessageDialogState(false)
             }
         }
+
         DialogType.SYNC_FAIL -> {
             onDismissClick = {
                 setMessageDialogState(MessageDialogState(false))
@@ -304,6 +323,7 @@ fun PluviaMain(
             }
             onConfirmClick = null
         }
+
         DialogType.PENDING_UPLOAD_IN_PROGRESS -> {
             onDismissClick = {
                 setMessageDialogState(MessageDialogState(false))
@@ -313,6 +333,7 @@ fun PluviaMain(
             }
             onConfirmClick = null
         }
+
         DialogType.PENDING_UPLOAD -> {
             onConfirmClick = {
                 setMessageDialogState(MessageDialogState(false))
@@ -333,6 +354,7 @@ fun PluviaMain(
                 setMessageDialogState(MessageDialogState(false))
             }
         }
+
         DialogType.APP_SESSION_ACTIVE -> {
             onConfirmClick = {
                 setMessageDialogState(MessageDialogState(false))
@@ -353,6 +375,7 @@ fun PluviaMain(
                 setMessageDialogState(MessageDialogState(false))
             }
         }
+
         DialogType.APP_SESSION_SUSPENDED -> {
             onDismissClick = {
                 setMessageDialogState(MessageDialogState(false))
@@ -362,6 +385,7 @@ fun PluviaMain(
             }
             onConfirmClick = null
         }
+
         DialogType.PENDING_OPERATION_NONE -> {
             onDismissClick = {
                 setMessageDialogState(MessageDialogState(false))
@@ -371,6 +395,7 @@ fun PluviaMain(
             }
             onConfirmClick = null
         }
+
         DialogType.MULTIPLE_PENDING_OPERATIONS -> {
             onDismissClick = {
                 setMessageDialogState(MessageDialogState(false))
@@ -380,6 +405,21 @@ fun PluviaMain(
             }
             onConfirmClick = null
         }
+
+        DialogType.CRASH -> {
+            onDismissClick = null
+            onDismissRequest = {
+                PrefManager.recentlyCrashed = false
+                hasCrashedRecently = false
+                setMessageDialogState(MessageDialogState(false))
+            }
+            onConfirmClick = {
+                PrefManager.recentlyCrashed = false
+                hasCrashedRecently = false
+                setMessageDialogState(MessageDialogState(false))
+            }
+        }
+
         else -> {
             onDismissRequest = null
             onDismissClick = null

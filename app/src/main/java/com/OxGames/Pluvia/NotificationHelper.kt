@@ -72,7 +72,7 @@ class NotificationHelper(private val context: Context) {
             context,
             0,
             stopIntent,
-            PendingIntent.FLAG_IMMUTABLE
+            PendingIntent.FLAG_IMMUTABLE,
         )
 
         return NotificationCompat.Builder(context, CHANNEL_ID)

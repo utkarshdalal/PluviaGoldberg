@@ -37,7 +37,7 @@ data class MessageDialogState(
                     title = savedMap["title"] as String?,
                     message = savedMap["message"] as String?,
                 )
-            }
+            },
         )
     }
 }
