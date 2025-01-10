@@ -30,7 +30,7 @@ class PluviaApp : SplitCompatApplication() {
             Timber.plant(ReleaseTree())
         }
 
-        // Init out custom crash handler.
+        // Init our custom crash handler.
         CrashHandler.initialize(this)
 
         // Init our datastore preferences.
