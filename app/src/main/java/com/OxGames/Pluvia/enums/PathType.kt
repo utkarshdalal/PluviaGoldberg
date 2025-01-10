@@ -3,8 +3,8 @@ package com.OxGames.Pluvia.enums
 import android.content.Context
 import com.OxGames.Pluvia.SteamService
 import com.winlator.xenvironment.ImageFs
-import timber.log.Timber
 import java.nio.file.Paths
+import timber.log.Timber
 
 enum class PathType {
     GameInstall,

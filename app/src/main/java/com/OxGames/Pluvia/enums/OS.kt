@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.enums
 
-import timber.log.Timber
 import java.util.EnumSet
+import timber.log.Timber
 
 enum class OS {
     windows,
