@@ -8,13 +8,16 @@ Pluvia is a lightweight unofficial Steam client for Android with the ability to 
 > Steam is a trademark of the Valve Corporation
 
 ## Features
-- View, download, and play games (*)
+
+Pluvia is still in active early development, so some features may be lacking or not working correctly.</br>
+Pluvia currently provides these features:
+
+- View and download games through the app.
+- *Play (DRM free) games using [Winlator](https://github.com/brunodev85/winlator) built into the app. (Note: customizing the container is in the works)
 - Steam Cloud integration for your cloud saves, allowing you to resume where you left off. 
-- Manage and Chat with your friends (**)
+- View your friends list. (Note: chat and friend management in the works too)
 
-"*" Due to technical limitations some games may not work correctly or at all, such as DRM games.
-
-"**" Some features are still in development and may not be working. 
+&ast; Existing issues or limitations that occur with the actual Winlator app will mostly apply here when running a game.
 
 See the [Wiki](https://github.com/oxters168/Pluvia/wiki) for more information
 
