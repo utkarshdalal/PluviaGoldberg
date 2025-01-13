@@ -59,6 +59,7 @@ private fun SettingsScreenContent(
                 .verticalScroll(scrollState),
         ) {
             SettingsGroupXServer()
+            SettingsGroupContainer()
             SettingsGroupInfo()
             SettingsGroupDebug()
         }
