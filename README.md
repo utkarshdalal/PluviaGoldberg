@@ -10,7 +10,7 @@ Pluvia is a lightweight unofficial Steam client for Android with the ability to 
 ## Features
 
 Pluvia is still in active early development, so some features may be lacking or not working correctly.</br>
-Some features this app provives currently are: 
+Pluvia currently provides these features:
 
 - View and download games through the app.
 - *Play (DRM free) games using [Winlator](https://github.com/brunodev85/winlator) built into the app. (Note: customizing the container is in the works)
