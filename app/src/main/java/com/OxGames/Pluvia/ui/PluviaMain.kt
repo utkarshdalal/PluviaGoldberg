@@ -53,6 +53,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
 import com.winlator.core.WineInfo
+import com.winlator.core.WineThemeManager
 import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xserver.Window
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
@@ -64,6 +65,7 @@ import kotlin.io.path.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import timber.log.Timber
 
 @Composable
@@ -599,10 +601,31 @@ fun preLaunchApp(
         val containerId = appId
 
         // create container if it does not already exist
+        // TODO: combine somehow with container creation in HomeLibraryAppScreen
         val containerManager = ContainerManager(context)
-        val container = containerManager.getContainerById(containerId)
-            ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION, containerId)
-                .get()
+        val container = if (containerManager.hasContainer(containerId)) {
+            containerManager.getContainerById(containerId)
+        } else {
+            val data = JSONObject()
+            data.put("name", "container_$containerId")
+            data.put("screenSize", PrefManager.screenSize)
+            data.put("envVars", PrefManager.envVars)
+            data.put("cpuList", PrefManager.cpuList)
+            data.put("cpuListWoW64", PrefManager.cpuListWoW64)
+            data.put("graphicsDriver", PrefManager.graphicsDriver)
+            data.put("dxwrapper", PrefManager.dxWrapper)
+            data.put("dxwrapperConfig", PrefManager.dxWrapperConfig)
+            data.put("audioDriver", PrefManager.audioDriver)
+            data.put("wincomponents", PrefManager.winComponents)
+            data.put("drives", PrefManager.drives)
+            data.put("showFPS", PrefManager.showFps)
+            data.put("wow64Mode", PrefManager.wow64Mode)
+            data.put("startupSelection", PrefManager.startupSelection)
+            data.put("box86Preset", PrefManager.box86Preset)
+            data.put("box64Preset", PrefManager.box64Preset)
+            data.put("desktopTheme", WineThemeManager.DEFAULT_DESKTOP_THEME)
+            containerManager.createContainerFuture(containerId, data).get()
+        }
         // set up container drives to include app
         val currentDrives = container.drives
         val drivePath = "D:${SteamService.getAppDirPath(appId)}"

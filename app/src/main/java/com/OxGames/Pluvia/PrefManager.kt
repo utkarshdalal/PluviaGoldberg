@@ -12,6 +12,8 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.OxGames.Pluvia.ui.enums.Orientation
+import com.winlator.box86_64.Box86_64Preset
+import com.winlator.container.Container
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import java.util.EnumSet
 import kotlinx.coroutines.CoroutineName
@@ -72,6 +74,112 @@ object PrefManager {
     //         dataStore.edit { pref -> pref.remove(key) }
     //     }
     // }
+
+    /* Container Default Settings */
+    private val SCREEN_SIZE = stringPreferencesKey("screen_size")
+    var screenSize: String
+        get() = getPref(SCREEN_SIZE, Container.DEFAULT_SCREEN_SIZE)
+        set(value) {
+            setPref(SCREEN_SIZE, value)
+        }
+
+    private val ENV_VARS = stringPreferencesKey("env_vars")
+    var envVars: String
+        get() = getPref(ENV_VARS, Container.DEFAULT_ENV_VARS)
+        set(value) {
+            setPref(ENV_VARS, value)
+        }
+
+    private val GRAPHICS_DRIVER = stringPreferencesKey("graphics_driver")
+    var graphicsDriver: String
+        get() = getPref(GRAPHICS_DRIVER, Container.DEFAULT_GRAPHICS_DRIVER)
+        set(value) {
+            setPref(GRAPHICS_DRIVER, value)
+        }
+
+    private val DXWRAPPER = stringPreferencesKey("dxwrapper")
+    var dxWrapper: String
+        get() = getPref(DXWRAPPER, Container.DEFAULT_DXWRAPPER)
+        set(value) {
+            setPref(DXWRAPPER, value)
+        }
+
+    private val DXWRAPPER_CONFIG = stringPreferencesKey("dxwrapperConfig")
+    var dxWrapperConfig: String
+        get() = getPref(DXWRAPPER_CONFIG, "")
+        set(value) {
+            setPref(DXWRAPPER_CONFIG, value)
+        }
+
+    private val AUDIO_DRIVER = stringPreferencesKey("audio_driver")
+    var audioDriver: String
+        get() = getPref(AUDIO_DRIVER, Container.DEFAULT_AUDIO_DRIVER)
+        set(value) {
+            setPref(AUDIO_DRIVER, value)
+        }
+
+    private val WIN_COMPONENTS = stringPreferencesKey("wincomponents")
+    var winComponents: String
+        get() = getPref(WIN_COMPONENTS, Container.DEFAULT_WINCOMPONENTS)
+        set(value) {
+            setPref(WIN_COMPONENTS, value)
+        }
+
+    private val DRIVES = stringPreferencesKey("drives")
+    var drives: String
+        get() = getPref(DRIVES, "")
+        set(value) {
+            setPref(DRIVES, value)
+        }
+
+    private val SHOW_FPS = booleanPreferencesKey("show_fps")
+    var showFps: Boolean
+        get() = getPref(SHOW_FPS, false)
+        set(value) {
+            setPref(SHOW_FPS, value)
+        }
+
+    private val CPU_LIST = stringPreferencesKey("cpu_list")
+    var cpuList: String
+        get() = getPref(CPU_LIST, Container.getFallbackCPUList())
+        set(value) {
+            setPref(CPU_LIST, value)
+        }
+
+    private val CPU_LIST_WOW64 = stringPreferencesKey("cpu_list_wow64")
+    var cpuListWoW64: String
+        get() = getPref(CPU_LIST_WOW64, Container.getFallbackCPUListWoW64())
+        set(value) {
+            setPref(CPU_LIST_WOW64, value)
+        }
+
+    private val WOW64_MODE = booleanPreferencesKey("wow64_mode")
+    var wow64Mode: Boolean
+        get() = getPref(WOW64_MODE, true)
+        set(value) {
+            setPref(WOW64_MODE, value)
+        }
+
+    private val STARTUP_SELECTION = intPreferencesKey("startup_selection")
+    var startupSelection: Int
+        get() = getPref(STARTUP_SELECTION, Container.STARTUP_SELECTION_ESSENTIAL.toInt())
+        set(value) {
+            setPref(STARTUP_SELECTION, value)
+        }
+
+    private val BOX86_PRESET = stringPreferencesKey("box86_preset")
+    var box86Preset: String
+        get() = getPref(BOX86_PRESET, Box86_64Preset.COMPATIBILITY)
+        set(value) {
+            setPref(BOX86_PRESET, value)
+        }
+
+    private val BOX64_PRESET = stringPreferencesKey("box64_preset")
+    var box64Preset: String
+        get() = getPref(BOX64_PRESET, Box86_64Preset.COMPATIBILITY)
+        set(value) {
+            setPref(BOX64_PRESET, value)
+        }
 
     /* Recent Crash Flag */
     private val RECENTLY_CRASHED = booleanPreferencesKey("recently_crashed")

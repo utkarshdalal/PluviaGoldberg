@@ -50,9 +50,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.ui.component.dialog.ContainerConfigDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
@@ -63,6 +65,11 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.StorageUtils
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
+import com.winlator.container.ContainerData
+import com.winlator.container.ContainerManager
+import com.winlator.core.WineThemeManager
+import org.json.JSONObject
+import timber.log.Timber
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -87,6 +94,12 @@ fun AppScreen(
 
     var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
         mutableStateOf(MessageDialogState(false))
+    }
+
+    var showConfigDialog by rememberSaveable { mutableStateOf(false) }
+
+    var containerData by rememberSaveable(stateSaver = ContainerData.Saver) {
+        mutableStateOf(ContainerData())
     }
 
     DisposableEffect(downloadInfo) {
@@ -183,6 +196,40 @@ fun AppScreen(
             title = msgDialogState.title,
             message = msgDialogState.message,
         )
+        ContainerConfigDialog(
+            visible = showConfigDialog,
+            title = "${appInfo?.name} Config",
+            initialConfig = containerData,
+            onDismissRequest = { showConfigDialog = false },
+            onSave = {
+                showConfigDialog = false
+
+                val containerManager = ContainerManager(context)
+                if (containerManager.hasContainer(appId)) {
+                    val container = containerManager.getContainerById(appId)
+                    container.name = it.name
+                    container.screenSize = it.screenSize
+                    container.envVars = it.envVars
+                    container.graphicsDriver = it.graphicsDriver
+                    container.dxWrapper = it.dxwrapper
+                    container.dxWrapperConfig = it.dxwrapperConfig
+                    container.audioDriver = it.audioDriver
+                    container.winComponents = it.wincomponents
+                    container.drives = it.drives
+                    container.isShowFPS = it.showFPS
+                    container.cpuList = it.cpuList
+                    container.cpuListWoW64 = it.cpuListWoW64
+                    container.isWoW64Mode = it.wow64Mode
+                    container.startupSelection = it.startupSelection
+                    container.box86Preset = it.box86Preset
+                    container.box64Preset = it.box64Preset
+                    container.desktopTheme = it.desktopTheme
+                    container.saveData()
+                } else {
+                    throw Exception("Container does not exist for $appId")
+                }
+            },
+        )
         AppScreenContent(
             modifier = Modifier.padding(paddingValues),
             appInfo = appInfo,
@@ -255,12 +302,84 @@ fun AppScreen(
                                 },
                             ),
                             AppMenuOption(
+                                AppOptionMenuType.EditContainer,
+                                onClick = {
+                                    val containerManager = ContainerManager(context)
+                                    containerData = if (containerManager.hasContainer(appId)) {
+                                        val container = containerManager.getContainerById(appId)
+                                        ContainerData(
+                                            name = container.name,
+                                            screenSize = container.screenSize,
+                                            envVars = container.envVars,
+                                            graphicsDriver = container.graphicsDriver,
+                                            dxwrapper = container.dxWrapper,
+                                            dxwrapperConfig = container.dxWrapperConfig,
+                                            audioDriver = container.audioDriver,
+                                            wincomponents = container.winComponents,
+                                            drives = container.drives,
+                                            showFPS = container.isShowFPS,
+                                            cpuList = container.cpuList,
+                                            cpuListWoW64 = container.cpuListWoW64,
+                                            wow64Mode = container.isWoW64Mode,
+                                            startupSelection = container.startupSelection.toByte(),
+                                            box86Preset = container.box86Preset,
+                                            box64Preset = container.box64Preset,
+                                            desktopTheme = container.desktopTheme,
+                                        )
+                                    } else {
+                                        // TODO: either change imagefs installation to the beginning of the
+                                        // app to ensure this works properly, or only allow game config
+                                        // editing when container exists
+                                        // TODO: combine somehow with container creation in PluviaMain
+                                        val data = JSONObject()
+                                        data.put("name", "container_$appId")
+                                        data.put("screenSize", PrefManager.screenSize)
+                                        data.put("envVars", PrefManager.envVars)
+                                        data.put("cpuList", PrefManager.cpuList)
+                                        data.put("cpuListWoW64", PrefManager.cpuListWoW64)
+                                        data.put("graphicsDriver", PrefManager.graphicsDriver)
+                                        data.put("dxwrapper", PrefManager.dxWrapper)
+                                        data.put("dxwrapperConfig", PrefManager.dxWrapperConfig)
+                                        data.put("audioDriver", PrefManager.audioDriver)
+                                        data.put("wincomponents", PrefManager.winComponents)
+                                        data.put("drives", PrefManager.drives)
+                                        data.put("showFPS", PrefManager.showFps)
+                                        data.put("wow64Mode", PrefManager.wow64Mode)
+                                        data.put("startupSelection", PrefManager.startupSelection)
+                                        data.put("box86Preset", PrefManager.box86Preset)
+                                        data.put("box64Preset", PrefManager.box64Preset)
+                                        data.put("desktopTheme", WineThemeManager.DEFAULT_DESKTOP_THEME)
+                                        val container = containerManager.createContainerFuture(appId, data).get()
+                                        ContainerData(
+                                            name = container.name,
+                                            screenSize = container.screenSize,
+                                            envVars = container.envVars,
+                                            graphicsDriver = container.graphicsDriver,
+                                            dxwrapper = container.dxWrapper,
+                                            dxwrapperConfig = container.dxWrapperConfig,
+                                            audioDriver = container.audioDriver,
+                                            wincomponents = container.winComponents,
+                                            drives = container.drives,
+                                            showFPS = container.isShowFPS,
+                                            cpuList = container.cpuList,
+                                            cpuListWoW64 = container.cpuListWoW64,
+                                            wow64Mode = container.isWoW64Mode,
+                                            startupSelection = container.startupSelection.toByte(),
+                                            box86Preset = container.box86Preset,
+                                            box64Preset = container.box64Preset,
+                                            desktopTheme = container.desktopTheme,
+                                        )
+                                    }
+
+                                    showConfigDialog = true
+                                },
+                            ),
+                            AppMenuOption(
                                 AppOptionMenuType.Uninstall,
                                 onClick = {
                                     val sizeOnDisk = StorageUtils.formatBinarySize(
                                         StorageUtils.getFolderSize(SteamService.getAppDirPath(appId)),
                                     )
-                                    // TODO: exit app screen and reload installed list
                                     // TODO: show loading screen of delete progress
                                     msgDialogState = MessageDialogState(
                                         visible = true,
