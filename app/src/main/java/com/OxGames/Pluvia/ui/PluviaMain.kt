@@ -50,6 +50,7 @@ import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen
 import com.OxGames.Pluvia.ui.screen.xserver.XServerScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.OxGames.Pluvia.utils.ContainerUtils
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
 import com.winlator.core.WineInfo
@@ -597,44 +598,13 @@ fun preLaunchApp(
             }.get()
         setLoadingProgress(-1f)
 
-        // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
-        val containerId = appId
-
         // create container if it does not already exist
         // TODO: combine somehow with container creation in HomeLibraryAppScreen
         val containerManager = ContainerManager(context)
-        val container = if (containerManager.hasContainer(containerId)) {
-            containerManager.getContainerById(containerId)
-        } else {
-            val data = JSONObject()
-            data.put("name", "container_$containerId")
-            data.put("screenSize", PrefManager.screenSize)
-            data.put("envVars", PrefManager.envVars)
-            data.put("cpuList", PrefManager.cpuList)
-            data.put("cpuListWoW64", PrefManager.cpuListWoW64)
-            data.put("graphicsDriver", PrefManager.graphicsDriver)
-            data.put("dxwrapper", PrefManager.dxWrapper)
-            data.put("dxwrapperConfig", PrefManager.dxWrapperConfig)
-            data.put("audioDriver", PrefManager.audioDriver)
-            data.put("wincomponents", PrefManager.winComponents)
-            data.put("drives", PrefManager.drives)
-            data.put("showFPS", PrefManager.showFps)
-            data.put("wow64Mode", PrefManager.wow64Mode)
-            data.put("startupSelection", PrefManager.startupSelection)
-            data.put("box86Preset", PrefManager.box86Preset)
-            data.put("box64Preset", PrefManager.box64Preset)
-            data.put("desktopTheme", WineThemeManager.DEFAULT_DESKTOP_THEME)
-            containerManager.createContainerFuture(containerId, data).get()
-        }
-        // set up container drives to include app
-        val currentDrives = container.drives
-        val drivePath = "D:${SteamService.getAppDirPath(appId)}"
-        if (!currentDrives.contains(drivePath)) {
-            container.drives = drivePath
-            container.saveData()
-        }
+        val container = ContainerUtils.getOrCreateContainer(context, appId)
         // must activate container before downloading save files
         containerManager.activateContainer(container)
+
         // sync save files and check no pending remote operations are running
         val prefixToPath: (String) -> String = { prefix ->
             PathType.from(prefix).toAbsPath(context, appId)

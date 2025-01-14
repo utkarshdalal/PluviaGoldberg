@@ -50,11 +50,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
-import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.ui.component.dialog.ContainerConfigDialog
+import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
@@ -62,14 +62,17 @@ import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.OxGames.Pluvia.utils.ContainerUtils
 import com.OxGames.Pluvia.utils.StorageUtils
+import com.google.android.play.core.splitcompat.SplitCompat
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import com.winlator.container.ContainerData
 import com.winlator.container.ContainerManager
-import com.winlator.core.WineThemeManager
-import org.json.JSONObject
-import timber.log.Timber
+import com.winlator.xenvironment.ImageFsInstaller
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -88,6 +91,9 @@ fun AppScreen(
     var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
 
+    var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var loadingProgress by rememberSaveable { mutableFloatStateOf(0f) }
+
     val appInfo by remember(appId) {
         mutableStateOf(SteamService.getAppInfoOf(appId))
     }
@@ -100,6 +106,12 @@ fun AppScreen(
 
     var containerData by rememberSaveable(stateSaver = ContainerData.Saver) {
         mutableStateOf(ContainerData())
+    }
+
+    val showEditConfigDialog: () -> Unit = {
+        val container = ContainerUtils.getOrCreateContainer(context, appId)
+        containerData = ContainerUtils.toContainerData(container)
+        showConfigDialog = true
     }
 
     DisposableEffect(downloadInfo) {
@@ -159,6 +171,31 @@ fun AppScreen(
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onDismissClick = { msgDialogState = MessageDialogState(false) }
         }
+        DialogType.INSTALL_IMAGEFS -> {
+            onDismissRequest = { msgDialogState = MessageDialogState(false) }
+            onDismissClick = { msgDialogState = MessageDialogState(false) }
+            onConfirmClick = {
+                loadingDialogVisible = true
+                msgDialogState = MessageDialogState(false)
+                CoroutineScope(Dispatchers.IO).launch {
+                    if (!SteamService.isImageFsInstallable(context)) {
+                        SteamService.downloadImageFs(
+                            onDownloadProgress = { loadingProgress = it },
+                            this,
+                        ).await()
+                    }
+                    if (!SteamService.isImageFsInstalled(context)) {
+                        SplitCompat.install(context)
+                        ImageFsInstaller.installIfNeededFuture(context, context.assets) {
+                            // Log.d("XServerScreen", "$progress")
+                            loadingProgress = it / 100f
+                        }.get()
+                    }
+                    loadingDialogVisible = false
+                    showEditConfigDialog()
+                }
+            }
+        }
         else -> {
             onDismissRequest = null
             onDismissClick = null
@@ -203,32 +240,12 @@ fun AppScreen(
             onDismissRequest = { showConfigDialog = false },
             onSave = {
                 showConfigDialog = false
-
-                val containerManager = ContainerManager(context)
-                if (containerManager.hasContainer(appId)) {
-                    val container = containerManager.getContainerById(appId)
-                    container.name = it.name
-                    container.screenSize = it.screenSize
-                    container.envVars = it.envVars
-                    container.graphicsDriver = it.graphicsDriver
-                    container.dxWrapper = it.dxwrapper
-                    container.dxWrapperConfig = it.dxwrapperConfig
-                    container.audioDriver = it.audioDriver
-                    container.winComponents = it.wincomponents
-                    container.drives = it.drives
-                    container.isShowFPS = it.showFPS
-                    container.cpuList = it.cpuList
-                    container.cpuListWoW64 = it.cpuListWoW64
-                    container.isWoW64Mode = it.wow64Mode
-                    container.startupSelection = it.startupSelection
-                    container.box86Preset = it.box86Preset
-                    container.box64Preset = it.box64Preset
-                    container.desktopTheme = it.desktopTheme
-                    container.saveData()
-                } else {
-                    throw Exception("Container does not exist for $appId")
-                }
+                ContainerUtils.applyToContainer(context, appId, it)
             },
+        )
+        LoadingDialog(
+            visible = loadingDialogVisible,
+            progress = loadingProgress,
         )
         AppScreenContent(
             modifier = Modifier.padding(paddingValues),
@@ -292,6 +309,38 @@ fun AppScreen(
                         context.startActivity(browserIntent)
                     },
                 ),
+                AppMenuOption(
+                    AppOptionMenuType.EditContainer,
+                    onClick = {
+                        if (!SteamService.isImageFsInstalled(context)) {
+                            if (!SteamService.isImageFsInstallable(context)) {
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.INSTALL_IMAGEFS,
+                                    title = "Download & Install ImageFS",
+                                    message = "The Ubuntu image needs to be downloaded and installed before " +
+                                            "being able to edit the configuration. This operation might take " +
+                                            "a few minutes. Would you like to continue?",
+                                    confirmBtnText = "Proceed",
+                                    dismissBtnText = "Cancel",
+                                )
+                            } else {
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.INSTALL_IMAGEFS,
+                                    title = "Install ImageFS",
+                                    message = "The Ubuntu image needs to be installed before being able to edit " +
+                                            "the configuration. This operation might take a few minutes. " +
+                                            "Would you like to continue?",
+                                    confirmBtnText = "Proceed",
+                                    dismissBtnText = "Cancel",
+                                )
+                            }
+                        } else {
+                            showEditConfigDialog()
+                        }
+                    },
+                ),
                 *(
                     if (isInstalled) {
                         arrayOf(
@@ -299,79 +348,6 @@ fun AppScreen(
                                 AppOptionMenuType.RunContainer,
                                 onClick = {
                                     onClickPlay(true)
-                                },
-                            ),
-                            AppMenuOption(
-                                AppOptionMenuType.EditContainer,
-                                onClick = {
-                                    val containerManager = ContainerManager(context)
-                                    containerData = if (containerManager.hasContainer(appId)) {
-                                        val container = containerManager.getContainerById(appId)
-                                        ContainerData(
-                                            name = container.name,
-                                            screenSize = container.screenSize,
-                                            envVars = container.envVars,
-                                            graphicsDriver = container.graphicsDriver,
-                                            dxwrapper = container.dxWrapper,
-                                            dxwrapperConfig = container.dxWrapperConfig,
-                                            audioDriver = container.audioDriver,
-                                            wincomponents = container.winComponents,
-                                            drives = container.drives,
-                                            showFPS = container.isShowFPS,
-                                            cpuList = container.cpuList,
-                                            cpuListWoW64 = container.cpuListWoW64,
-                                            wow64Mode = container.isWoW64Mode,
-                                            startupSelection = container.startupSelection.toByte(),
-                                            box86Preset = container.box86Preset,
-                                            box64Preset = container.box64Preset,
-                                            desktopTheme = container.desktopTheme,
-                                        )
-                                    } else {
-                                        // TODO: either change imagefs installation to the beginning of the
-                                        // app to ensure this works properly, or only allow game config
-                                        // editing when container exists
-                                        // TODO: combine somehow with container creation in PluviaMain
-                                        val data = JSONObject()
-                                        data.put("name", "container_$appId")
-                                        data.put("screenSize", PrefManager.screenSize)
-                                        data.put("envVars", PrefManager.envVars)
-                                        data.put("cpuList", PrefManager.cpuList)
-                                        data.put("cpuListWoW64", PrefManager.cpuListWoW64)
-                                        data.put("graphicsDriver", PrefManager.graphicsDriver)
-                                        data.put("dxwrapper", PrefManager.dxWrapper)
-                                        data.put("dxwrapperConfig", PrefManager.dxWrapperConfig)
-                                        data.put("audioDriver", PrefManager.audioDriver)
-                                        data.put("wincomponents", PrefManager.winComponents)
-                                        data.put("drives", PrefManager.drives)
-                                        data.put("showFPS", PrefManager.showFps)
-                                        data.put("wow64Mode", PrefManager.wow64Mode)
-                                        data.put("startupSelection", PrefManager.startupSelection)
-                                        data.put("box86Preset", PrefManager.box86Preset)
-                                        data.put("box64Preset", PrefManager.box64Preset)
-                                        data.put("desktopTheme", WineThemeManager.DEFAULT_DESKTOP_THEME)
-                                        val container = containerManager.createContainerFuture(appId, data).get()
-                                        ContainerData(
-                                            name = container.name,
-                                            screenSize = container.screenSize,
-                                            envVars = container.envVars,
-                                            graphicsDriver = container.graphicsDriver,
-                                            dxwrapper = container.dxWrapper,
-                                            dxwrapperConfig = container.dxWrapperConfig,
-                                            audioDriver = container.audioDriver,
-                                            wincomponents = container.winComponents,
-                                            drives = container.drives,
-                                            showFPS = container.isShowFPS,
-                                            cpuList = container.cpuList,
-                                            cpuListWoW64 = container.cpuListWoW64,
-                                            wow64Mode = container.isWoW64Mode,
-                                            startupSelection = container.startupSelection.toByte(),
-                                            box86Preset = container.box86Preset,
-                                            box64Preset = container.box64Preset,
-                                            desktopTheme = container.desktopTheme,
-                                        )
-                                    }
-
-                                    showConfigDialog = true
                                 },
                             ),
                             AppMenuOption(

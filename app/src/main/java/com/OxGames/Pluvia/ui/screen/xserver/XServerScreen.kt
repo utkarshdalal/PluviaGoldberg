@@ -30,6 +30,7 @@ import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.XServerState
+import com.OxGames.Pluvia.utils.ContainerUtils
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.core.AppUtils
@@ -110,15 +111,13 @@ fun XServerScreen(
     // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
     // val generateWinePrefix = false
     var firstTimeBoot = false
-    val containerId = appId // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
     // val frameRatingWindowId = -1
     var taskAffinityMask = 0
     var taskAffinityMaskWoW64 = 0
 
     var xServerState = rememberSaveable(stateSaver = XServerState.Saver) {
-        val containerManager = ContainerManager(context)
-        if (containerManager.hasContainer(containerId)) {
-            val container = containerManager.getContainerById(containerId)
+        if (ContainerUtils.hasContainer(context, appId)) {
+            val container = ContainerUtils.getContainer(context, appId)
             mutableStateOf(XServerState(
                 graphicsDriver = container.graphicsDriver,
                 audioDriver = container.audioDriver,
@@ -294,12 +293,12 @@ fun XServerScreen(
                 @SuppressLint("BinaryOperationInTimber")
                 getxServer().windowManager.addOnWindowModificationListener(object : WindowManager.OnWindowModificationListener {
                     override fun onUpdateWindowContent(window: Window) {
-                        Timber.v("onUpdateWindowContent:" +
-                            "\n\twindowName: ${window.name}" +
-                            "\n\tprocessId: ${window.processId}" +
-                            "\n\thasParent: ${window.parent != null}" +
-                            "\n\tchildrenSize: ${window.children.size}"
-                        )
+                        // Timber.v("onUpdateWindowContent:" +
+                        //     "\n\twindowName: ${window.name}" +
+                        //     "\n\tprocessId: ${window.processId}" +
+                        //     "\n\thasParent: ${window.parent != null}" +
+                        //     "\n\tchildrenSize: ${window.children.size}"
+                        // )
                         if (!xServerState.value.winStarted && window.isApplicationWindow()) {
                             renderer?.setCursorVisible(true)
                             xServerState.value.winStarted = true
@@ -308,18 +307,18 @@ fun XServerScreen(
                     }
 
                     override fun onModifyWindowProperty(window: Window, property: Property) {
-                        Timber.v("onModifyWindowProperty:" +
-                            "\n\twindowName: ${window.name}" +
-                            "\n\tprocessId: ${window.processId}" +
-                            "\n\thasParent: ${window.parent != null}" +
-                            "\n\tchildrenSize: ${window.children.size}" +
-                            "\n\tpropertyName${property.name}"
-                        )
+                        // Timber.v("onModifyWindowProperty:" +
+                        //     "\n\twindowName: ${window.name}" +
+                        //     "\n\tprocessId: ${window.processId}" +
+                        //     "\n\thasParent: ${window.parent != null}" +
+                        //     "\n\tchildrenSize: ${window.children.size}" +
+                        //     "\n\tpropertyName${property.name}"
+                        // )
                         // changeFrameRatingVisibility(window, property)
                     }
 
                     override fun onMapWindow(window: Window) {
-                        Timber.v("onMapWindow:" +
+                        Timber.i("onMapWindow:" +
                             "\n\twindowName: ${window.name}" +
                             "\n\twindowClassName: ${window.className}" +
                             "\n\tprocessId: ${window.processId}" +
@@ -331,7 +330,7 @@ fun XServerScreen(
                     }
 
                     override fun onUnmapWindow(window: Window) {
-                        Timber.v("onUnmapWindow:" +
+                        Timber.i("onUnmapWindow:" +
                             "\n\twindowName: ${window.name}" +
                             "\n\twindowClassName: ${window.className}" +
                             "\n\tprocessId: ${window.processId}" +
@@ -350,13 +349,11 @@ fun XServerScreen(
                         getxServer(),
                     )
                 } else {
-                    var container: Container? = null
-                    var containerManager: ContainerManager? = null
-                    var onExtractFileListener: OnExtractFileListener? = null
-
-                    containerManager = ContainerManager(context)
-                    container = containerManager.getContainerById(containerId)
+                    val containerManager = ContainerManager(context)
+                    val container = ContainerUtils.getContainer(context, appId)
+                    // Timber.d("1 Container drives: ${container.drives}")
                     containerManager.activateContainer(container)
+                    // Timber.d("2 Container drives: ${container.drives}")
 
                     taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
                     taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
@@ -372,7 +369,7 @@ fun XServerScreen(
                         ImageFs.find(context).winePath = xServerState.value.wineInfo.path
                     }
 
-                    onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
+                    val onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
                         object : OnExtractFileListener {
                             override fun onExtractFile(destination: File?, size: Long): File? {
                                 return destination?.path?.let {
@@ -389,41 +386,37 @@ fun XServerScreen(
                     }
 
                     Timber.i("Doing things once")
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val containerManager = ContainerManager(context)
-                        val container = containerManager.getContainerById(containerId)
-                        val envVars = EnvVars()
+                    val envVars = EnvVars()
 
-                        setupWineSystemFiles(
-                            context,
-                            firstTimeBoot,
-                            xServerView!!.getxServer().screenInfo,
-                            xServerState,
-                            container!!,
-                            containerManager,
-                            envVars,
-                            onExtractFileListener,
-                        )
-                        extractGraphicsDriverFiles(
-                            context,
-                            xServerState.value.graphicsDriver,
-                            xServerState.value.dxwrapper,
-                            xServerState.value.dxwrapperConfig!!,
-                            container,
-                            envVars,
-                        )
-                        changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
-                        PluviaApp.xEnvironment = setupXEnvironment(
-                            context,
-                            appId,
-                            bootToContainer,
-                            xServerState,
-                            envVars,
-                            container,
-                            appLaunchInfo,
-                            xServerView!!.getxServer(),
-                        )
-                    }
+                    setupWineSystemFiles(
+                        context,
+                        firstTimeBoot,
+                        xServerView!!.getxServer().screenInfo,
+                        xServerState,
+                        container,
+                        containerManager,
+                        envVars,
+                        onExtractFileListener,
+                    )
+                    extractGraphicsDriverFiles(
+                        context,
+                        xServerState.value.graphicsDriver,
+                        xServerState.value.dxwrapper,
+                        xServerState.value.dxwrapperConfig!!,
+                        container,
+                        envVars,
+                    )
+                    changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
+                    PluviaApp.xEnvironment = setupXEnvironment(
+                        context,
+                        appId,
+                        bootToContainer,
+                        xServerState,
+                        envVars,
+                        container,
+                        appLaunchInfo,
+                        xServerView!!.getxServer(),
+                    )
                 }
             }
 
@@ -562,7 +555,7 @@ private fun setupXEnvironment(
         val wow64Mode = container.isWoW64Mode
         val guestExecutable =
             xServerState.value.wineInfo.getExecutable(context, wow64Mode) + " explorer /desktop=shell," + xServer.screenInfo + " " +
-                getWineStartCommand(container, bootToContainer, appLaunchInfo)
+                getWineStartCommand(appId, container, bootToContainer, appLaunchInfo)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
@@ -570,8 +563,12 @@ private fun setupXEnvironment(
         // if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"))
         if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1")
 
+        // Timber.d("3 Container drives: ${container.drives}")
         val bindingPaths = mutableListOf<String>()
-        for (drive in container.drivesIterator()) bindingPaths.add(drive[1])
+        for (drive in container.drivesIterator()) {
+            Timber.i("Binding drive ${drive[0]} with path of ${drive[1]}")
+            bindingPaths.add(drive[1])
+        }
         guestProgramLauncherComponent.bindingPaths = bindingPaths.toTypedArray()
         // guestProgramLauncherComponent.box86Preset =
         //     if (shortcut != null) shortcut.getExtra("box86Preset", container.box86Preset) else container.box86Preset
@@ -632,7 +629,10 @@ private fun setupXEnvironment(
     // }
     environment.startEnvironmentComponents()
 
-    xServer.winHandler.start()
+    // put in separate scope since winhandler start method does some network stuff
+    CoroutineScope(Dispatchers.IO).launch {
+        xServer.winHandler.start()
+    }
     envVars.clear()
     xServerState.value = xServerState.value.copy(
         dxwrapperConfig = null,
@@ -640,6 +640,7 @@ private fun setupXEnvironment(
     return environment
 }
 private fun getWineStartCommand(
+    appId: Int,
     container: Container,
     bootToContainer: Boolean,
     appLaunchInfo: LaunchInfo?,
@@ -651,7 +652,17 @@ private fun getWineStartCommand(
     val args = if (bootToContainer || appLaunchInfo == null) {
         "\"wfm.exe\""
     } else {
-        "/dir D:/${appLaunchInfo.workingDir} \"${appLaunchInfo.executable}\""
+        val appDirPath = SteamService.getAppDirPath(appId)
+        val drives = container.drives
+        val driveIndex = drives.indexOf(appDirPath)
+        // greater than 1 since there is the drive character and the colon before the app dir path
+        val drive = if (driveIndex > 1) {
+            drives[driveIndex - 2]
+        } else {
+            Timber.e("Could not locate game drive")
+            'D'
+        }
+        "/dir $drive:/${appLaunchInfo.workingDir} \"${appLaunchInfo.executable}\""
     }
 
     return "winhandler.exe $args"
