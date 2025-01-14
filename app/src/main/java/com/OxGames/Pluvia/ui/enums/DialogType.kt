@@ -16,6 +16,7 @@ enum class DialogType {
     NOT_ENOUGH_SPACE,
     CANCEL_APP_DOWNLOAD,
     DELETE_APP,
+    INSTALL_IMAGEFS,
 
     NONE,
 }
