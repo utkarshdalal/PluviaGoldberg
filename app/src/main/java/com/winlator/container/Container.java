@@ -4,7 +4,7 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.winlator.box86_64.Box86_64Preset;
-import com.winlator.core.EnvVars;
+import com.winlator.core.envvars.EnvVars;
 import com.winlator.core.FileUtils;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.WineInfo;

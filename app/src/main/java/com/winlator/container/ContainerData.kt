@@ -25,6 +25,15 @@ data class ContainerData(
     val box86Preset: String = Box86_64Preset.COMPATIBILITY,
     val box64Preset: String = Box86_64Preset.COMPATIBILITY,
     val desktopTheme: String = WineThemeManager.DEFAULT_DESKTOP_THEME,
+    // wine registry values
+    val csmt: Boolean = true,
+    val videoPciDeviceID: Int = 1728,
+    val offScreenRenderingMode: String = "fbo",
+    val strictShaderMath: Boolean = true,
+    val videoMemorySize: String = "2048",
+    val mouseWarpOverride: String = "disable",
+    val shaderBackend: String = "glsl",
+    val useGLSL: String = "enabled",
 ) {
     companion object {
         val Saver = mapSaver(
@@ -70,46 +79,6 @@ data class ContainerData(
                     desktopTheme = savedMap["desktopTheme"] as String,
                 )
             },
-        )
-    }
-
-    fun copy(
-        name: String? = null,
-        screenSize: String? = null,
-        envVars: String? = null,
-        graphicsDriver: String? = null,
-        dxwrapper: String? = null,
-        dxwrapperConfig: String? = null,
-        audioDriver: String? = null,
-        wincomponents: String? = null,
-        drives: String? = null,
-        showFPS: Boolean? = null,
-        cpuList: String? = null,
-        cpuListWoW64: String? = null,
-        wow64Mode: Boolean? = null,
-        startupSelection: Byte? = null,
-        box86Preset: String? = null,
-        box64Preset: String? = null,
-        desktopTheme: String? = null,
-    ): ContainerData {
-        return ContainerData(
-            name = name ?: this.name,
-            screenSize = screenSize ?: this.screenSize,
-            envVars = envVars ?: this.envVars,
-            graphicsDriver = graphicsDriver ?: this.graphicsDriver,
-            dxwrapper = dxwrapper ?: this.dxwrapper,
-            dxwrapperConfig = dxwrapperConfig ?: this.dxwrapperConfig,
-            audioDriver = audioDriver ?: this.audioDriver,
-            wincomponents = wincomponents ?: this.wincomponents,
-            drives = drives ?: this.drives,
-            showFPS = showFPS ?: this.showFPS,
-            cpuList = cpuList ?: this.cpuList,
-            cpuListWoW64 = cpuListWoW64 ?: this.cpuListWoW64,
-            wow64Mode = wow64Mode ?: this.wow64Mode,
-            startupSelection = startupSelection ?: this.startupSelection,
-            box86Preset = box86Preset ?: this.box86Preset,
-            box64Preset = box64Preset ?: this.box64Preset,
-            desktopTheme = desktopTheme ?: this.desktopTheme,
         )
     }
 }

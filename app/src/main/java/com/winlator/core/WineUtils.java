@@ -5,6 +5,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.winlator.container.Container;
+import com.winlator.core.envvars.EnvVars;
 import com.winlator.xenvironment.ImageFs;
 import com.winlator.xenvironment.XEnvironment;
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent;

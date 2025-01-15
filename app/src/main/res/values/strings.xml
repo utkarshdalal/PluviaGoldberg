@@ -37,4 +37,13 @@
     <string name="intermediate">Intermediate</string>
     <string name="performance">Performance</string>
     <string name="title_ubuntufs">Ubuntu FS</string>
+
+    <string name="direct3d">Direct3D</string>
+    <string name="directsound">DirectSound</string>
+    <string name="directmusic">DirectMusic</string>
+    <string name="directplay">DirectPlay</string>
+    <string name="directshow">DirectShow</string>
+    <string name="directx">DirectX</string>
+    <string name="vcrun2010">Visual C++ 2010</string>
+    <string name="wmdecoder">Windows Media Decoder</string>
 </resources>

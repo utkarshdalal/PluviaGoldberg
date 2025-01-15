@@ -181,6 +181,48 @@ object PrefManager {
             setPref(BOX64_PRESET, value)
         }
 
+    private val CSMT = booleanPreferencesKey("csmt")
+    var csmt: Boolean
+        get() = getPref(CSMT, true)
+        set(value) {
+            setPref(CSMT, value)
+        }
+
+    private val VIDEO_PCI_DEVICE_ID = intPreferencesKey("videoPciDeviceID")
+    var videoPciDeviceID: Int
+        get() = getPref(VIDEO_PCI_DEVICE_ID, 1728)
+        set(value) {
+            setPref(VIDEO_PCI_DEVICE_ID, value)
+        }
+
+    private val OFFSCREEN_RENDERING_MODE = stringPreferencesKey("offScreenRenderingMode")
+    var offScreenRenderingMode: String
+        get() = getPref(OFFSCREEN_RENDERING_MODE, "fbo")
+        set(value) {
+            setPref(OFFSCREEN_RENDERING_MODE, value)
+        }
+
+    private val STRICT_SHADER_MATH = booleanPreferencesKey("strictShaderMath")
+    var strictShaderMath: Boolean
+        get() = getPref(STRICT_SHADER_MATH, true)
+        set(value) {
+            setPref(STRICT_SHADER_MATH, value)
+        }
+
+    private val VIDEO_MEMORY_SIZE = stringPreferencesKey("videoMemorySize")
+    var videoMemorySize: String
+        get() = getPref(VIDEO_MEMORY_SIZE, "2048")
+        set(value) {
+            setPref(VIDEO_MEMORY_SIZE, value)
+        }
+
+    private val MOUSE_WARP_OVERRIDE = stringPreferencesKey("mouseWarpOverride")
+    var mouseWarpOverride: String
+        get() = getPref(MOUSE_WARP_OVERRIDE, "disable")
+        set(value) {
+            setPref(MOUSE_WARP_OVERRIDE, value)
+        }
+
     /* Recent Crash Flag */
     private val RECENTLY_CRASHED = booleanPreferencesKey("recently_crashed")
     var recentlyCrashed: Boolean

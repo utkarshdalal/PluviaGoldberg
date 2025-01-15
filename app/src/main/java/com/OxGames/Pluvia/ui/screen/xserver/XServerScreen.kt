@@ -10,7 +10,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -37,7 +36,7 @@ import com.winlator.core.AppUtils
 import com.winlator.core.Callback
 import com.winlator.core.DXVKHelper
 import com.winlator.core.DefaultVersion
-import com.winlator.core.EnvVars
+import com.winlator.core.envvars.EnvVars
 import com.winlator.core.FileUtils
 import com.winlator.core.GPUInformation
 import com.winlator.core.KeyValueSet
