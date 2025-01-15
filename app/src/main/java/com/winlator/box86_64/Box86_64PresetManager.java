@@ -7,7 +7,7 @@ import android.widget.SpinnerAdapter;
 
 import com.OxGames.Pluvia.R;
 import com.winlator.PrefManager;
-import com.winlator.core.EnvVars;
+import com.winlator.core.envvars.EnvVars;
 
 import java.util.ArrayList;
 import java.util.Iterator;

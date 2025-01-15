@@ -6,11 +6,37 @@ import com.OxGames.Pluvia.SteamService
 import com.winlator.container.Container
 import com.winlator.container.ContainerData
 import com.winlator.container.ContainerManager
+import com.winlator.core.FileUtils
+import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineThemeManager
+import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
+import java.io.File
+import kotlin.Boolean
 
 object ContainerUtils {
+    data class GpuInfo(
+        val deviceId: Int,
+        val vendorId: Int,
+        val name: String,
+    )
+
+    fun getGPUCards(context: Context): Map<Int, GpuInfo> {
+        val gpuNames = JSONArray(FileUtils.readString(context, "gpu_cards.json"))
+        return List(gpuNames.length()) {
+            val deviceId = gpuNames.getJSONObject(it).getInt("deviceID")
+            Pair(
+                deviceId,
+                GpuInfo(
+                    deviceId = deviceId,
+                    vendorId = gpuNames.getJSONObject(it).getInt("vendorID"),
+                    name = gpuNames.getJSONObject(it).getString("name"),
+                ),
+            )
+        }.toMap()
+    }
+
     fun getDefaultContainerData(): ContainerData {
         return ContainerData(
             screenSize = PrefManager.screenSize,
@@ -28,6 +54,13 @@ object ContainerUtils {
             startupSelection = PrefManager.startupSelection.toByte(),
             box86Preset = PrefManager.box86Preset,
             box64Preset = PrefManager.box64Preset,
+
+            csmt = PrefManager.csmt,
+            videoPciDeviceID = PrefManager.videoPciDeviceID,
+            offScreenRenderingMode = PrefManager.offScreenRenderingMode,
+            strictShaderMath = PrefManager.strictShaderMath,
+            videoMemorySize = PrefManager.videoMemorySize,
+            mouseWarpOverride = PrefManager.mouseWarpOverride,
         )
     }
     fun setDefaultContainerData(containerData: ContainerData) {
@@ -46,9 +79,33 @@ object ContainerUtils {
         PrefManager.startupSelection = containerData.startupSelection.toInt()
         PrefManager.box86Preset = containerData.box86Preset
         PrefManager.box64Preset = containerData.box64Preset
+
+        PrefManager.csmt = containerData.csmt
+        PrefManager.videoPciDeviceID = containerData.videoPciDeviceID
+        PrefManager.offScreenRenderingMode = containerData.offScreenRenderingMode
+        PrefManager.strictShaderMath = containerData.strictShaderMath
+        PrefManager.videoMemorySize = containerData.videoMemorySize
+        PrefManager.mouseWarpOverride = containerData.mouseWarpOverride
     }
 
     fun toContainerData(container: Container): ContainerData {
+        val csmt: Boolean
+        val videoPciDeviceID: Int
+        val offScreenRenderingMode: String
+        val strictShaderMath: Boolean
+        val videoMemorySize: String
+        val mouseWarpOverride: String
+
+        val userRegFile = File(container.rootDir, ".wine/user.reg")
+        WineRegistryEditor(userRegFile).use { registryEditor ->
+            csmt = registryEditor.getDwordValue("Software\\Wine\\Direct3D", "csmt", if (PrefManager.csmt) 3 else 0) != 0
+            videoPciDeviceID = registryEditor.getDwordValue("Software\\Wine\\Direct3D", "VideoPciDeviceID", PrefManager.videoPciDeviceID)
+            offScreenRenderingMode = registryEditor.getStringValue("Software\\Wine\\Direct3D", "OffScreenRenderingMode", PrefManager.offScreenRenderingMode)
+            strictShaderMath = registryEditor.getDwordValue("Software\\Wine\\Direct3D", "strict_shader_math", if (PrefManager.strictShaderMath) 1 else 0) != 0
+            videoMemorySize = registryEditor.getStringValue("Software\\Wine\\Direct3D", "VideoMemorySize", PrefManager.videoMemorySize)
+            mouseWarpOverride = registryEditor.getStringValue("Software\\Wine\\DirectInput", "MouseWarpOverride", PrefManager.mouseWarpOverride)
+        }
+
         return ContainerData(
             name = container.name,
             screenSize = container.screenSize,
@@ -67,33 +124,56 @@ object ContainerUtils {
             box86Preset = container.box86Preset,
             box64Preset = container.box64Preset,
             desktopTheme = container.desktopTheme,
+
+            csmt = csmt,
+            videoPciDeviceID = videoPciDeviceID,
+            offScreenRenderingMode = offScreenRenderingMode,
+            strictShaderMath = strictShaderMath,
+            videoMemorySize = videoMemorySize,
+            mouseWarpOverride = mouseWarpOverride,
         )
     }
     fun applyToContainer(context: Context, appId: Int, containerData: ContainerData) {
         val containerManager = ContainerManager(context)
         if (containerManager.hasContainer(appId)) {
             val container = containerManager.getContainerById(appId)
-            container.name = containerData.name
-            container.screenSize = containerData.screenSize
-            container.envVars = containerData.envVars
-            container.graphicsDriver = containerData.graphicsDriver
-            container.dxWrapper = containerData.dxwrapper
-            container.dxWrapperConfig = containerData.dxwrapperConfig
-            container.audioDriver = containerData.audioDriver
-            container.winComponents = containerData.wincomponents
-            container.drives = containerData.drives
-            container.isShowFPS = containerData.showFPS
-            container.cpuList = containerData.cpuList
-            container.cpuListWoW64 = containerData.cpuListWoW64
-            container.isWoW64Mode = containerData.wow64Mode
-            container.startupSelection = containerData.startupSelection
-            container.box86Preset = containerData.box86Preset
-            container.box64Preset = containerData.box64Preset
-            container.desktopTheme = containerData.desktopTheme
-            container.saveData()
+            applyToContainer(context, container, containerData)
         } else {
             throw Exception("Container does not exist for $appId")
         }
+    }
+    private fun applyToContainer(context: Context, container: Container, containerData: ContainerData) {
+        val userRegFile = File(container.rootDir, ".wine/user.reg")
+        WineRegistryEditor(userRegFile).use { registryEditor ->
+            registryEditor.setDwordValue("Software\\Wine\\Direct3D", "csmt", if (containerData.csmt) 3 else 0)
+            registryEditor.setDwordValue("Software\\Wine\\Direct3D", "VideoPciDeviceID", containerData.videoPciDeviceID)
+            registryEditor.setDwordValue("Software\\Wine\\Direct3D", "VideoPciVendorID", getGPUCards(context)[containerData.videoPciDeviceID]!!.vendorId)
+            registryEditor.setStringValue("Software\\Wine\\Direct3D", "OffScreenRenderingMode", containerData.offScreenRenderingMode)
+            registryEditor.setDwordValue("Software\\Wine\\Direct3D", "strict_shader_math", if (containerData.strictShaderMath) 1 else 0)
+            registryEditor.setStringValue("Software\\Wine\\Direct3D", "VideoMemorySize", containerData.videoMemorySize)
+            registryEditor.setStringValue("Software\\Wine\\DirectInput", "MouseWarpOverride", containerData.mouseWarpOverride)
+            registryEditor.setStringValue("Software\\Wine\\Direct3D", "shader_backend", "glsl")
+            registryEditor.setStringValue("Software\\Wine\\Direct3D", "UseGLSL", "enabled")
+        }
+
+        container.name = containerData.name
+        container.screenSize = containerData.screenSize
+        container.envVars = containerData.envVars
+        container.graphicsDriver = containerData.graphicsDriver
+        container.dxWrapper = containerData.dxwrapper
+        container.dxWrapperConfig = containerData.dxwrapperConfig
+        container.audioDriver = containerData.audioDriver
+        container.winComponents = containerData.wincomponents
+        container.drives = containerData.drives
+        container.isShowFPS = containerData.showFPS
+        container.cpuList = containerData.cpuList
+        container.cpuListWoW64 = containerData.cpuListWoW64
+        container.isWoW64Mode = containerData.wow64Mode
+        container.startupSelection = containerData.startupSelection
+        container.box86Preset = containerData.box86Preset
+        container.box64Preset = containerData.box64Preset
+        container.desktopTheme = containerData.desktopTheme
+        container.saveData()
     }
 
     fun getContainerId(appId: Int): Int {
@@ -137,23 +217,36 @@ object ContainerUtils {
 
             val data = JSONObject()
             data.put("name", "container_$containerId")
-            data.put("screenSize", PrefManager.screenSize)
-            data.put("envVars", PrefManager.envVars)
-            data.put("cpuList", PrefManager.cpuList)
-            data.put("cpuListWoW64", PrefManager.cpuListWoW64)
-            data.put("graphicsDriver", PrefManager.graphicsDriver)
-            data.put("dxwrapper", PrefManager.dxWrapper)
-            data.put("dxwrapperConfig", PrefManager.dxWrapperConfig)
-            data.put("audioDriver", PrefManager.audioDriver)
-            data.put("wincomponents", PrefManager.winComponents)
-            data.put("drives", drives)
-            data.put("showFPS", PrefManager.showFps)
-            data.put("wow64Mode", PrefManager.wow64Mode)
-            data.put("startupSelection", PrefManager.startupSelection)
-            data.put("box86Preset", PrefManager.box86Preset)
-            data.put("box64Preset", PrefManager.box64Preset)
-            data.put("desktopTheme", WineThemeManager.DEFAULT_DESKTOP_THEME)
-            containerManager.createContainerFuture(containerId, data).get()
+            val container = containerManager.createContainerFuture(containerId, data).get()
+
+            val containerData = ContainerData(
+                screenSize = PrefManager.screenSize,
+                envVars = PrefManager.envVars,
+                cpuList = PrefManager.cpuList,
+                cpuListWoW64 = PrefManager.cpuListWoW64,
+                graphicsDriver = PrefManager.graphicsDriver,
+                dxwrapper = PrefManager.dxWrapper,
+                dxwrapperConfig = PrefManager.dxWrapperConfig,
+                audioDriver = PrefManager.audioDriver,
+                wincomponents = PrefManager.winComponents,
+                drives = drives,
+                showFPS = PrefManager.showFps,
+                wow64Mode = PrefManager.wow64Mode,
+                startupSelection = PrefManager.startupSelection.toByte(),
+                box86Preset = PrefManager.box86Preset,
+                box64Preset = PrefManager.box64Preset,
+                desktopTheme = WineThemeManager.DEFAULT_DESKTOP_THEME,
+
+                csmt = PrefManager.csmt,
+                videoPciDeviceID = PrefManager.videoPciDeviceID,
+                offScreenRenderingMode = PrefManager.offScreenRenderingMode,
+                strictShaderMath = PrefManager.strictShaderMath,
+                videoMemorySize = PrefManager.videoMemorySize,
+                mouseWarpOverride = PrefManager.mouseWarpOverride,
+            )
+            applyToContainer(context, container, containerData)
+
+            container
         }
     }
 }

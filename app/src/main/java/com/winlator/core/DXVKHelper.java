@@ -2,13 +2,14 @@ package com.winlator.core;
 
 import android.content.Context;
 
+import com.winlator.core.envvars.EnvVars;
 import com.winlator.xenvironment.ImageFs;
 
 import java.io.File;
 
 public class DXVKHelper {
     public static final String DEFAULT_CONFIG = "version="+DefaultVersion.DXVK+",framerate=0,maxDeviceMemory=0";
-    
+
     public static KeyValueSet parseConfig(Object config) {
         String data = config != null && !config.toString().isEmpty() ? config.toString() : DEFAULT_CONFIG;
         return new KeyValueSet(data);
