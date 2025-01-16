@@ -1,12 +1,15 @@
 package com.OxGames.Pluvia.ui.component.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -27,10 +30,10 @@ import com.alorma.compose.settings.ui.base.internal.LocalSettingsGroupEnabled
 import com.alorma.compose.settings.ui.base.internal.SettingsTileScaffold
 
 @Composable
-fun SettingsListDropdown(
+fun SettingsMultiListDropdown(
     modifier: Modifier = Modifier,
     enabled: Boolean = LocalSettingsGroupEnabled.current,
-    value: Int,
+    values: List<Int>,
     items: List<String>,
     onItemSelected: (Int) -> Unit,
     title: @Composable () -> Unit,
@@ -38,7 +41,7 @@ fun SettingsListDropdown(
     icon: (@Composable () -> Unit)? = null,
     action: @Composable (() -> Unit)? = null,
 ) {
-    if (value > items.size) {
+    if (values.any { it > items.size }) {
         throw IndexOutOfBoundsException("Current value of state for list setting cannot be greater than items size")
     }
 
@@ -59,7 +62,7 @@ fun SettingsListDropdown(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .width(128.dp),
-                text = items[value],
+                text = values.map { items[it] }.joinToString(","),
                 style = TextStyle(
                     fontSize = 16.sp,
                     textAlign = TextAlign.End,
@@ -89,10 +92,24 @@ fun SettingsListDropdown(
             items.forEachIndexed { index, text ->
                 DropdownMenuItem(
                     enabled = enabled,
-                    text = { Text(text = text) },
+                    text = {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = text)
+                            Checkbox(
+                                enabled = enabled,
+                                checked = values.contains(index),
+                                onCheckedChange = {
+                                    onItemSelected(index)
+                                },
+                            )
+                        }
+                    },
                     onClick = {
                         onItemSelected(index)
-                        isDropdownExpanded = false
                     },
                 )
             }

@@ -1,9 +1,8 @@
 package com.winlator.container
 
 import androidx.compose.runtime.saveable.mapSaver
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.OxGames.Pluvia.ui.enums.DialogType
 import com.winlator.box86_64.Box86_64Preset
+import com.winlator.core.DefaultVersion
 import com.winlator.core.WineThemeManager
 import kotlin.String
 
@@ -22,6 +21,8 @@ data class ContainerData(
     val cpuListWoW64: String = Container.getFallbackCPUListWoW64(),
     val wow64Mode: Boolean = false,
     val startupSelection: Byte = Container.STARTUP_SELECTION_ESSENTIAL,
+    val box86Version: String = DefaultVersion.BOX86,
+    val box64Version: String = DefaultVersion.BOX64,
     val box86Preset: String = Box86_64Preset.COMPATIBILITY,
     val box64Preset: String = Box86_64Preset.COMPATIBILITY,
     val desktopTheme: String = WineThemeManager.DEFAULT_DESKTOP_THEME,
@@ -53,6 +54,8 @@ data class ContainerData(
                     "cpuListWoW64" to state.cpuListWoW64,
                     "wow64Mode" to state.wow64Mode,
                     "startupSelection" to state.startupSelection,
+                    "box86Version" to state.box86Version,
+                    "box64Version" to state.box64Version,
                     "box86Preset" to state.box86Preset,
                     "box64Preset" to state.box64Preset,
                     "desktopTheme" to state.desktopTheme,
@@ -74,6 +77,8 @@ data class ContainerData(
                     cpuListWoW64 = savedMap["cpuListWoW64"] as String,
                     wow64Mode = savedMap["wow64Mode"] as Boolean,
                     startupSelection = savedMap["startupSelection"] as Byte,
+                    box86Version = savedMap["box86Version"] as String,
+                    box64Version = savedMap["box64Version"] as String,
                     box86Preset = savedMap["box86Preset"] as String,
                     box64Preset = savedMap["box64Preset"] as String,
                     desktopTheme = savedMap["desktopTheme"] as String,

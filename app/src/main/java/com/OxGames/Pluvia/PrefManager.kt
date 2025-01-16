@@ -14,6 +14,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.container.Container
+import com.winlator.core.DefaultVersion
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import java.util.EnumSet
 import kotlinx.coroutines.CoroutineName
@@ -221,6 +222,20 @@ object PrefManager {
         get() = getPref(MOUSE_WARP_OVERRIDE, "disable")
         set(value) {
             setPref(MOUSE_WARP_OVERRIDE, value)
+        }
+
+    private val BOX_86_VERSION = stringPreferencesKey("box86_version")
+    var box86Version: String
+        get() = getPref(BOX_86_VERSION, DefaultVersion.BOX86)
+        set(value) {
+            setPref(BOX_86_VERSION, value)
+        }
+
+    private val BOX_64_VERSION = stringPreferencesKey("box64_version")
+    var box64Version: String
+        get() = getPref(BOX_64_VERSION, DefaultVersion.BOX64)
+        set(value) {
+            setPref(BOX_64_VERSION, value)
         }
 
     /* Recent Crash Flag */

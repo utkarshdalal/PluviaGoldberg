@@ -52,6 +52,8 @@ object ContainerUtils {
             cpuListWoW64 = PrefManager.cpuListWoW64,
             wow64Mode = PrefManager.wow64Mode,
             startupSelection = PrefManager.startupSelection.toByte(),
+            box86Version = PrefManager.box86Version,
+            box64Version = PrefManager.box64Version,
             box86Preset = PrefManager.box86Preset,
             box64Preset = PrefManager.box64Preset,
 
@@ -77,6 +79,8 @@ object ContainerUtils {
         PrefManager.cpuListWoW64 = containerData.cpuListWoW64
         PrefManager.wow64Mode = containerData.wow64Mode
         PrefManager.startupSelection = containerData.startupSelection.toInt()
+        PrefManager.box86Version = containerData.box86Version
+        PrefManager.box64Version = containerData.box64Version
         PrefManager.box86Preset = containerData.box86Preset
         PrefManager.box64Preset = containerData.box64Preset
 
@@ -121,6 +125,8 @@ object ContainerUtils {
             cpuListWoW64 = container.cpuListWoW64,
             wow64Mode = container.isWoW64Mode,
             startupSelection = container.startupSelection.toByte(),
+            box86Version = container.box86Version,
+            box64Version = container.box64Version,
             box86Preset = container.box86Preset,
             box64Preset = container.box64Preset,
             desktopTheme = container.desktopTheme,
@@ -170,6 +176,8 @@ object ContainerUtils {
         container.cpuListWoW64 = containerData.cpuListWoW64
         container.isWoW64Mode = containerData.wow64Mode
         container.startupSelection = containerData.startupSelection
+        container.box86Version = containerData.box86Version
+        container.box64Version = containerData.box64Version
         container.box86Preset = containerData.box86Preset
         container.box64Preset = containerData.box64Preset
         container.desktopTheme = containerData.desktopTheme
@@ -233,6 +241,8 @@ object ContainerUtils {
                 showFPS = PrefManager.showFps,
                 wow64Mode = PrefManager.wow64Mode,
                 startupSelection = PrefManager.startupSelection.toByte(),
+                box86Version = PrefManager.box86Version,
+                box64Version = PrefManager.box64Version,
                 box86Preset = PrefManager.box86Preset,
                 box64Preset = PrefManager.box64Preset,
                 desktopTheme = WineThemeManager.DEFAULT_DESKTOP_THEME,
