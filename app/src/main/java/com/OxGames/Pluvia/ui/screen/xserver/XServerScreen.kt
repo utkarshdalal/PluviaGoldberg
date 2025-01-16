@@ -559,7 +559,6 @@ private fun setupXEnvironment(
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
         envVars.putAll(container.envVars)
-        // if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"))
         if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1")
 
         // Timber.d("3 Container drives: ${container.drives}")
@@ -569,10 +568,10 @@ private fun setupXEnvironment(
             bindingPaths.add(drive[1])
         }
         guestProgramLauncherComponent.bindingPaths = bindingPaths.toTypedArray()
-        // guestProgramLauncherComponent.box86Preset =
-        //     if (shortcut != null) shortcut.getExtra("box86Preset", container.box86Preset) else container.box86Preset
-        // guestProgramLauncherComponent.box64Preset =
-        //     if (shortcut != null) shortcut.getExtra("box64Preset", container.box64Preset) else container.box64Preset
+        guestProgramLauncherComponent.box86Version = container.box86Version
+        guestProgramLauncherComponent.box64Version = container.box64Version
+        guestProgramLauncherComponent.box86Preset = container.box86Preset
+        guestProgramLauncherComponent.box64Preset = container.box64Preset
     }
 
     val environment = XEnvironment(context, imageFs)

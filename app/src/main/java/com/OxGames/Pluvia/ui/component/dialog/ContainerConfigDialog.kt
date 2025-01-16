@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.AddCircleOutline
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -45,16 +46,21 @@ import androidx.compose.ui.window.DialogProperties
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.settings.SettingsListDropdown
+import com.OxGames.Pluvia.ui.component.settings.SettingsMultiListDropdown
+import com.OxGames.Pluvia.ui.component.settings.SettingsSwitchWithAction
+import com.OxGames.Pluvia.ui.component.settings.SettingsTextField
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSwitch
+import com.winlator.box86_64.Box86_64PresetManager
 import com.winlator.container.ContainerData
 import com.winlator.core.KeyValueSet
 import com.winlator.core.StringUtils
 import com.winlator.core.envvars.EnvVarInfo
 import com.winlator.core.envvars.EnvVarSelectionType
 import com.winlator.core.envvars.EnvVars
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,10 +83,12 @@ fun ContainerConfigDialog(
         val dxWrappers = stringArrayResource(R.array.dxwrapper_entries).toList()
         val audioDrivers = stringArrayResource(R.array.audio_driver_entries).toList()
         val gpuCards = ContainerUtils.getGPUCards(context)
-        val renderingModes = listOf("Backbuffer", "FBO")
+        val renderingModes = stringArrayResource(R.array.offscreen_rendering_modes).toList()
         val videoMemSizes = stringArrayResource(R.array.video_memory_size_entries).toList()
-        val mouseWarps = listOf("Disable", "Enable", "Force")
-        val winCompOpts = listOf("Builtin (Wine)", "Native (Windows)")
+        val mouseWarps = stringArrayResource(R.array.mouse_warp_override_entries).toList()
+        val winCompOpts = stringArrayResource(R.array.win_component_entries).toList()
+        val box64Versions = stringArrayResource(R.array.box64_version_entries).toList()
+        val box64Presets = Box86_64PresetManager.getPresets("box64", context)
 
         var screenSizeIndex by rememberSaveable {
             val searchIndex = screenSizes.indexOfFirst { it.contains(config.screenSize) }
@@ -372,14 +380,24 @@ fun ContainerConfigDialog(
                             }
                         }
                         SettingsGroup(title = { Text(text = "Environment Variables") }) {
-                            // TODO: add way to remove environment variable
                             val envVars = EnvVars(config.envVars)
                             for (identifier in envVars) {
                                 val value = envVars.get(identifier)
                                 val envVarInfo = EnvVarInfo.KNOWN_ENV_VARS[identifier]
+                                val deleteIcon: @Composable () -> Unit = {
+                                    IconButton(
+                                        onClick = {
+                                            envVars.remove(identifier)
+                                            config = config.copy(
+                                                envVars = envVars.toString(),
+                                            )
+                                        },
+                                        content = { Icon(Icons.Filled.Delete, contentDescription = "Delete variable") },
+                                    )
+                                }
                                 when (envVarInfo?.selectionType ?: EnvVarSelectionType.NONE) {
                                     EnvVarSelectionType.TOGGLE -> {
-                                        SettingsSwitch(
+                                        SettingsSwitchWithAction(
                                             title = { Text(identifier) },
                                             state = envVarInfo?.possibleValues?.indexOf(value) != 0,
                                             onCheckedChange = {
@@ -389,14 +407,30 @@ fun ContainerConfigDialog(
                                                     envVars = envVars.toString()
                                                 )
                                             },
+                                            action = deleteIcon,
                                         )
                                     }
                                     EnvVarSelectionType.MULTI_SELECT -> {
-                                        // TODO: have dropdown with checkboxes for value
-                                        SettingsMenuLink(
-                                            title = { Text("$identifier (multi)") },
-                                            subtitle = { Text(value) },
-                                            onClick = { },
+                                        val values = value.split(",").map { envVarInfo!!.possibleValues.indexOf(it) }
+                                        SettingsMultiListDropdown(
+                                            title = { Text(identifier) },
+                                            values = values,
+                                            items = envVarInfo!!.possibleValues,
+                                            onItemSelected = { index ->
+                                                val newValues = if (values.contains(index)) {
+                                                    values.filter { it != index }
+                                                } else {
+                                                    values + index
+                                                }
+                                                envVars.put(
+                                                    identifier,
+                                                    newValues.map { envVarInfo.possibleValues[it] }.joinToString(",")
+                                                )
+                                                config = config.copy(
+                                                    envVars = envVars.toString()
+                                                )
+                                            },
+                                            action = deleteIcon,
                                         )
                                     }
                                     EnvVarSelectionType.NONE -> {
@@ -410,14 +444,20 @@ fun ContainerConfigDialog(
                                                     config = config.copy(
                                                         envVars = envVars.toString()
                                                     )
-                                                }
+                                                },
+                                                action = deleteIcon,
                                             )
                                         } else {
-                                            // TODO: have text input for value
-                                            SettingsMenuLink(
+                                            SettingsTextField(
                                                 title = { Text(identifier) },
-                                                subtitle = { Text(value) },
-                                                onClick = { },
+                                                value = value,
+                                                onValueChange = {
+                                                    envVars.put(identifier, it)
+                                                    config = config.copy(
+                                                        envVars = envVars.toString()
+                                                    )
+                                                },
+                                                action = deleteIcon,
                                             )
                                         }
                                     }
@@ -442,9 +482,50 @@ fun ContainerConfigDialog(
                         }
                         SettingsGroup(title = { Text(text = "Drives") }) {
                             // TODO: make it possible to add and remove drives
+                            SettingsMenuLink(
+                                title = {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.AddCircleOutline,
+                                            contentDescription = "Add environment variable",
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    // TODO: add way to create new drive
+                                },
+                            )
                         }
                         SettingsGroup(title = { Text(text = "Advanced") }) {
                             // TODO: add advanced configuration settings
+                            Timber.d("Box64 versions: $box64Versions")
+                            Timber.d("Container Box64 version: ${config.box64Version}")
+                            Timber.d("Container Box64 preset: ${config.box64Preset}")
+                            SettingsListDropdown(
+                                title = { Text("Box64 Version") },
+                                subtitle = { Text("Box64") },
+                                value = box64Versions.indexOfFirst { StringUtils.parseIdentifier(it) == config.box64Version },
+                                items = box64Versions,
+                                onItemSelected = {
+                                    config = config.copy(
+                                        box64Version = StringUtils.parseIdentifier(box64Versions[it])
+                                    )
+                                },
+                            )
+                            SettingsListDropdown(
+                                title = { Text("Box64 Preset") },
+                                subtitle = { Text("Box64") },
+                                value = box64Presets.indexOfFirst { it.id == config.box64Preset },
+                                items = box64Presets.map { it.name },
+                                onItemSelected = {
+                                    config = config.copy(
+                                        box64Preset = box64Presets[it].id
+                                    )
+                                },
+                            )
                         }
                     }
                 }

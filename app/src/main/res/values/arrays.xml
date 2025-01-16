@@ -92,4 +92,17 @@
         <item>Essential (Load only essential services)</item>
         <item>Aggressive (Stop services on startup)</item>
     </string-array>
+    <string-array name="offscreen_rendering_modes">
+        <item>Backbuffer</item>
+        <item>FBO</item>
+    </string-array>
+    <string-array name="mouse_warp_override_entries">
+        <item>Disable</item>
+        <item>Enable</item>
+        <item>Force</item>
+    </string-array>
+    <string-array name="win_component_entries">
+        <item>Builtin (Wine)</item>
+        <item>Native (Windows)</item>
+    </string-array>
 </resources>
