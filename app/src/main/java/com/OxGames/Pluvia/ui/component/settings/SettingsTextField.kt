@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.TextField
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -38,10 +38,10 @@ fun SettingsTextField(
         subtitle = subtitle,
         action = {
             Row {
-                TextField(
+                OutlinedTextField(
                     modifier = Modifier
                         .focusRequester(focusRequester)
-                        .width(128.dp),
+                        .width(76.dp),
                     enabled = enabled,
                     value = value,
                     onValueChange = onValueChange,

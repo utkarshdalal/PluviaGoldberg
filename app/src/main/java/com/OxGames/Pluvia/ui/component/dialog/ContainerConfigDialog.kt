@@ -1,11 +1,14 @@
 package com.OxGames.Pluvia.ui.component.dialog
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,6 +47,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -184,7 +188,7 @@ fun ContainerConfigDialog(
             var envVarValue by rememberSaveable { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = { showEnvVarCreateDialog = false },
-                title = { Text("New Environment Variable") },
+                title = { Text(text = "New Environment Variable") },
                 text = {
                     var knownVarsMenuOpen by rememberSaveable { mutableStateOf(false) }
                     Column {
@@ -192,7 +196,7 @@ fun ContainerConfigDialog(
                             OutlinedTextField(
                                 value = envVarName,
                                 onValueChange = { envVarName = it },
-                                label = { Text("Name") },
+                                label = { Text(text = "Name") },
                                 trailingIcon = {
                                     IconButton(
                                         onClick = { knownVarsMenuOpen = true },
@@ -224,7 +228,7 @@ fun ContainerConfigDialog(
                                     }
                                 } else {
                                     DropdownMenuItem(
-                                        text = { Text("No more known variables") },
+                                        text = { Text(text = "No more known variables") },
                                         onClick = {},
                                     )
                                 }
@@ -233,14 +237,14 @@ fun ContainerConfigDialog(
                         OutlinedTextField(
                             value = envVarValue,
                             onValueChange = { envVarValue = it },
-                            label = { Text("Value") },
+                            label = { Text(text = "Value") },
                         )
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = { showEnvVarCreateDialog = false },
-                        content = { Text("Cancel") },
+                        content = { Text(text = "Cancel") },
                     )
                 },
                 confirmButton = {
@@ -252,7 +256,7 @@ fun ContainerConfigDialog(
                             config = config.copy(envVars = envVars.toString())
                             showEnvVarCreateDialog = false
                         },
-                        content = { Text("OK") },
+                        content = { Text(text = "OK") },
                     )
                 },
             )
@@ -295,14 +299,16 @@ fun ContainerConfigDialog(
                 ) { paddingValues ->
                     Column(
                         modifier = Modifier
-                            .padding(paddingValues)
                             .verticalScroll(scrollState)
-                            .fillMaxSize()
                             .padding(
                                 top = WindowInsets.statusBars
                                     .asPaddingValues()
-                                    .calculateTopPadding(),
-                            ),
+                                    .calculateTopPadding() + paddingValues.calculateTopPadding(),
+                                bottom = 32.dp + paddingValues.calculateBottomPadding(),
+                                start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+                                end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+                            )
+                            .fillMaxSize(),
                     ) {
                         SettingsGroup(title = { Text(text = "General") }) {
                             SettingsListDropdown(
@@ -351,7 +357,7 @@ fun ContainerConfigDialog(
                             )
                             // TODO: add way to pick driver version
                             SettingsListDropdown(
-                                title = { Text("Graphics Driver") },
+                                title = { Text(text = "Graphics Driver") },
                                 value = graphicsDriverIndex,
                                 items = graphicsDrivers,
                                 onItemSelected = {
@@ -361,7 +367,7 @@ fun ContainerConfigDialog(
                             )
                             // TODO: add way to pick DXVK version
                             SettingsListDropdown(
-                                title = { Text("DX Wrapper") },
+                                title = { Text(text = "DX Wrapper") },
                                 value = dxWrapperIndex,
                                 items = dxWrappers,
                                 onItemSelected = {
@@ -381,7 +387,7 @@ fun ContainerConfigDialog(
                             )
                             // TODO: add way to configure audio driver
                             SettingsListDropdown(
-                                title = { Text("Audio Driver") },
+                                title = { Text(text = "Audio Driver") },
                                 value = audioDriverIndex,
                                 items = audioDrivers,
                                 onItemSelected = {
@@ -390,7 +396,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsSwitch(
-                                title = { Text("Show FPS") },
+                                title = { Text(text = "Show FPS") },
                                 state = config.showFPS,
                                 onCheckedChange = {
                                     config = config.copy(showFPS = it)
@@ -400,8 +406,8 @@ fun ContainerConfigDialog(
                         SettingsGroup(title = { Text(text = "Wine Configuration") }) {
                             // TODO: add desktop settings
                             SettingsListDropdown(
-                                title = { Text("GPU Name") },
-                                subtitle = { Text("WineD3D") },
+                                title = { Text(text = "GPU Name") },
+                                subtitle = { Text(text = "WineD3D") },
                                 value = gpuNameIndex,
                                 items = gpuCards.values.map { it.name },
                                 onItemSelected = {
@@ -410,8 +416,8 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
-                                title = { Text("Offscreen Rendering Mode") },
-                                subtitle = { Text("WineD3D") },
+                                title = { Text(text = "Offscreen Rendering Mode") },
+                                subtitle = { Text(text = "WineD3D") },
                                 value = renderingModeIndex,
                                 items = renderingModes,
                                 onItemSelected = {
@@ -420,8 +426,8 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
-                                title = { Text("Video Memory Size") },
-                                subtitle = { Text("WineD3D") },
+                                title = { Text(text = "Video Memory Size") },
+                                subtitle = { Text(text = "WineD3D") },
                                 value = videoMemIndex,
                                 items = videoMemSizes,
                                 onItemSelected = {
@@ -430,24 +436,24 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsSwitch(
-                                title = { Text("Enable CSMT (Command Stream Multi-Thread)") },
-                                subtitle = { Text("WineD3D") },
+                                title = { Text(text = "Enable CSMT (Command Stream Multi-Thread)") },
+                                subtitle = { Text(text = "WineD3D") },
                                 state = config.csmt,
                                 onCheckedChange = {
                                     config = config.copy(csmt = it)
                                 },
                             )
                             SettingsSwitch(
-                                title = { Text("Enable Strict Shader Math") },
-                                subtitle = { Text("WineD3D") },
+                                title = { Text(text = "Enable Strict Shader Math") },
+                                subtitle = { Text(text = "WineD3D") },
                                 state = config.strictShaderMath,
                                 onCheckedChange = {
                                     config = config.copy(strictShaderMath = it)
                                 },
                             )
                             SettingsListDropdown(
-                                title = { Text("Mouse Warp Override") },
-                                subtitle = { Text("DirectInput") },
+                                title = { Text(text = "Mouse Warp Override") },
+                                subtitle = { Text(text = "DirectInput") },
                                 value = mouseWarpIndex,
                                 items = mouseWarps,
                                 onItemSelected = {
@@ -499,7 +505,7 @@ fun ContainerConfigDialog(
                                 )
                             } else {
                                 SettingsCenteredLabel(
-                                    title = { Text("No environment variables") },
+                                    title = { Text(text = "No environment variables") },
                                 )
                             }
                             SettingsMenuLink(
@@ -553,7 +559,7 @@ fun ContainerConfigDialog(
                                 }
                             } else {
                                 SettingsCenteredLabel(
-                                    title = { Text("No drives") },
+                                    title = { Text(text = "No drives") },
                                 )
                             }
 
@@ -572,13 +578,14 @@ fun ContainerConfigDialog(
                                 onClick = {
                                     // TODO: add way to create new drive
                                     // directoryLauncher.launch(null)
+                                    Toast.makeText(context, "Adding drives not yet available", Toast.LENGTH_LONG).show()
                                 },
                             )
                         }
                         SettingsGroup(title = { Text(text = "Advanced") }) {
                             SettingsListDropdown(
-                                title = { Text("Box64 Version") },
-                                subtitle = { Text("Box64") },
+                                title = { Text(text = "Box64 Version") },
+                                subtitle = { Text(text = "Box64") },
                                 value = box64Versions.indexOfFirst { StringUtils.parseIdentifier(it) == config.box64Version },
                                 items = box64Versions,
                                 onItemSelected = {
@@ -588,8 +595,8 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
-                                title = { Text("Box64 Preset") },
-                                subtitle = { Text("Box64") },
+                                title = { Text(text = "Box64 Preset") },
+                                subtitle = { Text(text = "Box64") },
                                 value = box64Presets.indexOfFirst { it.id == config.box64Preset },
                                 items = box64Presets.map { it.name },
                                 onItemSelected = {
@@ -599,8 +606,8 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
-                                title = { Text("Startup Selection") },
-                                subtitle = { Text("System") },
+                                title = { Text(text = "Startup Selection") },
+                                subtitle = { Text(text = "System") },
                                 value = config.startupSelection.toInt(),
                                 items = startupSelectionEntries,
                                 onItemSelected = {
@@ -610,7 +617,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsCPUList(
-                                title = { Text("Processor Affinity") },
+                                title = { Text(text = "Processor Affinity") },
                                 value = config.cpuList,
                                 onValueChange = {
                                     config = config.copy(
@@ -619,13 +626,9 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsCPUList(
-                                title = { Text("Processor Affinity (32-bit apps)") },
+                                title = { Text(text = "Processor Affinity (32-bit apps)") },
                                 value = config.cpuListWoW64,
-                                onValueChange = {
-                                    config = config.copy(
-                                        cpuListWoW64 = it,
-                                    )
-                                },
+                                onValueChange = { config = config.copy(cpuListWoW64 = it) },
                             )
                         }
                     }

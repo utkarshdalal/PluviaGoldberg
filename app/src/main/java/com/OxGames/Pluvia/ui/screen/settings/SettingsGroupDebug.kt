@@ -7,6 +7,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
@@ -33,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -120,10 +123,16 @@ fun SettingsGroupDebug() {
                 ) { paddingValues ->
                     Column(
                         modifier = Modifier
-                            .padding(paddingValues)
-                            .verticalScroll(scrollState)
                             .fillMaxSize()
-                            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
+                            .verticalScroll(scrollState)
+                            .padding(
+                                top = WindowInsets.statusBars
+                                    .asPaddingValues()
+                                    .calculateTopPadding() + paddingValues.calculateTopPadding(),
+                                bottom = 24.dp + paddingValues.calculateBottomPadding(),
+                                start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+                                end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+                            ),
                     ) {
                         Text(
                             modifier = Modifier
