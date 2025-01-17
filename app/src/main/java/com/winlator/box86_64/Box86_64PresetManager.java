@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Locale;
 
+import timber.log.Timber;
+
 public abstract class Box86_64PresetManager {
     public static EnvVars getEnvVars(String prefix, Context context, String id) {
         String ucPrefix = prefix.toUpperCase(Locale.ENGLISH);
@@ -113,29 +115,36 @@ public abstract class Box86_64PresetManager {
         return maxId + 1;
     }
 
-    public static void editPreset(String prefix, Context context, String id, String name, EnvVars envVars) {
+    public static String editPreset(String prefix, Context context, String id, String name, EnvVars envVars) {
         String key = prefix + "_custom_presets";
         PrefManager.init(context);
         String customPresetsStr = PrefManager.getString(key, "");
+        String presetId = id;
 
-        if (id != null) {
+        if (presetId != null) {
             String[] customPresets = customPresetsStr.split(",");
             for (int i = 0; i < customPresets.length; i++) {
                 String[] preset = customPresets[i].split("\\|");
-                if (preset[0].equals(id)) {
-                    customPresets[i] = id + "|" + name + "|" + envVars.toString();
+                if (preset[0].equals(presetId)) {
+                    customPresets[i] = presetId + "|" + name + "|" + envVars.toString();
                     break;
                 }
             }
             customPresetsStr = String.join(",", customPresets);
         } else {
-            String preset = Box86_64Preset.CUSTOM + "-" + getNextPresetId(context, prefix) + "|" + name + "|" + envVars.toString();
+            presetId = Box86_64Preset.CUSTOM + "-" + getNextPresetId(context, prefix);
+            String preset = presetId + "|" + name + "|" + envVars.toString();
             customPresetsStr += (!customPresetsStr.isEmpty() ? "," : "") + preset;
         }
-        PrefManager.putString(key, customPresetsStr);
+        try {
+            PrefManager.putString(key, customPresetsStr).get();
+        } catch (Exception e) {
+            Timber.e("Failed to edit preset: " + e);
+        }
+        return presetId;
     }
 
-    public static void duplicatePreset(String prefix, Context context, String id) {
+    public static String duplicatePreset(String prefix, Context context, String id) {
         ArrayList<Box86_64Preset> presets = getPresets(prefix, context);
         Box86_64Preset originPreset = null;
         for (Box86_64Preset preset : presets) {
@@ -144,7 +153,7 @@ public abstract class Box86_64PresetManager {
                 break;
             }
         }
-        if (originPreset == null) return;
+        if (originPreset == null) return null;
 
         String newName;
         for (int i = 1; ; i++) {
@@ -159,7 +168,7 @@ public abstract class Box86_64PresetManager {
             if (!found) break;
         }
 
-        editPreset(prefix, context, null, newName, getEnvVars(prefix, context, originPreset.id));
+        return editPreset(prefix, context, null, newName, getEnvVars(prefix, context, originPreset.id));
     }
 
     public static void removePreset(String prefix, Context context, String id) {

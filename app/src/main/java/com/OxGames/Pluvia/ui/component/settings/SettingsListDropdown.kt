@@ -3,6 +3,7 @@ package com.OxGames.Pluvia.ui.component.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -60,11 +61,27 @@ fun SettingsListDropdown(
         tonalElevation = tonalElevation,
         shadowElevation = shadowElevation,
     ) {
+        DropdownMenu(
+            expanded = isDropdownExpanded,
+            onDismissRequest = { isDropdownExpanded = false },
+        ) {
+            items.forEachIndexed { index, text ->
+                DropdownMenuItem(
+                    enabled = enabled,
+                    text = { Text(text = text) },
+                    onClick = {
+                        onItemSelected(index)
+                        isDropdownExpanded = false
+                    },
+                )
+            }
+        }
+
         Row {
             Text(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
-                    .width(128.dp),
+                    .fillMaxWidth(0.2f),
                 text = if (value >= 0 && value < items.size) items[value] else fallbackDisplay,
                 style = TextStyle(
                     fontSize = 16.sp,
@@ -85,22 +102,6 @@ fun SettingsListDropdown(
             if (action != null) {
                 Spacer(modifier.width(16.dp))
                 action()
-            }
-        }
-
-        DropdownMenu(
-            expanded = isDropdownExpanded,
-            onDismissRequest = { isDropdownExpanded = false },
-        ) {
-            items.forEachIndexed { index, text ->
-                DropdownMenuItem(
-                    enabled = enabled,
-                    text = { Text(text = text) },
-                    onClick = {
-                        onItemSelected(index)
-                        isDropdownExpanded = false
-                    },
-                )
             }
         }
     }

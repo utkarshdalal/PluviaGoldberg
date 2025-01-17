@@ -13,9 +13,11 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.future.future
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import timber.log.Timber
+import java.util.concurrent.CompletableFuture
 
 /**
  * Kind of ugly, but works to be a universal preference manager.
@@ -51,8 +53,8 @@ object PrefManager {
         getPref(stringPreferencesKey(key), defaultValue)
 
     @JvmStatic
-    fun putString(key: String, value: String) {
-        setPref(stringPreferencesKey(key), value)
+    fun putString(key: String, value: String): CompletableFuture<Unit> {
+        return setPref(stringPreferencesKey(key), value)
     }
 
     @JvmStatic
@@ -60,16 +62,16 @@ object PrefManager {
         getPref(booleanPreferencesKey(key), defaultValue)
 
     @JvmStatic
-    fun putBoolean(key: String, value: Boolean) {
-        setPref(booleanPreferencesKey(key), value)
+    fun putBoolean(key: String, value: Boolean): CompletableFuture<Unit> {
+        return setPref(booleanPreferencesKey(key), value)
     }
 
     private fun <T> getPref(key: Preferences.Key<T>, defaultValue: T): T = runBlocking {
         dataStore!!.data.first()[key] ?: defaultValue
     }
 
-    private fun <T> setPref(key: Preferences.Key<T>, value: T) {
-        scope.launch {
+    private fun <T> setPref(key: Preferences.Key<T>, value: T): CompletableFuture<Unit> {
+        return scope.future {
             dataStore!!.edit { pref -> pref[key] = value }
         }
     }
