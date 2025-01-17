@@ -68,7 +68,6 @@ import com.google.android.play.core.splitcompat.SplitCompat
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import com.winlator.container.ContainerData
-import com.winlator.container.ContainerManager
 import com.winlator.xenvironment.ImageFsInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -319,8 +318,8 @@ fun AppScreen(
                                     type = DialogType.INSTALL_IMAGEFS,
                                     title = "Download & Install ImageFS",
                                     message = "The Ubuntu image needs to be downloaded and installed before " +
-                                            "being able to edit the configuration. This operation might take " +
-                                            "a few minutes. Would you like to continue?",
+                                        "being able to edit the configuration. This operation might take " +
+                                        "a few minutes. Would you like to continue?",
                                     confirmBtnText = "Proceed",
                                     dismissBtnText = "Cancel",
                                 )
@@ -330,8 +329,8 @@ fun AppScreen(
                                     type = DialogType.INSTALL_IMAGEFS,
                                     title = "Install ImageFS",
                                     message = "The Ubuntu image needs to be installed before being able to edit " +
-                                            "the configuration. This operation might take a few minutes. " +
-                                            "Would you like to continue?",
+                                        "the configuration. This operation might take a few minutes. " +
+                                        "Would you like to continue?",
                                     confirmBtnText = "Proceed",
                                     dismissBtnText = "Cancel",
                                 )

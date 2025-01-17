@@ -53,12 +53,12 @@ fun SettingsCPUList(
                                     cpuAffinity.filter { it != cpu }
                                 }
                                 onValueChange(newAffinity.joinToString(","))
-                            }
+                            },
                         )
                         Text("CPU$cpu")
                     }
                 }
             }
-        }
+        },
     )
 }

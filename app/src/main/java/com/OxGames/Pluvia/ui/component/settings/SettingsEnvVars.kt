@@ -53,7 +53,7 @@ fun SettingsEnvVars(
                         }
                         envVars.put(
                             identifier,
-                            newValues.map { envVarInfo.possibleValues[it] }.joinToString(",")
+                            newValues.joinToString(",") { envVarInfo.possibleValues[it] },
                         )
                         onEnvVarsChange(envVars)
                     },

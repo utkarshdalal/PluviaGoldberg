@@ -9,11 +9,11 @@ import com.winlator.container.ContainerManager
 import com.winlator.core.FileUtils
 import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineThemeManager
+import java.io.File
+import kotlin.Boolean
 import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
-import java.io.File
-import kotlin.Boolean
 
 object ContainerUtils {
     data class GpuInfo(
@@ -65,6 +65,7 @@ object ContainerUtils {
             mouseWarpOverride = PrefManager.mouseWarpOverride,
         )
     }
+
     fun setDefaultContainerData(containerData: ContainerData) {
         PrefManager.screenSize = containerData.screenSize
         PrefManager.envVars = containerData.envVars
@@ -102,12 +103,24 @@ object ContainerUtils {
 
         val userRegFile = File(container.rootDir, ".wine/user.reg")
         WineRegistryEditor(userRegFile).use { registryEditor ->
-            csmt = registryEditor.getDwordValue("Software\\Wine\\Direct3D", "csmt", if (PrefManager.csmt) 3 else 0) != 0
-            videoPciDeviceID = registryEditor.getDwordValue("Software\\Wine\\Direct3D", "VideoPciDeviceID", PrefManager.videoPciDeviceID)
-            offScreenRenderingMode = registryEditor.getStringValue("Software\\Wine\\Direct3D", "OffScreenRenderingMode", PrefManager.offScreenRenderingMode)
-            strictShaderMath = registryEditor.getDwordValue("Software\\Wine\\Direct3D", "strict_shader_math", if (PrefManager.strictShaderMath) 1 else 0) != 0
-            videoMemorySize = registryEditor.getStringValue("Software\\Wine\\Direct3D", "VideoMemorySize", PrefManager.videoMemorySize)
-            mouseWarpOverride = registryEditor.getStringValue("Software\\Wine\\DirectInput", "MouseWarpOverride", PrefManager.mouseWarpOverride)
+            csmt =
+                registryEditor.getDwordValue("Software\\Wine\\Direct3D", "csmt", if (PrefManager.csmt) 3 else 0) != 0
+
+            videoPciDeviceID =
+                registryEditor.getDwordValue("Software\\Wine\\Direct3D", "VideoPciDeviceID", PrefManager.videoPciDeviceID)
+
+            offScreenRenderingMode =
+                registryEditor.getStringValue("Software\\Wine\\Direct3D", "OffScreenRenderingMode", PrefManager.offScreenRenderingMode)
+
+            val strictShader = if (PrefManager.strictShaderMath) 1 else 0
+            strictShaderMath =
+                registryEditor.getDwordValue("Software\\Wine\\Direct3D", "strict_shader_math", strictShader) != 0
+
+            videoMemorySize =
+                registryEditor.getStringValue("Software\\Wine\\Direct3D", "VideoMemorySize", PrefManager.videoMemorySize)
+
+            mouseWarpOverride =
+                registryEditor.getStringValue("Software\\Wine\\DirectInput", "MouseWarpOverride", PrefManager.mouseWarpOverride)
         }
 
         return ContainerData(
@@ -139,6 +152,7 @@ object ContainerUtils {
             mouseWarpOverride = mouseWarpOverride,
         )
     }
+
     fun applyToContainer(context: Context, appId: Int, containerData: ContainerData) {
         val containerManager = ContainerManager(context)
         if (containerManager.hasContainer(appId)) {
@@ -148,12 +162,17 @@ object ContainerUtils {
             throw Exception("Container does not exist for $appId")
         }
     }
+
     private fun applyToContainer(context: Context, container: Container, containerData: ContainerData) {
         val userRegFile = File(container.rootDir, ".wine/user.reg")
         WineRegistryEditor(userRegFile).use { registryEditor ->
             registryEditor.setDwordValue("Software\\Wine\\Direct3D", "csmt", if (containerData.csmt) 3 else 0)
             registryEditor.setDwordValue("Software\\Wine\\Direct3D", "VideoPciDeviceID", containerData.videoPciDeviceID)
-            registryEditor.setDwordValue("Software\\Wine\\Direct3D", "VideoPciVendorID", getGPUCards(context)[containerData.videoPciDeviceID]!!.vendorId)
+            registryEditor.setDwordValue(
+                "Software\\Wine\\Direct3D",
+                "VideoPciVendorID",
+                getGPUCards(context)[containerData.videoPciDeviceID]!!.vendorId,
+            )
             registryEditor.setStringValue("Software\\Wine\\Direct3D", "OffScreenRenderingMode", containerData.offScreenRenderingMode)
             registryEditor.setDwordValue("Software\\Wine\\Direct3D", "strict_shader_math", if (containerData.strictShaderMath) 1 else 0)
             registryEditor.setStringValue("Software\\Wine\\Direct3D", "VideoMemorySize", containerData.videoMemorySize)
@@ -188,11 +207,13 @@ object ContainerUtils {
         // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
         return appId
     }
+
     fun hasContainer(context: Context, appId: Int): Boolean {
         val containerId = getContainerId(appId)
         val containerManager = ContainerManager(context)
         return containerManager.hasContainer(containerId)
     }
+
     fun getContainer(context: Context, appId: Int): Container {
         val containerId = getContainerId(appId)
 
@@ -203,6 +224,7 @@ object ContainerUtils {
             throw Exception("Container does not exist for game $appId")
         }
     }
+
     fun getOrCreateContainer(context: Context, appId: Int): Container {
         val containerId = getContainerId(appId)
 
@@ -213,7 +235,7 @@ object ContainerUtils {
             // set up container drives to include app
             val defaultDrives = PrefManager.drives
             val appDirPath = SteamService.getAppDirPath(appId)
-            var drive: Char = Container.getNextAvailableDriveLetter(defaultDrives)
+            val drive: Char = Container.getNextAvailableDriveLetter(defaultDrives)
             val drives = "$defaultDrives$drive:$appDirPath"
             Timber.d("Prepared container drives: $drives")
 

@@ -20,9 +20,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +51,7 @@ fun Box64PresetsDialog(
             confirmButton = {
                 TextButton(
                     onClick = { onDismissRequest() },
-                    content = { Text("Done") }
+                    content = { Text(text = "Done") },
                 )
             },
             text = {
@@ -62,11 +62,9 @@ fun Box64PresetsDialog(
                 var presetId by rememberSaveable { mutableStateOf(getPresets().first().id) }
                 var presetName by rememberSaveable { mutableStateOf(getPreset(presetId).name) }
                 var envVars by rememberSaveable {
-                    mutableStateOf(Box86_64PresetManager.getEnvVars(
-                        prefix,
-                        context,
-                        getPreset(presetId).id
-                    ).toString())
+                    mutableStateOf(
+                        Box86_64PresetManager.getEnvVars(prefix, context, getPreset(presetId).id).toString(),
+                    )
                 }
 
                 val isCustom: () -> Boolean = { getPreset(presetId).isCustom }
@@ -92,7 +90,7 @@ fun Box64PresetsDialog(
                                 content = {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Outlined.ViewList,
-                                        contentDescription = "Preset list"
+                                        contentDescription = "Preset list",
                                     )
                                 },
                             )
@@ -107,17 +105,17 @@ fun Box64PresetsDialog(
                                                 presetId = preset.id
                                                 presetName = getPreset(presetId).name
                                                 envVars = Box86_64PresetManager.getEnvVars(
-                                                        prefix,
-                                                        context,
-                                                        getPreset(presetId).id
-                                                    ).toString()
+                                                    prefix,
+                                                    context,
+                                                    getPreset(presetId).id,
+                                                ).toString()
                                                 showPresets = false
                                             },
                                         )
                                     }
                                 },
                             )
-                        }
+                        },
                     )
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -136,7 +134,7 @@ fun Box64PresetsDialog(
                                     envVars = Box86_64PresetManager.getEnvVars(
                                         prefix,
                                         context,
-                                        getPreset(presetId).id
+                                        getPreset(presetId).id,
                                     ).toString()
                                 },
                                 content = {
@@ -162,7 +160,7 @@ fun Box64PresetsDialog(
                                     envVars = Box86_64PresetManager.getEnvVars(
                                         prefix,
                                         context,
-                                        getPreset(presetId).id
+                                        getPreset(presetId).id,
                                     ).toString()
                                 },
                                 content = {
@@ -181,7 +179,7 @@ fun Box64PresetsDialog(
                                     envVars = Box86_64PresetManager.getEnvVars(
                                         prefix,
                                         context,
-                                        getPreset(presetId).id
+                                        getPreset(presetId).id,
                                     ).toString()
                                     Box86_64PresetManager.removePreset(prefix, context, idToBeDeleted)
                                 },
@@ -216,7 +214,7 @@ fun Box64PresetsDialog(
                                     context,
                                     presetId,
                                     presetName,
-                                    it
+                                    it,
                                 )
                             },
                             knownEnvVars = EnvVarInfo.KNOWN_BOX64_VARS,

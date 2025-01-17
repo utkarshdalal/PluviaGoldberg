@@ -113,10 +113,11 @@ fun SettingsMultiListDropdown(
             Spacer(modifier.width(16.dp))
             Icon(
                 modifier = Modifier.align(Alignment.CenterVertically),
-                imageVector = if (isDropdownExpanded)
+                imageVector = if (isDropdownExpanded) {
                     Icons.Filled.ArrowDropUp
-                else
-                    Icons.Filled.ArrowDropDown,
+                } else {
+                    Icons.Filled.ArrowDropDown
+                },
                 contentDescription = "Dropdown arrow",
             )
             if (action != null) {
