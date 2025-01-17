@@ -278,6 +278,16 @@ public class Container {
         return drivesIterator(drives);
     }
 
+    public static char getNextAvailableDriveLetter(String drives) throws Exception {
+        char drive = 'A';
+        while (drives.contains(drive + ":")) {
+            drive += 1;
+            if (drive > 'Z') {
+                throw new Exception("All drive letters taken");
+            }
+        }
+        return drive;
+    }
     public static Iterable<String[]> drivesIterator(final String drives) {
         final int[] index = {drives.indexOf(":")};
         final String[] item = new String[2];

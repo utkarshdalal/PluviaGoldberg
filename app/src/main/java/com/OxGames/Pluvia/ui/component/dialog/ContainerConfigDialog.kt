@@ -15,17 +15,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ViewList
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -45,22 +50,21 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
+import com.OxGames.Pluvia.ui.component.settings.SettingsCPUList
+import com.OxGames.Pluvia.ui.component.settings.SettingsCenteredLabel
+import com.OxGames.Pluvia.ui.component.settings.SettingsEnvVars
 import com.OxGames.Pluvia.ui.component.settings.SettingsListDropdown
-import com.OxGames.Pluvia.ui.component.settings.SettingsMultiListDropdown
-import com.OxGames.Pluvia.ui.component.settings.SettingsSwitchWithAction
-import com.OxGames.Pluvia.ui.component.settings.SettingsTextField
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSwitch
 import com.winlator.box86_64.Box86_64PresetManager
+import com.winlator.container.Container
 import com.winlator.container.ContainerData
 import com.winlator.core.KeyValueSet
 import com.winlator.core.StringUtils
 import com.winlator.core.envvars.EnvVarInfo
-import com.winlator.core.envvars.EnvVarSelectionType
 import com.winlator.core.envvars.EnvVars
-import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,6 +93,7 @@ fun ContainerConfigDialog(
         val winCompOpts = stringArrayResource(R.array.win_component_entries).toList()
         val box64Versions = stringArrayResource(R.array.box64_version_entries).toList()
         val box64Presets = Box86_64PresetManager.getPresets("box64", context)
+        val startupSelectionEntries = stringArrayResource(R.array.startup_selection_entries).toList()
 
         var screenSizeIndex by rememberSaveable {
             val searchIndex = screenSizes.indexOfFirst { it.contains(config.screenSize) }
@@ -134,6 +139,7 @@ fun ContainerConfigDialog(
         var dismissDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
             mutableStateOf(MessageDialogState(visible = false))
         }
+        var showEnvVarCreateDialog by rememberSaveable { mutableStateOf(false) }
 
         val applyScreenSizeToConfig: () -> Unit = {
             val screenSize = if (screenSizeIndex == 0) {
@@ -172,6 +178,85 @@ fun ContainerConfigDialog(
             onDismissClick = { dismissDialogState = MessageDialogState(visible = false) },
             onConfirmClick = onDismissRequest,
         )
+
+        if (showEnvVarCreateDialog) {
+            var envVarName by rememberSaveable { mutableStateOf("") }
+            var envVarValue by rememberSaveable { mutableStateOf("") }
+            AlertDialog(
+                onDismissRequest = { showEnvVarCreateDialog = false },
+                title = { Text("New Environment Variable") },
+                text = {
+                    var knownVarsMenuOpen by rememberSaveable { mutableStateOf(false) }
+                    Column {
+                        Row {
+                            OutlinedTextField(
+                                value = envVarName,
+                                onValueChange = { envVarName = it },
+                                label = { Text("Name") },
+                                trailingIcon = {
+                                    IconButton(
+                                        onClick = { knownVarsMenuOpen = true },
+                                        content = {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Outlined.ViewList,
+                                                contentDescription = "List known variable names"
+                                            )
+                                        },
+                                    )
+                                }
+                            )
+                            DropdownMenu(
+                                expanded = knownVarsMenuOpen,
+                                onDismissRequest = { knownVarsMenuOpen = false },
+                            ) {
+                                val knownEnvVars = EnvVarInfo.KNOWN_ENV_VARS.values.filter {
+                                    !config.envVars.contains("${it.identifier}=")
+                                }
+                                if (knownEnvVars.isNotEmpty()) {
+                                    for (knownVariable in knownEnvVars) {
+                                        DropdownMenuItem(
+                                            text = { Text(knownVariable.identifier) },
+                                            onClick = {
+                                                envVarName = knownVariable.identifier
+                                                knownVarsMenuOpen = false
+                                            }
+                                        )
+                                    }
+                                } else {
+                                    DropdownMenuItem(
+                                        text = { Text("No more known variables") },
+                                        onClick = {},
+                                    )
+                                }
+                            }
+                        }
+                        OutlinedTextField(
+                            value = envVarValue,
+                            onValueChange = { envVarValue = it },
+                            label = { Text("Value") },
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { showEnvVarCreateDialog = false },
+                        content = { Text("Cancel") },
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = envVarName.isNotEmpty(),
+                        onClick = {
+                            val envVars = EnvVars(config.envVars)
+                            envVars.put(envVarName, envVarValue)
+                            config = config.copy(envVars = envVars.toString())
+                            showEnvVarCreateDialog = false
+                        },
+                        content = { Text("OK") },
+                    )
+                },
+            )
+        }
 
         Dialog(
             onDismissRequest = onDismissCheck,
@@ -283,6 +368,16 @@ fun ContainerConfigDialog(
                                     dxWrapperIndex = it
                                     config = config.copy(dxwrapper = StringUtils.parseIdentifier(dxWrappers[it]))
                                 },
+                                // action = {
+                                //     if (StringUtils.parseIdentifier(dxWrapperIndex) == "dxvk") {
+                                //         IconButton(
+                                //             onClick = {},
+                                //             content = {
+                                //                 Icon(Icons.Filled.Settings, contentDescription = "DX wrapper settings")
+                                //             },
+                                //         )
+                                //     }
+                                // },
                             )
                             // TODO: add way to configure audio driver
                             SettingsListDropdown(
@@ -381,87 +476,27 @@ fun ContainerConfigDialog(
                         }
                         SettingsGroup(title = { Text(text = "Environment Variables") }) {
                             val envVars = EnvVars(config.envVars)
-                            for (identifier in envVars) {
-                                val value = envVars.get(identifier)
-                                val envVarInfo = EnvVarInfo.KNOWN_ENV_VARS[identifier]
-                                val deleteIcon: @Composable () -> Unit = {
-                                    IconButton(
-                                        onClick = {
-                                            envVars.remove(identifier)
-                                            config = config.copy(
-                                                envVars = envVars.toString(),
-                                            )
-                                        },
-                                        content = { Icon(Icons.Filled.Delete, contentDescription = "Delete variable") },
-                                    )
-                                }
-                                when (envVarInfo?.selectionType ?: EnvVarSelectionType.NONE) {
-                                    EnvVarSelectionType.TOGGLE -> {
-                                        SettingsSwitchWithAction(
-                                            title = { Text(identifier) },
-                                            state = envVarInfo?.possibleValues?.indexOf(value) != 0,
-                                            onCheckedChange = {
-                                                val newValue = envVarInfo!!.possibleValues[if (it) 1 else 0]
-                                                envVars.put(identifier, newValue)
-                                                config = config.copy(
-                                                    envVars = envVars.toString()
-                                                )
-                                            },
-                                            action = deleteIcon,
+                            if (config.envVars.isNotEmpty()) {
+                                SettingsEnvVars(
+                                    envVars = envVars,
+                                    onEnvVarsChange = {
+                                        config = config.copy(envVars = it.toString())
+                                    },
+                                    knownEnvVars = EnvVarInfo.KNOWN_ENV_VARS,
+                                    onEnvVarAction = {
+                                        envVars.remove(it)
+                                        config = config.copy(
+                                            envVars = envVars.toString()
                                         )
-                                    }
-                                    EnvVarSelectionType.MULTI_SELECT -> {
-                                        val values = value.split(",").map { envVarInfo!!.possibleValues.indexOf(it) }
-                                        SettingsMultiListDropdown(
-                                            title = { Text(identifier) },
-                                            values = values,
-                                            items = envVarInfo!!.possibleValues,
-                                            onItemSelected = { index ->
-                                                val newValues = if (values.contains(index)) {
-                                                    values.filter { it != index }
-                                                } else {
-                                                    values + index
-                                                }
-                                                envVars.put(
-                                                    identifier,
-                                                    newValues.map { envVarInfo.possibleValues[it] }.joinToString(",")
-                                                )
-                                                config = config.copy(
-                                                    envVars = envVars.toString()
-                                                )
-                                            },
-                                            action = deleteIcon,
-                                        )
-                                    }
-                                    EnvVarSelectionType.NONE -> {
-                                        if (envVarInfo?.possibleValues?.isNotEmpty() == true) {
-                                            SettingsListDropdown(
-                                                title = { Text(identifier) },
-                                                value = envVarInfo.possibleValues.indexOf(value),
-                                                items = envVarInfo.possibleValues,
-                                                onItemSelected = {
-                                                    envVars.put(identifier, envVarInfo.possibleValues[it])
-                                                    config = config.copy(
-                                                        envVars = envVars.toString()
-                                                    )
-                                                },
-                                                action = deleteIcon,
-                                            )
-                                        } else {
-                                            SettingsTextField(
-                                                title = { Text(identifier) },
-                                                value = value,
-                                                onValueChange = {
-                                                    envVars.put(identifier, it)
-                                                    config = config.copy(
-                                                        envVars = envVars.toString()
-                                                    )
-                                                },
-                                                action = deleteIcon,
-                                            )
-                                        }
-                                    }
-                                }
+                                    },
+                                    envVarActionIcon = {
+                                        Icon(Icons.Filled.Delete, contentDescription = "Delete variable")
+                                    },
+                                )
+                            } else {
+                                SettingsCenteredLabel(
+                                    title = { Text("No environment variables") }
+                                )
                             }
                             SettingsMenuLink(
                                 title = {
@@ -476,12 +511,48 @@ fun ContainerConfigDialog(
                                     }
                                 },
                                 onClick = {
-                                    // TODO: add way to create new environment variable
+                                    showEnvVarCreateDialog = true
                                 },
                             )
                         }
                         SettingsGroup(title = { Text(text = "Drives") }) {
-                            // TODO: make it possible to add and remove drives
+                            // TODO: make the game drive un-deletable
+                            // val directoryLauncher = rememberLauncherForActivityResult(
+                            //     ActivityResultContracts.OpenDocumentTree()
+                            // ) { uri ->
+                            //     uri?.let {
+                            //         // Handle the selected directory URI
+                            //         val driveLetter = Container.getNextAvailableDriveLetter(config.drives)
+                            //         config = config.copy(drives = "${config.drives}$driveLetter:${uri.path}")
+                            //     }
+                            // }
+
+                            if (config.drives.isNotEmpty()) {
+                                for (drive in Container.drivesIterator(config.drives)) {
+                                    val driveLetter = drive[0]
+                                    val drivePath = drive[1]
+                                    SettingsMenuLink (
+                                        title = { Text(driveLetter) },
+                                        subtitle = { Text(drivePath) },
+                                        onClick = {},
+                                        // action = {
+                                        //     IconButton(
+                                        //         onClick = {
+                                        //             config = config.copy(
+                                        //                 drives = config.drives.replace("$driveLetter:$drivePath", ""),
+                                        //             )
+                                        //         },
+                                        //         content = { Icon(Icons.Filled.Delete, contentDescription = "Delete drive") },
+                                        //     )
+                                        // },
+                                    )
+                                }
+                            } else {
+                                SettingsCenteredLabel(
+                                    title = { Text("No drives") }
+                                )
+                            }
+
                             SettingsMenuLink(
                                 title = {
                                     Row(
@@ -496,14 +567,11 @@ fun ContainerConfigDialog(
                                 },
                                 onClick = {
                                     // TODO: add way to create new drive
+                                    // directoryLauncher.launch(null)
                                 },
                             )
                         }
                         SettingsGroup(title = { Text(text = "Advanced") }) {
-                            // TODO: add advanced configuration settings
-                            Timber.d("Box64 versions: $box64Versions")
-                            Timber.d("Container Box64 version: ${config.box64Version}")
-                            Timber.d("Container Box64 preset: ${config.box64Preset}")
                             SettingsListDropdown(
                                 title = { Text("Box64 Version") },
                                 subtitle = { Text("Box64") },
@@ -525,6 +593,35 @@ fun ContainerConfigDialog(
                                         box64Preset = box64Presets[it].id
                                     )
                                 },
+                            )
+                            SettingsListDropdown(
+                                title = { Text("Startup Selection") },
+                                subtitle = { Text("System") },
+                                value = config.startupSelection.toInt(),
+                                items = startupSelectionEntries,
+                                onItemSelected = {
+                                    config = config.copy(
+                                        startupSelection = it.toByte()
+                                    )
+                                },
+                            )
+                            SettingsCPUList(
+                                title = { Text("Processor Affinity") },
+                                value = config.cpuList,
+                                onValueChange = {
+                                    config = config.copy(
+                                        cpuList = it
+                                    )
+                                }
+                            )
+                            SettingsCPUList(
+                                title = { Text("Processor Affinity (32-bit apps)") },
+                                value = config.cpuListWoW64,
+                                onValueChange = {
+                                    config = config.copy(
+                                        cpuListWoW64 = it
+                                    )
+                                }
                             )
                         }
                     }
