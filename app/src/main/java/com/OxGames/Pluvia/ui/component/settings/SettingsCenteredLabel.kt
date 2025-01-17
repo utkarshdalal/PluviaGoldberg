@@ -76,11 +76,7 @@ fun ProvideFontSize(
     fontSize: TextUnit,
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(
-        LocalTextStyle provides MaterialTheme.typography.bodyMedium.copy(
-            fontSize = fontSize
-        )
-    ) {
+    CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium.copy(fontSize = fontSize)) {
         content()
     }
 }

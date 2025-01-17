@@ -1,6 +1,5 @@
 package com.OxGames.Pluvia.ui.screen.xserver
 
-import android.annotation.SuppressLint
 import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,7 +35,6 @@ import com.winlator.core.AppUtils
 import com.winlator.core.Callback
 import com.winlator.core.DXVKHelper
 import com.winlator.core.DefaultVersion
-import com.winlator.core.envvars.EnvVars
 import com.winlator.core.FileUtils
 import com.winlator.core.GPUInformation
 import com.winlator.core.KeyValueSet
@@ -48,6 +46,7 @@ import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineStartMenuCreator
 import com.winlator.core.WineThemeManager
 import com.winlator.core.WineUtils
+import com.winlator.core.envvars.EnvVars
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.TouchMouse
 import com.winlator.widget.XServerView
@@ -114,16 +113,18 @@ fun XServerScreen(
     var taskAffinityMask = 0
     var taskAffinityMaskWoW64 = 0
 
-    var xServerState = rememberSaveable(stateSaver = XServerState.Saver) {
+    val xServerState = rememberSaveable(stateSaver = XServerState.Saver) {
         if (ContainerUtils.hasContainer(context, appId)) {
             val container = ContainerUtils.getContainer(context, appId)
-            mutableStateOf(XServerState(
-                graphicsDriver = container.graphicsDriver,
-                audioDriver = container.audioDriver,
-                dxwrapper = container.dxWrapper,
-                dxwrapperConfig = DXVKHelper.parseConfig(container.dxWrapperConfig),
-                screenSize = container.screenSize,
-            ))
+            mutableStateOf(
+                XServerState(
+                    graphicsDriver = container.graphicsDriver,
+                    audioDriver = container.audioDriver,
+                    dxwrapper = container.dxWrapper,
+                    dxwrapperConfig = DXVKHelper.parseConfig(container.dxWrapperConfig),
+                    screenSize = container.screenSize,
+                ),
+            )
         } else {
             mutableStateOf(XServerState())
         }
@@ -289,7 +290,6 @@ fun XServerScreen(
                     appLaunchInfo?.let { renderer.forceFullscreenWMClass = Paths.get(it.executable).name }
                 }
 
-                @SuppressLint("BinaryOperationInTimber")
                 getxServer().windowManager.addOnWindowModificationListener(object : WindowManager.OnWindowModificationListener {
                     override fun onUpdateWindowContent(window: Window) {
                         // Timber.v("onUpdateWindowContent:" +
@@ -317,24 +317,26 @@ fun XServerScreen(
                     }
 
                     override fun onMapWindow(window: Window) {
-                        Timber.i("onMapWindow:" +
-                            "\n\twindowName: ${window.name}" +
-                            "\n\twindowClassName: ${window.className}" +
-                            "\n\tprocessId: ${window.processId}" +
-                            "\n\thasParent: ${window.parent != null}" +
-                            "\n\tchildrenSize: ${window.children.size}"
+                        Timber.i(
+                            "onMapWindow:" +
+                                "\n\twindowName: ${window.name}" +
+                                "\n\twindowClassName: ${window.className}" +
+                                "\n\tprocessId: ${window.processId}" +
+                                "\n\thasParent: ${window.parent != null}" +
+                                "\n\tchildrenSize: ${window.children.size}",
                         )
                         assignTaskAffinity(window, getxServer().winHandler, taskAffinityMask, taskAffinityMaskWoW64)
                         onWindowMapped?.invoke(window)
                     }
 
                     override fun onUnmapWindow(window: Window) {
-                        Timber.i("onUnmapWindow:" +
-                            "\n\twindowName: ${window.name}" +
-                            "\n\twindowClassName: ${window.className}" +
-                            "\n\tprocessId: ${window.processId}" +
-                            "\n\thasParent: ${window.parent != null}" +
-                            "\n\tchildrenSize: ${window.children.size}"
+                        Timber.i(
+                            "onUnmapWindow:" +
+                                "\n\twindowName: ${window.name}" +
+                                "\n\twindowClassName: ${window.className}" +
+                                "\n\tprocessId: ${window.processId}" +
+                                "\n\thasParent: ${window.parent != null}" +
+                                "\n\tchildrenSize: ${window.children.size}",
                         )
                         // changeFrameRatingVisibility(window, null)
                         onWindowUnmapped?.invoke(window)

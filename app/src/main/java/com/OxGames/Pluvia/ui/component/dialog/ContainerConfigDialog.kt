@@ -144,7 +144,7 @@ fun ContainerConfigDialog(
         val applyScreenSizeToConfig: () -> Unit = {
             val screenSize = if (screenSizeIndex == 0) {
                 if (customScreenWidth.isNotEmpty() && customScreenHeight.isNotEmpty()) {
-                    "${customScreenWidth}x${customScreenHeight}"
+                    "${customScreenWidth}x$customScreenHeight"
                 } else {
                     config.screenSize
                 }
@@ -199,11 +199,11 @@ fun ContainerConfigDialog(
                                         content = {
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Outlined.ViewList,
-                                                contentDescription = "List known variable names"
+                                                contentDescription = "List known variable names",
                                             )
                                         },
                                     )
-                                }
+                                },
                             )
                             DropdownMenu(
                                 expanded = knownVarsMenuOpen,
@@ -219,7 +219,7 @@ fun ContainerConfigDialog(
                                             onClick = {
                                                 envVarName = knownVariable.identifier
                                                 knownVarsMenuOpen = false
-                                            }
+                                            },
                                         )
                                     }
                                 } else {
@@ -301,7 +301,7 @@ fun ContainerConfigDialog(
                             .padding(
                                 top = WindowInsets.statusBars
                                     .asPaddingValues()
-                                    .calculateTopPadding()
+                                    .calculateTopPadding(),
                             ),
                     ) {
                         SettingsGroup(title = { Text(text = "General") }) {
@@ -330,7 +330,7 @@ fun ContainerConfigDialog(
                                             Text(
                                                 modifier = Modifier.align(Alignment.CenterVertically),
                                                 text = "x",
-                                                style = TextStyle(fontSize = 16.sp)
+                                                style = TextStyle(fontSize = 16.sp),
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             OutlinedTextField(
@@ -417,7 +417,7 @@ fun ContainerConfigDialog(
                                 onItemSelected = {
                                     renderingModeIndex = it
                                     config = config.copy(offScreenRenderingMode = renderingModes[it].lowercase())
-                                }
+                                },
                             )
                             SettingsListDropdown(
                                 title = { Text("Video Memory Size") },
@@ -427,7 +427,7 @@ fun ContainerConfigDialog(
                                 onItemSelected = {
                                     videoMemIndex = it
                                     config = config.copy(videoMemorySize = StringUtils.parseNumber(videoMemSizes[it]))
-                                }
+                                },
                             )
                             SettingsSwitch(
                                 title = { Text("Enable CSMT (Command Stream Multi-Thread)") },
@@ -453,7 +453,7 @@ fun ContainerConfigDialog(
                                 onItemSelected = {
                                     mouseWarpIndex = it
                                     config = config.copy(mouseWarpOverride = mouseWarps[it].lowercase())
-                                }
+                                },
                             )
                         }
                         SettingsGroup(title = { Text(text = "Win Components") }) {
@@ -468,9 +468,9 @@ fun ContainerConfigDialog(
                                     items = winCompOpts,
                                     onItemSelected = {
                                         config = config.copy(
-                                            wincomponents = config.wincomponents.replace("$compId=$compValue", "$compId=$it")
+                                            wincomponents = config.wincomponents.replace("$compId=$compValue", "$compId=$it"),
                                         )
-                                    }
+                                    },
                                 )
                             }
                         }
@@ -488,7 +488,7 @@ fun ContainerConfigDialog(
                                             onClick = {
                                                 envVars.remove(it)
                                                 config = config.copy(
-                                                    envVars = envVars.toString()
+                                                    envVars = envVars.toString(),
                                                 )
                                             },
                                             content = {
@@ -499,7 +499,7 @@ fun ContainerConfigDialog(
                                 )
                             } else {
                                 SettingsCenteredLabel(
-                                    title = { Text("No environment variables") }
+                                    title = { Text("No environment variables") },
                                 )
                             }
                             SettingsMenuLink(
@@ -535,7 +535,7 @@ fun ContainerConfigDialog(
                                 for (drive in Container.drivesIterator(config.drives)) {
                                     val driveLetter = drive[0]
                                     val drivePath = drive[1]
-                                    SettingsMenuLink (
+                                    SettingsMenuLink(
                                         title = { Text(driveLetter) },
                                         subtitle = { Text(drivePath) },
                                         onClick = {},
@@ -553,7 +553,7 @@ fun ContainerConfigDialog(
                                 }
                             } else {
                                 SettingsCenteredLabel(
-                                    title = { Text("No drives") }
+                                    title = { Text("No drives") },
                                 )
                             }
 
@@ -583,7 +583,7 @@ fun ContainerConfigDialog(
                                 items = box64Versions,
                                 onItemSelected = {
                                     config = config.copy(
-                                        box64Version = StringUtils.parseIdentifier(box64Versions[it])
+                                        box64Version = StringUtils.parseIdentifier(box64Versions[it]),
                                     )
                                 },
                             )
@@ -594,7 +594,7 @@ fun ContainerConfigDialog(
                                 items = box64Presets.map { it.name },
                                 onItemSelected = {
                                     config = config.copy(
-                                        box64Preset = box64Presets[it].id
+                                        box64Preset = box64Presets[it].id,
                                     )
                                 },
                             )
@@ -605,7 +605,7 @@ fun ContainerConfigDialog(
                                 items = startupSelectionEntries,
                                 onItemSelected = {
                                     config = config.copy(
-                                        startupSelection = it.toByte()
+                                        startupSelection = it.toByte(),
                                     )
                                 },
                             )
@@ -614,18 +614,18 @@ fun ContainerConfigDialog(
                                 value = config.cpuList,
                                 onValueChange = {
                                     config = config.copy(
-                                        cpuList = it
+                                        cpuList = it,
                                     )
-                                }
+                                },
                             )
                             SettingsCPUList(
                                 title = { Text("Processor Affinity (32-bit apps)") },
                                 value = config.cpuListWoW64,
                                 onValueChange = {
                                     config = config.copy(
-                                        cpuListWoW64 = it
+                                        cpuListWoW64 = it,
                                     )
-                                }
+                                },
                             )
                         }
                     }

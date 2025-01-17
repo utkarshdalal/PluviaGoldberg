@@ -53,8 +53,6 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
-import com.winlator.core.WineInfo
-import com.winlator.core.WineThemeManager
 import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xserver.Window
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
@@ -66,7 +64,6 @@ import kotlin.io.path.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import timber.log.Timber
 
 @Composable
@@ -200,7 +197,8 @@ fun PluviaMain(
                             msgDialogState = MessageDialogState(
                                 visible = true,
                                 type = DialogType.SUPPORT,
-                                message = "Thank you for using Pluvia, please consider supporting us by tipping whatever amount is comfortable to you",
+                                message = "Thank you for using Pluvia, please consider supporting " +
+                                    "us by tipping whatever amount is comfortable to you",
                                 confirmBtnText = "Tip",
                                 dismissBtnText = "Close",
                             )
