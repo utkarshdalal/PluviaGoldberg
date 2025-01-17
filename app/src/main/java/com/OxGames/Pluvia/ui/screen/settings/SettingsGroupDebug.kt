@@ -28,8 +28,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -56,8 +56,8 @@ fun SettingsGroupDebug() {
     val scope = rememberCoroutineScope()
 
     /* Crash Log stuff */
-    var showLogcatDialog by remember { mutableStateOf(false) }
-    var latestCrashFile: File? by remember { mutableStateOf(null) }
+    var showLogcatDialog by rememberSaveable { mutableStateOf(false) }
+    var latestCrashFile: File? by rememberSaveable { mutableStateOf(null) }
     LaunchedEffect(Unit) {
         val crashDir = File(context.getExternalFilesDir(null), "crash_logs")
         latestCrashFile = crashDir.listFiles()
@@ -152,7 +152,7 @@ fun SettingsGroupDebug() {
 
     SettingsGroup(title = { Text(text = "Debug") }) {
         SettingsMenuLink(
-            title = { Text(text = "View Logcats") },
+            title = { Text(text = "View latest crash") },
             subtitle = {
                 val text = if (latestCrashFile != null) {
                     "Shows the most recent crash log"
