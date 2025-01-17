@@ -67,34 +67,6 @@ fun SettingsMultiListDropdown(
         tonalElevation = tonalElevation,
         shadowElevation = shadowElevation,
     ) {
-        Row {
-            Text(
-                modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .width(128.dp),
-                text = if (values.isNotEmpty()) values.map { items[it] }.joinToString(",") else fallbackDisplay,
-                style = TextStyle(
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.End,
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier.width(16.dp))
-            Icon(
-                modifier = Modifier.align(Alignment.CenterVertically),
-                imageVector = if (isDropdownExpanded)
-                    Icons.Filled.ArrowDropUp
-                else
-                    Icons.Filled.ArrowDropDown,
-                contentDescription = "Dropdown arrow",
-            )
-            if (action != null) {
-                Spacer(modifier.width(16.dp))
-                action()
-            }
-        }
-
         DropdownMenu(
             expanded = isDropdownExpanded,
             onDismissRequest = { isDropdownExpanded = false },
@@ -122,6 +94,34 @@ fun SettingsMultiListDropdown(
                         onItemSelected(index)
                     },
                 )
+            }
+        }
+
+        Row {
+            Text(
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .fillMaxWidth(0.2f),
+                text = if (values.isNotEmpty()) values.map { items[it] }.joinToString(",") else fallbackDisplay,
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.End,
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier.width(16.dp))
+            Icon(
+                modifier = Modifier.align(Alignment.CenterVertically),
+                imageVector = if (isDropdownExpanded)
+                    Icons.Filled.ArrowDropUp
+                else
+                    Icons.Filled.ArrowDropDown,
+                contentDescription = "Dropdown arrow",
+            )
+            if (action != null) {
+                Spacer(modifier.width(16.dp))
+                action()
             }
         }
     }

@@ -483,14 +483,18 @@ fun ContainerConfigDialog(
                                         config = config.copy(envVars = it.toString())
                                     },
                                     knownEnvVars = EnvVarInfo.KNOWN_ENV_VARS,
-                                    onEnvVarAction = {
-                                        envVars.remove(it)
-                                        config = config.copy(
-                                            envVars = envVars.toString()
+                                    envVarAction = {
+                                        IconButton(
+                                            onClick = {
+                                                envVars.remove(it)
+                                                config = config.copy(
+                                                    envVars = envVars.toString()
+                                                )
+                                            },
+                                            content = {
+                                                Icon(Icons.Filled.Delete, contentDescription = "Delete variable")
+                                            },
                                         )
-                                    },
-                                    envVarActionIcon = {
-                                        Icon(Icons.Filled.Delete, contentDescription = "Delete variable")
                                     },
                                 )
                             } else {
