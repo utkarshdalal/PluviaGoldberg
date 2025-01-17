@@ -13,6 +13,8 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItemColors
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alorma.compose.settings.ui.base.internal.LocalSettingsGroupEnabled
@@ -35,10 +38,14 @@ fun SettingsMultiListDropdown(
     enabled: Boolean = LocalSettingsGroupEnabled.current,
     values: List<Int>,
     items: List<String>,
+    fallbackDisplay: String = "",
     onItemSelected: (Int) -> Unit,
     title: @Composable () -> Unit,
     subtitle: (@Composable () -> Unit)? = null,
     icon: (@Composable () -> Unit)? = null,
+    colors: ListItemColors = ListItemDefaults.colors(),
+    tonalElevation: Dp = ListItemDefaults.Elevation,
+    shadowElevation: Dp = ListItemDefaults.Elevation,
     action: @Composable (() -> Unit)? = null,
 ) {
     if (values.any { it > items.size }) {
@@ -56,13 +63,16 @@ fun SettingsMultiListDropdown(
         title = title,
         subtitle = subtitle,
         icon = icon,
+        colors = colors,
+        tonalElevation = tonalElevation,
+        shadowElevation = shadowElevation,
     ) {
         Row {
             Text(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .width(128.dp),
-                text = values.map { items[it] }.joinToString(","),
+                text = if (values.isNotEmpty()) values.map { items[it] }.joinToString(",") else fallbackDisplay,
                 style = TextStyle(
                     fontSize = 16.sp,
                     textAlign = TextAlign.End,

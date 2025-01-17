@@ -6,6 +6,49 @@ data class EnvVarInfo(
     val possibleValues: List<String> = emptyList(),
 ) {
     companion object {
+        val KNOWN_BOX64_VARS = mapOf(
+            Pair("BOX64_DYNAREC_SAFEFLAGS", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_SAFEFLAGS",
+                possibleValues = listOf("0", "1", "2"),
+            )),
+            Pair("BOX64_DYNAREC_FASTNAN", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_FASTNAN",
+                selectionType = EnvVarSelectionType.TOGGLE,
+                possibleValues = listOf("0", "1"),
+            )),
+            Pair("BOX64_DYNAREC_FASTROUND", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_FASTROUND",
+                selectionType = EnvVarSelectionType.TOGGLE,
+                possibleValues = listOf("0", "1"),
+            )),
+            Pair("BOX64_DYNAREC_X87DOUBLE", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_X87DOUBLE",
+                selectionType = EnvVarSelectionType.TOGGLE,
+                possibleValues = listOf("0", "1"),
+            )),
+            Pair("BOX64_DYNAREC_BIGBLOCK", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_BIGBLOCK",
+                possibleValues = listOf("0", "1", "2", "3"),
+            )),
+            Pair("BOX64_DYNAREC_STRONGMEM", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_STRONGMEM",
+                possibleValues = listOf("0", "1", "2", "3"),
+            )),
+            Pair("BOX64_DYNAREC_FORWARD", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_FORWARD",
+                possibleValues = listOf("0", "128", "256", "512", "1024"),
+            )),
+            Pair("BOX64_DYNAREC_CALLRET", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_CALLRET",
+                selectionType = EnvVarSelectionType.TOGGLE,
+                possibleValues = listOf("0", "1"),
+            )),
+            Pair("BOX64_DYNAREC_WAIT", EnvVarInfo(
+                identifier = "BOX64_DYNAREC_WAIT",
+                selectionType = EnvVarSelectionType.TOGGLE,
+                possibleValues = listOf("0", "1"),
+            )),
+        )
         val KNOWN_ENV_VARS = mapOf(
             Pair("ZINK_DESCRIPTORS",
                 EnvVarInfo(

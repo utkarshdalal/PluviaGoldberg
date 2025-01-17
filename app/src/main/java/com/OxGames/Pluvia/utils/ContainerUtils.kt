@@ -213,13 +213,7 @@ object ContainerUtils {
             // set up container drives to include app
             val defaultDrives = PrefManager.drives
             val appDirPath = SteamService.getAppDirPath(appId)
-            var drive: Char = 'A'
-            while (defaultDrives.contains("$drive:")) {
-                drive += 1
-                if (drive > 'Z') {
-                    throw Exception("Could not find suitable drive for app dir path")
-                }
-            }
+            var drive: Char = Container.getNextAvailableDriveLetter(defaultDrives)
             val drives = "$defaultDrives$drive:$appDirPath"
             Timber.d("Prepared container drives: $drives")
 
