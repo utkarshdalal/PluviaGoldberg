@@ -204,6 +204,7 @@ fun Box64PresetsDialog(
                             visible = infoMsg.isNotEmpty(),
                             onDismissRequest = { infoMsg = "" },
                             message = infoMsg,
+                            useHtmlInMsg = true,
                         )
                         SettingsEnvVars(
                             enabled = isCustom(),

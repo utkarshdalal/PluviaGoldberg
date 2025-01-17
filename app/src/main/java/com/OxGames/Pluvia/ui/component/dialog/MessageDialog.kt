@@ -30,24 +30,31 @@ fun MessageDialog(
     icon: ImageVector? = null,
     title: String? = null,
     message: String? = null,
+    useHtmlInMsg: Boolean = false,
 ) {
     when {
         visible -> {
             AlertDialog(
                 icon = icon?.let { { Icon(imageVector = icon, contentDescription = null) } },
                 title = title?.let { { Text(it) } },
-                text = message?.let { { Text(
-                    text = AnnotatedString.fromHtml(
-                        htmlString = it,
-                        linkStyles = TextLinkStyles(
-                            style = SpanStyle(
-                                textDecoration = TextDecoration.Underline,
-                                fontStyle = FontStyle.Italic,
-                                color = Color.Blue
-                            )
-                        ),
-                    ),
-                ) } },
+                text = message?.let { {
+                    if (useHtmlInMsg) {
+                        Text(
+                            text = AnnotatedString.fromHtml(
+                                htmlString = it,
+                                linkStyles = TextLinkStyles(
+                                    style = SpanStyle(
+                                        textDecoration = TextDecoration.Underline,
+                                        fontStyle = FontStyle.Italic,
+                                        color = Color.Blue
+                                    )
+                                ),
+                            ),
+                        )
+                    } else {
+                        Text(it)
+                    }
+                } },
                 onDismissRequest = { onDismissRequest?.invoke() },
                 dismissButton = onDismissClick?.let {
                     {
