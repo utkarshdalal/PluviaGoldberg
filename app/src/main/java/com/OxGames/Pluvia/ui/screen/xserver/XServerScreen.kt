@@ -9,7 +9,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.mapSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -29,13 +28,13 @@ import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.data.XServerState
+import com.OxGames.Pluvia.utils.ContainerUtils
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
 import com.winlator.core.AppUtils
 import com.winlator.core.Callback
 import com.winlator.core.DXVKHelper
 import com.winlator.core.DefaultVersion
-import com.winlator.core.EnvVars
 import com.winlator.core.FileUtils
 import com.winlator.core.GPUInformation
 import com.winlator.core.KeyValueSet
@@ -47,6 +46,7 @@ import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineStartMenuCreator
 import com.winlator.core.WineThemeManager
 import com.winlator.core.WineUtils
+import com.winlator.core.envvars.EnvVars
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.TouchMouse
 import com.winlator.widget.XServerView
@@ -106,45 +106,29 @@ fun XServerScreen(
         AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation),
     )
 
-    // val imageFs by rememberSaveable { mutableStateOf(ImageFs.find(context)) }
-    // var screenSize = Container.DEFAULT_SCREEN_SIZE
     // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
     // val generateWinePrefix = false
     var firstTimeBoot = false
-    val containerId = appId // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
     // val frameRatingWindowId = -1
     var taskAffinityMask = 0
     var taskAffinityMaskWoW64 = 0
 
-    val xServerStateSaver = run {
-        // Explicitly specify the types
-        mapSaver(
-            save = { state ->
-                mapOf(
-                    "winStarted" to state.winStarted,
-                    "dxwrapper" to state.dxwrapper,
-                    "dxwrapperConfig" to (state.dxwrapperConfig?.data ?: ""),
-                    "screenSize" to state.screenSize,
-                    "wineInfo" to state.wineInfo,
-                    "graphicsDriver" to state.graphicsDriver,
-                    "audioDriver" to state.audioDriver,
-                )
-            },
-            restore = { map ->
+    val xServerState = rememberSaveable(stateSaver = XServerState.Saver) {
+        if (ContainerUtils.hasContainer(context, appId)) {
+            val container = ContainerUtils.getContainer(context, appId)
+            mutableStateOf(
                 XServerState(
-                    winStarted = map["winStarted"] as Boolean,
-                    dxwrapper = map["dxwrapper"] as String,
-                    dxwrapperConfig = DXVKHelper.parseConfig(map["dxwrapperConfig"] as String),
-                    screenSize = map["screenSize"] as String,
-                    wineInfo = map["wineInfo"] as WineInfo,
-                    graphicsDriver = map["graphicsDriver"] as String,
-                    audioDriver = map["audioDriver"] as String,
-                )
-            },
-        )
+                    graphicsDriver = container.graphicsDriver,
+                    audioDriver = container.audioDriver,
+                    dxwrapper = container.dxWrapper,
+                    dxwrapperConfig = DXVKHelper.parseConfig(container.dxWrapperConfig),
+                    screenSize = container.screenSize,
+                ),
+            )
+        } else {
+            mutableStateOf(XServerState())
+        }
     }
-
-    var xServerState = rememberSaveable(stateSaver = xServerStateSaver) { mutableStateOf(XServerState()) }
 
     // val xServer by remember {
     //     val result = mutableStateOf(XServer(ScreenInfo(xServerState.value.screenSize)))
@@ -218,7 +202,6 @@ fun XServerScreen(
             Timber.i("onGuestProgramTerminated")
             exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
             navigateBack()
-            // PluviaApp.events.emit(AndroidEvent.BackPressed) // TODO: show message about termination then properly go back with navigation
         }
         val onForceCloseApp: (SteamEvent.ForceCloseApp) -> Unit = {
             Timber.i("onForceCloseApp")
@@ -309,7 +292,7 @@ fun XServerScreen(
 
                 getxServer().windowManager.addOnWindowModificationListener(object : WindowManager.OnWindowModificationListener {
                     override fun onUpdateWindowContent(window: Window) {
-                        // Log.d("XServerScreen", "onUpdateWindowContent:" +
+                        // Timber.v("onUpdateWindowContent:" +
                         //     "\n\twindowName: ${window.name}" +
                         //     "\n\tprocessId: ${window.processId}" +
                         //     "\n\thasParent: ${window.parent != null}" +
@@ -323,7 +306,7 @@ fun XServerScreen(
                     }
 
                     override fun onModifyWindowProperty(window: Window, property: Property) {
-                        // Log.d("XServerScreen", "onModifyWindowProperty:" +
+                        // Timber.v("onModifyWindowProperty:" +
                         //     "\n\twindowName: ${window.name}" +
                         //     "\n\tprocessId: ${window.processId}" +
                         //     "\n\thasParent: ${window.parent != null}" +
@@ -334,25 +317,27 @@ fun XServerScreen(
                     }
 
                     override fun onMapWindow(window: Window) {
-                        // Log.d("XServerScreen", "onMapWindow:" +
-                        //     "\n\twindowName: ${window.name}" +
-                        //     "\n\twindowClassName: ${window.className}" +
-                        //     "\n\tprocessId: ${window.processId}" +
-                        //     "\n\thasParent: ${window.parent != null}" +
-                        //     "\n\tchildrenSize: ${window.children.size}"
-                        // )
+                        Timber.i(
+                            "onMapWindow:" +
+                                "\n\twindowName: ${window.name}" +
+                                "\n\twindowClassName: ${window.className}" +
+                                "\n\tprocessId: ${window.processId}" +
+                                "\n\thasParent: ${window.parent != null}" +
+                                "\n\tchildrenSize: ${window.children.size}",
+                        )
                         assignTaskAffinity(window, getxServer().winHandler, taskAffinityMask, taskAffinityMaskWoW64)
                         onWindowMapped?.invoke(window)
                     }
 
                     override fun onUnmapWindow(window: Window) {
-                        // Log.d("XServerScreen", "onUnmapWindow:" +
-                        //     "\n\twindowName: ${window.name}" +
-                        //     "\n\twindowClassName: ${window.className}" +
-                        //     "\n\tprocessId: ${window.processId}" +
-                        //     "\n\thasParent: ${window.parent != null}" +
-                        //     "\n\tchildrenSize: ${window.children.size}"
-                        // )
+                        Timber.i(
+                            "onUnmapWindow:" +
+                                "\n\twindowName: ${window.name}" +
+                                "\n\twindowClassName: ${window.className}" +
+                                "\n\tprocessId: ${window.processId}" +
+                                "\n\thasParent: ${window.parent != null}" +
+                                "\n\tchildrenSize: ${window.children.size}",
+                        )
                         // changeFrameRatingVisibility(window, null)
                         onWindowUnmapped?.invoke(window)
                     }
@@ -365,13 +350,11 @@ fun XServerScreen(
                         getxServer(),
                     )
                 } else {
-                    var container: Container? = null
-                    var containerManager: ContainerManager? = null
-                    var onExtractFileListener: OnExtractFileListener? = null
-                    // if (!generateWinePrefix) {
-                    containerManager = ContainerManager(context)
-                    container = containerManager.getContainerById(containerId)
+                    val containerManager = ContainerManager(context)
+                    val container = ContainerUtils.getContainer(context, appId)
+                    // Timber.d("1 Container drives: ${container.drives}")
                     containerManager.activateContainer(container)
+                    // Timber.d("2 Container drives: ${container.drives}")
 
                     taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
                     taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
@@ -387,31 +370,7 @@ fun XServerScreen(
                         ImageFs.find(context).winePath = xServerState.value.wineInfo.path
                     }
 
-                    // val shortcutPath: String? = null // TODO: set to executable path within container (intent extra "shortcut_path")
-                    // xServerState.value.shortcut = if (shortcutPath != null && !shortcutPath.isEmpty()) Shortcut(container, File(shortcutPath)) else null
-
-                    xServerState.value = xServerState.value.copy(
-                        graphicsDriver = container.graphicsDriver,
-                        audioDriver = container.audioDriver,
-                        dxwrapper = container.dxWrapper,
-                        screenSize = container.screenSize,
-                    )
-                    var dxwrapperConfigRaw = container.dxWrapperConfig
-
-                    val parsedConfig = if (xServerState.value.dxwrapper ==
-                        Container.DEFAULT_DXWRAPPER
-                    ) {
-                        DXVKHelper.parseConfig(dxwrapperConfigRaw)
-                    } else {
-                        null
-                    }
-                    xServerState.value = xServerState.value.copy(
-                        dxwrapperConfig = parsedConfig,
-                    )
-                    // xServerViewModel.setDxwrapperConfig(parsedConfig)
-                    // Log.d("XServerScreen", "dxwrapperConfig is ${xServerState.value.dxwrapperConfig} based on container dxWrapper of ${container.dxWrapper} which now in xServerState is ${xServerState.value.dxwrapper} and when checked against ${Container.DEFAULT_DXWRAPPER} if is equal is ${xServerState.value.dxwrapper == Container.DEFAULT_DXWRAPPER} and so when parsed is $parsedConfig")
-
-                    onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
+                    val onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
                         object : OnExtractFileListener {
                             override fun onExtractFile(destination: File?, size: Long): File? {
                                 return destination?.path?.let {
@@ -426,46 +385,39 @@ fun XServerScreen(
                     } else {
                         null
                     }
-                    // }
 
                     Timber.i("Doing things once")
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val containerManager = ContainerManager(context)
-                        val container = containerManager.getContainerById(containerId)
-                        val envVars = EnvVars()
-                        // if (!generateWinePrefix) {
-                        setupWineSystemFiles(
-                            context,
-                            firstTimeBoot,
-                            xServerView!!.getxServer().screenInfo,
-                            xServerState,
-                            container!!,
-                            containerManager,
-                            envVars,
-                            onExtractFileListener,
-                        )
-                        extractGraphicsDriverFiles(
-                            context,
-                            xServerState.value.graphicsDriver,
-                            xServerState.value.dxwrapper,
-                            xServerState.value.dxwrapperConfig!!,
-                            container,
-                            envVars,
-                        )
-                        changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
-                        // }
-                        PluviaApp.xEnvironment = setupXEnvironment(
-                            context,
-                            appId,
-                            bootToContainer,
-                            xServerState,
-                            envVars,
-                            // generateWinePrefix,
-                            container,
-                            appLaunchInfo,
-                            xServerView!!.getxServer(),
-                        )
-                    }
+                    val envVars = EnvVars()
+
+                    setupWineSystemFiles(
+                        context,
+                        firstTimeBoot,
+                        xServerView!!.getxServer().screenInfo,
+                        xServerState,
+                        container,
+                        containerManager,
+                        envVars,
+                        onExtractFileListener,
+                    )
+                    extractGraphicsDriverFiles(
+                        context,
+                        xServerState.value.graphicsDriver,
+                        xServerState.value.dxwrapper,
+                        xServerState.value.dxwrapperConfig!!,
+                        container,
+                        envVars,
+                    )
+                    changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
+                    PluviaApp.xEnvironment = setupXEnvironment(
+                        context,
+                        appId,
+                        bootToContainer,
+                        xServerState,
+                        envVars,
+                        container,
+                        appLaunchInfo,
+                        xServerView!!.getxServer(),
+                    )
                 }
             }
 
@@ -604,21 +556,24 @@ private fun setupXEnvironment(
         val wow64Mode = container.isWoW64Mode
         val guestExecutable =
             xServerState.value.wineInfo.getExecutable(context, wow64Mode) + " explorer /desktop=shell," + xServer.screenInfo + " " +
-                getWineStartCommand(container, bootToContainer, appLaunchInfo)
+                getWineStartCommand(appId, container, bootToContainer, appLaunchInfo)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
         envVars.putAll(container.envVars)
-        // if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"))
         if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1")
 
+        // Timber.d("3 Container drives: ${container.drives}")
         val bindingPaths = mutableListOf<String>()
-        for (drive in container.drivesIterator()) bindingPaths.add(drive[1])
+        for (drive in container.drivesIterator()) {
+            Timber.i("Binding drive ${drive[0]} with path of ${drive[1]}")
+            bindingPaths.add(drive[1])
+        }
         guestProgramLauncherComponent.bindingPaths = bindingPaths.toTypedArray()
-        // guestProgramLauncherComponent.box86Preset =
-        //     if (shortcut != null) shortcut.getExtra("box86Preset", container.box86Preset) else container.box86Preset
-        // guestProgramLauncherComponent.box64Preset =
-        //     if (shortcut != null) shortcut.getExtra("box64Preset", container.box64Preset) else container.box64Preset
+        guestProgramLauncherComponent.box86Version = container.box86Version
+        guestProgramLauncherComponent.box64Version = container.box64Version
+        guestProgramLauncherComponent.box86Preset = container.box86Preset
+        guestProgramLauncherComponent.box64Preset = container.box64Preset
     }
 
     val environment = XEnvironment(context, imageFs)
@@ -674,7 +629,10 @@ private fun setupXEnvironment(
     // }
     environment.startEnvironmentComponents()
 
-    xServer.winHandler.start()
+    // put in separate scope since winhandler start method does some network stuff
+    CoroutineScope(Dispatchers.IO).launch {
+        xServer.winHandler.start()
+    }
     envVars.clear()
     xServerState.value = xServerState.value.copy(
         dxwrapperConfig = null,
@@ -682,6 +640,7 @@ private fun setupXEnvironment(
     return environment
 }
 private fun getWineStartCommand(
+    appId: Int,
     container: Container,
     bootToContainer: Boolean,
     appLaunchInfo: LaunchInfo?,
@@ -693,7 +652,17 @@ private fun getWineStartCommand(
     val args = if (bootToContainer || appLaunchInfo == null) {
         "\"wfm.exe\""
     } else {
-        "/dir D:/${appLaunchInfo.workingDir} \"${appLaunchInfo.executable}\""
+        val appDirPath = SteamService.getAppDirPath(appId)
+        val drives = container.drives
+        val driveIndex = drives.indexOf(appDirPath)
+        // greater than 1 since there is the drive character and the colon before the app dir path
+        val drive = if (driveIndex > 1) {
+            drives[driveIndex - 2]
+        } else {
+            Timber.e("Could not locate game drive")
+            'D'
+        }
+        "/dir $drive:/${appLaunchInfo.workingDir} \"${appLaunchInfo.executable}\""
     }
 
     return "winhandler.exe $args"

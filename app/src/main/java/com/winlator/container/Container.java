@@ -4,7 +4,8 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.winlator.box86_64.Box86_64Preset;
-import com.winlator.core.EnvVars;
+import com.winlator.core.DefaultVersion;
+import com.winlator.core.envvars.EnvVars;
 import com.winlator.core.FileUtils;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.WineInfo;
@@ -47,6 +48,8 @@ public class Container {
     private String cpuList;
     private String cpuListWoW64;
     private String desktopTheme = WineThemeManager.DEFAULT_DESKTOP_THEME;
+    private String box86Version = DefaultVersion.BOX86;
+    private String box64Version = DefaultVersion.BOX64;
     private String box86Preset = Box86_64Preset.COMPATIBILITY;
     private String box64Preset = Box86_64Preset.COMPATIBILITY;
     private File rootDir;
@@ -177,6 +180,14 @@ public class Container {
         this.cpuListWoW64 = cpuListWoW64 != null && !cpuListWoW64.isEmpty() ? cpuListWoW64 : null;
     }
 
+    public String getBox86Version() { return box86Version; }
+
+    public void setBox86Version(String box86Version) { this.box86Version = box86Version; }
+
+    public String getBox64Version() { return box64Version; }
+
+    public void setBox64Version(String box64Version) { this.box64Version = box64Version; }
+
     public String getBox86Preset() {
         return box86Preset;
     }
@@ -267,6 +278,16 @@ public class Container {
         return drivesIterator(drives);
     }
 
+    public static char getNextAvailableDriveLetter(String drives) throws Exception {
+        char drive = 'A';
+        while (drives.contains(drive + ":")) {
+            drive += 1;
+            if (drive > 'Z') {
+                throw new Exception("All drive letters taken");
+            }
+        }
+        return drive;
+    }
     public static Iterable<String[]> drivesIterator(final String drives) {
         final int[] index = {drives.indexOf(":")};
         final String[] item = new String[2];

@@ -4,57 +4,34 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import coil.annotation.ExperimentalCoilApi
 import coil.imageLoader
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.PrefManager
+import com.OxGames.Pluvia.ui.component.dialog.CrashLogDialog
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import java.io.File
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalCoilApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalCoilApi::class)
 @Composable
 fun SettingsGroupDebug() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
     /* Crash Log stuff */
-    var showLogcatDialog by remember { mutableStateOf(false) }
-    var latestCrashFile: File? by remember { mutableStateOf(null) }
+    var showLogcatDialog by rememberSaveable { mutableStateOf(false) }
+    var latestCrashFile: File? by rememberSaveable { mutableStateOf(null) }
     LaunchedEffect(Unit) {
         val crashDir = File(context.getExternalFilesDir(null), "crash_logs")
         latestCrashFile = crashDir.listFiles()
@@ -79,71 +56,17 @@ fun SettingsGroupDebug() {
         }
     }
 
-    /* Show & Share crash log dialog */
-    if (showLogcatDialog && latestCrashFile != null) {
-        Dialog(
-            onDismissRequest = { showLogcatDialog = false },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                dismissOnClickOutside = false,
-            ),
-            content = {
-                val scrollState = rememberScrollState()
-
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    topBar = {
-                        CenterAlignedTopAppBar(
-                            title = {
-                                Text(
-                                    text = latestCrashFile?.name ?: "No Filename",
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            },
-                            navigationIcon = {
-                                IconButton(
-                                    onClick = { showLogcatDialog = false },
-                                    content = { Icon(Icons.Default.Close, null) },
-                                )
-                            },
-                            actions = {
-                                IconButton(
-                                    onClick = {
-                                        saveResultContract.launch(latestCrashFile!!.name)
-                                    },
-                                    content = { Icon(Icons.Default.Save, null) },
-                                )
-                            },
-                        )
-                    },
-                ) { paddingValues ->
-                    Column(
-                        modifier = Modifier
-                            .padding(paddingValues)
-                            .verticalScroll(scrollState)
-                            .fillMaxSize()
-                            .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()),
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 6.dp),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                fontFamily = FontFamily.Monospace,
-                            ),
-                            fontSize = 12.sp,
-                            text = latestCrashFile?.readText() ?: "No crash report found",
-                        )
-                    }
-                }
-            },
-        )
-    }
+    CrashLogDialog(
+        visible = showLogcatDialog && latestCrashFile != null,
+        fileName = latestCrashFile?.name ?: "No Filename",
+        fileText = latestCrashFile?.readText() ?: "Couldn't read crash log.",
+        onSave = { latestCrashFile?.let { file -> saveResultContract.launch(file.name) } },
+        onDismissRequest = { showLogcatDialog = false },
+    )
 
     SettingsGroup(title = { Text(text = "Debug") }) {
         SettingsMenuLink(
-            title = { Text(text = "View Logcats") },
+            title = { Text(text = "View latest crash") },
             subtitle = {
                 val text = if (latestCrashFile != null) {
                     "Shows the most recent crash log"

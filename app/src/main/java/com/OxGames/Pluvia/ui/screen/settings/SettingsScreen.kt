@@ -58,7 +58,7 @@ private fun SettingsScreenContent(
                 .fillMaxSize()
                 .verticalScroll(scrollState),
         ) {
-            SettingsGroupXServer()
+            SettingsGroupEmulation()
             SettingsGroupInfo()
             SettingsGroupDebug()
         }

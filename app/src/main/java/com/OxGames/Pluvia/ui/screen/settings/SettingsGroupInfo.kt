@@ -1,9 +1,6 @@
 package com.OxGames.Pluvia.ui.screen.settings
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MonetizationOn
@@ -61,14 +58,9 @@ fun SettingsGroupInfo() {
         )
 
         SettingsMenuLink(
-            title = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text("Send tip")
-                    Icon(imageVector = Icons.Filled.MonetizationOn, contentDescription = "Tip")
-                }
+            title = { Text("Send tip") },
+            action = {
+                Icon(imageVector = Icons.Filled.MonetizationOn, contentDescription = "Tip")
             },
             onClick = {
                 uriHandler.openUri("https://buy.stripe.com/5kAaFU1bx2RFeLmbII")

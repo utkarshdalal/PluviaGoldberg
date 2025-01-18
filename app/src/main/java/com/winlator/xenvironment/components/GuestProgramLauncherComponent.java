@@ -10,7 +10,7 @@ import com.winlator.box86_64.Box86_64Preset;
 import com.winlator.box86_64.Box86_64PresetManager;
 import com.winlator.core.Callback;
 import com.winlator.core.DefaultVersion;
-import com.winlator.core.EnvVars;
+import com.winlator.core.envvars.EnvVars;
 import com.winlator.core.ProcessHelper;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.xconnector.UnixSocketConfig;
@@ -27,6 +27,8 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private static int pid = -1;
     private String[] bindingPaths;
     private EnvVars envVars;
+    private String box86Version = DefaultVersion.BOX86;
+    private String box64Version = DefaultVersion.BOX64;
     private String box86Preset = Box86_64Preset.COMPATIBILITY;
     private String box64Preset = Box86_64Preset.COMPATIBILITY;
     private Callback<Integer> terminationCallback;
@@ -105,6 +107,14 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     public void setEnvVars(EnvVars envVars) {
         this.envVars = envVars;
     }
+
+    public String getBox86Version() { return box86Version; }
+
+    public void setBox86Version(String box86Version) { this.box86Version = box86Version; }
+
+    public String getBox64Version() { return box64Version; }
+
+    public void setBox64Version(String box64Version) { this.box64Version = box64Version; }
 
     public String getBox86Preset() {
         return box86Preset;
@@ -243,8 +253,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         ImageFs imageFs = environment.getImageFs();
         Context context = environment.getContext();
         PrefManager.init(context);
-        String box86Version = PrefManager.getString("box86_version", DefaultVersion.BOX86);
-        String box64Version = PrefManager.getString("box64_version", DefaultVersion.BOX64);
         String currentBox86Version = PrefManager.getString("current_box86_version", "");
         String currentBox64Version = PrefManager.getString("current_box64_version", "");
         File rootDir = imageFs.getRootDir();
