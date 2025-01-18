@@ -1,10 +1,13 @@
-package com.OxGames.Pluvia
+package com.OxGames.Pluvia.service
 
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.room.withTransaction
+import com.OxGames.Pluvia.BuildConfig
+import com.OxGames.Pluvia.PluviaApp
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.data.BranchInfo
 import com.OxGames.Pluvia.data.ConfigInfo
@@ -37,7 +40,6 @@ import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
-import com.OxGames.Pluvia.service.SteamAutoCloud
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
 import com.OxGames.Pluvia.utils.generateManifest

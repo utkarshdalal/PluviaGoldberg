@@ -26,12 +26,12 @@ import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState

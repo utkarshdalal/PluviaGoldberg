@@ -3,7 +3,7 @@ package com.OxGames.Pluvia.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.provider.Settings
-import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.service.SteamService
 import `in`.dragonbra.javasteam.util.HardwareUtils
 import java.io.FileOutputStream
 import java.nio.file.Files

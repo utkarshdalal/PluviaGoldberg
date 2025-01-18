@@ -1,9 +1,6 @@
 package com.OxGames.Pluvia.service
 
 import androidx.room.withTransaction
-import com.OxGames.Pluvia.SteamService
-import com.OxGames.Pluvia.SteamService.Companion.FileChanges
-import com.OxGames.Pluvia.SteamService.Companion.getAppDirPath
 import com.OxGames.Pluvia.data.AppInfo
 import com.OxGames.Pluvia.data.PostSyncInfo
 import com.OxGames.Pluvia.data.UserFileInfo
@@ -12,6 +9,8 @@ import com.OxGames.Pluvia.data.UserFilesUploadResult
 import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
+import com.OxGames.Pluvia.service.SteamService.Companion.FileChanges
+import com.OxGames.Pluvia.service.SteamService.Companion.getAppDirPath
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
 import `in`.dragonbra.javasteam.enums.EResult

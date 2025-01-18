@@ -26,6 +26,7 @@ import coil.memory.MemoryCache
 import coil.request.CachePolicy
 import coil.util.DebugLogger
 import com.OxGames.Pluvia.events.AndroidEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.utils.IconDecoder

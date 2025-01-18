@@ -15,9 +15,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import com.OxGames.Pluvia.PluviaApp
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.dialog.ProfileDialog
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage

@@ -2,9 +2,9 @@ package com.OxGames.Pluvia.ui.model
 
 import androidx.lifecycle.ViewModel
 import com.OxGames.Pluvia.PluviaApp
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.FabFilter
 import java.util.EnumSet
