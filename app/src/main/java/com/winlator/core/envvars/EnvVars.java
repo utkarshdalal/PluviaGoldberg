@@ -1,4 +1,4 @@
-package com.winlator.core;
+package com.winlator.core.envvars;
 
 import androidx.annotation.NonNull;
 

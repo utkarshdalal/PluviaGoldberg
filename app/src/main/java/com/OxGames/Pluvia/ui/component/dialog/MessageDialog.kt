@@ -8,7 +8,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.fromHtml
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
@@ -23,13 +30,33 @@ fun MessageDialog(
     icon: ImageVector? = null,
     title: String? = null,
     message: String? = null,
+    useHtmlInMsg: Boolean = false,
 ) {
     when {
         visible -> {
             AlertDialog(
                 icon = icon?.let { { Icon(imageVector = icon, contentDescription = null) } },
                 title = title?.let { { Text(it) } },
-                text = message?.let { { Text(it) } },
+                text = message?.let {
+                    {
+                        if (useHtmlInMsg) {
+                            Text(
+                                text = AnnotatedString.fromHtml(
+                                    htmlString = it,
+                                    linkStyles = TextLinkStyles(
+                                        style = SpanStyle(
+                                            textDecoration = TextDecoration.Underline,
+                                            fontStyle = FontStyle.Italic,
+                                            color = Color.Blue,
+                                        ),
+                                    ),
+                                ),
+                            )
+                        } else {
+                            Text(it)
+                        }
+                    }
+                },
                 onDismissRequest = { onDismissRequest?.invoke() },
                 dismissButton = onDismissClick?.let {
                     {

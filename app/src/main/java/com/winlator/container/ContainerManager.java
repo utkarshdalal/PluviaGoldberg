@@ -105,16 +105,8 @@ public class ContainerManager {
         String wincomponents = Container.DEFAULT_WINCOMPONENTS;
         String drives = "";
         Boolean showFPS = false;
-        String cpuList = "";
-        for (int i = 0; i < Runtime.getRuntime().availableProcessors(); i++) {
-            cpuList += i;
-            if (i < Runtime.getRuntime().availableProcessors() - 1) {
-                cpuList += ",";
-            }
-        }
-        // String cpuList = (0 until Runtime.getRuntime().availableProcessors()).joinToString(",");
-        // String cpuListWoW64 = (0 until Runtime.getRuntime().availableProcessors()).joinToString(",");
-        String cpuListWoW64 = cpuList;
+        String cpuList = Container.getFallbackCPUList();
+        String cpuListWoW64 = Container.getFallbackCPUListWoW64();
         Boolean wow64Mode = WineInfo.isMainWineVersion(wineInfo.identifier());
         // Boolean wow64Mode = false;
         Byte startupSelection = Container.STARTUP_SELECTION_ESSENTIAL;
@@ -254,6 +246,10 @@ public class ContainerManager {
         return maxContainerId + 1;
     }
 
+    public boolean hasContainer(int id) {
+        for (Container container : containers) if (container.id == id) return true;
+        return false;
+    }
     public Container getContainerById(int id) {
         for (Container container : containers) if (container.id == id) return container;
         return null;

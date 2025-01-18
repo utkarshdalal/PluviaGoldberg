@@ -50,9 +50,9 @@ import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen
 import com.OxGames.Pluvia.ui.screen.xserver.XServerScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.OxGames.Pluvia.utils.ContainerUtils
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
-import com.winlator.core.WineInfo
 import com.winlator.xenvironment.ImageFsInstaller
 import com.winlator.xserver.Window
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
@@ -197,7 +197,8 @@ fun PluviaMain(
                             msgDialogState = MessageDialogState(
                                 visible = true,
                                 type = DialogType.SUPPORT,
-                                message = "Thank you for using Pluvia, please consider supporting us by tipping whatever amount is comfortable to you",
+                                message = "Thank you for using Pluvia, please consider supporting " +
+                                    "us by tipping whatever amount is comfortable to you",
                                 confirmBtnText = "Tip",
                                 dismissBtnText = "Close",
                             )
@@ -595,23 +596,13 @@ fun preLaunchApp(
             }.get()
         setLoadingProgress(-1f)
 
-        // TODO: set up containers for each appId+depotId combo (intent extra "container_id")
-        val containerId = appId
-
         // create container if it does not already exist
+        // TODO: combine somehow with container creation in HomeLibraryAppScreen
         val containerManager = ContainerManager(context)
-        val container = containerManager.getContainerById(containerId)
-            ?: containerManager.createDefaultContainerFuture(WineInfo.MAIN_WINE_VERSION, containerId)
-                .get()
-        // set up container drives to include app
-        val currentDrives = container.drives
-        val drivePath = "D:${SteamService.getAppDirPath(appId)}"
-        if (!currentDrives.contains(drivePath)) {
-            container.drives = drivePath
-            container.saveData()
-        }
+        val container = ContainerUtils.getOrCreateContainer(context, appId)
         // must activate container before downloading save files
         containerManager.activateContainer(container)
+
         // sync save files and check no pending remote operations are running
         val prefixToPath: (String) -> String = { prefix ->
             PathType.from(prefix).toAbsPath(context, appId)

@@ -53,6 +53,8 @@ import androidx.window.core.layout.WindowWidthSizeClass
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.ui.component.dialog.ContainerConfigDialog
+import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
@@ -60,9 +62,16 @@ import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.OxGames.Pluvia.utils.ContainerUtils
 import com.OxGames.Pluvia.utils.StorageUtils
+import com.google.android.play.core.splitcompat.SplitCompat
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
+import com.winlator.container.ContainerData
+import com.winlator.xenvironment.ImageFsInstaller
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -81,12 +90,27 @@ fun AppScreen(
     var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
 
+    var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
+    var loadingProgress by rememberSaveable { mutableFloatStateOf(0f) }
+
     val appInfo by remember(appId) {
         mutableStateOf(SteamService.getAppInfoOf(appId))
     }
 
     var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
         mutableStateOf(MessageDialogState(false))
+    }
+
+    var showConfigDialog by rememberSaveable { mutableStateOf(false) }
+
+    var containerData by rememberSaveable(stateSaver = ContainerData.Saver) {
+        mutableStateOf(ContainerData())
+    }
+
+    val showEditConfigDialog: () -> Unit = {
+        val container = ContainerUtils.getOrCreateContainer(context, appId)
+        containerData = ContainerUtils.toContainerData(container)
+        showConfigDialog = true
     }
 
     DisposableEffect(downloadInfo) {
@@ -146,6 +170,31 @@ fun AppScreen(
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onDismissClick = { msgDialogState = MessageDialogState(false) }
         }
+        DialogType.INSTALL_IMAGEFS -> {
+            onDismissRequest = { msgDialogState = MessageDialogState(false) }
+            onDismissClick = { msgDialogState = MessageDialogState(false) }
+            onConfirmClick = {
+                loadingDialogVisible = true
+                msgDialogState = MessageDialogState(false)
+                CoroutineScope(Dispatchers.IO).launch {
+                    if (!SteamService.isImageFsInstallable(context)) {
+                        SteamService.downloadImageFs(
+                            onDownloadProgress = { loadingProgress = it },
+                            this,
+                        ).await()
+                    }
+                    if (!SteamService.isImageFsInstalled(context)) {
+                        SplitCompat.install(context)
+                        ImageFsInstaller.installIfNeededFuture(context, context.assets) {
+                            // Log.d("XServerScreen", "$progress")
+                            loadingProgress = it / 100f
+                        }.get()
+                    }
+                    loadingDialogVisible = false
+                    showEditConfigDialog()
+                }
+            }
+        }
         else -> {
             onDismissRequest = null
             onDismissClick = null
@@ -182,6 +231,20 @@ fun AppScreen(
             icon = msgDialogState.icon,
             title = msgDialogState.title,
             message = msgDialogState.message,
+        )
+        ContainerConfigDialog(
+            visible = showConfigDialog,
+            title = "${appInfo?.name} Config",
+            initialConfig = containerData,
+            onDismissRequest = { showConfigDialog = false },
+            onSave = {
+                showConfigDialog = false
+                ContainerUtils.applyToContainer(context, appId, it)
+            },
+        )
+        LoadingDialog(
+            visible = loadingDialogVisible,
+            progress = loadingProgress,
         )
         AppScreenContent(
             modifier = Modifier.padding(paddingValues),
@@ -245,6 +308,38 @@ fun AppScreen(
                         context.startActivity(browserIntent)
                     },
                 ),
+                AppMenuOption(
+                    AppOptionMenuType.EditContainer,
+                    onClick = {
+                        if (!SteamService.isImageFsInstalled(context)) {
+                            if (!SteamService.isImageFsInstallable(context)) {
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.INSTALL_IMAGEFS,
+                                    title = "Download & Install ImageFS",
+                                    message = "The Ubuntu image needs to be downloaded and installed before " +
+                                        "being able to edit the configuration. This operation might take " +
+                                        "a few minutes. Would you like to continue?",
+                                    confirmBtnText = "Proceed",
+                                    dismissBtnText = "Cancel",
+                                )
+                            } else {
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.INSTALL_IMAGEFS,
+                                    title = "Install ImageFS",
+                                    message = "The Ubuntu image needs to be installed before being able to edit " +
+                                        "the configuration. This operation might take a few minutes. " +
+                                        "Would you like to continue?",
+                                    confirmBtnText = "Proceed",
+                                    dismissBtnText = "Cancel",
+                                )
+                            }
+                        } else {
+                            showEditConfigDialog()
+                        }
+                    },
+                ),
                 *(
                     if (isInstalled) {
                         arrayOf(
@@ -260,7 +355,6 @@ fun AppScreen(
                                     val sizeOnDisk = StorageUtils.formatBinarySize(
                                         StorageUtils.getFolderSize(SteamService.getAppDirPath(appId)),
                                     )
-                                    // TODO: exit app screen and reload installed list
                                     // TODO: show loading screen of delete progress
                                     msgDialogState = MessageDialogState(
                                         visible = true,
