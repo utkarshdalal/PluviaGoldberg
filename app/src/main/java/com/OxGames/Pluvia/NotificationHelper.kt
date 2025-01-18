@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 
 class NotificationHelper(private val context: Context) {
+
     companion object {
         private const val CHANNEL_ID = "pluvia_foreground_service"
         private const val CHANNEL_NAME = "Pluvia Foreground Service"

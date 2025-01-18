@@ -19,9 +19,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.model.HomeViewModel
@@ -30,11 +31,9 @@ import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
 import com.OxGames.Pluvia.ui.screen.library.HomeLibraryScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
-private val WINDOW_WIDTH_LARGE = 1200.dp
-
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel,
+    viewModel: HomeViewModel = hiltViewModel(),
     onClickPlay: (Int, Boolean) -> Unit,
     onClickExit: () -> Unit,
     onSettings: () -> Unit,
@@ -116,7 +115,7 @@ internal fun HomeNavigationWrapperUI(
     val windowSize = with(LocalDensity.current) {
         currentWindowSize().toSize().toDpSize()
     }
-    val navLayoutType = if (windowSize.width >= WINDOW_WIDTH_LARGE) {
+    val navLayoutType = if (windowSize.width >= Constants.Composables.WINDOW_WIDTH_LARGE) {
         // Show a permanent drawer when window width is large.
         NavigationSuiteType.NavigationDrawer
     } else {

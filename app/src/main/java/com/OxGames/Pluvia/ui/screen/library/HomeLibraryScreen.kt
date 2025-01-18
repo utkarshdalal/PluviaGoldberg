@@ -59,11 +59,11 @@ fun HomeLibraryScreen(
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    val vmState by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val fabState = rememberFloatingActionMenuState()
 
     LibraryScreenContent(
-        vmState = vmState,
+        state = state,
         fabState = fabState,
         onFabFilter = viewModel::onFabFilter,
         onClickPlay = onClickPlay,
@@ -75,7 +75,7 @@ fun HomeLibraryScreen(
 @OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryScreenContent(
-    vmState: LibraryState,
+    state: LibraryState,
     fabState: FloatingActionMenuState,
     onFabFilter: (FabFilter) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
@@ -135,7 +135,7 @@ private fun LibraryScreenContent(
                 ) { paddingValues ->
                     LibraryListPane(
                         paddingValues = paddingValues,
-                        list = vmState.appInfoList,
+                        list = state.appInfoList,
                         onItemClick = { item ->
                             navigator.navigateTo(
                                 pane = ListDetailPaneScaffoldRole.Detail,
@@ -219,7 +219,7 @@ private fun LibraryDetailPane(
 private fun Preview_LibraryScreenContent() {
     PluviaTheme {
         LibraryScreenContent(
-            vmState = LibraryState(
+            state = LibraryState(
                 appInfoList = List(15) { fakeAppInfo(it).copy(appId = it) },
             ),
             fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),

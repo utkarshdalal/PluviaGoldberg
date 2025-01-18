@@ -117,9 +117,11 @@ class UserLoginViewModel : ViewModel() {
                 loginResult = it.loginResult,
             )
         }
-        if (it.loginResult != LoginResult.Success) {
-            SteamService.startLoginWithQr()
-        }
+
+        // // Why is this here? - Lossy Jan 17 2025
+        // if (it.loginResult != LoginResult.Success) {
+        //     SteamService.startLoginWithQr()
+        // }
     }
 
     private val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
@@ -168,6 +170,23 @@ class UserLoginViewModel : ViewModel() {
         SteamService.stopLoginWithQr()
     }
 
+    fun onCredentialLogin() {
+        with(_loginState.value) {
+            if (username.isEmpty() && password.isEmpty()) {
+                return@with
+            }
+
+            viewModelScope.launch {
+                SteamService.startLoginWithCredentials(
+                    username = username,
+                    password = password,
+                    shouldRememberPassword = rememberPass,
+                    authenticator = authenticator,
+                )
+            }
+        }
+    }
+
     fun submit() {
         viewModelScope.launch {
             submitChannel.send(_loginState.value.twoFactorCode)
@@ -203,7 +222,9 @@ class UserLoginViewModel : ViewModel() {
         onRetry()
 
         if (loginScreen == LoginScreen.QR) {
-            SteamService.startLoginWithQr()
+            viewModelScope.launch {
+                SteamService.startLoginWithQr()
+            }
         } else {
             SteamService.stopLoginWithQr()
         }

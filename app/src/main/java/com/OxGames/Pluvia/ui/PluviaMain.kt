@@ -2,16 +2,11 @@ package com.OxGames.Pluvia.ui
 
 import android.content.Context
 import android.content.Intent
-import android.os.Process
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -19,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -27,24 +23,22 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navDeepLink
 import com.OxGames.Pluvia.BuildConfig
+import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.SteamService
-import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
-import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
-import com.OxGames.Pluvia.ui.model.HomeViewModel
-import com.OxGames.Pluvia.ui.model.UserLoginViewModel
+import com.OxGames.Pluvia.ui.model.MainViewModel
 import com.OxGames.Pluvia.ui.screen.HomeScreen
 import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen
@@ -54,13 +48,9 @@ import com.OxGames.Pluvia.utils.ContainerUtils
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.winlator.container.ContainerManager
 import com.winlator.xenvironment.ImageFsInstaller
-import com.winlator.xserver.Window
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
-import `in`.dragonbra.javasteam.steam.handlers.steamapps.AppProcessInfo
-import java.nio.file.Paths
 import java.util.Date
 import java.util.EnumSet
-import kotlin.io.path.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -68,71 +58,118 @@ import timber.log.Timber
 
 @Composable
 fun PluviaMain(
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    viewModel: MainViewModel = viewModel(),
     navController: NavHostController = rememberNavController(),
+    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
-    var resettedScreen by rememberSaveable { mutableStateOf<PluviaScreen?>(null) }
-    var currentScreen by rememberSaveable {
-        mutableStateOf(
-            PluviaScreen.valueOf(
-                resettedScreen?.name ?: PluviaScreen.LoginUser.name,
-            ),
-        )
-    }
-    var hasLaunched by rememberSaveable { mutableStateOf(false) }
-    var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
-    var loadingProgress by rememberSaveable { mutableFloatStateOf(0f) }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
     var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
         mutableStateOf(MessageDialogState(false))
     }
-    var annoyingDialogShown by rememberSaveable { mutableStateOf(false) }
-    var hasCrashedRecently by rememberSaveable { mutableStateOf(PrefManager.recentlyCrashed) }
-
-    val setLoadingDialogVisible: (Boolean) -> Unit = { loadingDialogVisible = it }
-    val setLoadingProgress: (Float) -> Unit = { loadingProgress = it }
     val setMessageDialogState: (MessageDialogState) -> Unit = { msgDialogState = it }
+
+    var hasBack by rememberSaveable { mutableStateOf(navController.previousBackStackEntry?.destination?.route != null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                MainViewModel.MainUiEvent.LaunchApp -> {
+                    navController.navigate(PluviaScreen.XServer.name)
+                }
+
+                MainViewModel.MainUiEvent.OnBackPressed -> {
+                    if (hasBack) {
+                        // TODO: check if back leads to log out and present confidence modal
+                        navController.popBackStack()
+                    } else {
+                        // TODO: quit app?
+                    }
+                }
+
+                MainViewModel.MainUiEvent.OnLoggedOut -> {
+                    // Pop stack and go back to login.
+                    navController.popBackStack(
+                        route = PluviaScreen.LoginUser.name,
+                        inclusive = false,
+                        saveState = false,
+                    )
+                }
+
+                is MainViewModel.MainUiEvent.OnLogonEnded -> {
+                    when (event.result) {
+                        LoginResult.Success -> {
+                            // TODO: add preference for first screen on login
+                            Timber.i("Navigating to library")
+                            navController.navigate(PluviaScreen.Home.name)
+
+                            // If a crash happen, lets not ask for a tip yet.
+                            // Instead, ask the user to contribute their issues to be addressed.
+                            if (!state.annoyingDialogShown && state.hasCrashedLastStart) {
+                                viewModel.setAnnoyingDialogShown(true)
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.CRASH,
+                                    title = "Recent Crash",
+                                    message = "Sorry about that!\n" +
+                                        "It would be nice to know about the recent issue you've had.\n" +
+                                        "You can view and export the most recent crash log in the app's settings " +
+                                        "and attach it as a Github issue in the project's repository.\n" +
+                                        "Link to the Github repo is also in settings!",
+                                    confirmBtnText = "OK",
+                                )
+                            } else if (!(PrefManager.tipped || BuildConfig.GOLD) && !state.annoyingDialogShown) {
+                                viewModel.setAnnoyingDialogShown(true)
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.SUPPORT,
+                                    message = "Thank you for using Pluvia, please consider supporting " +
+                                        "us by tipping whatever amount is comfortable to you",
+                                    confirmBtnText = "Tip",
+                                    dismissBtnText = "Close",
+                                )
+                            }
+                        }
+
+                        else -> Timber.i("Received non-result: ${event.result}")
+                    }
+                }
+            }
+        }
+    }
 
     LaunchedEffect(navController) {
         Timber.i("navController changed")
-        if (!hasLaunched) {
-            hasLaunched = true
+
+        if (!state.hasLaunched) {
+            viewModel.setHasLaunched(true)
+
             Timber.i("Creating on destination changed listener")
-            PluviaApp.onDestinationChangedListener =
-                NavController.OnDestinationChangedListener { controller, destination, arguments ->
-                    Timber.i("onDestinationChanged to ${destination.route}")
-                    // in order not to trigger the screen changed launch effect
-                    currentScreen =
-                        PluviaScreen.valueOf(destination.route ?: PluviaScreen.LoginUser.name)
-                }
-            // Log.d("PluviaMain", "Starting orientator")
+
+            PluviaApp.onDestinationChangedListener = NavController.OnDestinationChangedListener { _, destination, _ ->
+                Timber.i("onDestinationChanged to ${destination.route}")
+                // in order not to trigger the screen changed launch effect
+                viewModel.setCurrentScreen(destination.route)
+            }
             PluviaApp.events.emit(AndroidEvent.StartOrientator)
         } else {
-            // Log.d("PluviaMain", "Removing on destination changed listener")
             navController.removeOnDestinationChangedListener(PluviaApp.onDestinationChangedListener!!)
         }
-        // Log.d("PluviaMain", "Adding on destination changed listener")
+
         navController.addOnDestinationChangedListener(PluviaApp.onDestinationChangedListener!!)
     }
 
-    var topAppBarVisible by rememberSaveable { mutableStateOf(true) }
-
-    var isSteamConnected by remember { mutableStateOf(SteamService.isConnected) }
-    var appId by rememberSaveable { mutableIntStateOf(SteamService.INVALID_APP_ID) }
-    var bootToContainer by rememberSaveable { mutableStateOf(false) }
-
-    var hasBack by rememberSaveable { mutableStateOf(navController.previousBackStackEntry?.destination?.route != null) }
-    LaunchedEffect(currentScreen) {
+    // TODO merge to VM?
+    LaunchedEffect(state.currentScreen) {
         // do the following each time we navigate to a new screen
-        if (resettedScreen != currentScreen) {
-            resettedScreen = currentScreen
+        if (state.resettedScreen != state.currentScreen) {
+            viewModel.setScreen()
             // Log.d("PluviaMain", "Screen changed to $currentScreen, resetting some values")
             // TODO: remove this if statement once XServerScreen orientation change bug is fixed
-            if (currentScreen != PluviaScreen.XServer) {
-                // reset top app bar visibility
-                topAppBarVisible = true
+            if (state.currentScreen != PluviaScreen.XServer) {
                 // reset system ui visibility
                 PluviaApp.events.emit(AndroidEvent.SetSystemUIVisibility(true))
                 // TODO: add option for user to set
@@ -144,126 +181,15 @@ fun PluviaMain(
         }
     }
 
-    DisposableEffect(lifecycleOwner) {
-        val onHideAppBar: (AndroidEvent.SetAppBarVisibility) -> Unit = {
-            topAppBarVisible = it.visible
-        }
-        val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
-            if (hasBack) {
-                // TODO: check if back leads to log out and present confidence modal
-                navController.popBackStack()
-            } else {
-                // TODO: quit app?
-            }
-        }
-        val onSteamConnected: (SteamEvent.Connected) -> Unit = {
-            Timber.i("Received is connected")
-            isSteamConnected = true
-        }
-        val onSteamDisconnected: (SteamEvent.Disconnected) -> Unit = {
-            Timber.i("Received disconnected from Steam")
-            isSteamConnected = false
-        }
-        val onLoggingIn: (SteamEvent.LogonStarted) -> Unit = {
-            Timber.i("Received logon started")
-        }
-        val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
-            CoroutineScope(Dispatchers.Main).launch {
-                Timber.i("Received logon ended")
-
-                when (it.loginResult) {
-                    LoginResult.Success -> {
-                        // TODO: add preference for first screen on login
-                        Timber.i("Navigating to library")
-                        navController.navigate(PluviaScreen.Home.name)
-
-                        // If a crash happen, lets not ask for a tip yet.
-                        // Instead, ask the user to contribute their issues to be addressed.
-                        if (!annoyingDialogShown && hasCrashedRecently) {
-                            annoyingDialogShown = true
-                            msgDialogState = MessageDialogState(
-                                visible = true,
-                                type = DialogType.CRASH,
-                                title = "Recent Crash",
-                                message = "Sorry about that!\n" +
-                                    "It would be nice to know about the recent issue you've had.\n" +
-                                    "You can view and export the most recent crash log in the app's settings " +
-                                    "and attach it as a Github issue in the project's repository.\n" +
-                                    "Link to the Github repo is also in settings!",
-                                confirmBtnText = "OK",
-                            )
-                        } else if (!(PrefManager.tipped || BuildConfig.GOLD) && !annoyingDialogShown) {
-                            annoyingDialogShown = true
-                            msgDialogState = MessageDialogState(
-                                visible = true,
-                                type = DialogType.SUPPORT,
-                                message = "Thank you for using Pluvia, please consider supporting " +
-                                    "us by tipping whatever amount is comfortable to you",
-                                confirmBtnText = "Tip",
-                                dismissBtnText = "Close",
-                            )
-                        }
-                    }
-
-                    else -> {
-                        Timber.i("Received non-result: ${it.loginResult}")
-                    }
-                }
-            }
-        }
-        val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
-            CoroutineScope(Dispatchers.Main).launch {
-                Timber.i("Received logged out")
-
-                // Pop stack and go back to login.
-                navController.popBackStack(
-                    route = PluviaScreen.LoginUser.name,
-                    inclusive = false,
-                    saveState = false,
-                )
-            }
-        }
-
-        PluviaApp.events.on<AndroidEvent.SetAppBarVisibility, Unit>(onHideAppBar)
-        PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
-        PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
-        PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
-        PluviaApp.events.on<SteamEvent.LogonStarted, Unit>(onLoggingIn)
-        PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
-        PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
-
-        if (!isSteamConnected) {
+    LaunchedEffect(lifecycleOwner) {
+        if (!state.isSteamConnected) {
             val intent = Intent(context, SteamService::class.java)
             context.startForegroundService(intent)
         }
 
         // Go to the Home screen if we're already logged in.
-        if (SteamService.isLoggedIn && currentScreen == PluviaScreen.LoginUser) {
+        if (SteamService.isLoggedIn && state.currentScreen == PluviaScreen.LoginUser) {
             navController.navigate(PluviaScreen.Home.name)
-        }
-
-        onDispose {
-            PluviaApp.events.off<AndroidEvent.SetAppBarVisibility, Unit>(onHideAppBar)
-            PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
-            PluviaApp.events.off<SteamEvent.Connected, Unit>(onSteamConnected)
-            PluviaApp.events.off<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
-            // PluviaApp.events.off<SteamEvent.LogonStarte, Unitd>(onLoggingIn)
-            PluviaApp.events.off<SteamEvent.LogonEnded, Unit>(onLogonEnded)
-            PluviaApp.events.off<SteamEvent.LoggedOut, Unit>(onLoggedOut)
-        }
-    }
-
-    val launchApp: () -> Unit = {
-        CoroutineScope(Dispatchers.Main).launch {
-            // SteamUtils.replaceSteamApi(context, appId)
-
-            // TODO: fix XServerScreen change orientation issue rather than setting the orientation
-            //  before entering XServerScreen
-            PluviaApp.events.emit(
-                AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation),
-            )
-
-            navController.navigate(PluviaScreen.XServer.name)
         }
     }
 
@@ -273,7 +199,7 @@ fun PluviaMain(
     when (msgDialogState.type) {
         DialogType.SUPPORT -> {
             onConfirmClick = {
-                uriHandler.openUri("https://buy.stripe.com/5kAaFU1bx2RFeLmbII")
+                uriHandler.openUri(Constants.Misc.TIP_JAR_LINK)
                 PrefManager.tipped = true
                 msgDialogState = MessageDialogState(visible = false)
             }
@@ -289,24 +215,24 @@ fun PluviaMain(
             onConfirmClick = {
                 preLaunchApp(
                     context = context,
-                    appId = appId,
+                    appId = state.launchedAppId,
                     preferredSave = SaveLocation.Remote,
-                    setLoadingDialogVisible = setLoadingDialogVisible,
-                    setLoadingProgress = setLoadingProgress,
+                    setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                    setLoadingProgress = viewModel::setLoadingDialogProgress,
                     setMessageDialogState = setMessageDialogState,
-                    onSuccess = launchApp,
+                    onSuccess = viewModel::launchApp,
                 )
                 msgDialogState = MessageDialogState(false)
             }
             onDismissClick = {
                 preLaunchApp(
                     context = context,
-                    appId = appId,
+                    appId = state.launchedAppId,
                     preferredSave = SaveLocation.Local,
-                    setLoadingDialogVisible = setLoadingDialogVisible,
-                    setLoadingProgress = setLoadingProgress,
+                    setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                    setLoadingProgress = viewModel::setLoadingDialogProgress,
                     setMessageDialogState = setMessageDialogState,
-                    onSuccess = launchApp,
+                    onSuccess = viewModel::launchApp,
                 )
                 msgDialogState = MessageDialogState(false)
             }
@@ -340,12 +266,12 @@ fun PluviaMain(
                 setMessageDialogState(MessageDialogState(false))
                 preLaunchApp(
                     context = context,
-                    appId = appId,
+                    appId = state.launchedAppId,
                     ignorePendingOperations = true,
-                    setLoadingDialogVisible = setLoadingDialogVisible,
-                    setLoadingProgress = setLoadingProgress,
+                    setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                    setLoadingProgress = viewModel::setLoadingDialogProgress,
                     setMessageDialogState = setMessageDialogState,
-                    onSuccess = launchApp,
+                    onSuccess = viewModel::launchApp,
                 )
             }
             onDismissClick = {
@@ -361,12 +287,12 @@ fun PluviaMain(
                 setMessageDialogState(MessageDialogState(false))
                 preLaunchApp(
                     context = context,
-                    appId = appId,
+                    appId = state.launchedAppId,
                     ignorePendingOperations = true,
-                    setLoadingDialogVisible = setLoadingDialogVisible,
-                    setLoadingProgress = setLoadingProgress,
+                    setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                    setLoadingProgress = viewModel::setLoadingDialogProgress,
                     setMessageDialogState = setMessageDialogState,
-                    onSuccess = launchApp,
+                    onSuccess = viewModel::launchApp,
                 )
             }
             onDismissClick = {
@@ -410,13 +336,11 @@ fun PluviaMain(
         DialogType.CRASH -> {
             onDismissClick = null
             onDismissRequest = {
-                PrefManager.recentlyCrashed = false
-                hasCrashedRecently = false
+                viewModel.setHasCrashedLastStart(false)
                 setMessageDialogState(MessageDialogState(false))
             }
             onConfirmClick = {
-                PrefManager.recentlyCrashed = false
-                hasCrashedRecently = false
+                viewModel.setHasCrashedLastStart(false)
                 setMessageDialogState(MessageDialogState(false))
             }
         }
@@ -430,8 +354,8 @@ fun PluviaMain(
 
     PluviaTheme {
         LoadingDialog(
-            visible = loadingDialogVisible,
-            progress = loadingProgress,
+            visible = state.loadingDialogVisible,
+            progress = state.loadingDialogProgress,
         )
         MessageDialog(
             visible = msgDialogState.visible,
@@ -452,29 +376,24 @@ fun PluviaMain(
         ) {
             /** Login **/
             composable(route = PluviaScreen.LoginUser.name) {
-                val viewModel: UserLoginViewModel = viewModel()
-                UserLoginScreen(
-                    viewModel = viewModel,
-                )
+                UserLoginScreen()
             }
             /** Library, Downloads, Friends **/
             composable(
                 route = PluviaScreen.Home.name,
                 deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" }),
             ) {
-                val viewModel: HomeViewModel = viewModel()
                 HomeScreen(
-                    viewModel = viewModel,
                     onClickPlay = { launchAppId, asContainer ->
-                        appId = launchAppId
-                        bootToContainer = asContainer
+                        viewModel.setLaunchedAppId(launchAppId)
+                        viewModel.setBootToContainer(asContainer)
                         preLaunchApp(
                             context = context,
-                            appId = appId,
-                            setLoadingDialogVisible = { loadingDialogVisible = it },
-                            setLoadingProgress = { loadingProgress = it },
+                            appId = state.launchedAppId,
+                            setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
+                            setLoadingProgress = viewModel::setLoadingDialogProgress,
                             setMessageDialogState = { msgDialogState = it },
-                            onSuccess = launchApp,
+                            onSuccess = viewModel::launchApp,
                         )
                     },
                     onClickExit = {
@@ -494,80 +413,25 @@ fun PluviaMain(
             /** Game Screen **/
             composable(route = PluviaScreen.XServer.name) {
                 XServerScreen(
-                    appId = appId,
-                    bootToContainer = bootToContainer,
+                    appId = state.launchedAppId,
+                    bootToContainer = state.bootToContainer,
                     navigateBack = {
                         CoroutineScope(Dispatchers.Main).launch {
                             navController.popBackStack()
                         }
                     },
                     onWindowMapped = { window ->
-                        SteamService.getAppInfoOf(appId)?.let { appInfo ->
-                            // Log.d("PluviaMain", "${appInfo.name} == ${window.name} || ${window.className}")
-                            // TODO: this should not be a search, the app should have been launched with a specific launch config that we then use to compare
-                            val launchConfig = SteamService.getWindowsLaunchInfos(appId).firstOrNull {
-                                val gameExe = Paths.get(it.executable.replace('\\', '/')).name.lowercase()
-                                val windowExe = window.className.lowercase()
-                                // Log.d("PluviaMain", "Is $gameExe == $windowExe")
-                                gameExe == windowExe
-                            }
-                            if (launchConfig != null) {
-                                val steamProcessId = Process.myPid()
-                                val processes = mutableListOf<AppProcessInfo>()
-                                var currentWindow: Window = window
-                                do {
-                                    var parentWindow: Window? = window.parent
-                                    // Log.d("PluviaMain", "${currentWindow.name}:${currentWindow.className} -> ${parentWindow?.name}:${parentWindow?.className}")
-                                    val process = if (
-                                        parentWindow != null &&
-                                        parentWindow.className.lowercase() != "explorer.exe"
-                                    ) {
-                                        val processId = currentWindow.processId
-                                        val parentProcessId = parentWindow.processId
-                                        currentWindow = parentWindow
-                                        AppProcessInfo(
-                                            processId,
-                                            parentProcessId,
-                                            false,
-                                        )
-                                    } else {
-                                        parentWindow = null
-                                        AppProcessInfo(
-                                            currentWindow.processId,
-                                            steamProcessId,
-                                            true,
-                                        )
-                                    }
-                                    processes.add(process)
-                                } while (parentWindow != null)
-
-                                SteamService.notifyRunningProcesses(
-                                    GameProcessInfo(
-                                        appId = appId,
-                                        processes = processes,
-                                    ),
-                                )
-                            }
-                        }
+                        viewModel.onWindowMapped(window, state.launchedAppId)
                     },
                     onExit = {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            SteamService.notifyRunningProcesses()
-                            SteamService.closeApp(appId, this) { prefix ->
-                                PathType.from(prefix).toAbsPath(context, appId)
-                            }.await()
-                        }
+                        viewModel.exitSteamApp(context, state.launchedAppId)
                     },
                 )
             }
 
             /** Settings **/
             composable(route = PluviaScreen.Settings.name) {
-                SettingsScreen(
-                    onBack = {
-                        navController.navigateUp()
-                    },
-                )
+                SettingsScreen(onBack = { navController.navigateUp() })
             }
         }
     }

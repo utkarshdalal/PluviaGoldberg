@@ -54,10 +54,8 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.OxGames.Pluvia.R
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.LoginScreen
 import com.OxGames.Pluvia.ui.component.LoadingScreen
@@ -67,8 +65,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 @Composable
 fun UserLoginScreen(
-    viewModel: UserLoginViewModel,
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    viewModel: UserLoginViewModel = viewModel(),
 ) {
     val userLoginState by viewModel.loginState.collectAsState()
 
@@ -78,18 +75,7 @@ fun UserLoginScreen(
         onPassword = viewModel::setPassword,
         onShowLoginScreen = viewModel::setShowLoginScreen,
         onRememberPassword = viewModel::setRememberPass,
-        onCredentialLogin = {
-            if (userLoginState.username.isNotEmpty() &&
-                userLoginState.password.isNotEmpty()
-            ) {
-                SteamService.startLoginWithCredentials(
-                    username = userLoginState.username,
-                    password = userLoginState.password,
-                    shouldRememberPassword = userLoginState.rememberPass,
-                    authenticator = viewModel.authenticator,
-                )
-            }
-        },
+        onCredentialLogin = viewModel::onCredentialLogin,
         onTwoFacorLogin = viewModel::submit,
         onRetry = viewModel::onRetry,
         onSetTwoFactor = viewModel::setTwoFactorCode,

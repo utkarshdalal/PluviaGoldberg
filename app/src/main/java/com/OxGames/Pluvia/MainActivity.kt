@@ -34,7 +34,6 @@ import com.winlator.core.AppUtils
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.EnumSet
 import kotlin.math.abs
-import kotlin.math.min
 import okio.Path.Companion.toOkioPath
 import timber.log.Timber
 
@@ -229,22 +228,19 @@ class MainActivity : ComponentActivity() {
 
         // find the nearest orientation to the reported
         val distances = orientations.map {
-            Pair(
-                it,
-                it.angleRanges.map {
-                    it.map {
-                        // since 0 can be represented as 360 and vice versa
-                        if (adjustedOrientation == 0 || adjustedOrientation == 360) {
-                            min(abs(it - 0), abs(it - 360))
-                        } else {
-                            abs(it - adjustedOrientation)
-                        }
-                    }.min()
-                }.min(),
-            )
+            it to it.angleRanges.minOf { angleRange ->
+                angleRange.minOf { angle ->
+                    // since 0 can be represented as 360 and vice versa
+                    if (adjustedOrientation == 0 || adjustedOrientation == 360) {
+                        minOf(abs(angle), abs(angle - 360))
+                    } else {
+                        abs(angle - adjustedOrientation)
+                    }
+                }
+            }
         }
 
-        val nearest = distances.sortedBy { it.second }.first()
+        val nearest = distances.minBy { it.second }
 
         // set the requested orientation to the nearest if it is not already as long as it is nearer than what is currently set
         val currentOrientationDist = distances
