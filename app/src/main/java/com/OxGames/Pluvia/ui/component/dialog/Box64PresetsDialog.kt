@@ -69,7 +69,7 @@ fun Box64PresetsDialog(
                             title = { Text(text = "Box64 Presets") },
                             actions = {
                                 IconButton(
-                                    onClick = { },
+                                    onClick = onDismissRequest,
                                     content = {
                                         Icon(Icons.Default.Done, "Close Box64 Presets")
                                     },
