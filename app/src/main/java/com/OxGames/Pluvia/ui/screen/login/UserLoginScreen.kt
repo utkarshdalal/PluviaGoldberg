@@ -2,7 +2,6 @@ package com.OxGames.Pluvia.ui.screen.login
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,11 +12,14 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -150,11 +152,14 @@ private fun UserLoginScreenContent(
             }
         },
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center,
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (userLoginState.isSteamConnected &&
                 userLoginState.isLoggingIn.not() &&
