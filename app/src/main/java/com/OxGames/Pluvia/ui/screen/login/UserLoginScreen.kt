@@ -78,7 +78,7 @@ fun UserLoginScreen(
         onShowLoginScreen = viewModel::setShowLoginScreen,
         onRememberPassword = viewModel::setRememberPass,
         onCredentialLogin = viewModel::onCredentialLogin,
-        onTwoFacorLogin = viewModel::submit,
+        onTwoFactorLogin = viewModel::submit,
         onRetry = viewModel::onRetry,
         onSetTwoFactor = viewModel::setTwoFactorCode,
     )
@@ -93,7 +93,7 @@ private fun UserLoginScreenContent(
     onShowLoginScreen: (LoginScreen) -> Unit,
     onRememberPassword: (Boolean) -> Unit,
     onCredentialLogin: () -> Unit,
-    onTwoFacorLogin: () -> Unit,
+    onTwoFactorLogin: () -> Unit,
     onRetry: () -> Unit,
     onSetTwoFactor: (String) -> Unit,
 ) {
@@ -204,7 +204,7 @@ private fun UserLoginScreenContent(
                                     else -> ""
                                 },
                                 onSetTwoFactor = onSetTwoFactor,
-                                onLogin = onTwoFacorLogin,
+                                onLogin = onTwoFactorLogin,
                             )
                         }
 
@@ -322,7 +322,7 @@ private fun Preview_UserLoginScreen(
                 onPassword = { },
                 onRememberPassword = { },
                 onCredentialLogin = { },
-                onTwoFacorLogin = { },
+                onTwoFactorLogin = { },
                 onRetry = { },
                 onSetTwoFactor = { },
                 onShowLoginScreen = { },
