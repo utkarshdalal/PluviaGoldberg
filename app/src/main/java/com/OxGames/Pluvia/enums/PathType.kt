@@ -28,7 +28,7 @@ enum class PathType {
      * [com.winlator.container.Container] beforehand.
      */
     fun toAbsPath(context: Context, appId: Int): String {
-        var path = when (this) {
+        val path = when (this) {
             GameInstall -> SteamService.getAppDirPath(appId)
             WinMyDocuments -> Paths.get(
                 ImageFs.find(context).rootDir.absolutePath,
@@ -73,16 +73,17 @@ enum class PathType {
         return if (!path.endsWith("/")) "$path/" else path
     }
 
-    fun isWindows(): Boolean = when (this) {
-        GameInstall,
-        WinMyDocuments,
-        WinAppDataLocal,
-        WinAppDataLocalLow,
-        WinAppDataRoaming,
-        WinSavedGames,
-        -> true
-        else -> false
-    }
+    val isWindows: Boolean
+        get() = when (this) {
+            GameInstall,
+            WinMyDocuments,
+            WinAppDataLocal,
+            WinAppDataLocalLow,
+            WinAppDataRoaming,
+            WinSavedGames,
+            -> true
+            else -> false
+        }
 
     companion object {
         fun from(keyValue: String?): PathType {

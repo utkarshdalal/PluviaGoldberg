@@ -1,6 +1,5 @@
 package com.OxGames.Pluvia
 
-import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -17,19 +16,18 @@ import com.OxGames.Pluvia.data.LibraryAssetsInfo
 import com.OxGames.Pluvia.data.LibraryCapsuleInfo
 import com.OxGames.Pluvia.data.LibraryHeroInfo
 import com.OxGames.Pluvia.data.LibraryLogoInfo
-import com.OxGames.Pluvia.data.ManifestInfo
 import com.OxGames.Pluvia.data.PackageInfo
 import com.OxGames.Pluvia.data.PostSyncInfo
 import com.OxGames.Pluvia.data.SaveFilePattern
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.data.UFS
 import com.OxGames.Pluvia.data.UserFileInfo
-import com.OxGames.Pluvia.data.UserFilesDownloadResult
-import com.OxGames.Pluvia.data.UserFilesUploadResult
 import com.OxGames.Pluvia.db.PluviaDatabase
+import com.OxGames.Pluvia.db.dao.ChangeNumbersDao
+import com.OxGames.Pluvia.db.dao.FileChangeListsDao
+import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
-import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.OSArch
@@ -39,8 +37,11 @@ import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.service.SteamAutoCloud
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
+import com.OxGames.Pluvia.utils.generateManifest
+import com.OxGames.Pluvia.utils.toLangImgMap
 import com.google.android.play.core.ktx.bytesDownloaded
 import com.google.android.play.core.ktx.requestCancelInstall
 import com.google.android.play.core.ktx.requestInstall
@@ -72,8 +73,6 @@ import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
-import `in`.dragonbra.javasteam.steam.handlers.steamcloud.AppFileChangeList
-import `in`.dragonbra.javasteam.steam.handlers.steamcloud.AppFileInfo
 import `in`.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.FriendsListCallback
@@ -94,31 +93,21 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
-import `in`.dragonbra.javasteam.types.KeyValue
 import `in`.dragonbra.javasteam.types.SteamID
 import `in`.dragonbra.javasteam.util.NetHelpers
-import `in`.dragonbra.javasteam.util.crypto.CryptoHelper
 import `in`.dragonbra.javasteam.util.log.LogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
 import java.io.BufferedReader
 import java.io.Closeable
 import java.io.File
-import java.io.FileOutputStream
-import java.io.InputStream
 import java.io.InputStreamReader
-import java.io.RandomAccessFile
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.Date
 import java.util.EnumSet
 import java.util.concurrent.ConcurrentHashMap
-import java.util.stream.Collectors
-import java.util.zip.ZipInputStream
 import javax.inject.Inject
-import kotlin.io.path.name
 import kotlin.io.path.pathString
-import kotlin.time.measureTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -131,12 +120,7 @@ import kotlinx.coroutines.future.await
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import okhttp3.Headers
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 @AndroidEntryPoint
@@ -145,10 +129,24 @@ class SteamService : Service(), IChallengeUrlChanged {
     @Inject
     lateinit var db: PluviaDatabase
 
+    @Inject
+    lateinit var friendDao: SteamFriendDao
+
+    @Inject
+    lateinit var changeNumbersDao: ChangeNumbersDao
+
+    @Inject
+    lateinit var fileChangeListsDao: FileChangeListsDao
+
+    // @Inject
+    // lateinit var paths: PathsModule
+
     private lateinit var notificationHelper: NotificationHelper
 
     private var _callbackManager: CallbackManager? = null
-    private var _steamClient: SteamClient? = null
+
+    internal var steamClient: SteamClient? = null
+
     private var _steamUser: SteamUser? = null
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
@@ -166,21 +164,35 @@ class SteamService : Service(), IChallengeUrlChanged {
     private val appInfo = ConcurrentHashMap<Int, AppInfo>()
 
     private val dbScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
         const val MAX_RETRY_ATTEMPTS = 20
-        const val AVATAR_BASE_URL = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/"
-        const val MISSING_AVATAR_URL = "${AVATAR_BASE_URL}fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
+        const val MAX_USER_FILE_RETRIES = 3
+
         const val INVALID_APP_ID: Int = Int.MAX_VALUE
         const val INVALID_PKG_ID: Int = Int.MAX_VALUE
         const val INVALID_DEPOT_ID: Int = Int.MAX_VALUE
         const val INVALID_MANIFEST_ID: Long = Long.MAX_VALUE
+
+        /**
+         * Default timeout to use when making requests
+         */
+        var requestTimeout = 10000L
+
+        /**
+         * Default timeout to use when reading the response body
+         */
 
         private val PROTOCOL_TYPES = EnumSet.of(ProtocolTypes.TCP, ProtocolTypes.UDP)
 
         private var instance: SteamService? = null
 
         private val downloadJobs = ConcurrentHashMap<Int, DownloadInfo>()
+
+        var responseBodyTimeout = 60000L
+
+        private var syncInProgress: Boolean = false
 
         var isConnecting: Boolean = false
             private set
@@ -195,7 +207,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isLoggingOut: Boolean = false
             private set
         val isLoggedIn: Boolean
-            get() = instance?._steamClient?.steamID?.run { isValid } == true
+            get() = instance?.steamClient?.steamID?.run { isValid } == true
         var isWaitingForQRAuth: Boolean = false
             private set
         var isReceivingLicenseList: Boolean = false
@@ -218,28 +230,20 @@ class SteamService : Service(), IChallengeUrlChanged {
             get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
 
         val userSteamId: SteamID?
-            get() = instance?._steamClient?.steamID
+            get() = instance?.steamClient?.steamID
 
-        fun setPersonaState(state: EPersonaState) {
+        suspend fun setPersonaState(state: EPersonaState) = withContext(Dispatchers.IO) {
+            PrefManager.personaState = state
             instance?._steamFriends?.setPersonaState(state)
         }
 
-        fun requestUserPersona() {
-            CoroutineScope(Dispatchers.Default).launch {
-                userSteamId?.let {
-                    // in order to get user avatar url and other info
-                    instance?._steamFriends?.requestFriendInfo(it)
-                }
-            }
+        suspend fun requestUserPersona() = withContext(Dispatchers.IO) {
+            // in order to get user avatar url and other info
+            userSteamId?.let { instance?._steamFriends?.requestFriendInfo(it) }
         }
 
-        fun getPersonaStateOf(steamId: SteamID): SteamFriend? {
-            return runBlocking {
-                instance!!.db
-                    .steamFriendDao()
-                    .findFriend(steamId.convertToUInt64())
-                    .first()
-            }
+        suspend fun getPersonaStateOf(steamId: SteamID): SteamFriend? = withContext(Dispatchers.IO) {
+            instance!!.db.steamFriendDao().findFriend(steamId.convertToUInt64()).first()
         }
 
         fun getAppList(filter: EnumSet<AppType>): List<AppInfo> {
@@ -282,7 +286,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun getOwnedAppDlc(appId: Int): Map<Int, DepotInfo> = getAppDlc(appId).filter {
             getPkgInfoOf(it.value.dlcAppId)?.let { pkg ->
-                instance?._steamClient?.let { steamClient ->
+                instance?.steamClient?.let { steamClient ->
                     pkg.ownerAccountId == steamClient.steamID.accountID.toInt()
                 }
             } == true
@@ -308,9 +312,13 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun deleteApp(appId: Int): Boolean {
-            CoroutineScope(Dispatchers.IO).launch {
-                instance?.db?.appChangeNumbers()?.deleteByAppId(appId)
-                instance?.db?.appFileChangeLists()?.deleteByAppId(appId)
+            with(instance!!) {
+                dbScope.launch {
+                    db.withTransaction {
+                        changeNumbersDao.deleteByAppId(appId)
+                        fileChangeListsDao.deleteByAppId(appId)
+                    }
+                }
             }
 
             val appDirPath = getAppDirPath(appId)
@@ -423,7 +431,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             ).await()
                             depotIds.forEachIndexed { jobIndex, depotId ->
                                 // TODO: download shared install depots to a common location
-                                ContentDownloader(instance!!._steamClient!!).downloadApp(
+                                ContentDownloader(instance!!.steamClient!!).downloadApp(
                                     appId = appId,
                                     depotId = depotId,
                                     installPath = PrefManager.appInstallPath,
@@ -457,21 +465,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             } ?: emptyList()
         }
 
-        /**
-         * Default timeout to use when making requests
-         */
-        var requestTimeout = 10000L
-
-        /**
-         * Default timeout to use when reading the response body
-         */
-        var responseBodyTimeout = 60000L
-
-        var syncInProgress: Boolean = false
-
-        const val MAX_USER_FILE_RETRIES = 3
-
-        fun notifyRunningProcesses(vararg gameProcesses: GameProcessInfo) {
+        suspend fun notifyRunningProcesses(vararg gameProcesses: GameProcessInfo) = withContext(Dispatchers.IO) {
             instance?.let { steamInstance ->
                 val gamesPlayed = gameProcesses.mapNotNull { gameProcess ->
                     getAppInfoOf(gameProcess.appId)?.let { appInfo ->
@@ -539,7 +533,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 instance?.let { steamInstance ->
                     getAppInfoOf(appId)?.let { appInfo ->
                         steamInstance._steamCloud?.let { steamCloud ->
-                            val postSyncInfo = syncUserFiles(
+                            val postSyncInfo = SteamAutoCloud.syncUserFiles(
                                 appInfo = appInfo,
                                 clientId = clientId,
                                 steamInstance = steamInstance,
@@ -630,64 +624,62 @@ class SteamService : Service(), IChallengeUrlChanged {
             return@async syncResult
         }
 
-        fun closeApp(
-            appId: Int,
-            parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-            prefixToPath: (String) -> String,
-        ) = parentScope.async {
-            if (syncInProgress) {
-                Timber.w("Cannot close app when sync already in progress")
-                return@async
-            }
+        suspend fun closeApp(appId: Int, prefixToPath: (String) -> String) = withContext(Dispatchers.IO) {
+            async {
+                if (syncInProgress) {
+                    Timber.w("Cannot close app when sync already in progress")
+                    return@async
+                }
 
-            syncInProgress = true
+                syncInProgress = true
 
-            PrefManager.clientId?.let { clientId ->
-                instance?.let { steamInstance ->
-                    getAppInfoOf(appId)?.let { appInfo ->
-                        steamInstance._steamCloud?.let { steamCloud ->
-                            val postSyncInfo = syncUserFiles(
-                                appInfo = appInfo,
-                                clientId = clientId,
-                                steamInstance = steamInstance,
-                                steamCloud = steamCloud,
-                                parentScope = parentScope,
-                                prefixToPath = prefixToPath,
-                            ).await()
-                            // steamCloud.appCloudSyncStats(
-                            //     appId = appId,
-                            //     platformType = EPlatformType.Win32,
-                            //     preload = false,
-                            //     blockingAppLaunch = false,
-                            //     filesUploaded = postSyncInfo?.filesUploaded ?: 0,
-                            //     filesDownloaded = postSyncInfo?.filesDownloaded ?: 0,
-                            //     filesDeleted = postSyncInfo?.filesDeleted ?: 0,
-                            //     filesManaged = postSyncInfo?.filesManaged ?: 0,
-                            //     bytesUploaded = postSyncInfo?.bytesUploaded ?: 0,
-                            //     bytesDownloaded = postSyncInfo?.bytesDownloaded ?: 0,
-                            //     microsecTotal = postSyncInfo?.microsecTotal ?: 0,
-                            //     microsecInitCaches = postSyncInfo?.microsecInitCaches ?: 0,
-                            //     microsecValidateState = postSyncInfo?.microsecValidateState ?: 0,
-                            //     microsecAcLaunch = postSyncInfo?.microsecAcLaunch ?: 0,
-                            //     microsecAcPrepUserFiles = postSyncInfo?.microsecAcPrepUserFiles ?: 0,
-                            //     microsecAcExit = postSyncInfo?.microsecAcExit ?: 0,
-                            //     microsecBuildSyncList = postSyncInfo?.microsecBuildSyncList ?: 0,
-                            //     microsecDeleteFiles = postSyncInfo?.microsecDeleteFiles ?: 0,
-                            //     microsecDownloadFiles = postSyncInfo?.microsecDownloadFiles ?: 0,
-                            //     microsecUploadFiles = postSyncInfo?.microsecUploadFiles ?: 0,
-                            // )
-                            steamCloud.signalAppExitSyncDone(
-                                appId = appId,
-                                clientId = clientId,
-                                uploadsCompleted = postSyncInfo?.uploadsCompleted == true,
-                                uploadsRequired = postSyncInfo?.uploadsRequired == false,
-                            )
+                PrefManager.clientId?.let { clientId ->
+                    instance?.let { steamInstance ->
+                        getAppInfoOf(appId)?.let { appInfo ->
+                            steamInstance._steamCloud?.let { steamCloud ->
+                                val postSyncInfo = SteamAutoCloud.syncUserFiles(
+                                    appInfo = appInfo,
+                                    clientId = clientId,
+                                    steamInstance = steamInstance,
+                                    steamCloud = steamCloud,
+                                    parentScope = this,
+                                    prefixToPath = prefixToPath,
+                                ).await()
+                                // steamCloud.appCloudSyncStats(
+                                //     appId = appId,
+                                //     platformType = EPlatformType.Win32,
+                                //     preload = false,
+                                //     blockingAppLaunch = false,
+                                //     filesUploaded = postSyncInfo?.filesUploaded ?: 0,
+                                //     filesDownloaded = postSyncInfo?.filesDownloaded ?: 0,
+                                //     filesDeleted = postSyncInfo?.filesDeleted ?: 0,
+                                //     filesManaged = postSyncInfo?.filesManaged ?: 0,
+                                //     bytesUploaded = postSyncInfo?.bytesUploaded ?: 0,
+                                //     bytesDownloaded = postSyncInfo?.bytesDownloaded ?: 0,
+                                //     microsecTotal = postSyncInfo?.microsecTotal ?: 0,
+                                //     microsecInitCaches = postSyncInfo?.microsecInitCaches ?: 0,
+                                //     microsecValidateState = postSyncInfo?.microsecValidateState ?: 0,
+                                //     microsecAcLaunch = postSyncInfo?.microsecAcLaunch ?: 0,
+                                //     microsecAcPrepUserFiles = postSyncInfo?.microsecAcPrepUserFiles ?: 0,
+                                //     microsecAcExit = postSyncInfo?.microsecAcExit ?: 0,
+                                //     microsecBuildSyncList = postSyncInfo?.microsecBuildSyncList ?: 0,
+                                //     microsecDeleteFiles = postSyncInfo?.microsecDeleteFiles ?: 0,
+                                //     microsecDownloadFiles = postSyncInfo?.microsecDownloadFiles ?: 0,
+                                //     microsecUploadFiles = postSyncInfo?.microsecUploadFiles ?: 0,
+                                // )
+                                steamCloud.signalAppExitSyncDone(
+                                    appId = appId,
+                                    clientId = clientId,
+                                    uploadsCompleted = postSyncInfo?.uploadsCompleted == true,
+                                    uploadsRequired = postSyncInfo?.uploadsRequired == false,
+                                )
+                            }
                         }
                     }
                 }
-            }
 
-            syncInProgress = false
+                syncInProgress = false
+            }
         }
 
         fun getProotTime(context: Context): Long {
@@ -748,756 +740,6 @@ class SteamService : Service(), IChallengeUrlChanged {
             val filesModified: List<UserFileInfo>,
             val filesCreated: List<UserFileInfo>,
         )
-
-        /**
-         * [Steam Auto Cloud](https://partner.steamgames.com/doc/features/cloud#steam_auto-cloud)
-         */
-        fun syncUserFiles(
-            appInfo: AppInfo,
-            clientId: Long,
-            steamInstance: SteamService,
-            steamCloud: SteamCloud,
-            preferredSave: SaveLocation = SaveLocation.None,
-            parentScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-            prefixToPath: (String) -> String,
-        ): Deferred<PostSyncInfo?> = parentScope.async {
-            val postSyncInfo: PostSyncInfo?
-
-            Timber.i("Retrieving save files of ${appInfo.name}")
-
-            val printFileChangeList: (AppFileChangeList) -> Unit = { fileList ->
-                @SuppressLint("BinaryOperationInTimber")
-                Timber.i(
-                    "GetAppFileListChange($appInfo.appId):" +
-                        "\n\tTotal Files: ${fileList.files.size}" +
-                        "\n\tCurrent Change Number: ${fileList.currentChangeNumber}" +
-                        "\n\tIs Only Delta: ${fileList.isOnlyDelta}" +
-                        "\n\tApp BuildID Hwm: ${fileList.appBuildIDHwm}" +
-                        "\n\tPath Prefixes: \n\t\t${fileList.pathPrefixes.joinToString("\n\t\t")}" +
-                        "\n\tMachine Names: \n\t\t${fileList.machineNames.joinToString("\n\t\t")}" +
-                        fileList.files.joinToString {
-                            "\n\t${it.filename}:" +
-                                "\n\t\tshaFile: ${it.shaFile}" +
-                                "\n\t\ttimestamp: ${it.timestamp}" +
-                                "\n\t\trawFileSize: ${it.rawFileSize}" +
-                                "\n\t\tpersistState: ${it.persistState}" +
-                                "\n\t\tplatformsToSync: ${it.platformsToSync}" +
-                                "\n\t\tpathPrefixIndex: ${it.pathPrefixIndex}" +
-                                "\n\t\tmachineNameIndex: ${it.machineNameIndex}"
-                        },
-                )
-            }
-
-            val getPathTypePairs: (AppFileChangeList) -> List<Pair<String, String>> = { fileList ->
-                fileList.pathPrefixes
-                    .map {
-                        val matchResults = Regex("%\\w+%").findAll(it).map { it.value }.toList()
-
-                        Timber.i("Mapping prefix $it and found $matchResults")
-
-                        matchResults
-                    }
-                    .flatten()
-                    .distinct()
-                    .map { Pair(it, prefixToPath(it)) }
-            }
-
-            val convertPrefixes: (AppFileChangeList) -> List<String> = { fileList ->
-                val pathTypePairs = getPathTypePairs(fileList)
-
-                fileList.pathPrefixes.map { prefix ->
-                    var modified = prefix
-
-                    pathTypePairs.forEach {
-                        modified = modified.replace(it.first, it.second)
-                    }
-
-                    modified
-                }
-            }
-
-            val getFilePrefix: (AppFileInfo, AppFileChangeList) -> String = { file, fileList ->
-                if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
-                    Paths.get(fileList.pathPrefixes[file.pathPrefixIndex]).pathString
-                } else {
-                    Paths.get("%${PathType.GameInstall.name}%").pathString
-                }
-            }
-
-            val getFilePrefixPath: (AppFileInfo, AppFileChangeList) -> String = { file, fileList ->
-                Paths.get(getFilePrefix(file, fileList), file.filename).pathString
-            }
-
-            val getFullFilePath: (AppFileInfo, AppFileChangeList) -> Path = { file, fileList ->
-                val convertedPrefixes = convertPrefixes(fileList)
-
-                if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
-                    Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
-                } else {
-                    Paths.get(getAppDirPath(appInfo.appId), file.filename)
-                }
-            }
-
-            val getFilesDiff: (List<UserFileInfo>, List<UserFileInfo>) -> Pair<Boolean, FileChanges> = { currentFiles, oldFiles ->
-                val overlappingFiles = currentFiles.filter { currentFile ->
-                    oldFiles.any { currentFile.prefixPath == it.prefixPath }
-                }
-
-                val newFiles = currentFiles.filter { currentFile ->
-                    !oldFiles.any { currentFile.prefixPath == it.prefixPath }
-                }
-
-                val deletedFiles = oldFiles.filter { oldFile ->
-                    !currentFiles.any { oldFile.prefixPath == it.prefixPath }
-                }
-
-                val modifiedFiles = overlappingFiles.filter { file ->
-                    oldFiles.first {
-                        it.prefixPath == file.prefixPath
-                    }.let {
-                        Timber.i("Comparing SHA of ${it.prefixPath} and ${file.prefixPath}")
-                        Timber.i("[${it.sha.joinToString(", ")}]\n[${file.sha.joinToString(", ")}]")
-
-                        !it.sha.contentEquals(file.sha)
-                    }
-                }
-
-                val changesExist = newFiles.isNotEmpty() || deletedFiles.isNotEmpty() || modifiedFiles.isNotEmpty()
-
-                Pair(changesExist, FileChanges(deletedFiles, modifiedFiles, newFiles))
-            }
-
-            val hasHashConflicts: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean =
-                { localUserFiles, fileList ->
-                    fileList.files.any { file ->
-                        Timber.i("Checking for " + "${getFilePrefix(file, fileList)} in ${localUserFiles.keys}")
-
-                        localUserFiles[getFilePrefix(file, fileList)]?.let { localUserFile ->
-                            localUserFile.firstOrNull {
-                                Timber.i("Comparing ${file.filename} and ${it.filename}")
-
-                                it.filename == file.filename
-                            }?.let {
-                                Timber.i("Comparing SHA of ${getFilePrefixPath(file, fileList)} and ${it.prefixPath}")
-                                Timber.i("[${file.shaFile.joinToString(", ")}]\n[${it.sha.joinToString(", ")}]")
-
-                                !file.shaFile.contentEquals(it.sha)
-                            }
-                        } == true
-                    }
-                }
-
-            val hasHashConflictsOrRemoteMissingFiles: (Map<String, List<UserFileInfo>>, AppFileChangeList) -> Boolean =
-                { localUserFiles, fileList ->
-                    localUserFiles.values.any {
-                        it.any { localUserFile ->
-                            fileList.files.firstOrNull { cloudFile ->
-                                val cloudFilePath = getFilePrefixPath(cloudFile, fileList)
-
-                                val localFilePath = Paths.get(
-                                    localUserFile.prefix,
-                                    localUserFile.filename,
-                                ).pathString
-
-                                Timber.i("Comparing $cloudFilePath and $localFilePath")
-
-                                cloudFilePath == localFilePath
-                            }?.let {
-                                Timber.i("Comparing SHA of ${getFilePrefixPath(it, fileList)} and ${localUserFile.prefixPath}")
-                                Timber.i("[${it.shaFile.joinToString(", ")}]\n[${localUserFile.sha.joinToString(", ")}]")
-
-                                it.shaFile.contentEquals(localUserFile.sha)
-                            } != true
-                        }
-                    }
-                }
-
-            val getLocalUserFilesAsPrefixMap: () -> Map<String, List<UserFileInfo>> = {
-                appInfo.ufs.saveFilePatterns
-                    .filter { userFile -> userFile.root.isWindows() }
-                    .associate { userFile ->
-                        Pair(
-                            Paths.get(userFile.prefix).pathString,
-                            FileUtils.findFiles(
-                                Paths.get(prefixToPath(userFile.root.toString()), userFile.path),
-                                userFile.pattern,
-                            ).map {
-                                val sha = CryptoHelper.shaHash(Files.readAllBytes(it))
-
-                                Timber.i("Found ${it.pathString}\n\tin ${userFile.prefix}\n\twith sha [${sha.joinToString(", ")}]")
-
-                                UserFileInfo(userFile.root, userFile.path, it.name, Files.getLastModifiedTime(it).toMillis(), sha)
-                            }.collect(Collectors.toList()),
-                        )
-                    }
-            }
-
-            val fileChangeListToUserFiles: (AppFileChangeList) -> List<UserFileInfo> = { appFileListChange ->
-                val pathTypePairs = getPathTypePairs(appFileListChange)
-
-                appFileListChange.files.map {
-                    UserFileInfo(
-                        root = if (it.pathPrefixIndex < pathTypePairs.size) {
-                            PathType.from(pathTypePairs[it.pathPrefixIndex].first)
-                        } else {
-                            PathType.GameInstall
-                        },
-                        path = if (it.pathPrefixIndex < pathTypePairs.size) {
-                            appFileListChange.pathPrefixes[it.pathPrefixIndex]
-                        } else {
-                            ""
-                        },
-                        filename = it.filename,
-                        timestamp = it.timestamp.time,
-                        sha = it.shaFile,
-                    )
-                }
-            }
-
-            val buildUrl: (Boolean, String, String) -> String = { useHttps, urlHost, urlPath ->
-                val scheme = if (useHttps) "https://" else "http://"
-                "$scheme${urlHost}$urlPath"
-            }
-
-            val prootTimestampToDate: (Long) -> Date = { originalTimestamp ->
-                val androidTimestamp = System.currentTimeMillis()
-                val prootTimestamp = getProotTime(steamInstance)
-                val timeDifference = androidTimestamp - prootTimestamp
-                val adjustedTimestamp = originalTimestamp + timeDifference
-
-                Timber.i("Android: $androidTimestamp, PRoot: $prootTimestamp, $originalTimestamp -> $adjustedTimestamp")
-
-                Date(adjustedTimestamp)
-            }
-
-            val downloadFiles: (AppFileChangeList, CoroutineScope) -> Deferred<UserFilesDownloadResult> = { fileList, parentScope ->
-                parentScope.async {
-                    var filesDownloaded = 0
-                    var bytesDownloaded = 0L
-
-                    // val convertedPrefixes = convertPrefixes(fileList)
-
-                    fileList.files.forEach { file ->
-                        val prefixedPath = getFilePrefixPath(file, fileList)
-                        val actualFilePath = getFullFilePath(file, fileList)
-
-                        Timber.i("$prefixedPath -> $actualFilePath")
-
-                        val fileDownloadInfo = steamCloud.clientFileDownload(appInfo.appId, prefixedPath).await()
-
-                        if (fileDownloadInfo.urlHost.isNotEmpty()) {
-                            val httpUrl = with(fileDownloadInfo) {
-                                buildUrl(useHttps, urlHost, urlPath)
-                            }
-
-                            Timber.i("Downloading $httpUrl")
-
-                            val headers = Headers.headersOf(
-                                *fileDownloadInfo.requestHeaders
-                                    .map { listOf(it.name, it.value) }
-                                    .flatten()
-                                    .toTypedArray(),
-                            )
-
-                            val request = Request.Builder()
-                                .url(httpUrl)
-                                .headers(headers)
-                                .build()
-
-                            val httpClient = steamInstance._steamClient!!.configuration.httpClient
-
-                            withTimeout(requestTimeout) {
-                                val response = httpClient.newCall(request).execute()
-
-                                if (!response.isSuccessful) {
-                                    Timber.w("File download of $prefixedPath was unsuccessful")
-                                    return@withTimeout
-                                }
-
-                                val copyToFile: (InputStream) -> Unit = { input ->
-                                    Files.createDirectories(actualFilePath.parent)
-
-                                    FileOutputStream(actualFilePath.toString()).use { fs ->
-                                        val bytesRead = input.copyTo(fs)
-
-                                        if (bytesRead != fileDownloadInfo.rawFileSize.toLong()) {
-                                            Timber.w("Bytes read from stream of $prefixedPath does not match expected size")
-                                        }
-                                    }
-                                }
-
-                                withTimeout(responseBodyTimeout) {
-                                    if (fileDownloadInfo.fileSize != fileDownloadInfo.rawFileSize) {
-                                        response.body?.byteStream()?.use { inputStream ->
-                                            ZipInputStream(inputStream).use { zipInput ->
-                                                val entry = zipInput.nextEntry
-
-                                                if (entry == null) {
-                                                    Timber.w("Downloaded user file $prefixedPath has no zip entries")
-                                                    return@withTimeout
-                                                }
-
-                                                copyToFile(zipInput)
-
-                                                if (zipInput.nextEntry != null) {
-                                                    Timber.e("Downloaded user file $prefixedPath has more than one zip entry")
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        response.body?.byteStream()?.use { inputStream ->
-                                            copyToFile(inputStream)
-                                        }
-                                    }
-
-                                    filesDownloaded++
-
-                                    bytesDownloaded += fileDownloadInfo.fileSize
-                                }
-                            }
-                        } else {
-                            Timber.w("URL host of $prefixedPath was empty")
-                        }
-                    }
-
-                    UserFilesDownloadResult(filesDownloaded, bytesDownloaded)
-                }
-            }
-
-            val uploadFiles: (FileChanges, CoroutineScope) -> Deferred<UserFilesUploadResult> = { fileChanges, parentScope ->
-                parentScope.async {
-                    var filesUploaded = 0
-                    var bytesUploaded = 0L
-
-                    val filesToDelete = fileChanges.filesDeleted.map { it.prefixPath }
-
-                    val filesToUpload = fileChanges.filesCreated
-                        .union(fileChanges.filesModified)
-                        .map { Pair(it.prefixPath, it) }
-
-                    Timber.i(
-                        "Beginning app upload batch with ${filesToDelete.size} file(s) to delete " +
-                            "and ${filesToUpload.size} file(s) to upload",
-                    )
-
-                    val uploadBatchResponse = steamCloud.beginAppUploadBatch(
-                        appId = appInfo.appId,
-                        machineName = SteamUtils.getMachineName(steamInstance),
-                        clientId = clientId,
-                        filesToDelete = filesToDelete,
-                        filesToUpload = filesToUpload.map { it.first },
-                        // TODO: have branch be user selected and use that selection here
-                        appBuildId = appInfo.branches["public"]?.buildId ?: 0,
-                    ).await()
-
-                    var uploadBatchSuccess = true
-
-                    filesToUpload.map { it.second }.forEach { file ->
-                        val absFilePath = file.getAbsPath(prefixToPath)
-
-                        val fileSize = Files.size(absFilePath).toInt()
-
-                        Timber.i("Beginning upload of ${file.prefixPath} whose timestamp is ${file.timestamp}")
-
-                        val uploadInfo = steamCloud.beginFileUpload(
-                            appId = appInfo.appId,
-                            filename = file.prefixPath,
-                            fileSize = fileSize,
-                            rawFileSize = fileSize,
-                            fileSha = file.sha,
-                            // timestamp = prootTimestampToDate(file.timestamp),
-                            timestamp = Date(file.timestamp),
-                            uploadBatchId = uploadBatchResponse.batchID,
-                        ).await()
-
-                        var uploadFileSuccess = true
-
-                        RandomAccessFile(absFilePath.pathString, "r").use { fs ->
-                            uploadInfo.blockRequests.forEach { blockRequest ->
-                                val httpUrl = buildUrl(
-                                    blockRequest.useHttps,
-                                    blockRequest.urlHost,
-                                    blockRequest.urlPath,
-                                )
-
-                                Timber.i("Uploading to $httpUrl")
-                                @SuppressLint("BinaryOperationInTimber")
-                                Timber.i(
-                                    "Block Request:" +
-                                        "\n\tblockOffset: ${blockRequest.blockOffset}" +
-                                        "\n\tblockLength: ${blockRequest.blockLength}" +
-                                        "\n\trequestHeaders:\n\t\t${
-                                            blockRequest.requestHeaders.joinToString("\n\t\t") { "${it.name}: ${it.value}" }
-                                        }" +
-                                        "\n\texplicitBodyData: [${
-                                            blockRequest.explicitBodyData.joinToString(
-                                                ", ",
-                                            )
-                                        }]" +
-                                        "\n\tmayParallelize: ${blockRequest.mayParallelize}",
-                                )
-
-                                val byteArray = ByteArray(blockRequest.blockLength)
-
-                                fs.seek(blockRequest.blockOffset)
-
-                                val bytesRead = fs.read(byteArray, 0, blockRequest.blockLength)
-
-                                Timber.i("Read $bytesRead byte(s) for block")
-
-                                val mediaType = "application/octet-stream".toMediaTypeOrNull()
-
-                                val requestBody = byteArray.toRequestBody(mediaType)
-
-                                // val requestBody = byteArray.toRequestBody()
-
-                                val headers = Headers.headersOf(
-                                    *blockRequest.requestHeaders
-                                        .map { listOf(it.name, it.value) }
-                                        .flatten()
-                                        .toTypedArray(),
-                                )
-
-                                val request = Request.Builder()
-                                    .url(httpUrl)
-                                    .put(requestBody)
-                                    .headers(headers)
-                                    .addHeader("Accept", "text/html,*/*;q=0.9")
-                                    .addHeader("accept-encoding", "gzip,identity,*;q=0")
-                                    .addHeader("accept-charset", "ISO-8859-1,utf-8,*;q=0.7")
-                                    .addHeader("user-agent", "Valve/Steam HTTP Client 1.0")
-                                    .build()
-
-                                val httpClient = steamInstance._steamClient!!.configuration.httpClient
-
-                                Timber.i("Sending request to ${request.url} using\n$request")
-
-                                withTimeout(requestTimeout) {
-                                    val response = httpClient.newCall(request).execute()
-
-                                    if (!response.isSuccessful) {
-                                        Timber.w(
-                                            "Failed to upload part of %s: %s, %s",
-                                            file.prefixPath,
-                                            response.message,
-                                            response.body?.string(),
-                                        )
-
-                                        uploadFileSuccess = false
-                                        uploadBatchSuccess = false
-                                    }
-                                }
-                            }
-                        }
-
-                        if (uploadFileSuccess) {
-                            filesUploaded++
-                            bytesUploaded += fileSize
-                        }
-
-                        val commitSuccess = steamCloud.commitFileUpload(
-                            transferSucceeded = uploadFileSuccess,
-                            appId = appInfo.appId,
-                            fileSha = file.sha,
-                            filename = file.prefixPath,
-                        ).await()
-
-                        Timber.i("File ${file.prefixPath} commit success: $commitSuccess")
-                    }
-
-                    steamCloud.completeAppUploadBatch(
-                        appId = appInfo.appId,
-                        batchId = uploadBatchResponse.batchID,
-                        batchEResult = if (uploadBatchSuccess) EResult.OK else EResult.Fail,
-                    ).await()
-
-                    UserFilesUploadResult(uploadBatchSuccess, uploadBatchResponse.appChangeNumber, filesUploaded, bytesUploaded)
-                }
-            }
-
-            var syncResult = SyncResult.Success
-            var remoteTimestamp = 0L
-            var localTimestamp = 0L
-            var uploadsRequired = false
-            var uploadsCompleted = true
-
-            // sync metrics
-            var filesUploaded = 0
-            var filesDownloaded = 0
-            var filesDeleted = 0
-            var filesManaged = 0
-            var bytesUploaded = 0L
-            var bytesDownloaded = 0L
-            var microsecTotal = 0L
-            var microsecInitCaches = 0L
-            var microsecValidateState = 0L
-            var microsecAcLaunch = 0L
-            var microsecAcPrepUserFiles = 0L
-            var microsecAcExit = 0L
-            var microsecBuildSyncList = 0L
-            var microsecDeleteFiles = 0L
-            var microsecDownloadFiles = 0L
-            var microsecUploadFiles = 0L
-
-            microsecTotal = measureTime {
-                val localAppChangeNumber = runBlocking {
-                    with(instance!!) {
-                        db.appChangeNumbers().getByAppId(appInfo.appId)?.changeNumber ?: -1
-                    }
-                }
-
-                val changeNumber = if (localAppChangeNumber >= 0) localAppChangeNumber else 0
-                val appFileListChange = steamCloud.getAppFileListChange(appInfo.appId, changeNumber).await()
-
-                val cloudAppChangeNumber = appFileListChange.currentChangeNumber
-
-                Timber.i("AppChangeNumber: $localAppChangeNumber -> $cloudAppChangeNumber")
-
-                printFileChangeList(appFileListChange)
-
-                // retrieve existing user files from local storage
-                val localUserFilesMap: Map<String, List<UserFileInfo>>
-                val allLocalUserFiles: List<UserFileInfo>
-                microsecInitCaches = measureTime {
-                    localUserFilesMap = getLocalUserFilesAsPrefixMap()
-                    allLocalUserFiles = localUserFilesMap.map { it.value }.flatten()
-                }.inWholeMicroseconds
-
-                val downloadUserFiles: (CoroutineScope) -> Deferred<PostSyncInfo?> = { parentScope ->
-                    parentScope.async {
-                        Timber.i("Downloading cloud user files")
-
-                        val remoteUserFiles = fileChangeListToUserFiles(appFileListChange)
-                        val filesDiff = getFilesDiff(remoteUserFiles, allLocalUserFiles).second
-                        microsecDeleteFiles = measureTime {
-                            var totalFilesDeleted = 0
-
-                            filesDiff.filesDeleted.forEach {
-                                val deleted = Files.deleteIfExists(it.getAbsPath(prefixToPath))
-                                if (deleted) totalFilesDeleted++
-                            }
-
-                            filesDeleted = totalFilesDeleted
-                        }.inWholeMicroseconds
-
-                        microsecDownloadFiles = measureTime {
-                            val downloadInfo = downloadFiles(appFileListChange, parentScope).await()
-                            filesDownloaded = downloadInfo.filesDownloaded
-                            bytesDownloaded = downloadInfo.bytesDownloaded
-                        }.inWholeMicroseconds
-
-                        val updatedLocalFiles: Map<String, List<UserFileInfo>>
-                        val hasLocalChanges: Boolean
-                        microsecValidateState = measureTime {
-                            updatedLocalFiles = getLocalUserFilesAsPrefixMap()
-                            hasLocalChanges = hasHashConflicts(updatedLocalFiles, appFileListChange)
-                            filesManaged = updatedLocalFiles.size
-                        }.inWholeMicroseconds
-
-                        // var retries = 0
-
-                        // do {
-                        //     downloadFiles(appFileListChange, parentScope).await()
-                        //     updatedLocalFiles = getLocalUserFilesAsPrefixMap()
-                        //     hasLocalChanges =
-                        //         hasHashConflicts(updatedLocalFiles, appFileListChange)
-                        // } while (hasLocalChanges && retries++ < MAX_USER_FILE_RETRIES)
-                        //
-
-                        if (hasLocalChanges) {
-                            Timber.e("Failed to download latest user files after $MAX_USER_FILE_RETRIES tries")
-
-                            syncResult = SyncResult.DownloadFail
-
-                            return@async PostSyncInfo(syncResult)
-                        }
-
-                        with(instance!!) {
-                            db.appFileChangeLists().insert(appInfo.appId, updatedLocalFiles.map { it.value }.flatten())
-                            db.appChangeNumbers().insert(appInfo.appId, cloudAppChangeNumber)
-                        }
-
-                        return@async null
-                    }
-                }
-
-                val uploadUserFiles: (CoroutineScope) -> Deferred<Unit> = { parentScope ->
-                    parentScope.async {
-                        Timber.i("Uploading local user files")
-
-                        val fileChanges = runBlocking {
-                            instance!!.db.appFileChangeLists().getByAppId(appInfo.appId)!!.let {
-                                val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
-
-                                result.second
-                            }
-                        }
-
-                        uploadsRequired = fileChanges.filesCreated.isNotEmpty() || fileChanges.filesModified.isNotEmpty()
-
-                        val uploadResult: UserFilesUploadResult
-
-                        microsecUploadFiles = measureTime {
-                            uploadResult = uploadFiles(fileChanges, parentScope).await()
-                            filesUploaded = uploadResult.filesUploaded
-                            bytesUploaded = uploadResult.bytesUploaded
-                            uploadsCompleted = uploadsRequired && uploadResult.uploadBatchSuccess
-                        }.inWholeMicroseconds
-
-                        filesManaged = allLocalUserFiles.size
-
-                        if (uploadResult.uploadBatchSuccess) {
-                            with(instance!!) {
-                                db.appFileChangeLists().insert(appInfo.appId, allLocalUserFiles)
-                                db.appChangeNumbers().insert(appInfo.appId, uploadResult.appChangeNumber)
-                            }
-                        } else {
-                            syncResult = SyncResult.UpdateFail
-                        }
-                    }
-                }
-
-                if (localAppChangeNumber < cloudAppChangeNumber) {
-                    // our change number is less than the expected, meaning we are behind and
-                    // need to download the new user files, but first we should check that
-                    // the local user files are not conflicting with their respective change
-                    // number or else that would mean that the user made changes locally and
-                    // on a separate device and they must choose between the two
-                    microsecAcLaunch = measureTime {
-                        var hasLocalChanges: Boolean
-
-                        microsecAcPrepUserFiles = measureTime {
-                            hasLocalChanges = runBlocking {
-                                with(instance!!) {
-                                    db.appFileChangeLists().getByAppId(appInfo.appId)?.let { it ->
-                                        getFilesDiff(allLocalUserFiles, it.userFileInfo).first
-                                    } == true
-                                }
-                            }
-                        }.inWholeMicroseconds
-
-                        if (!hasLocalChanges) {
-                            // we can safely download the new changes since no changes have been
-                            // made locally
-
-                            Timber.i("No local changes but new cloud user files")
-
-                            downloadUserFiles(parentScope).await()?.let {
-                                return@async it
-                            }
-                        } else {
-                            Timber.i("Found local changes and new cloud user files, conflict resolution...")
-
-                            when (preferredSave) {
-                                SaveLocation.Local -> {
-                                    // overwrite remote save with the local one
-                                    uploadUserFiles(parentScope).await()
-                                }
-
-                                SaveLocation.Remote -> {
-                                    // overwrite local save with the remote one
-                                    downloadUserFiles(parentScope).await()?.let {
-                                        return@async it
-                                    }
-                                }
-
-                                SaveLocation.None -> {
-                                    syncResult = SyncResult.Conflict
-                                    remoteTimestamp = appFileListChange.files.map { it.timestamp.time }.max()
-                                    localTimestamp = allLocalUserFiles.map { it.timestamp }.max()
-                                }
-                            }
-                        }
-                    }.inWholeMicroseconds
-                } else if (localAppChangeNumber == cloudAppChangeNumber) {
-                    // our app change numbers are the same so the file hashes should match
-                    // if they do not then that means we have new user files locally that
-                    // need uploading
-                    microsecAcExit = measureTime {
-                        var fileChanges: FileChanges? = null
-
-                        val hasLocalChanges = runBlocking {
-                            instance!!.db.appFileChangeLists().getByAppId(appInfo.appId)
-                                ?.let {
-                                    val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
-                                    fileChanges = result.second
-                                    result.first
-                                } == true
-                        }
-
-                        if (hasLocalChanges) {
-                            Timber.i("Found local changes and no new cloud user files")
-
-                            uploadUserFiles(parentScope).await()
-                        } else {
-                            Timber.i("No local changes and no new cloud user files, doing nothing...")
-
-                            syncResult = SyncResult.UpToDate
-                        }
-                    }.inWholeMicroseconds
-                } else {
-                    // our last scenario is if the change number we have is greater than
-                    // the change number from the cloud. This scenario should not happen, I
-                    // believe, since we get the new app change number after having downloaded
-                    // or uploaded from/to the cloud, so we should always be either behind or
-                    // on par with the cloud change number, never ahead
-                    Timber.e("Local change number greater than cloud $localAppChangeNumber > $cloudAppChangeNumber")
-
-                    syncResult = SyncResult.UnknownFail
-                }
-            }.inWholeMicroseconds
-
-            postSyncInfo = PostSyncInfo(
-                syncResult = syncResult,
-                remoteTimestamp = remoteTimestamp,
-                localTimestamp = localTimestamp,
-                uploadsRequired = uploadsRequired,
-                uploadsCompleted = uploadsCompleted,
-                filesUploaded = filesUploaded,
-                filesDownloaded = filesDownloaded,
-                filesDeleted = filesDeleted,
-                filesManaged = filesManaged,
-                bytesUploaded = bytesUploaded,
-                bytesDownloaded = bytesDownloaded,
-                microsecTotal = microsecTotal,
-                microsecInitCaches = microsecInitCaches,
-                microsecValidateState = microsecValidateState,
-                microsecAcLaunch = microsecAcLaunch,
-                microsecAcPrepUserFiles = microsecAcPrepUserFiles,
-                microsecAcExit = microsecAcExit,
-                // microsecBuildSyncList = microsecBuildSyncList,
-                microsecDeleteFiles = microsecDeleteFiles,
-                microsecDownloadFiles = microsecDownloadFiles,
-                microsecUploadFiles = microsecUploadFiles,
-            )
-
-            postSyncInfo
-        }
-
-        fun getAvatarURL(avatarHash: String): String {
-            return avatarHash.ifEmpty { null }
-                ?.takeIf { str -> str.isNotEmpty() && !str.all { it == '0' } }
-                ?.let { "${AVATAR_BASE_URL}${it.substring(0, 2)}/${it}_full.jpg" }
-                ?: MISSING_AVATAR_URL
-        }
-
-        // fun printAllKeyValues(parent: KeyValue, depth: Int = 0) {
-        //     var tabString = ""
-        //
-        //     for (i in 0..depth) {
-        //         tabString += "\t"
-        //     }
-        //
-        //     if (parent.children.isNotEmpty()) {
-        //         Timber.i("$tabString${parent.name}")
-        //
-        //         for (child in parent.children) {
-        //             printAllKeyValues(child, depth + 1)
-        //         }
-        //     } else {
-        //         Timber.i("$tabString${parent.name}: ${parent.value}")
-        //     }
-        // }
 
         private fun login(
             username: String,
@@ -1575,116 +817,114 @@ class SteamService : Service(), IChallengeUrlChanged {
             )
         }
 
-        fun startLoginWithCredentials(
+        suspend fun startLoginWithCredentials(
             username: String,
             password: String,
             shouldRememberPassword: Boolean,
             authenticator: IAuthenticator,
-        ) {
+        ) = withContext(Dispatchers.IO) {
             Timber.i("Logging in via credentials.")
 
-            CoroutineScope(Dispatchers.IO).launch {
-                val steamClient = instance!!._steamClient
-
-                if (steamClient != null) {
-                    val authDetails = AuthSessionDetails().apply {
-                        this.username = username.trim()
-                        this.password = password.trim()
-                        this.persistentSession = shouldRememberPassword
-                        this.authenticator = authenticator
-                        this.deviceFriendlyName = SteamUtils.getMachineName(instance!!)
-                    }
-
-                    val authSession = steamClient.authentication.beginAuthSessionViaCredentials(authDetails, this).await()
-
-                    PluviaApp.events.emit(SteamEvent.LogonStarted(username))
-
-                    val pollResult = authSession.pollingWaitForResult().await()
-
-                    if (pollResult.accountName.isNotEmpty() && pollResult.refreshToken.isNotEmpty()) {
-                        login(
-                            clientId = authSession.clientID,
-                            username = pollResult.accountName,
-                            accessToken = pollResult.accessToken,
-                            refreshToken = pollResult.refreshToken,
-                            shouldRememberPassword = shouldRememberPassword,
-                        )
-                    }
-                } else {
-                    Timber.e("Could not logon: Failed to connect to Steam")
-
-                    PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed))
+            instance!!.steamClient?.let { steamClient ->
+                val authDetails = AuthSessionDetails().apply {
+                    this.username = username.trim()
+                    this.password = password.trim()
+                    this.persistentSession = shouldRememberPassword
+                    this.authenticator = authenticator
+                    this.deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                 }
+
+                val authSession = steamClient.authentication.beginAuthSessionViaCredentials(authDetails, this).await()
+
+                PluviaApp.events.emit(SteamEvent.LogonStarted(username))
+
+                val pollResult = authSession.pollingWaitForResult().await()
+
+                if (pollResult.accountName.isNotEmpty() && pollResult.refreshToken.isNotEmpty()) {
+                    login(
+                        clientId = authSession.clientID,
+                        username = pollResult.accountName,
+                        accessToken = pollResult.accessToken,
+                        refreshToken = pollResult.refreshToken,
+                        shouldRememberPassword = shouldRememberPassword,
+                    )
+                }
+
+                return@withContext
             }
+
+            Timber.e("Could not logon: Failed to connect to Steam")
+            PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed))
         }
 
-        fun startLoginWithQr() {
+        suspend fun startLoginWithQr() = withContext(Dispatchers.IO) {
             Timber.i("Logging in via QR.")
 
-            CoroutineScope(Dispatchers.IO).launch {
-                val steamClient = instance!!._steamClient
+            val steamClient = instance!!.steamClient
 
-                if (steamClient != null) {
-                    isWaitingForQRAuth = true
+            if (steamClient != null) {
+                isWaitingForQRAuth = true
 
-                    val authDetails = AuthSessionDetails().apply {
-                        deviceFriendlyName = SteamUtils.getMachineName(instance!!)
-                    }
-
-                    val authSession = steamClient.authentication.beginAuthSessionViaQR(authDetails, this).await()
-
-                    // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
-                    authSession.challengeUrlChanged = instance
-
-                    PluviaApp.events.emit(SteamEvent.QrChallengeReceived(authSession.challengeUrl))
-
-                    Timber.d("PollingInterval: ${authSession.pollingInterval.toLong()}")
-
-                    var authPollResult: AuthPollResult? = null
-
-                    while (isWaitingForQRAuth && authPollResult == null) {
-                        try {
-                            authPollResult = authSession.pollAuthSessionStatus(this).await()
-                        } catch (e: Exception) {
-                            Timber.e("Poll auth session status error: $e")
-
-                            break
-                        }
-
-                        // Sensitive info, only print in DEBUG build.
-                        if (BuildConfig.DEBUG && authPollResult != null) {
-                            Timber.d(
-                                "AccessToken: %s\nAccountName: %s\nRefreshToken: %s\nNewGuardData: %s",
-                                authPollResult.accessToken,
-                                authPollResult.accountName,
-                                authPollResult.refreshToken,
-                                authPollResult.newGuardData ?: "No new guard data",
-                            )
-                        } else {
-                            // logD("AuthPollResult is null")
-                        }
-
-                        delay(authSession.pollingInterval.toLong())
-                    }
-
-                    isWaitingForQRAuth = false
-
-                    PluviaApp.events.emit(SteamEvent.QrAuthEnded(authPollResult != null))
-
-                    // there is a chance qr got cancelled and there is no authPollResult
-                    if (authPollResult != null) {
-                        login(
-                            clientId = authSession.clientID,
-                            username = authPollResult.accountName,
-                            accessToken = authPollResult.accessToken,
-                            refreshToken = authPollResult.refreshToken,
-                        )
-                    }
-                } else {
-                    Timber.e("Could not start QR logon: Failed to connect to Steam")
-
-                    PluviaApp.events.emit(SteamEvent.QrAuthEnded(false))
+                val authDetails = AuthSessionDetails().apply {
+                    deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                 }
+
+                val authSession = steamClient.authentication.beginAuthSessionViaQR(authDetails, this).await()
+
+                // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
+                authSession.challengeUrlChanged = instance
+
+                PluviaApp.events.emit(SteamEvent.QrChallengeReceived(authSession.challengeUrl))
+
+                Timber.d("PollingInterval: ${authSession.pollingInterval.toLong()}")
+
+                var authPollResult: AuthPollResult? = null
+
+                while (isWaitingForQRAuth && authPollResult == null) {
+                    try {
+                        authPollResult = authSession.pollAuthSessionStatus(this).await()
+                    } catch (e: Exception) {
+                        Timber.e("Poll auth session status error: $e")
+
+                        break
+                    }
+
+                    // Sensitive info, only print in DEBUG build.
+                    if (BuildConfig.DEBUG && authPollResult != null) {
+                        Timber.d(
+                            "AccessToken: %s\nAccountName: %s\nRefreshToken: %s\nNewGuardData: %s",
+                            authPollResult.accessToken,
+                            authPollResult.accountName,
+                            authPollResult.refreshToken,
+                            authPollResult.newGuardData ?: "No new guard data",
+                        )
+                    } else {
+                        // logD("AuthPollResult is null")
+                    }
+
+                    delay(authSession.pollingInterval.toLong())
+                }
+
+                isWaitingForQRAuth = false
+
+                PluviaApp.events.emit(SteamEvent.QrAuthEnded(authPollResult != null))
+
+                // there is a chance qr got cancelled and there is no authPollResult
+                if (authPollResult == null) {
+                    Timber.w("Got no auth poll result")
+                    return@withContext
+                }
+
+                login(
+                    clientId = authSession.clientID,
+                    username = authPollResult.accountName,
+                    accessToken = authPollResult.accessToken,
+                    refreshToken = authPollResult.refreshToken,
+                )
+            } else {
+                Timber.e("Could not start QR logon: Failed to connect to Steam")
+
+                PluviaApp.events.emit(SteamEvent.QrAuthEnded(false))
             }
         }
 
@@ -1696,7 +936,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun stop() {
             instance?.let { steamInstance ->
-                CoroutineScope(Dispatchers.IO).launch {
+                steamInstance.serviceScope.launch {
                     steamInstance.stop()
                 }
             }
@@ -1718,9 +958,9 @@ class SteamService : Service(), IChallengeUrlChanged {
         private fun clearUserData() {
             PrefManager.clearPreferences()
 
-            CoroutineScope(Dispatchers.IO).launch {
-                instance?.db?.appChangeNumbers()?.deleteAll()
-                instance?.db?.appFileChangeLists()?.deleteAll()
+            instance!!.serviceScope.launch {
+                instance?.changeNumbersDao?.deleteAll()
+                instance?.fileChangeListsDao?.deleteAll()
             }
 
             isLoggingIn = false
@@ -1774,24 +1014,24 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
 
             // create our steam client instance
-            _steamClient = SteamClient(configuration)
+            steamClient = SteamClient(configuration)
 
             // remove callbacks we're not using.
-            _steamClient!!.removeHandler(SteamGameServer::class.java)
-            _steamClient!!.removeHandler(SteamMasterServer::class.java)
-            _steamClient!!.removeHandler(SteamWorkshop::class.java)
-            _steamClient!!.removeHandler(SteamScreenshots::class.java)
-            _steamClient!!.removeHandler(SteamUserStats::class.java)
+            steamClient!!.removeHandler(SteamGameServer::class.java)
+            steamClient!!.removeHandler(SteamMasterServer::class.java)
+            steamClient!!.removeHandler(SteamWorkshop::class.java)
+            steamClient!!.removeHandler(SteamScreenshots::class.java)
+            steamClient!!.removeHandler(SteamUserStats::class.java)
 
             // create the callback manager which will route callbacks to function calls
-            _callbackManager = CallbackManager(_steamClient!!)
-            _unifiedMessages = _steamClient!!.getHandler<SteamUnifiedMessages>()
+            _callbackManager = CallbackManager(steamClient!!)
+            _unifiedMessages = steamClient!!.getHandler<SteamUnifiedMessages>()
 
             // get the different handlers to be used throughout the service
-            _steamUser = _steamClient!!.getHandler(SteamUser::class.java)
-            _steamApps = _steamClient!!.getHandler(SteamApps::class.java)
-            _steamFriends = _steamClient!!.getHandler(SteamFriends::class.java)
-            _steamCloud = _steamClient!!.getHandler(SteamCloud::class.java)
+            _steamUser = steamClient!!.getHandler(SteamUser::class.java)
+            _steamApps = steamClient!!.getHandler(SteamApps::class.java)
+            _steamFriends = steamClient!!.getHandler(SteamFriends::class.java)
+            _steamCloud = steamClient!!.getHandler(SteamCloud::class.java)
 
             // subscribe to the callbacks we are interested in
             with(_callbackSubscriptions) {
@@ -1815,7 +1055,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             // while the Default dispatcher is intended for CPU intensive tasks, where there
             // is little or no sleep."
             // source: https://stackoverflow.com/a/59040920
-            CoroutineScope(Dispatchers.IO).launch {
+            serviceScope.launch {
                 while (isRunning) {
                     // logD("runWaitCallbacks")
 
@@ -1842,7 +1082,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationHelper.cancel()
 
-        CoroutineScope(Dispatchers.IO).launch {
+        serviceScope.launch {
             stop()
         }
     }
@@ -1854,7 +1094,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         CoroutineScope(Dispatchers.Default).launch {
             // this call errors out if run on the main thread
-            _steamClient!!.connect()
+            steamClient!!.connect()
 
             delay(5000)
 
@@ -1862,13 +1102,13 @@ class SteamService : Service(), IChallengeUrlChanged {
                 Timber.w("Failed to connect to Steam, marking endpoint bad and force disconnecting")
 
                 try {
-                    _steamClient!!.servers.tryMark(_steamClient!!.currentEndpoint, PROTOCOL_TYPES, ServerQuality.BAD)
+                    steamClient!!.servers.tryMark(steamClient!!.currentEndpoint, PROTOCOL_TYPES, ServerQuality.BAD)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to mark endpoint as bad:")
                 }
 
                 try {
-                    _steamClient!!.disconnect()
+                    steamClient!!.disconnect()
                 } catch (e: Exception) {
                     Timber.e(e, "There was an issue when disconnecting:")
                 }
@@ -1878,10 +1118,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private suspend fun stop() {
         Timber.i("Stopping Steam service")
-        if (_steamClient != null && _steamClient!!.isConnected) {
+        if (steamClient != null && steamClient!!.isConnected) {
             isStopping = true
 
-            _steamClient!!.disconnect()
+            steamClient!!.disconnect()
 
             while (isStopping) {
                 delay(200L)
@@ -1909,7 +1149,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         PrefManager.appInstallPath = defaultAppInstallPath
         PrefManager.appStagingPath = defaultAppStagingPath
 
-        _steamClient = null
+        steamClient = null
         _steamUser = null
         _steamApps = null
         _steamFriends = null
@@ -1958,7 +1198,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         PluviaApp.events.emit(SteamEvent.Connected(isAutoLoggingIn))
     }
 
-    @Suppress("UNUSED_PARAMETER")
     private fun onDisconnected(callback: DisconnectedCallback) {
         Timber.i("Disconnected from Steam. User initiated: ${callback.isUserInitiated}")
 
@@ -1989,7 +1228,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         PluviaApp.events.emit(SteamEvent.Disconnected)
 
-        _steamClient!!.disconnect()
+        steamClient!!.disconnect()
     }
 
     /**
@@ -2017,7 +1256,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                 _unifiedChat = _unifiedMessages!!.createService(Chat::class.java)
 
                 // retrieve persona data of logged in user
-                requestUserPersona()
+                serviceScope.launch {
+                    requestUserPersona()
+                }
 
                 // since we automatically receive the license list from steam on log on
                 isReceivingLicenseList = true
@@ -2052,7 +1293,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (isLoggingOut || callback.result == EResult.LogonSessionReplaced) {
             performLogOffDuties()
 
-            CoroutineScope(Dispatchers.IO).launch {
+            serviceScope.launch {
                 stop()
             }
         } else if (callback.result == EResult.LoggedInElsewhere) {
@@ -2078,8 +1319,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         Timber.d("Nickname list called: ${callback.nicknames.size}")
         dbScope.launch {
             db.withTransaction {
-                db.steamFriendDao().clearAllNicknames()
-                db.steamFriendDao().updateNicknames(callback.nicknames)
+                friendDao.clearAllNicknames()
+                friendDao.updateNicknames(callback.nicknames)
             }
         }
     }
@@ -2094,7 +1335,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     }
                     .forEach { filteredFriend ->
                         val friendId = filteredFriend.steamID.convertToUInt64()
-                        val friend = db.steamFriendDao().findFriend(friendId).first()
+                        val friend = friendDao.findFriend(friendId).first()
 
                         if (friend == null) {
                             // Not in the DB, create them.
@@ -2103,10 +1344,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 relation = filteredFriend.relationship,
                             )
 
-                            db.steamFriendDao().insert(friendToAdd)
+                            friendDao.insert(friendToAdd)
                         } else {
                             // In the DB, update them.
-                            db.steamFriendDao().update(
+                            friendDao.update(
                                 friend.copy(relation = filteredFriend.relationship),
                             )
                         }
@@ -2114,10 +1355,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                 // Add logged in account if we don't exist yet.
                 val selfId = userSteamId!!.convertToUInt64()
-                val self = db.steamFriendDao().findFriend(selfId).first()
+                val self = friendDao.findFriend(selfId).first()
 
                 if (self == null) {
-                    db.steamFriendDao().insert(SteamFriend(id = selfId))
+                    friendDao.insert(SteamFriend(id = selfId))
                 }
             }
 
@@ -2144,14 +1385,14 @@ class SteamService : Service(), IChallengeUrlChanged {
         dbScope.launch {
             db.withTransaction {
                 val id = callback.friendID.convertToUInt64()
-                val friend = db.steamFriendDao().findFriend(id).first()
+                val friend = friendDao.findFriend(id).first()
 
                 if (friend == null) {
                     Timber.w("onPersonaStateReceived: failed to find friend to update: $id")
                     return@withTransaction
                 }
 
-                db.steamFriendDao().update(
+                friendDao.update(
                     friend.copy(
                         statusFlags = callback.statusFlags,
                         state = callback.state,
@@ -2177,12 +1418,12 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         // Send off an event if we change states.
-        if (callback.friendID == _steamClient!!.steamID) {
+        if (callback.friendID == steamClient!!.steamID) {
             Timber.d("Emitting PersonaStateReceived")
 
             dbScope.launch {
                 val id = callback.friendID.convertToUInt64()
-                val friend = db.steamFriendDao().findFriend(id).first()
+                val friend = friendDao.findFriend(id).first()
 
                 PluviaApp.events.emit(SteamEvent.PersonaStateReceived(friend))
             }
@@ -2257,37 +1498,6 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                 // logD("Received app ${app.id}")
 
-                val generateManifest: (List<KeyValue>) -> Map<String, ManifestInfo> = {
-                    val output = mutableMapOf<String, ManifestInfo>()
-
-                    for (manifest in it) {
-                        output[manifest.name] = ManifestInfo(
-                            name = manifest.name,
-                            gid = manifest["gid"].asLong(),
-                            size = manifest["size"].asLong(),
-                            download = manifest["download"].asLong(),
-                        )
-                    }
-
-                    output
-                }
-
-                val toLangImgMap: (List<KeyValue>) -> Map<Language, String> = { keyValues ->
-                    keyValues
-                        .map {
-                            val language: Language = try {
-                                Language.valueOf(it.name)
-                            } catch (_: Exception) {
-                                Timber.w("Language ${it.name} does not exist in enum")
-                                Language.unknown
-                            }
-
-                            Pair(language, it.value)
-                        }
-                        .filter { it.first != Language.unknown }
-                        .toMap()
-                }
-
                 val launchConfigs = app.keyValues["config"]["launch"].children
 
                 appInfo[app.id] = AppInfo(
@@ -2305,37 +1515,29 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                             // val currentDepot = app.keyValues["depots"]["$depotId"]
 
-                            val manifests = generateManifest(currentDepot["manifests"].children)
+                            val manifests = currentDepot["manifests"].children.generateManifest()
 
-                            val encryptedManifests = generateManifest(
-                                currentDepot["encryptedManifests"].children,
-                            )
+                            val encryptedManifests = currentDepot["encryptedManifests"].children.generateManifest()
 
-                            Pair(
-                                depotId,
-                                DepotInfo(
-                                    depotId = depotId,
-                                    dlcAppId = currentDepot["dlcappid"].asInteger(INVALID_APP_ID),
-                                    depotFromApp = currentDepot["depotfromapp"].asInteger(
-                                        INVALID_APP_ID,
-                                    ),
-                                    sharedInstall = currentDepot["sharedinstall"].asBoolean(),
-                                    osList = OS.from(currentDepot["config"]["oslist"].value),
-                                    osArch = OSArch.from(currentDepot["config"]["osarch"].value),
-                                    manifests = manifests,
-                                    encryptedManifests = encryptedManifests,
+                            depotId to DepotInfo(
+                                depotId = depotId,
+                                dlcAppId = currentDepot["dlcappid"].asInteger(INVALID_APP_ID),
+                                depotFromApp = currentDepot["depotfromapp"].asInteger(
+                                    INVALID_APP_ID,
                                 ),
+                                sharedInstall = currentDepot["sharedinstall"].asBoolean(),
+                                osList = OS.from(currentDepot["config"]["oslist"].value),
+                                osArch = OSArch.from(currentDepot["config"]["osarch"].value),
+                                manifests = manifests,
+                                encryptedManifests = encryptedManifests,
                             )
                         },
                     branches = app.keyValues["depots"]["branches"].children.associate {
-                        Pair(
-                            it.name,
-                            BranchInfo(
-                                name = it.name,
-                                buildId = it["buildid"].asLong(),
-                                pwdRequired = it["pwdrequired"].asBoolean(),
-                                timeUpdated = Date(it["timeupdated"].asLong() * 1000L),
-                            ),
+                        it.name to BranchInfo(
+                            name = it.name,
+                            buildId = it["buildid"].asLong(),
+                            pwdRequired = it["pwdrequired"].asBoolean(),
+                            timeUpdated = Date(it["timeupdated"].asLong() * 1000L),
                         )
                     },
                     name = app.keyValues["common"]["name"].value.orEmpty(),
@@ -2353,20 +1555,20 @@ class SteamService : Service(), IChallengeUrlChanged {
                     iconHash = app.keyValues["common"]["icon"].value.orEmpty(),
                     clientIconHash = app.keyValues["common"]["clienticon"].value.orEmpty(),
                     clientTgaHash = app.keyValues["common"]["clienttga"].value.orEmpty(),
-                    smallCapsule = toLangImgMap(app.keyValues["common"]["small_capsule"].children),
-                    headerImage = toLangImgMap(app.keyValues["common"]["header_image"].children),
+                    smallCapsule = app.keyValues["common"]["small_capsule"].children.toLangImgMap(),
+                    headerImage = app.keyValues["common"]["header_image"].children.toLangImgMap(),
                     libraryAssets = LibraryAssetsInfo(
                         libraryCapsule = LibraryCapsuleInfo(
-                            image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image"].children),
-                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_capsule"]["image2x"].children),
+                            image = app.keyValues["common"]["library_assets_full"]["library_capsule"]["image"].children.toLangImgMap(),
+                            image2x = app.keyValues["common"]["library_assets_full"]["library_capsule"]["image2x"].children.toLangImgMap(),
                         ),
                         libraryHero = LibraryHeroInfo(
-                            image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_hero"]["image"].children),
-                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_hero"]["image2x"].children),
+                            image = app.keyValues["common"]["library_assets_full"]["library_hero"]["image"].children.toLangImgMap(),
+                            image2x = app.keyValues["common"]["library_assets_full"]["library_hero"]["image2x"].children.toLangImgMap(),
                         ),
                         libraryLogo = LibraryLogoInfo(
-                            image = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_logo"]["image"].children),
-                            image2x = toLangImgMap(app.keyValues["common"]["library_assets_full"]["library_logo"]["image2x"].children),
+                            image = app.keyValues["common"]["library_assets_full"]["library_logo"]["image"].children.toLangImgMap(),
+                            image2x = app.keyValues["common"]["library_assets_full"]["library_logo"]["image2x"].children.toLangImgMap(),
                         ),
                     ),
                     primaryGenre = app.keyValues["common"]["primary_genre"].asBoolean(),
