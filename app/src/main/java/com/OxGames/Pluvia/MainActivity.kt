@@ -59,6 +59,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private val onStartOrientator: (AndroidEvent.StartOrientator) -> Unit = {
+        // TODO: When rotating the device on login screen:
+        //  StrictMode policy violation: android.os.strictmode.LeakedClosableViolation: A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
         startOrientator()
     }
 
@@ -128,8 +130,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        Timber.d("onDestroy - Index: $index")
-
         PluviaApp.events.emit(AndroidEvent.ActivityDestroyed)
 
         PluviaApp.events.off<AndroidEvent.SetSystemUIVisibility, Unit>(onSetSystemUi)
@@ -137,7 +137,16 @@ class MainActivity : ComponentActivity() {
         PluviaApp.events.off<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
         PluviaApp.events.off<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
-        if (SteamService.isConnected && !SteamService.isLoggedIn) {
+        Timber.d(
+            "onDestroy - Index: %d, Connected: %b, Logged-In: %b, Changing-Config: %b",
+            index,
+            SteamService.isConnected,
+            SteamService.isLoggedIn,
+            isChangingConfigurations,
+        )
+
+        if (SteamService.isConnected && !SteamService.isLoggedIn && !isChangingConfigurations) {
+            Timber.i("Stopping Steam Service")
             SteamService.stop()
         }
     }
