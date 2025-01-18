@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.enums
 
 import android.content.Context
-import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.service.SteamService
 import com.winlator.xenvironment.ImageFs
 import java.nio.file.Paths
 import timber.log.Timber

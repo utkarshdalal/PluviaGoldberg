@@ -2,7 +2,7 @@ package com.OxGames.Pluvia.utils
 
 import android.content.Context
 import com.OxGames.Pluvia.PrefManager
-import com.OxGames.Pluvia.SteamService
+import com.OxGames.Pluvia.service.SteamService
 import com.winlator.container.Container
 import com.winlator.container.ContainerData
 import com.winlator.container.ContainerManager

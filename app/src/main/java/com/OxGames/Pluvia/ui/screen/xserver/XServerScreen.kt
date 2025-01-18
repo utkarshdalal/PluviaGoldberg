@@ -24,10 +24,10 @@ import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.R
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.XServerState
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.winlator.container.Container
