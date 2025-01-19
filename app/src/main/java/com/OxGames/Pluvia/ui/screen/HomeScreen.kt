@@ -155,7 +155,7 @@ private fun Preview_HomeScreenContent() {
         HomeScreenContent(
             destination = destination,
             onDestination = { destination = it },
-            onClickPlay = { appId, asContainer -> },
+            onClickPlay = { _, _ -> },
             onSettings = {},
             onLogout = {},
         )

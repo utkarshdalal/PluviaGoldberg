@@ -209,7 +209,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         var isLoggingOut: Boolean = false
             private set
         val isLoggedIn: Boolean
-            get() = instance?.steamClient?.steamID?.run { isValid } == true
+            get() = instance?.steamClient?.steamID?.isValid == true
         var isWaitingForQRAuth: Boolean = false
             private set
         var isReceivingLicenseList: Boolean = false
@@ -900,8 +900,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                             authPollResult.refreshToken,
                             authPollResult.newGuardData ?: "No new guard data",
                         )
-                    } else {
-                        // logD("AuthPollResult is null")
                     }
 
                     delay(authSession.pollingInterval.toLong())
