@@ -57,6 +57,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.LoginScreen
@@ -75,11 +76,11 @@ fun UserLoginScreen(
         userLoginState = userLoginState,
         onUsername = viewModel::setUsername,
         onPassword = viewModel::setPassword,
-        onShowLoginScreen = viewModel::setShowLoginScreen,
+        onShowLoginScreen = viewModel::onShowLoginScreen,
         onRememberPassword = viewModel::setRememberPass,
         onCredentialLogin = viewModel::onCredentialLogin,
         onTwoFactorLogin = viewModel::submit,
-        onRetry = viewModel::onRetry,
+        onQrRetry = viewModel::onQrRetry,
         onSetTwoFactor = viewModel::setTwoFactorCode,
     )
 }
@@ -94,7 +95,7 @@ private fun UserLoginScreenContent(
     onRememberPassword: (Boolean) -> Unit,
     onCredentialLogin: () -> Unit,
     onTwoFactorLogin: () -> Unit,
-    onRetry: () -> Unit,
+    onQrRetry: () -> Unit,
     onSetTwoFactor: (String) -> Unit,
 ) {
     Scaffold(
@@ -106,11 +107,9 @@ private fun UserLoginScreenContent(
                 actions = {
                     val uriHandler = LocalUriHandler.current
                     IconButton(
-                        onClick = {
-                            uriHandler.openUri("https://github.com/oxters168/Pluvia/tree/master/PrivacyPolicy")
-                        },
-
-                    ) { Icon(imageVector = Icons.Filled.PrivacyTip, contentDescription = "Privacy policy") }
+                        onClick = { uriHandler.openUri(Constants.Misc.PRIVACY_LINK) },
+                        content = { Icon(imageVector = Icons.Filled.PrivacyTip, contentDescription = "Privacy policy") },
+                    )
                 },
             )
         },
@@ -152,12 +151,13 @@ private fun UserLoginScreenContent(
             }
         },
     ) { paddingValues ->
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
                 .imePadding()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -215,7 +215,7 @@ private fun UserLoginScreenContent(
                                 verticalArrangement = Arrangement.Center,
                             ) {
                                 if (userLoginState.isQrFailed) {
-                                    ElevatedButton(onClick = onRetry) { Text("Retry") }
+                                    ElevatedButton(onClick = onQrRetry) { Text(text = "Retry") }
                                 } else if (userLoginState.qrCode.isNullOrEmpty()) {
                                     CircularProgressIndicator()
                                 } else {
@@ -254,7 +254,7 @@ private fun UsernamePassword(
             value = username,
             singleLine = true,
             onValueChange = onUsername,
-            label = { Text("Username") },
+            label = { Text(text = "Username") },
         )
         OutlinedTextField(
             value = password,
@@ -262,7 +262,7 @@ private fun UsernamePassword(
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             onValueChange = onPassword,
-            label = { Text("Password") },
+            label = { Text(text = "Password") },
             trailingIcon = {
                 val image = if (passwordVisible) {
                     Icons.Filled.Visibility
@@ -273,7 +273,7 @@ private fun UsernamePassword(
                 val description = if (passwordVisible) "Hide password" else "Show password"
 
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, description)
+                    Icon(imageVector = image, contentDescription = description)
                 }
             },
         )
@@ -299,11 +299,7 @@ private fun UsernamePassword(
 internal class UserLoginPreview : PreviewParameterProvider<UserLoginState> {
     override val values: Sequence<UserLoginState> = sequenceOf(
         UserLoginState(isSteamConnected = true),
-        UserLoginState(
-            isSteamConnected = true,
-            loginScreen = LoginScreen.QR,
-            qrCode = "Hello World!",
-        ),
+        UserLoginState(isSteamConnected = true, loginScreen = LoginScreen.QR, qrCode = "Hello World!"),
         UserLoginState(isSteamConnected = true, loginScreen = LoginScreen.QR, isQrFailed = true),
         UserLoginState(isSteamConnected = false),
     )
@@ -323,7 +319,7 @@ private fun Preview_UserLoginScreen(
                 onRememberPassword = { },
                 onCredentialLogin = { },
                 onTwoFactorLogin = { },
-                onRetry = { },
+                onQrRetry = { },
                 onSetTwoFactor = { },
                 onShowLoginScreen = { },
             )

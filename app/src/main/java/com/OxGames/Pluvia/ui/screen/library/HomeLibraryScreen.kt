@@ -197,7 +197,7 @@ private fun LibrarySearchBar(
     val internalSearchText = remember { MutableStateFlow(state.searchQuery) }
     LaunchedEffect(Unit) {
         internalSearchText.debounce(500).collect {
-            Timber.d("Debounced")
+            Timber.d("Debounced: Scrolling to top")
             listState.scrollToItem(0)
         }
     }
