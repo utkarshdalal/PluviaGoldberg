@@ -958,9 +958,14 @@ class SteamService : Service(), IChallengeUrlChanged {
         private fun clearUserData() {
             PrefManager.clearPreferences()
 
-            instance!!.serviceScope.launch {
-                instance?.changeNumbersDao?.deleteAll()
-                instance?.fileChangeListsDao?.deleteAll()
+            with(instance!!) {
+                serviceScope.launch {
+                    changeNumbersDao.deleteAll()
+                    fileChangeListsDao.deleteAll()
+                }
+
+                appInfo.clear()
+                packageInfo.clear()
             }
 
             isLoggingIn = false
@@ -1244,6 +1249,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         when (callback.result) {
             EResult.TryAnotherCM -> {
+                _loginResult = LoginResult.Failed
                 reconnect()
             }
 
