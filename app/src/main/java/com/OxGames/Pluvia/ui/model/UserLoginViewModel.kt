@@ -147,7 +147,13 @@ class UserLoginViewModel : ViewModel() {
     private val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
         Timber.i("Received logged out")
         _loginState.update {
-            it.copy(isSteamConnected = false, isLoggingIn = false, isQrFailed = false, loginResult = LoginResult.Failed)
+            it.copy(
+                isSteamConnected = false,
+                isLoggingIn = false,
+                isQrFailed = false,
+                loginResult = LoginResult.Failed,
+                loginScreen = LoginScreen.CREDENTIAL,
+            )
         }
     }
 
