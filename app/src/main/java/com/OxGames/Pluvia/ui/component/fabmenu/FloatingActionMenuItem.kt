@@ -1,7 +1,9 @@
 package com.OxGames.Pluvia.ui.component.fabmenu
 
+import android.content.res.Configuration
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -26,6 +28,7 @@ fun FloatingActionMenuItem(
     labelText: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isSelected: Boolean = false,
     shape: Shape = FloatingActionButtonDefaults.smallShape,
     containerColor: Color = FloatingActionButtonDefaults.containerColor,
     contentColor: Color = contentColorFor(containerColor),
@@ -40,7 +43,7 @@ fun FloatingActionMenuItem(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FloatingActionMenuLabel(label = labelText)
+        FloatingActionMenuLabel(label = labelText, isSelected = isSelected)
 
         SmallFloatingActionButton(
             onClick = onClick,
@@ -54,16 +57,26 @@ fun FloatingActionMenuItem(
     }
 }
 
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview
 @Composable
 private fun Preview_FloatingActionMenuItem() {
     PluviaTheme {
         Surface {
-            FloatingActionMenuItem(
-                labelText = "Hello World",
-                onClick = { },
-                content = { Icon(Icons.Filled.SortByAlpha, null) },
-            )
+            Column {
+                FloatingActionMenuItem(
+                    labelText = "Hello World",
+                    isSelected = true,
+                    onClick = { },
+                    content = { Icon(Icons.Filled.SortByAlpha, null) },
+                )
+                FloatingActionMenuItem(
+                    labelText = "Hello World",
+                    isSelected = false,
+                    onClick = { },
+                    content = { Icon(Icons.Filled.SortByAlpha, null) },
+                )
+            }
         }
     }
 }
