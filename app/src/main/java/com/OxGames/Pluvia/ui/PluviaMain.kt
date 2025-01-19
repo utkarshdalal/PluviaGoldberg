@@ -389,7 +389,7 @@ fun PluviaMain(
                         viewModel.setBootToContainer(asContainer)
                         preLaunchApp(
                             context = context,
-                            appId = state.launchedAppId,
+                            appId = launchAppId,
                             setLoadingDialogVisible = viewModel::setLoadingDialogVisible,
                             setLoadingProgress = viewModel::setLoadingDialogProgress,
                             setMessageDialogState = { msgDialogState = it },
