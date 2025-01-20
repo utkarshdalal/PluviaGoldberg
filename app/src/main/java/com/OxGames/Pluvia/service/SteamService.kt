@@ -60,9 +60,7 @@ import `in`.dragonbra.javasteam.enums.EPaymentMethod
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
-import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesChatSteamclient.CChat_RequestFriendPersonaStates_Request
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
-import `in`.dragonbra.javasteam.rpc.service.Chat
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
 import `in`.dragonbra.javasteam.steam.authentication.AuthenticationException
@@ -86,7 +84,6 @@ import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStat
 import `in`.dragonbra.javasteam.steam.handlers.steamgameserver.SteamGameServer
 import `in`.dragonbra.javasteam.steam.handlers.steammasterserver.SteamMasterServer
 import `in`.dragonbra.javasteam.steam.handlers.steamscreenshots.SteamScreenshots
-import `in`.dragonbra.javasteam.steam.handlers.steamunifiedmessages.SteamUnifiedMessages
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
@@ -149,16 +146,14 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private lateinit var notificationHelper: NotificationHelper
 
-    private var _callbackManager: CallbackManager? = null
-
+    internal var callbackManager: CallbackManager? = null
     internal var steamClient: SteamClient? = null
 
+    private var _unifiedFriends: SteamUnifiedFriends? = null
     private var _steamUser: SteamUser? = null
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
     private var _steamCloud: SteamCloud? = null
-    private var _unifiedMessages: SteamUnifiedMessages? = null
-    private var _unifiedChat: Chat? = null
 
     private val _callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
@@ -368,7 +363,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         SplitInstallSessionStatus.INSTALLING,
                         SplitInstallSessionStatus.DOWNLOADED,
                         SplitInstallSessionStatus.DOWNLOADING,
-                        -> {
+                            -> {
                             if (!isActive) {
                                 Timber.i("ubuntufs module download cancelling due to scope becoming inactive")
                                 splitManager.requestCancelInstall(moduleInstallSessionId)
@@ -1051,8 +1046,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             steamClient!!.removeHandler(SteamUserStats::class.java)
 
             // create the callback manager which will route callbacks to function calls
-            _callbackManager = CallbackManager(steamClient!!)
-            _unifiedMessages = steamClient!!.getHandler<SteamUnifiedMessages>()
+            callbackManager = CallbackManager(steamClient!!)
 
             // get the different handlers to be used throughout the service
             _steamUser = steamClient!!.getHandler(SteamUser::class.java)
@@ -1060,9 +1054,11 @@ class SteamService : Service(), IChallengeUrlChanged {
             _steamFriends = steamClient!!.getHandler(SteamFriends::class.java)
             _steamCloud = steamClient!!.getHandler(SteamCloud::class.java)
 
+            _unifiedFriends = SteamUnifiedFriends(this)
+
             // subscribe to the callbacks we are interested in
             with(_callbackSubscriptions) {
-                with(_callbackManager!!) {
+                with(callbackManager!!) {
                     add(subscribe(ConnectedCallback::class.java, ::onConnected))
                     add(subscribe(DisconnectedCallback::class.java, ::onDisconnected))
                     add(subscribe(LoggedOnCallback::class.java, ::onLoggedOn))
@@ -1087,7 +1083,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // logD("runWaitCallbacks")
 
                     try {
-                        _callbackManager!!.runWaitCallbacks(1000L)
+                        callbackManager!!.runWaitCallbacks(1000L)
                     } catch (e: Exception) {
                         Timber.e("runWaitCallbacks failed: $e")
                     }
@@ -1187,10 +1183,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         _callbackSubscriptions.clear()
-        _callbackManager = null
+        callbackManager = null
 
-        _unifiedMessages = null
-        _unifiedChat = null
+        _unifiedFriends?.close()
+        _unifiedFriends = null
 
         packageInfo.clear()
         appInfo.clear()
@@ -1259,14 +1255,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         steamClient!!.disconnect()
     }
 
-    /**
-     * Request a fresh state of Friend's PersonaStates
-     */
-    private fun refreshPersonaStates() {
-        val request = CChat_RequestFriendPersonaStates_Request.newBuilder().build()
-        _unifiedChat?.requestFriendPersonaStates(request)
-    }
-
     private fun onLoggedOn(callback: LoggedOnCallback) {
         Timber.i("Logged onto Steam: ${callback.result}")
 
@@ -1280,9 +1268,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
                 // servers from the Steam Directory.
                 PrefManager.cellId = callback.cellID
-
-                // Create Unified Handlers
-                _unifiedChat = _unifiedMessages!!.createService(Chat::class.java)
 
                 // retrieve persona data of logged in user
                 serviceScope.launch {
@@ -1393,7 +1378,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             // NOTE: Our UI could load too quickly on fresh database, our icon will be "?"
             //  unless relaunched or we nav to a new screen.
-            refreshPersonaStates()
+            _unifiedFriends?.refreshPersonaStates()
         }
     }
 
