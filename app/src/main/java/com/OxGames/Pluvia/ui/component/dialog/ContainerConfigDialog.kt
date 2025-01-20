@@ -653,7 +653,7 @@ private fun winComponentsItemTitle(string: String): String {
         "directx" -> R.string.directx
         "vcrun2010" -> R.string.vcrun2010
         "wmdecoder" -> R.string.wmdecoder
-        else -> throw IllegalArgumentException("No string res found for Win Components title")
+        else -> throw IllegalArgumentException("No string res found for Win Components title: $string")
     }
     return stringResource(resource)
 }
