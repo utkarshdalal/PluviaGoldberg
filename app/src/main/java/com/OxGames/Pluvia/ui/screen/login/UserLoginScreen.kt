@@ -2,7 +2,6 @@ package com.OxGames.Pluvia.ui.screen.login
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,11 +12,14 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -54,10 +56,9 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.R
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.LoginScreen
 import com.OxGames.Pluvia.ui.component.LoadingScreen
@@ -67,8 +68,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 @Composable
 fun UserLoginScreen(
-    viewModel: UserLoginViewModel,
-    lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
+    viewModel: UserLoginViewModel = viewModel(),
 ) {
     val userLoginState by viewModel.loginState.collectAsState()
 
@@ -76,22 +76,11 @@ fun UserLoginScreen(
         userLoginState = userLoginState,
         onUsername = viewModel::setUsername,
         onPassword = viewModel::setPassword,
-        onShowLoginScreen = viewModel::setShowLoginScreen,
+        onShowLoginScreen = viewModel::onShowLoginScreen,
         onRememberPassword = viewModel::setRememberPass,
-        onCredentialLogin = {
-            if (userLoginState.username.isNotEmpty() &&
-                userLoginState.password.isNotEmpty()
-            ) {
-                SteamService.startLoginWithCredentials(
-                    username = userLoginState.username,
-                    password = userLoginState.password,
-                    shouldRememberPassword = userLoginState.rememberPass,
-                    authenticator = viewModel.authenticator,
-                )
-            }
-        },
-        onTwoFacorLogin = viewModel::submit,
-        onRetry = viewModel::onRetry,
+        onCredentialLogin = viewModel::onCredentialLogin,
+        onTwoFactorLogin = viewModel::submit,
+        onQrRetry = viewModel::onQrRetry,
         onSetTwoFactor = viewModel::setTwoFactorCode,
     )
 }
@@ -105,8 +94,8 @@ private fun UserLoginScreenContent(
     onShowLoginScreen: (LoginScreen) -> Unit,
     onRememberPassword: (Boolean) -> Unit,
     onCredentialLogin: () -> Unit,
-    onTwoFacorLogin: () -> Unit,
-    onRetry: () -> Unit,
+    onTwoFactorLogin: () -> Unit,
+    onQrRetry: () -> Unit,
     onSetTwoFactor: (String) -> Unit,
 ) {
     Scaffold(
@@ -118,11 +107,9 @@ private fun UserLoginScreenContent(
                 actions = {
                     val uriHandler = LocalUriHandler.current
                     IconButton(
-                        onClick = {
-                            uriHandler.openUri("https://github.com/oxters168/Pluvia/tree/master/PrivacyPolicy")
-                        },
-
-                    ) { Icon(imageVector = Icons.Filled.PrivacyTip, contentDescription = "Privacy policy") }
+                        onClick = { uriHandler.openUri(Constants.Misc.PRIVACY_LINK) },
+                        content = { Icon(imageVector = Icons.Filled.PrivacyTip, contentDescription = "Privacy policy") },
+                    )
                 },
             )
         },
@@ -164,11 +151,15 @@ private fun UserLoginScreenContent(
             }
         },
     ) { paddingValues ->
-        Box(
+        val scrollState = rememberScrollState()
+        Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center,
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(scrollState),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (userLoginState.isSteamConnected &&
                 userLoginState.isLoggingIn.not() &&
@@ -213,7 +204,7 @@ private fun UserLoginScreenContent(
                                     else -> ""
                                 },
                                 onSetTwoFactor = onSetTwoFactor,
-                                onLogin = onTwoFacorLogin,
+                                onLogin = onTwoFactorLogin,
                             )
                         }
 
@@ -224,7 +215,7 @@ private fun UserLoginScreenContent(
                                 verticalArrangement = Arrangement.Center,
                             ) {
                                 if (userLoginState.isQrFailed) {
-                                    ElevatedButton(onClick = onRetry) { Text("Retry") }
+                                    ElevatedButton(onClick = onQrRetry) { Text(text = "Retry") }
                                 } else if (userLoginState.qrCode.isNullOrEmpty()) {
                                     CircularProgressIndicator()
                                 } else {
@@ -263,7 +254,7 @@ private fun UsernamePassword(
             value = username,
             singleLine = true,
             onValueChange = onUsername,
-            label = { Text("Username") },
+            label = { Text(text = "Username") },
         )
         OutlinedTextField(
             value = password,
@@ -271,7 +262,7 @@ private fun UsernamePassword(
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             onValueChange = onPassword,
-            label = { Text("Password") },
+            label = { Text(text = "Password") },
             trailingIcon = {
                 val image = if (passwordVisible) {
                     Icons.Filled.Visibility
@@ -282,7 +273,7 @@ private fun UsernamePassword(
                 val description = if (passwordVisible) "Hide password" else "Show password"
 
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, description)
+                    Icon(imageVector = image, contentDescription = description)
                 }
             },
         )
@@ -308,11 +299,7 @@ private fun UsernamePassword(
 internal class UserLoginPreview : PreviewParameterProvider<UserLoginState> {
     override val values: Sequence<UserLoginState> = sequenceOf(
         UserLoginState(isSteamConnected = true),
-        UserLoginState(
-            isSteamConnected = true,
-            loginScreen = LoginScreen.QR,
-            qrCode = "Hello World!",
-        ),
+        UserLoginState(isSteamConnected = true, loginScreen = LoginScreen.QR, qrCode = "Hello World!"),
         UserLoginState(isSteamConnected = true, loginScreen = LoginScreen.QR, isQrFailed = true),
         UserLoginState(isSteamConnected = false),
     )
@@ -331,8 +318,8 @@ private fun Preview_UserLoginScreen(
                 onPassword = { },
                 onRememberPassword = { },
                 onCredentialLogin = { },
-                onTwoFacorLogin = { },
-                onRetry = { },
+                onTwoFactorLogin = { },
+                onQrRetry = { },
                 onSetTwoFactor = { },
                 onShowLoginScreen = { },
             )

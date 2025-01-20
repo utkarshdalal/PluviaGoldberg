@@ -3,11 +3,11 @@ package com.OxGames.Pluvia.ui.model
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.PluviaApp
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.LoginScreen
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.UserLoginState
 import `in`.dragonbra.javasteam.steam.authentication.IAuthenticator
 import java.util.concurrent.CompletableFuture
@@ -25,7 +25,7 @@ class UserLoginViewModel : ViewModel() {
 
     private val submitChannel = Channel<String>()
 
-    val authenticator = object : IAuthenticator {
+    private val authenticator = object : IAuthenticator {
         override fun acceptDeviceConfirmation(): CompletableFuture<Boolean> {
             Timber.i("Two-Factor, device confirmation")
 
@@ -117,9 +117,11 @@ class UserLoginViewModel : ViewModel() {
                 loginResult = it.loginResult,
             )
         }
-        if (it.loginResult != LoginResult.Success) {
-            SteamService.startLoginWithQr()
-        }
+
+        // Why is this here? - Lossy Jan 17 2025
+        // if (it.loginResult != LoginResult.Success) {
+        //     SteamService.startLoginWithQr()
+        // }
     }
 
     private val onBackPressed: (AndroidEvent.BackPressed) -> Unit = {
@@ -132,7 +134,7 @@ class UserLoginViewModel : ViewModel() {
 
     private val onQrChallengeReceived: (SteamEvent.QrChallengeReceived) -> Unit = {
         _loginState.update { currentState ->
-            currentState.copy(qrCode = it.challengeUrl)
+            currentState.copy(isQrFailed = false, qrCode = it.challengeUrl)
         }
     }
 
@@ -142,8 +144,21 @@ class UserLoginViewModel : ViewModel() {
         }
     }
 
+    private val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
+        Timber.i("Received logged out")
+        _loginState.update {
+            it.copy(
+                isSteamConnected = false,
+                isLoggingIn = false,
+                isQrFailed = false,
+                loginResult = LoginResult.Failed,
+                loginScreen = LoginScreen.CREDENTIAL,
+            )
+        }
+    }
+
     init {
-        onRetry()
+        Timber.d("init")
 
         PluviaApp.events.on<SteamEvent.Connected, Unit>(onSteamConnected)
         PluviaApp.events.on<SteamEvent.Disconnected, Unit>(onSteamDisconnected)
@@ -152,6 +167,20 @@ class UserLoginViewModel : ViewModel() {
         PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
         PluviaApp.events.on<SteamEvent.QrChallengeReceived, Unit>(onQrChallengeReceived)
         PluviaApp.events.on<SteamEvent.QrAuthEnded, Unit>(onQrAuthEnded)
+        PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
+
+        val isLoggedIn = SteamService.isLoggedIn
+        val isSteamConnected = SteamService.isConnected
+        Timber.d("Logged in? $isLoggedIn")
+        if (isLoggedIn) {
+            _loginState.update {
+                it.copy(isSteamConnected = isSteamConnected, isLoggingIn = true, isQrFailed = false, loginResult = LoginResult.Success)
+            }
+        } else {
+            _loginState.update {
+                it.copy(isSteamConnected = isSteamConnected, isLoggingIn = false, isQrFailed = false, loginResult = LoginResult.Failed)
+            }
+        }
     }
 
     override fun onCleared() {
@@ -164,8 +193,26 @@ class UserLoginViewModel : ViewModel() {
         PluviaApp.events.off<AndroidEvent.BackPressed, Unit>(onBackPressed)
         PluviaApp.events.off<SteamEvent.QrChallengeReceived, Unit>(onQrChallengeReceived)
         PluviaApp.events.off<SteamEvent.QrAuthEnded, Unit>(onQrAuthEnded)
+        PluviaApp.events.off<SteamEvent.LoggedOut, Unit>(onLoggedOut)
 
         SteamService.stopLoginWithQr()
+    }
+
+    fun onCredentialLogin() {
+        with(_loginState.value) {
+            if (username.isEmpty() && password.isEmpty()) {
+                return@with
+            }
+
+            viewModelScope.launch {
+                SteamService.startLoginWithCredentials(
+                    username = username,
+                    password = password,
+                    shouldRememberPassword = rememberPass,
+                    authenticator = authenticator,
+                )
+            }
+        }
     }
 
     fun submit() {
@@ -178,34 +225,15 @@ class UserLoginViewModel : ViewModel() {
         }
     }
 
-    fun onRetry() {
-        _loginState.update { currentState ->
-            if (SteamService.isLoggedIn) {
-                // TODO: Can this be handled better?
-                // We're already logged in when 'onRetry' is called on 'init'. Show loading screen.
-                currentState.copy(
-                    isSteamConnected = SteamService.isConnected,
-                    isLoggingIn = true,
-                    loginResult = LoginResult.Success,
-                )
-            } else {
-                currentState.copy(
-                    isSteamConnected = SteamService.isConnected,
-                    isLoggingIn = SteamService.isLoggingIn,
-                    attemptCount = currentState.attemptCount.plus(1),
-                    isQrFailed = false,
-                )
-            }
-        }
+    fun onQrRetry() {
+        viewModelScope.launch { SteamService.startLoginWithQr() }
     }
 
-    fun setShowLoginScreen(loginScreen: LoginScreen) {
-        onRetry()
-
-        if (loginScreen == LoginScreen.QR) {
-            SteamService.startLoginWithQr()
-        } else {
-            SteamService.stopLoginWithQr()
+    fun onShowLoginScreen(loginScreen: LoginScreen) {
+        when (loginScreen) {
+            LoginScreen.CREDENTIAL -> SteamService.stopLoginWithQr()
+            LoginScreen.QR -> viewModelScope.launch { SteamService.startLoginWithQr() }
+            else -> Timber.w("onShowLoginScreen ended up in an unknown state: ${loginScreen.name}")
         }
 
         _loginState.update { currentState ->

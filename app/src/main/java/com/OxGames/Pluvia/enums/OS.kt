@@ -12,18 +12,19 @@ enum class OS {
 
     companion object {
         fun from(keyValue: String?): EnumSet<OS> {
-            val osses = EnumSet.noneOf(OS::class.java)
-            osses.addAll(
-                (keyValue ?: "none").split(',').filter { it.isNotEmpty() }.map {
+            val osses = keyValue?.takeUnless { it.isEmpty() }
+                ?.split(',')
+                ?.map {
                     try {
                         OS.valueOf(it.trim())
                     } catch (_: Exception) {
-                        Timber.e("Could not identify OS $it")
+                        Timber.w("Could not identify OS $it")
                         none
                     }
-                },
-            )
-            return osses
+                }
+                ?.toCollection(EnumSet.noneOf(OS::class.java))
+
+            return osses ?: EnumSet.of(none)
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia
+package com.OxGames.Pluvia.service
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -9,8 +9,11 @@ import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
+import com.OxGames.Pluvia.MainActivity
+import com.OxGames.Pluvia.R
 
 class NotificationHelper(private val context: Context) {
+
     companion object {
         private const val CHANNEL_ID = "pluvia_foreground_service"
         private const val CHANNEL_NAME = "Pluvia Foreground Service"

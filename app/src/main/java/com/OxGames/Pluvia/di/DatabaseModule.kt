@@ -28,4 +28,12 @@ class DatabaseModule {
     @Provides
     @Singleton
     fun provideSteamFriendDao(db: PluviaDatabase) = db.steamFriendDao()
+
+    @Provides
+    @Singleton
+    fun provideAppChangeNumbersDao(db: PluviaDatabase) = db.appChangeNumbersDao()
+
+    @Provides
+    @Singleton
+    fun provideAppFileChangeListsDao(db: PluviaDatabase) = db.appFileChangeListsDao()
 }

@@ -18,10 +18,10 @@ import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
+import com.OxGames.Pluvia.utils.getAvatarURL
 import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
@@ -77,7 +77,7 @@ fun FriendItem(
             }
         },
         leadingContent = {
-            ListItemImage { SteamService.getAvatarURL(friend.avatarHash) }
+            ListItemImage { friend.avatarHash.getAvatarURL() }
         },
     )
 }
