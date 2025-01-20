@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -465,7 +466,7 @@ fun ContainerConfigDialog(
                         SettingsGroup(title = { Text(text = "Win Components") }) {
                             for (wincomponent in KeyValueSet(config.wincomponents)) {
                                 val compId = wincomponent[0]
-                                val compName = StringUtils.getString(context, compId)
+                                val compName = winComponentsItemTitle(compId)
                                 val compValue = wincomponent[1].toInt()
                                 SettingsListDropdown(
                                     title = { Text(compName) },
@@ -636,4 +637,23 @@ fun ContainerConfigDialog(
             },
         )
     }
+}
+
+/**
+ * Gets the component title for Win Components settings group.
+ */
+@Composable
+private fun winComponentsItemTitle(string: String): String {
+    val resource = when (string) {
+        "direct3d" -> R.string.direct3d
+        "directsound" -> R.string.directsound
+        "directmusic" -> R.string.directmusic
+        "directplay" -> R.string.directplay
+        "directshow" -> R.string.directshow
+        "directx" -> R.string.directx
+        "vcrun2010" -> R.string.vcrun2010
+        "wmdecoder" -> R.string.wmdecoder
+        else -> throw IllegalArgumentException("No string res found for Win Components title: $string")
+    }
+    return stringResource(resource)
 }
