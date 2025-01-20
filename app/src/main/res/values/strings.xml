@@ -38,6 +38,7 @@
     <string name="performance">Performance</string>
     <string name="title_ubuntufs">Ubuntu FS</string>
 
+    <!-- Winlator: Win Components -->
     <string name="direct3d">Direct3D</string>
     <string name="directsound">DirectSound</string>
     <string name="directmusic">DirectMusic</string>
