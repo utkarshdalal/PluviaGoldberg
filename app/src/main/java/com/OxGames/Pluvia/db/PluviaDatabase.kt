@@ -31,7 +31,7 @@ abstract class PluviaDatabase : RoomDatabase() {
 
     abstract fun steamFriendDao(): SteamFriendDao
 
-    abstract fun appChangeNumbers(): ChangeNumbersDao
+    abstract fun appChangeNumbersDao(): ChangeNumbersDao
 
-    abstract fun appFileChangeLists(): FileChangeListsDao
+    abstract fun appFileChangeListsDao(): FileChangeListsDao
 }

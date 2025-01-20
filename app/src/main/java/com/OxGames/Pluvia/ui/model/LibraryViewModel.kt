@@ -2,9 +2,9 @@ package com.OxGames.Pluvia.ui.model
 
 import androidx.lifecycle.ViewModel
 import com.OxGames.Pluvia.PluviaApp
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.FabFilter
 import java.util.EnumSet
@@ -34,18 +34,22 @@ class LibraryViewModel : ViewModel() {
         PluviaApp.events.off<SteamEvent.AppInfoReceived, Unit>(onAppInfoReceived)
     }
 
-    fun onFabFilter(filter: FabFilter) {
-        _state.update { currentValue ->
-            when (filter) {
-                FabFilter.SEARCH -> {
-                    Timber.w("Search not implemented!")
-                    currentValue.copy()
-                }
+    fun onIsSearching(value: Boolean) {
+        _state.update { it.copy(isSearching = value) }
 
-                FabFilter.INSTALLED -> currentValue.copy(searchInstalled = !currentValue.searchInstalled)
-                FabFilter.ALPHABETIC -> currentValue.copy(searchAlphabetic = !currentValue.searchAlphabetic)
-            }
+        if (!value) {
+            getAppList()
         }
+    }
+
+    fun onSearchQuery(value: String) {
+        _state.update { it.copy(searchQuery = value) }
+
+        getAppList()
+    }
+
+    fun onFabFilter(value: FabFilter) {
+        _state.update { it.copy(appInfoSortType = value) }
 
         getAppList()
     }
@@ -53,10 +57,10 @@ class LibraryViewModel : ViewModel() {
     private fun getAppList() {
         val list = with(state.value) {
             SteamService.getAppList(EnumSet.of(AppType.game))
-                .filter { if (searchInstalled) SteamService.isAppInstalled(it.appId) else true }
-                .filter { it.name.contains(searchText, true) }
+                .filter { if (appInfoSortType == FabFilter.INSTALLED) SteamService.isAppInstalled(it.appId) else true }
+                .filter { it.name.contains(searchQuery, true) }
                 .let {
-                    if (searchAlphabetic) {
+                    if (appInfoSortType == FabFilter.ALPHABETIC) {
                         it.sortedBy { appInfo -> appInfo.name }
                     } else {
                         it.sortedBy { appInfo -> appInfo.receiveIndex }.reversed()

@@ -12,9 +12,8 @@ enum class Orientation(val activityInfoValue: Int, val angleRanges: Array<IntRan
     ;
 
     companion object {
-        fun fromActivityInfoValue(value: Int): Orientation {
-            return Orientation.entries.firstOrNull { it.activityInfoValue == value } ?: UNSPECIFIED
-        }
+        fun fromActivityInfoValue(value: Int): Orientation =
+            Orientation.entries.firstOrNull { it.activityInfoValue == value } ?: UNSPECIFIED
 
         fun toInt(flags: EnumSet<Orientation>): Int =
             flags.fold(0) { acc, flag -> acc or (1 shl flag.ordinal) }

@@ -16,7 +16,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
@@ -68,6 +70,8 @@ private fun SettingsScreenContent(
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
 private fun Preview_SettingsScreen() {
+    val context = LocalContext.current
+    PrefManager.init(context)
     PluviaTheme {
         SettingsScreenContent(
             onBack = {},

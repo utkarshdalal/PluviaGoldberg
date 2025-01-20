@@ -26,6 +26,7 @@ import coil.memory.MemoryCache
 import coil.request.CachePolicy
 import coil.util.DebugLogger
 import com.OxGames.Pluvia.events.AndroidEvent
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.utils.IconDecoder
@@ -34,7 +35,6 @@ import com.winlator.core.AppUtils
 import dagger.hilt.android.AndroidEntryPoint
 import java.util.EnumSet
 import kotlin.math.abs
-import kotlin.math.min
 import okio.Path.Companion.toOkioPath
 import timber.log.Timber
 
@@ -59,6 +59,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private val onStartOrientator: (AndroidEvent.StartOrientator) -> Unit = {
+        // TODO: When rotating the device on login screen:
+        //  StrictMode policy violation: android.os.strictmode.LeakedClosableViolation: A resource was acquired at attached stack trace but never released. See java.io.Closeable for information on avoiding resource leaks.
         startOrientator()
     }
 
@@ -128,8 +130,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
 
-        Timber.d("onDestroy - Index: $index")
-
         PluviaApp.events.emit(AndroidEvent.ActivityDestroyed)
 
         PluviaApp.events.off<AndroidEvent.SetSystemUIVisibility, Unit>(onSetSystemUi)
@@ -137,7 +137,16 @@ class MainActivity : ComponentActivity() {
         PluviaApp.events.off<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
         PluviaApp.events.off<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
-        if (SteamService.isConnected && !SteamService.isLoggedIn) {
+        Timber.d(
+            "onDestroy - Index: %d, Connected: %b, Logged-In: %b, Changing-Config: %b",
+            index,
+            SteamService.isConnected,
+            SteamService.isLoggedIn,
+            isChangingConfigurations,
+        )
+
+        if (SteamService.isConnected && !SteamService.isLoggedIn && !isChangingConfigurations) {
+            Timber.i("Stopping Steam Service")
             SteamService.stop()
         }
     }
@@ -229,22 +238,19 @@ class MainActivity : ComponentActivity() {
 
         // find the nearest orientation to the reported
         val distances = orientations.map {
-            Pair(
-                it,
-                it.angleRanges.map {
-                    it.map {
-                        // since 0 can be represented as 360 and vice versa
-                        if (adjustedOrientation == 0 || adjustedOrientation == 360) {
-                            min(abs(it - 0), abs(it - 360))
-                        } else {
-                            abs(it - adjustedOrientation)
-                        }
-                    }.min()
-                }.min(),
-            )
+            it to it.angleRanges.minOf { angleRange ->
+                angleRange.minOf { angle ->
+                    // since 0 can be represented as 360 and vice versa
+                    if (adjustedOrientation == 0 || adjustedOrientation == 360) {
+                        minOf(abs(angle), abs(angle - 360))
+                    } else {
+                        abs(angle - adjustedOrientation)
+                    }
+                }
+            }
         }
 
-        val nearest = distances.sortedBy { it.second }.first()
+        val nearest = distances.minBy { it.second }
 
         // set the requested orientation to the nearest if it is not already as long as it is nearer than what is currently set
         val currentOrientationDist = distances

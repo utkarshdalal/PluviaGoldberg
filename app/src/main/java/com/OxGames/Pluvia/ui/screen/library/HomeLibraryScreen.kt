@@ -2,23 +2,32 @@ package com.OxGames.Pluvia.ui.screen.library
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -30,16 +39,19 @@ import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.OxGames.Pluvia.SteamService
 import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenu
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenuItem
 import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuState
@@ -51,6 +63,10 @@ import com.OxGames.Pluvia.ui.enums.FabFilter
 import com.OxGames.Pluvia.ui.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.model.LibraryViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.debounce
+import timber.log.Timber
 
 @Composable
 fun HomeLibraryScreen(
@@ -59,24 +75,28 @@ fun HomeLibraryScreen(
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    val vmState by viewModel.state.collectAsStateWithLifecycle()
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val fabState = rememberFloatingActionMenuState()
 
     LibraryScreenContent(
-        vmState = vmState,
+        state = state,
         fabState = fabState,
         onFabFilter = viewModel::onFabFilter,
+        onIsSearching = viewModel::onIsSearching,
+        onSearchQuery = viewModel::onSearchQuery,
         onClickPlay = onClickPlay,
         onSettings = onSettings,
         onLogout = onLogout,
     )
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun LibraryScreenContent(
-    vmState: LibraryState,
+    state: LibraryState,
     fabState: FloatingActionMenuState,
+    onIsSearching: (Boolean) -> Unit,
+    onSearchQuery: (String) -> Unit,
     onFabFilter: (FabFilter) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
@@ -99,12 +119,16 @@ private fun LibraryScreenContent(
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHost) },
                     topBar = {
-                        CenterAlignedTopAppBar(
-                            title = { Text(text = "Library") },
-                            actions = {
-                                AccountButton(
-                                    onSettings = onSettings,
-                                    onLogout = onLogout,
+                        LibrarySearchBar(
+                            state = state,
+                            onIsSearching = onIsSearching,
+                            onSearchQuery = onSearchQuery,
+                            onSettings = onSettings,
+                            onLogout = onLogout,
+                            onItemClick = { item ->
+                                navigator.navigateTo(
+                                    pane = ListDetailPaneScaffoldRole.Detail,
+                                    content = item,
                                 )
                             },
                         )
@@ -116,17 +140,14 @@ private fun LibraryScreenContent(
                             closeImageVector = Icons.Filled.Close,
                         ) {
                             FloatingActionMenuItem(
-                                labelText = "Search",
-                                onClick = { onFabFilter(FabFilter.SEARCH) },
-                                content = { Icon(Icons.Filled.Search, "Search") },
-                            )
-                            FloatingActionMenuItem(
                                 labelText = "Installed",
+                                isSelected = state.appInfoSortType == FabFilter.INSTALLED,
                                 onClick = { onFabFilter(FabFilter.INSTALLED) },
                                 content = { Icon(Icons.Filled.InstallMobile, "Installed") },
                             )
                             FloatingActionMenuItem(
                                 labelText = "Alphabetic",
+                                isSelected = state.appInfoSortType == FabFilter.ALPHABETIC,
                                 onClick = { onFabFilter(FabFilter.ALPHABETIC) },
                                 content = { Icon(Icons.Filled.SortByAlpha, "Alphabetic") },
                             )
@@ -135,7 +156,7 @@ private fun LibraryScreenContent(
                 ) { paddingValues ->
                     LibraryListPane(
                         paddingValues = paddingValues,
-                        list = vmState.appInfoList,
+                        list = state.appInfoList,
                         onItemClick = { item ->
                             navigator.navigateTo(
                                 pane = ListDetailPaneScaffoldRole.Detail,
@@ -162,24 +183,131 @@ private fun LibraryScreenContent(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
+@Composable
+private fun LibrarySearchBar(
+    state: LibraryState,
+    onIsSearching: (Boolean) -> Unit,
+    onSearchQuery: (String) -> Unit,
+    onSettings: () -> Unit,
+    onLogout: () -> Unit,
+    onItemClick: (Int) -> Unit,
+) {
+    val listState = rememberLazyListState()
+
+    // Debouncer: Scroll to the top after a short amount of time after typing quickly
+    val internalSearchText = remember { MutableStateFlow(state.searchQuery) }
+    LaunchedEffect(Unit) {
+        internalSearchText.debounce(500).collect {
+            Timber.d("Debounced: Scrolling to top")
+            listState.scrollToItem(0)
+        }
+    }
+
+    // Lambda function to provide new test to both onSearchQuery and internalSearchText
+    val onSearchText: (String) -> Unit = {
+        onSearchQuery(it)
+        internalSearchText.value = it
+    }
+
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        SearchBar(
+            modifier = Modifier
+                .semantics { traversalIndex = 0f },
+            expanded = state.isSearching,
+            onExpandedChange = onIsSearching,
+            inputField = {
+                SearchBarDefaults.InputField(
+                    query = state.searchQuery,
+                    onSearch = {
+                        // This is invoked when IME search is pressed.
+                        // But we have nothing to utilize this for.
+                    },
+                    expanded = state.isSearching,
+                    onExpandedChange = onIsSearching,
+                    placeholder = { Text(text = "Search for games") },
+                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        Crossfade(state.isSearching) { cfState ->
+                            if (cfState) {
+                                IconButton(
+                                    onClick = {
+                                        if (state.searchQuery.isEmpty()) {
+                                            onIsSearching(false)
+                                        } else {
+                                            onSearchText("")
+                                        }
+                                    },
+                                    content = {
+                                        Icon(Icons.Default.Clear, "Clear search query")
+                                    },
+                                )
+                            } else {
+                                AccountButton(
+                                    onSettings = onSettings,
+                                    onLogout = onLogout,
+                                )
+                            }
+                        }
+                    },
+                    onQueryChange = onSearchText,
+                )
+            },
+            content = {
+                if (state.isSearching) {
+                    LibraryListPane(
+                        paddingValues = PaddingValues(),
+                        listState = listState,
+                        list = state.appInfoList,
+                        onItemClick = onItemClick,
+                    )
+                }
+            },
+        )
+    }
+}
+
 @Composable
 private fun LibraryListPane(
     paddingValues: PaddingValues,
+    listState: LazyListState = rememberLazyListState(),
     list: List<AppInfo>,
     onItemClick: (Int) -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
-    ) {
-        items(list, key = { it.appId }) { item ->
-            AppItem(
-                modifier = Modifier.animateItem(),
-                appInfo = item,
-                onClick = { onItemClick(item.appId) },
-            )
+    if (list.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Surface(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shadowElevation = 8.dp,
+            ) {
+                Text(
+                    modifier = Modifier.padding(24.dp),
+                    text = "No items listed with selection",
+                )
+            }
+        }
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            state = listState,
+            contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
+        ) {
+            items(list, key = { it.appId }) { item ->
+                AppItem(
+                    modifier = Modifier.animateItem(),
+                    appInfo = item,
+                    onClick = { onItemClick(item.appId) },
+                )
+            }
         }
     }
 }
@@ -193,8 +321,16 @@ private fun LibraryDetailPane(
     Surface {
         if (appId == SteamService.INVALID_APP_ID) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                // TODO prettify this?
-                Text("Select an item")
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shadowElevation = 8.dp,
+                ) {
+                    Text(
+                        modifier = Modifier.padding(24.dp),
+                        text = "Select an item in the list to view game info",
+                    )
+                }
             }
         } else {
             AppScreen(
@@ -219,10 +355,12 @@ private fun LibraryDetailPane(
 private fun Preview_LibraryScreenContent() {
     PluviaTheme {
         LibraryScreenContent(
-            vmState = LibraryState(
+            state = LibraryState(
                 appInfoList = List(15) { fakeAppInfo(it).copy(appId = it) },
             ),
             fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),
+            onIsSearching = {},
+            onSearchQuery = {},
             onFabFilter = {},
             onClickPlay = { _, _ -> },
             onSettings = {},

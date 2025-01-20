@@ -62,22 +62,24 @@ class CrashHandler(
             }.toString()
 
             val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
 
             val crashReport = buildString {
                 appendLine("Timestamp: $timestamp")
+                appendLine("App Version: ${packageInfo.versionName} (${packageInfo.longVersionCode})")
+                appendLine()
+                appendLine("---------- Device Information ----------")
+                appendLine("${android.os.Build.MANUFACTURER} - ${android.os.Build.BRAND} - ${android.os.Build.MODEL}")
+                appendLine("Android Version: ${android.os.Build.VERSION.RELEASE}")
+                appendLine()
+                appendLine("---------- Cause ----------")
                 appendLine("Exception: ${throwable.javaClass.name}")
                 appendLine("Message: ${throwable.message}")
                 appendLine()
-                appendLine("Stack Trace:")
+                appendLine("---------- Stack Trace ----------")
                 appendLine(stackTrace)
                 appendLine()
-                appendLine("Device Information:")
-                appendLine("Model: ${android.os.Build.MODEL}")
-                appendLine("Android Version: ${android.os.Build.VERSION.RELEASE}")
-                appendLine("App Version: ${context.packageManager.getPackageInfo(context.packageName, 0).versionName}")
-                appendLine()
-                appendLine("Logcat:")
-                appendLine("----------------------------------------")
+                appendLine("---------- Logcat ----------")
                 appendLine(recentLogcat)
             }
 
