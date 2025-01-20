@@ -69,6 +69,12 @@ data class SteamFriend(
     val clanTag: String = "",
     @ColumnInfo("online_session_instances")
     val onlineSessionInstances: Int = 0,
+
+    // Chat message
+    @ColumnInfo("chat_entry_type")
+    val isTyping: Boolean = false,
+    @ColumnInfo("unread_messages")
+    val unreadMessageCount: Int = 0,
 ) {
     val isOnline: Boolean
         get() = (state.code() in 1..6)

@@ -86,13 +86,14 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
         Timber.i("Getting Recent messages for: ${friendID.convertToUInt64()}")
 
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_GetRecentMessages_Request.newBuilder().apply {
-            steamid1 = SteamService.userSteamId!!.convertToUInt64()
-            steamid2 = friendID.convertToUInt64()
+            steamid1 = SteamService.userSteamId!!.convertToUInt64() // You
+            steamid2 = friendID.convertToUInt64() // Friend
+            // The rest here and below is what steam has looking at NHA2
             count = 50
             rtime32StartTime = 0
             bbcodeFormat = true
             startOrdinal = 0
-            timeLast = Int.MAX_VALUE // More explicit than magic number
+            timeLast = Int.MAX_VALUE
             ordinalLast = 0
         }.build()
 
@@ -105,14 +106,27 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
 
         // TODO: Insert new messages into database
         // TODO: Do not dupe messages
+        response.body.messagesList.forEach { message ->
+            // message.accountid
+            // message.timestamp
+            // message.message
+            // message.ordinal
+            // message.reactionsList.forEach { reaction ->
+            //     reaction.reaction
+            //     reaction.reactionType
+            //     reaction.reactionBytes
+            //     reaction.reactorsList
+            //     reaction.reactorsCount
+            // }
+        }
+        Timber.i("More available: ${response.body.moreAvailable}")
     }
 
     suspend fun setIsTyping(friendID: SteamID) {
         Timber.i("Sending 'is typing' to ${friendID.convertToUInt64()}")
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_SendMessage_Request.newBuilder().apply {
-            chatEntryType = EChatEntryType.Typing.code()
-            message = ""
             steamid = friendID.convertToUInt64()
+            chatEntryType = EChatEntryType.Typing.code()
         }.build()
 
         val response = messages!!.sendMessage(request).await()
@@ -123,6 +137,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
         }
 
         // TODO: This, I believe returns a result with supplemental data to append to the database.
+        // response.body.serverTimestamp
     }
 
     suspend fun sendMessage(friendID: SteamID, chatMessage: String) {
@@ -153,6 +168,8 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
         // TODO: This, I believe returns a result with supplemental data to append to the database.
         // TODO: We also need to append the message to our database
 
+        // response.body.serverTimestamp
+
         // Once chat notifications are implemented, we should clear it here as well.
     }
 
@@ -165,5 +182,67 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
 
         // This does not return anything.
         messages!!.ackMessage(request)
+    }
+
+    suspend fun getActiveMessageSessions() {
+        Timber.i("Get Active message sessions")
+
+        val request = SteammessagesFriendmessagesSteamclient.CFriendsMessages_GetActiveMessageSessions_Request.newBuilder().apply {
+            lastmessageSince = 0
+            onlySessionsWithMessages = true
+        }.build()
+
+        val response = messages!!.getActiveMessageSessions(request).await()
+
+        if (response.result != EResult.OK) {
+            Timber.w("Failed to get active message sessions, ${response.result}")
+            return
+        }
+
+        // TODO
+
+        // response.body.timestamp
+
+        response.body.messageSessionsList.forEach { session ->
+            // session.accountidFriend
+            // session.lastMessage
+            // session.lastView
+            // session.unreadMessageCount
+        }
+    }
+
+    // suspend fun getPerFriendPreferences()
+
+    suspend fun updateMessageReaction(
+        friendID: SteamID,
+        serverTimestamp: Int,
+        reactionType: SteammessagesFriendmessagesSteamclient.EMessageReactionType,
+        reaction: String,
+        isAdd: Boolean,
+    ) {
+        Timber.i(
+            "Update message reaction: ${friendID.convertToUInt64()}, timestamp: $serverTimestamp, " +
+                "type: $reactionType, reaction: $reaction, isAdd: $isAdd ",
+        )
+
+        val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_UpdateMessageReaction_Request.newBuilder().apply {
+            this.steamid = friendID.convertToUInt64()
+            this.serverTimestamp = serverTimestamp
+            this.ordinal = 0
+            this.reactionType = reactionType
+            this.reaction = reaction
+            this.isAdd = isAdd
+        }.build()
+
+        val response = messages!!.updateMessageReaction(request).await()
+
+        if (response.result != EResult.OK) {
+            Timber.w("Failed to get message reaction, ${response.result}")
+            return
+        }
+
+        response.body.reactorsList.forEach { reactor ->
+            // Last part of steamID3
+        }
     }
 }
