@@ -54,7 +54,9 @@ import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import com.winlator.xenvironment.ImageFs
 import dagger.hilt.android.AndroidEntryPoint
+import `in`.dragonbra.javasteam.enums.ELicenseType
 import `in`.dragonbra.javasteam.enums.EOSType
+import `in`.dragonbra.javasteam.enums.EPaymentMethod
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
@@ -1401,7 +1403,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 friendDao.update(
                     friend.copy(
                         statusFlags = callback.statusFlags,
-                        state = callback.state,
+                        state = callback.state ?: EPersonaState.Offline,
                         stateFlags = callback.stateFlags,
                         gameAppID = callback.gameAppID,
                         gameID = callback.gameID,
@@ -1451,8 +1453,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                     accessToken = license.accessToken,
                     territoryCode = license.territoryCode,
                     licenseFlags = license.licenseFlags,
-                    licenseType = license.licenseType,
-                    paymentMethod = license.paymentMethod,
+                    licenseType = license.licenseType ?: ELicenseType.NoLicense,
+                    paymentMethod = license.paymentMethod ?: EPaymentMethod.None,
                     purchaseCountryCode = license.purchaseCode,
                     appIds = IntArray(0),
                     depotIds = IntArray(0),
