@@ -1,34 +1,34 @@
 [versions]
-activityCompose = "1.9.3" # https://mvnrepository.com/artifact/androidx.activity/activity-compose
+activityCompose = "1.10.0" # https://mvnrepository.com/artifact/androidx.activity/activity-compose
 agp = "8.7.3" # https://mvnrepository.com/artifact/com.android.application/com.android.application.gradle.plugin
 apache-compress = "1.27.1" # https://mvnrepository.com/artifact/org.apache.commons/commons-compress
-composeBom = "2024.12.01" # https://mvnrepository.com/artifact/androidx.compose/compose-bom
+composeBom = "2025.01.00" # https://mvnrepository.com/artifact/androidx.compose/compose-bom
 coreKtx = "1.15.0" # https://mvnrepository.com/artifact/androidx.core/core-ktx
-coroutines = "1.10.0" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
-dagger-hilt = "2.53.1" # https://mvnrepository.com/artifact/com.google.dagger/hilt-android
-dataStore = "1.1.1" # https://mvnrepository.com/artifact/androidx.datastore/datastore-preferences
+coroutines = "1.10.1" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
+dagger-hilt = "2.55" # https://mvnrepository.com/artifact/com.google.dagger/hilt-android
+dataStore = "1.1.2" # https://mvnrepository.com/artifact/androidx.datastore/datastore-preferences
 espressoCore = "3.6.1" # https://mvnrepository.com/artifact/androidx.test.espresso/espresso-core
 feature-delivery = "2.1.0" # https://mvnrepository.com/artifact/com.google.android.play/feature-delivery
 hiltNavigationCompose = "1.2.0" # https://mvnrepository.com/artifact/androidx.hilt/hilt-navigation-compose
-json = "1.7.3" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json
+json = "1.8.0" # https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-serialization-json
 junit = "4.13.2" # https://mvnrepository.com/artifact/junit/junit
 junitVersion = "1.2.1" # https://mvnrepository.com/artifact/androidx.test.ext/junit
 kotlin = "2.0.21" # https://mvnrepository.com/artifact/org.jetbrains.kotlin.android/org.jetbrains.kotlin.android.gradle.plugin
 kotlinter = "5.0.1" # https://plugins.gradle.org/plugin/org.jmailen.kotlinter
 ksp = "2.0.21-1.0.28" # https://mvnrepository.com/artifact/com.google.devtools.ksp/symbol-processing-api
-landscapistCoil = "2.4.4" # https://mvnrepository.com/artifact/com.github.skydoves/landscapist-coil
+landscapistCoil = "2.4.6" # https://mvnrepository.com/artifact/com.github.skydoves/landscapist-coil
 lifecycleRuntimeKtx = "2.8.7" # https://mvnrepository.com/artifact/androidx.lifecycle/lifecycle-runtime-ktx
 material3Adaptive = "1.0.0" # https://mvnrepository.com/artifact/androidx.compose.material3.adaptive/adaptive-layout
 material3AdaptiveNavSuite = "1.3.1" # https://mvnrepository.com/artifact/androidx.compose.material3/material3-adaptive-navigation-suite
 materialKolor = "2.0.0" # https://mvnrepository.com/artifact/com.materialkolor/material-kolor-android
 navigation-compose = "2.8.5" # https://mvnrepository.com/artifact/androidx.navigation/navigation-compose
-protobuf = "4.29.2" # https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
+protobuf = "4.29.3" # https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
 room-runtime = "2.6.1" # https://mvnrepository.com/artifact/androidx.room/room-runtime
-settings = "2.9.0" # https://github.com/alorma/Compose-Settings/releases
+settings = "2.10.0" # https://github.com/alorma/Compose-Settings/releases
 spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongycastle/prov
 steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
 timber = "5.0.1" # https://mvnrepository.com/artifact/com.jakewharton.timber/timber
-zstd-jni = "1.5.2-3" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
+zstd-jni = "1.5.6-9" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
 zxing = "3.5.3" # https://mvnrepository.com/artifact/com.google.zxing/core
 
 [libraries]
@@ -79,7 +79,7 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 # Dependencies when locally building JavaSteam
-commons-io = { module = "commons-io:commons-io", version = "2.17.0" } # https://mvnrepository.com/artifact/commons-io/commons-io
+commons-io = { module = "commons-io:commons-io", version = "2.18.0" } # https://mvnrepository.com/artifact/commons-io/commons-io
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version = "3.17.0" } # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
 commons-validator = { module = "commons-validator:commons-validator", version = "1.9.0" } # https://mvnrepository.com/artifact/commons-validator/commons-validator
 ktor-engine = { module = "io.ktor:ktor-client-cio", version = "3.0.3" } # https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
