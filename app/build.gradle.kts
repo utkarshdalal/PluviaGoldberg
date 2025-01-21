@@ -119,7 +119,9 @@ android {
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/DebugProbesKt.bin"
+            excludes += "/junit/runner/smalllogo.gif"
+            excludes += "/junit/runner/logo.gif"
         }
         jniLibs {
             // 'extractNativeLibs' was not enough to keep the jniLibs and
