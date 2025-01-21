@@ -28,6 +28,7 @@ import com.OxGames.Pluvia.data.UserFileInfo
 import com.OxGames.Pluvia.db.PluviaDatabase
 import com.OxGames.Pluvia.db.dao.ChangeNumbersDao
 import com.OxGames.Pluvia.db.dao.FileChangeListsDao
+import com.OxGames.Pluvia.db.dao.FriendMessagesDao
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport
@@ -134,6 +135,9 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     @Inject
     lateinit var friendDao: SteamFriendDao
+
+    @Inject
+    lateinit var messagesDao: FriendMessagesDao
 
     @Inject
     lateinit var changeNumbersDao: ChangeNumbersDao
@@ -363,7 +367,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         SplitInstallSessionStatus.INSTALLING,
                         SplitInstallSessionStatus.DOWNLOADED,
                         SplitInstallSessionStatus.DOWNLOADING,
-                            -> {
+                        -> {
                             if (!isActive) {
                                 Timber.i("ubuntufs module download cancelling due to scope becoming inactive")
                                 splitManager.requestCancelInstall(moduleInstallSessionId)
