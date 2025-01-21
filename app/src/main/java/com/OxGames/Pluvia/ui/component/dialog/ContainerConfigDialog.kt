@@ -30,6 +30,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -63,6 +64,7 @@ import com.OxGames.Pluvia.utils.ContainerUtils
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSwitch
+import com.alorma.compose.settings.ui.base.internal.SettingsTileDefaults
 import com.winlator.box86_64.Box86_64PresetManager
 import com.winlator.container.Container
 import com.winlator.container.ContainerData
@@ -311,8 +313,15 @@ fun ContainerConfigDialog(
                             )
                             .fillMaxSize(),
                     ) {
-                        SettingsGroup(title = { Text(text = "General") }) {
+                        val settingsColor = SettingsTileDefaults.colors(
+                            actionColor = MaterialTheme.colorScheme.onSurface,
+                        )
+
+                        SettingsGroup(
+                            title = { Text(text = "General") },
+                        ) {
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Screen Size") },
                                 value = screenSizeIndex,
                                 items = screenSizes,
@@ -358,6 +367,7 @@ fun ContainerConfigDialog(
                             )
                             // TODO: add way to pick driver version
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Graphics Driver") },
                                 value = graphicsDriverIndex,
                                 items = graphicsDrivers,
@@ -368,6 +378,7 @@ fun ContainerConfigDialog(
                             )
                             // TODO: add way to pick DXVK version
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "DX Wrapper") },
                                 value = dxWrapperIndex,
                                 items = dxWrappers,
@@ -388,6 +399,7 @@ fun ContainerConfigDialog(
                             )
                             // TODO: add way to configure audio driver
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Audio Driver") },
                                 value = audioDriverIndex,
                                 items = audioDrivers,
@@ -397,6 +409,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsSwitch(
+                                colors = settingsColor,
                                 title = { Text(text = "Show FPS") },
                                 state = config.showFPS,
                                 onCheckedChange = {
@@ -407,6 +420,7 @@ fun ContainerConfigDialog(
                         SettingsGroup(title = { Text(text = "Wine Configuration") }) {
                             // TODO: add desktop settings
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "GPU Name") },
                                 subtitle = { Text(text = "WineD3D") },
                                 value = gpuNameIndex,
@@ -417,6 +431,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Offscreen Rendering Mode") },
                                 subtitle = { Text(text = "WineD3D") },
                                 value = renderingModeIndex,
@@ -427,6 +442,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Video Memory Size") },
                                 subtitle = { Text(text = "WineD3D") },
                                 value = videoMemIndex,
@@ -453,6 +469,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Mouse Warp Override") },
                                 subtitle = { Text(text = "DirectInput") },
                                 value = mouseWarpIndex,
@@ -469,6 +486,7 @@ fun ContainerConfigDialog(
                                 val compName = winComponentsItemTitle(compId)
                                 val compValue = wincomponent[1].toInt()
                                 SettingsListDropdown(
+                                    colors = settingsColor,
                                     title = { Text(compName) },
                                     subtitle = { Text(if (compId.startsWith("direct")) "DirectX" else "General") },
                                     value = compValue,
@@ -485,6 +503,7 @@ fun ContainerConfigDialog(
                             val envVars = EnvVars(config.envVars)
                             if (config.envVars.isNotEmpty()) {
                                 SettingsEnvVars(
+                                    colors = settingsColor,
                                     envVars = envVars,
                                     onEnvVarsChange = {
                                         config = config.copy(envVars = it.toString())
@@ -506,6 +525,7 @@ fun ContainerConfigDialog(
                                 )
                             } else {
                                 SettingsCenteredLabel(
+                                    colors = SettingsTileDefaults.colors(titleColor = MaterialTheme.colorScheme.onSurface),
                                     title = { Text(text = "No environment variables") },
                                 )
                             }
@@ -543,6 +563,7 @@ fun ContainerConfigDialog(
                                     val driveLetter = drive[0]
                                     val drivePath = drive[1]
                                     SettingsMenuLink(
+                                        colors = settingsColor,
                                         title = { Text(driveLetter) },
                                         subtitle = { Text(drivePath) },
                                         onClick = {},
@@ -560,6 +581,7 @@ fun ContainerConfigDialog(
                                 }
                             } else {
                                 SettingsCenteredLabel(
+                                    colors = SettingsTileDefaults.colors(titleColor = MaterialTheme.colorScheme.onSurface),
                                     title = { Text(text = "No drives") },
                                 )
                             }
@@ -585,6 +607,7 @@ fun ContainerConfigDialog(
                         }
                         SettingsGroup(title = { Text(text = "Advanced") }) {
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Box64 Version") },
                                 subtitle = { Text(text = "Box64") },
                                 value = box64Versions.indexOfFirst { StringUtils.parseIdentifier(it) == config.box64Version },
@@ -596,6 +619,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Box64 Preset") },
                                 subtitle = { Text(text = "Box64") },
                                 value = box64Presets.indexOfFirst { it.id == config.box64Preset },
@@ -607,6 +631,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsListDropdown(
+                                colors = settingsColor,
                                 title = { Text(text = "Startup Selection") },
                                 subtitle = { Text(text = "System") },
                                 value = config.startupSelection.toInt(),
@@ -618,6 +643,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsCPUList(
+                                colors = settingsColor,
                                 title = { Text(text = "Processor Affinity") },
                                 value = config.cpuList,
                                 onValueChange = {
@@ -627,6 +653,7 @@ fun ContainerConfigDialog(
                                 },
                             )
                             SettingsCPUList(
+                                colors = settingsColor,
                                 title = { Text(text = "Processor Affinity (32-bit apps)") },
                                 value = config.cpuListWoW64,
                                 onValueChange = { config = config.copy(cpuListWoW64 = it) },

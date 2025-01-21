@@ -13,7 +13,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +29,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.alorma.compose.settings.ui.base.internal.LocalSettingsGroupEnabled
+import com.alorma.compose.settings.ui.base.internal.SettingsTileColors
+import com.alorma.compose.settings.ui.base.internal.SettingsTileDefaults
 import com.alorma.compose.settings.ui.base.internal.SettingsTileScaffold
 
 @Composable
@@ -43,7 +44,7 @@ fun SettingsMultiListDropdown(
     title: @Composable () -> Unit,
     subtitle: (@Composable () -> Unit)? = null,
     icon: (@Composable () -> Unit)? = null,
-    colors: ListItemColors = ListItemDefaults.colors(),
+    colors: SettingsTileColors = SettingsTileDefaults.colors(),
     tonalElevation: Dp = ListItemDefaults.Elevation,
     shadowElevation: Dp = ListItemDefaults.Elevation,
     action: @Composable (() -> Unit)? = null,
