@@ -36,4 +36,8 @@ class DatabaseModule {
     @Provides
     @Singleton
     fun provideAppFileChangeListsDao(db: PluviaDatabase) = db.appFileChangeListsDao()
+
+    @Provides
+    @Singleton
+    fun provideFriendMessages(db: PluviaDatabase) = db.friendMessagesDao()
 }

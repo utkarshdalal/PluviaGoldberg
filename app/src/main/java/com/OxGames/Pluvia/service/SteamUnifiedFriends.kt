@@ -1,5 +1,9 @@
 package com.OxGames.Pluvia.service
 
+import androidx.room.withTransaction
+import com.OxGames.Pluvia.data.FriendMessage
+import com.OxGames.Pluvia.db.dao.FriendMessagesDao
+import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import `in`.dragonbra.javasteam.enums.EChatEntryType
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesChatSteamclient.CChat_RequestFriendPersonaStates_Request
@@ -9,8 +13,12 @@ import `in`.dragonbra.javasteam.rpc.service.FriendMessages
 import `in`.dragonbra.javasteam.rpc.service.FriendMessagesClient
 import `in`.dragonbra.javasteam.steam.handlers.steamunifiedmessages.SteamUnifiedMessages
 import `in`.dragonbra.javasteam.types.SteamID
-import timber.log.Timber
 import java.io.Closeable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import timber.log.Timber
 
 // For chat ideas, check out:
 // https://github.com/marwaniaaj/RichLinksJetpackCompose/tree/main
@@ -20,10 +28,26 @@ import java.io.Closeable
 // https://github.com/android/compose-samples/tree/main/Jetchat
 // https://github.com/LossyDragon/Vapulla
 
+// TODO
+//  ----- CHAT CHECKLIST ---
+//  1. Implement chat functionality, including sending and receiving messages life.
+//  2. Implement getting chat message history.
+//  3. Implement rich preview
+//  4. Implement Stickers and Emoticons
+//  5. Implement Reactions
+
 typealias AckMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_AckMessage_Notification.Builder
 typealias IncomingMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_IncomingMessage_Notification.Builder
 
-class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
+class SteamUnifiedFriends(
+    private val service: SteamService,
+) : AutoCloseable {
+
+    private val messagesDao: FriendMessagesDao
+        get() = service.messagesDao
+
+    private val friendDao: SteamFriendDao
+        get() = service.friendDao
 
     private val callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
@@ -31,7 +55,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
 
     private var chat: Chat? = null
 
-    private var messages: FriendMessages? = null
+    private var friendMessages: FriendMessages? = null
 
     // TODO OfflineMessageNotificationCallback ?
     // TODO FriendMsgEchoCallback ?
@@ -40,7 +64,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
     init {
         unifiedMessages = service.steamClient!!.getHandler<SteamUnifiedMessages>()
         chat = unifiedMessages!!.createService(Chat::class.java)
-        messages = unifiedMessages!!.createService(FriendMessages::class.java)
+        friendMessages = unifiedMessages!!.createService(FriendMessages::class.java)
 
         service.callbackManager!!.subscribeServiceNotification<FriendMessages, AckMessageNotification> {
             Timber.i("Ack-ing Message")
@@ -52,11 +76,43 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
             Timber.i("Incoming Message")
             when (it.body.chatEntryType) {
                 EChatEntryType.Typing.code() -> {
-                    // TODO: An incoming chat message is being typed up.
+                    CoroutineScope(Dispatchers.IO).launch {
+                        service.db.withTransaction {
+                            val friend = friendDao.findFriend(it.body.steamidFriend).first()
+
+                            if (friend == null) {
+                                Timber.w("Unable to find friend ${it.body.steamidFriend}")
+                                return@withTransaction
+                            }
+
+                            friendDao.update(friend.copy(isTyping = true))
+                        }
+                    }
                 }
 
                 EChatEntryType.ChatMsg.code() -> {
-                    // TODO: An incoming chat message has been received.
+                    CoroutineScope(Dispatchers.IO).launch {
+                        service.db.withTransaction {
+                            val friend = friendDao.findFriend(it.body.steamidFriend).first()
+
+                            if (friend == null) {
+                                Timber.w("Unable to find friend ${it.body.steamidFriend}")
+                                return@withTransaction
+                            }
+
+                            friendDao.update(friend.copy(isTyping = false))
+
+                            val chatMsg = FriendMessage(
+                                steamIDFriend = it.body.steamidFriend,
+                                fromLocal = false,
+                                message = it.body.message,
+                                timestamp = it.body.rtime32ServerTimestamp,
+                                lowPriority = it.body.lowPriority,
+                            )
+
+                            messagesDao.insertMessage(chatMsg)
+                        }
+                    }
                 }
 
                 else -> Timber.w("Unknown incoming message, ${EChatEntryType.from(it.body.chatEntryType)}")
@@ -67,7 +123,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
     override fun close() {
         unifiedMessages = null
         chat = null
-        messages = null
+        friendMessages = null
 
         callbackSubscriptions.forEach {
             it.close()
@@ -97,7 +153,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
             ordinalLast = 0
         }.build()
 
-        val response = messages!!.getRecentMessages(request).await()
+        val response = friendMessages!!.getRecentMessages(request).await()
 
         if (response.result != EResult.OK) {
             Timber.w("Failed to get message history for friend: ${friendID.convertToUInt64()}, ${response.result}")
@@ -129,7 +185,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
             chatEntryType = EChatEntryType.Typing.code()
         }.build()
 
-        val response = messages!!.sendMessage(request).await()
+        val response = friendMessages!!.sendMessage(request).await()
 
         if (response.result != EResult.OK) {
             Timber.w("Failed to send typing message to friend: ${friendID.convertToUInt64()}, ${response.result}")
@@ -158,7 +214,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
             lowPriority = false
         }.build()
 
-        val response = messages!!.sendMessage(request).await()
+        val response = friendMessages!!.sendMessage(request).await()
 
         if (response.result != EResult.OK) {
             Timber.w("Failed to send chat message to friend: ${friendID.convertToUInt64()}, ${response.result}")
@@ -181,7 +237,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
         }.build()
 
         // This does not return anything.
-        messages!!.ackMessage(request)
+        friendMessages!!.ackMessage(request)
     }
 
     suspend fun getActiveMessageSessions() {
@@ -192,7 +248,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
             onlySessionsWithMessages = true
         }.build()
 
-        val response = messages!!.getActiveMessageSessions(request).await()
+        val response = friendMessages!!.getActiveMessageSessions(request).await()
 
         if (response.result != EResult.OK) {
             Timber.w("Failed to get active message sessions, ${response.result}")
@@ -234,7 +290,7 @@ class SteamUnifiedFriends(service: SteamService) : AutoCloseable {
             this.isAdd = isAdd
         }.build()
 
-        val response = messages!!.updateMessageReaction(request).await()
+        val response = friendMessages!!.updateMessageReaction(request).await()
 
         if (response.result != EResult.OK) {
             Timber.w("Failed to get message reaction, ${response.result}")

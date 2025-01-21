@@ -20,6 +20,7 @@ object Constants {
     object Persona {
         const val AVATAR_BASE_URL = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/"
         const val MISSING_AVATAR_URL = "${AVATAR_BASE_URL}fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
+        const val PROFILE_URL = "https://steamcommunity.com/profiles/"
     }
 
     object Misc {
