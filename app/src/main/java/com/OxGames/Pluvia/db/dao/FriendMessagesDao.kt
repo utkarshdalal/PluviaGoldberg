@@ -27,7 +27,7 @@ interface FriendMessagesDao {
     suspend fun deleteAllMessagesForFriend(steamId: SteamID)
 
     @Query("SELECT * FROM chat_message WHERE steam_id_friend = :steamId ORDER BY timestamp DESC")
-    fun getAllMessagesForFriend(steamId: SteamID): Flow<List<FriendMessage>>
+    fun getAllMessagesForFriend(steamId: Long): Flow<List<FriendMessage>>
 
     @Update
     suspend fun updateMessage(message: FriendMessage)

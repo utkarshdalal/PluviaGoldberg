@@ -23,6 +23,11 @@ object Constants {
         const val PROFILE_URL = "https://steamcommunity.com/profiles/"
     }
 
+    object Chat {
+        const val EMOTICON_URL = "https://steamcommunity-a.akamaihd.net/economy/emoticonlarge/"
+        const val STICKER_URL = "https://steamcommunity-a.akamaihd.net/economy/sticker/"
+    }
+
     object Misc {
         const val TIP_JAR_LINK = "https://buy.stripe.com/5kAaFU1bx2RFeLmbII"
         const val GITHUB_LINK = "https://github.com/oxters168/Pluvia"
