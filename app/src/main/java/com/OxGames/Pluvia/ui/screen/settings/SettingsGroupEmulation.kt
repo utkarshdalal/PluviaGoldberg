@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import com.OxGames.Pluvia.ui.component.dialog.Box64PresetsDialog
 import com.OxGames.Pluvia.ui.component.dialog.ContainerConfigDialog
 import com.OxGames.Pluvia.ui.component.dialog.OrientationDialog
+import com.OxGames.Pluvia.ui.theme.settingsTileColors
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
@@ -42,16 +43,19 @@ fun SettingsGroupEmulation() {
         )
 
         SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text(text = "Allowed Orientations") },
             subtitle = { Text(text = "Choose which orientations can be rotated to when in-game") },
             onClick = { showOrientationDialog = true },
         )
         SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text(text = "Modify Default Config") },
             subtitle = { Text(text = "The initial container settings for each game (does not affect already installed games)") },
             onClick = { showConfigDialog = true },
         )
         SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text(text = "Box64 Presets") },
             subtitle = { Text("View, modify, and create Box64 presets") },
             onClick = { showBox64PresetsDialog = true },

@@ -13,6 +13,8 @@ import androidx.compose.ui.platform.LocalUriHandler
 import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.ui.component.dialog.LibrariesDialog
+import com.OxGames.Pluvia.ui.theme.settingsTileColors
+import com.OxGames.Pluvia.ui.theme.settingsTileColorsAlt
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSwitch
@@ -30,18 +32,7 @@ fun SettingsGroupInfo() {
         )
 
         SettingsMenuLink(
-            title = { Text(text = "Source code") },
-            subtitle = { Text(text = "View the source code of this project") },
-            onClick = { uriHandler.openUri(Constants.Misc.GITHUB_LINK) },
-        )
-
-        SettingsMenuLink(
-            title = { Text(text = "Libraries Used") },
-            subtitle = { Text(text = "See what technologies make Pluvia possible") },
-            onClick = { showLibrariesDialog = true },
-        )
-
-        SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text("Send tip") },
             subtitle = { Text(text = "Contribute to ongoing development") },
             icon = { Icon(imageVector = Icons.Filled.MonetizationOn, contentDescription = "Tip") },
@@ -53,6 +44,7 @@ fun SettingsGroupInfo() {
         )
 
         SettingsSwitch(
+            colors = settingsTileColorsAlt(),
             state = askForTip,
             title = { Text("Ask for tip on startup") },
             subtitle = { Text(text = "Stops the tip message from appearing") },
@@ -63,6 +55,21 @@ fun SettingsGroupInfo() {
         )
 
         SettingsMenuLink(
+            colors = settingsTileColors(),
+            title = { Text(text = "Source code") },
+            subtitle = { Text(text = "View the source code of this project") },
+            onClick = { uriHandler.openUri(Constants.Misc.GITHUB_LINK) },
+        )
+
+        SettingsMenuLink(
+            colors = settingsTileColors(),
+            title = { Text(text = "Libraries Used") },
+            subtitle = { Text(text = "See what technologies make Pluvia possible") },
+            onClick = { showLibrariesDialog = true },
+        )
+
+        SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text(text = "Privacy Policy") },
             subtitle = { Text(text = "Opens a link to Pluvia's privacy policy") },
             onClick = {
