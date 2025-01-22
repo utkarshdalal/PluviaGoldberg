@@ -13,7 +13,8 @@ Pluvia is still in active early development, so some features may be lacking or 
 Pluvia currently provides these features:
 
 - View and download games through the app.
-- *Play (DRM free) games using [Winlator](https://github.com/brunodev85/winlator) built into the app. (Note: customizing the container is in the works)
+- *Play (DRM free) games using [Winlator](https://github.com/brunodev85/winlator) built into the app.
+- Configure the game containers to use different options to improve the performance of each game.
 - Steam Cloud integration for your cloud saves, allowing you to resume where you left off. 
 - View your friends list. (Note: chat and friend management in the works too)
 
