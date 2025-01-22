@@ -27,7 +27,7 @@ import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.screen.downloads.HomeDownloadsScreen
-import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
+import com.OxGames.Pluvia.ui.screen.friends.FriendsScreen
 import com.OxGames.Pluvia.ui.screen.library.HomeLibraryScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
@@ -98,7 +98,7 @@ private fun HomeScreenContent(
                 onLogout = onLogout,
             )
 
-            HomeDestination.Friends -> HomeFriendsScreen(
+            HomeDestination.Friends -> FriendsScreen(
                 onSettings = onSettings,
                 onLogout = onLogout,
             )

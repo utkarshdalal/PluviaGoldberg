@@ -27,6 +27,7 @@ import com.OxGames.Pluvia.data.UFS
 import com.OxGames.Pluvia.data.UserFileInfo
 import com.OxGames.Pluvia.db.PluviaDatabase
 import com.OxGames.Pluvia.db.dao.ChangeNumbersDao
+import com.OxGames.Pluvia.db.dao.EmoticonDao
 import com.OxGames.Pluvia.db.dao.FileChangeListsDao
 import com.OxGames.Pluvia.db.dao.FriendMessagesDao
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
@@ -41,6 +42,8 @@ import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
+import com.OxGames.Pluvia.service.callback.EmoticonListCallback
+import com.OxGames.Pluvia.service.handler.PluviaHandler
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
 import com.OxGames.Pluvia.utils.generateManifest
@@ -138,6 +141,9 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     @Inject
     lateinit var messagesDao: FriendMessagesDao
+
+    @Inject
+    lateinit var emoticonDao: EmoticonDao
 
     @Inject
     lateinit var changeNumbersDao: ChangeNumbersDao
@@ -997,6 +1003,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             PluviaApp.events.emit(SteamEvent.LoggedOut(username))
         }
+
+        suspend fun getEmoticonList() = withContext(Dispatchers.IO) {
+            instance?.steamClient?.getHandler<PluviaHandler>()?.getEmoticonList() ?: Timber.w("Failed to get emotes")
+        }
     }
 
     override fun onCreate() {
@@ -1042,6 +1052,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             // create our steam client instance
             steamClient = SteamClient(configuration)
 
+            steamClient!!.addHandler(PluviaHandler())
+
             // remove callbacks we're not using.
             steamClient!!.removeHandler(SteamGameServer::class.java)
             steamClient!!.removeHandler(SteamMasterServer::class.java)
@@ -1072,6 +1084,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(PICSProductInfoCallback::class.java, ::onPICSProductInfo))
                     add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
                     add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
+                    add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
                 }
             }
 
@@ -1383,6 +1396,15 @@ class SteamService : Service(), IChallengeUrlChanged {
             // NOTE: Our UI could load too quickly on fresh database, our icon will be "?"
             //  unless relaunched or we nav to a new screen.
             _unifiedFriends?.refreshPersonaStates()
+        }
+    }
+
+    private fun onEmoticonList(callback: EmoticonListCallback) {
+        Timber.i("Getting emotes and stickers, size: ${callback.emoteList.size}")
+        dbScope.launch {
+            db.withTransaction {
+                emoticonDao.replaceAll(callback.emoteList)
+            }
         }
     }
 

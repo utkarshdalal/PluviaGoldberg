@@ -39,5 +39,9 @@ class DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideFriendMessages(db: PluviaDatabase) = db.friendMessagesDao()
+    fun provideFriendMessagesDao(db: PluviaDatabase) = db.friendMessagesDao()
+
+    @Provides
+    @Singleton
+    fun provideEmoticonDao(db: PluviaDatabase) = db.emoticonDao()
 }

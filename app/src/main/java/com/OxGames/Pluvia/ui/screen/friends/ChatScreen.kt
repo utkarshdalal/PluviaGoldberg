@@ -52,10 +52,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.OxGames.Pluvia.data.Emoticon
 import com.OxGames.Pluvia.data.FriendMessage
 import com.OxGames.Pluvia.data.SteamFriend
+import com.OxGames.Pluvia.db.dao.EmoticonDao
 import com.OxGames.Pluvia.db.dao.FriendMessagesDao
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
@@ -71,28 +75,57 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class ChatState(
     val friend: SteamFriend = SteamFriend(0),
     val messages: List<FriendMessage> = listOf(),
+    val emoticons: List<Emoticon> = listOf(),
 )
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    friendDao: SteamFriendDao,
-    messagesDao: FriendMessagesDao,
+    private val friendDao: SteamFriendDao,
+    private val messagesDao: FriendMessagesDao,
+    private val emoticonDao: EmoticonDao,
 ) : ViewModel() {
 
     private val _chatState = MutableStateFlow(ChatState())
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
+
+    fun setFriend(id: Long) {
+        viewModelScope.launch {
+            SteamService.getEmoticonList()
+
+            emoticonDao.getAll().collect { list ->
+                _chatState.update { it.copy(emoticons = list) }
+            }
+
+            friendDao.findFriend(id).collect { friend ->
+                if (friend == null) {
+                    throw RuntimeException("Friend is null and cannot proceed")
+                }
+
+                _chatState.update { it.copy(friend = friend) }
+            }
+
+            messagesDao.getAllMessagesForFriend(id).collect { list ->
+                _chatState.update { it.copy(messages = list) }
+            }
+        }
+    }
 }
 
 @Composable
 fun ChatScreen(
-    viewModel: ChatViewModel = hiltViewModel(),
+    steamFriend: SteamFriend,
+    viewModel: ChatViewModel = hiltViewModel(key = steamFriend.id.toString()),
     onBack: () -> Unit,
 ) {
     val state by viewModel.chatState.collectAsStateWithLifecycle()
+
+    viewModel.setFriend(steamFriend.id)
 
     ChatScreenContent(
         steamFriend = state.friend,
