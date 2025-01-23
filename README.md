@@ -20,7 +20,9 @@ Pluvia currently provides these features:
 
 &ast; Existing issues or limitations that occur with the actual Winlator app will mostly apply here when running a game.
 
-See the [Wiki](https://github.com/oxters168/Pluvia/wiki) for more information
+See the [Wiki](https://github.com/oxters168/Pluvia/wiki) for more information.
+
+See the [compatibility repo](https://github.com/oxters168/PluviaCompat) to check if your game runs.
 
 ## Development
 Want to contribute? 
