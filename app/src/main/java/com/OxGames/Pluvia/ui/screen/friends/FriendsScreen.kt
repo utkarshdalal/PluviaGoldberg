@@ -40,6 +40,7 @@ import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.FriendsState
 import com.OxGames.Pluvia.ui.model.FriendsViewModel
+import com.OxGames.Pluvia.ui.screen.chat.ChatScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import `in`.dragonbra.javasteam.types.SteamID
 import kotlinx.coroutines.launch
