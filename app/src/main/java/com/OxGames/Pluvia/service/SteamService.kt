@@ -990,14 +990,15 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         // To view log messages in android logcat properly
         val logger = object : LogListener {
-            override fun onLog(clazz: Class<*>, message: String, throwable: Throwable?) {
-                Timber.i(throwable, "[${clazz.simpleName}] -> $message")
+            override fun onLog(clazz: Class<*>, message: String?, throwable: Throwable?) {
+                val logMessage = message ?: "No message given"
+                Timber.i(throwable, "[${clazz.simpleName}] -> $logMessage")
             }
 
-            override fun onError(clazz: Class<*>, message: String, throwable: Throwable?) {
-                Timber.e(throwable, "[${clazz.simpleName}] -> $message")
+            override fun onError(clazz: Class<*>, message: String?, throwable: Throwable?) {
+                val logMessage = message ?: "No message given"
+                Timber.e(throwable, "[${clazz.simpleName}] -> $logMessage")
             }
-        }
         LogManager.addListener(logger)
     }
 
