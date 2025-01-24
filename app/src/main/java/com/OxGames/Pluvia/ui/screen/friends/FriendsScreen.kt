@@ -3,15 +3,40 @@ package com.OxGames.Pluvia.ui.screen.friends
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.outlined.Games
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.Card
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -19,6 +44,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
@@ -27,16 +53,25 @@ import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowWidthSizeClass
+import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
@@ -45,8 +80,11 @@ import com.OxGames.Pluvia.ui.model.FriendsViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import `in`.dragonbra.javasteam.types.SteamID
 import kotlinx.coroutines.launch
+import com.OxGames.Pluvia.utils.getAvatarURL
+import com.skydoves.landscapist.ImageOptions
+import com.skydoves.landscapist.coil.CoilImage
+import `in`.dragonbra.javasteam.enums.EPersonaState
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun FriendsScreen(
     viewModel: FriendsViewModel = hiltViewModel(),
@@ -67,7 +105,7 @@ fun FriendsScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FriendsScreenContent(
     navigator: ThreePaneScaffoldNavigator<SteamFriend>,
@@ -123,19 +161,12 @@ private fun FriendsScreenContent(
                         contentAlignment = Alignment.Center,
                         content = {
                             if (value.id == 0L) {
-                                Surface(
-                                    modifier = Modifier.padding(horizontal = 24.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shadowElevation = 8.dp,
-                                ) {
-                                    Text(
-                                        modifier = Modifier.padding(24.dp),
-                                        text = "Select a friend to their profile",
-                                    )
-                                }
+                                DefaultDetailsScreen()
                             } else {
-                                // TODO profile screen
+                                ProfileDetailsScreen(
+                                    friend = value,
+                                    onBack = onBack,
+                                )
                             }
                         },
                     )
@@ -143,6 +174,155 @@ private fun FriendsScreenContent(
             }
         },
     )
+}
+
+@Composable
+private fun DefaultDetailsScreen() {
+    Surface(
+        modifier = Modifier.padding(horizontal = 24.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = 8.dp,
+    ) {
+        Text(
+            modifier = Modifier.padding(24.dp),
+            text = "Select a friend to their profile",
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ProfileDetailsScreen(
+    friend: SteamFriend,
+    onBack: () -> Unit,
+) {
+    val scrollState = rememberScrollState()
+    val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
+    // TODO placeholders
+    val steamLevel = 45
+    val favoriteBadge = "Years of Service"
+    val favoriteBadgeIcon = R.drawable.icon_background_gold
+
+    LaunchedEffect(friend) {
+        // TODO This isn't live data
+    }
+
+    Scaffold(
+        topBar = {
+            // Show Top App Bar when in Compact or Medium screen space.
+            if (windowWidth == WindowWidthSizeClass.COMPACT || windowWidth == WindowWidthSizeClass.MEDIUM) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "Profile",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    navigationIcon = {
+                        BackButton(onClick = onBack)
+                    },
+                )
+            }
+        },
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .verticalScroll(scrollState)
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            CoilImage(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .clip(CircleShape)
+                    .background(Color.DarkGray)
+                    .size(92.dp),
+                imageModel = { friend.avatarHash.getAvatarURL() },
+                imageOptions = ImageOptions(
+                    contentScale = ContentScale.Crop,
+                    contentDescription = null,
+                ),
+                loading = { CircularProgressIndicator() },
+                failure = { Icon(Icons.Filled.QuestionMark, null) },
+                previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = friend.nameOrNickname,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.headlineLarge,
+            )
+
+            Text(
+                text = friend.isPlayingGameName,
+                color = friend.statusColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = MaterialTheme.typography.titleLarge,
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val cardItem: @Composable (String, ImageVector, () -> Unit) -> Unit = { text, icon, onClick ->
+                    Card(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clickable(onClick = onClick),
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                modifier = Modifier.size(32.dp),
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = text,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
+
+                cardItem("Chat", Icons.AutoMirrored.Outlined.Chat) {
+                    // TODO click
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                cardItem("Profile", Icons.Outlined.Person) {
+                    // TODO click
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                cardItem("Games", Icons.Outlined.Games) {
+                    // TODO click
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                cardItem("Options", Icons.Outlined.MoreVert) {
+                    // TODO click
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -184,16 +364,21 @@ private fun FriendsListPane(
     }
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffoldDestinationItem<SteamFriend>> {
+    private val friend = SteamFriend(
+        id = 123L,
+        nickname = "Pluvia".repeat(3).trimEnd(),
+        state = EPersonaState.Online,
+        gameName = "Left 4 Dead 2",
+    )
+
     override val values: Sequence<ThreePaneScaffoldDestinationItem<SteamFriend>>
         get() = sequenceOf(
             ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.List),
-            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.Detail, SteamFriend(123L)),
+            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.Detail, friend),
         )
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
