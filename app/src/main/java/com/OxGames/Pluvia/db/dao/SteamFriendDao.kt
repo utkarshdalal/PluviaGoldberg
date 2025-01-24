@@ -49,4 +49,7 @@ interface SteamFriendDao {
 
     @Query("DELETE FROM steam_friend WHERE id = :friendId")
     suspend fun remove(friendId: Long)
+
+    @Query("DELETE from steam_friend")
+    suspend fun deleteAll()
 }

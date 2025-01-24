@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.service
 
 import androidx.room.withTransaction
-import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.PostSyncInfo
 import com.OxGames.Pluvia.data.UserFileInfo
 import com.OxGames.Pluvia.data.UserFilesDownloadResult
@@ -50,7 +50,7 @@ object SteamAutoCloud {
     private const val MAX_USER_FILE_RETRIES = 3
 
     fun syncUserFiles(
-        appInfo: AppInfo,
+        appInfo: SteamApp,
         clientId: Long,
         steamInstance: SteamService,
         steamCloud: SteamCloud,
@@ -108,7 +108,7 @@ object SteamAutoCloud {
             if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
                 Paths.get(convertedPrefixes[file.pathPrefixIndex], file.filename)
             } else {
-                Paths.get(getAppDirPath(appInfo.appId), file.filename)
+                Paths.get(getAppDirPath(appInfo.id), file.filename)
             }
         }
 
@@ -256,7 +256,7 @@ object SteamAutoCloud {
 
                     Timber.i("$prefixedPath -> $actualFilePath")
 
-                    val fileDownloadInfo = steamCloud.clientFileDownload(appInfo.appId, prefixedPath).await()
+                    val fileDownloadInfo = steamCloud.clientFileDownload(appInfo.id, prefixedPath).await()
 
                     if (fileDownloadInfo.urlHost.isNotEmpty()) {
                         val httpUrl = with(fileDownloadInfo) {
@@ -357,7 +357,7 @@ object SteamAutoCloud {
                 )
 
                 val uploadBatchResponse = steamCloud.beginAppUploadBatch(
-                    appId = appInfo.appId,
+                    appId = appInfo.id,
                     machineName = SteamUtils.getMachineName(steamInstance),
                     clientId = clientId,
                     filesToDelete = filesToDelete,
@@ -376,7 +376,7 @@ object SteamAutoCloud {
                     Timber.i("Beginning upload of ${file.prefixPath} whose timestamp is ${file.timestamp}")
 
                     val uploadInfo = steamCloud.beginFileUpload(
-                        appId = appInfo.appId,
+                        appId = appInfo.id,
                         filename = file.prefixPath,
                         fileSize = fileSize,
                         rawFileSize = fileSize,
@@ -472,7 +472,7 @@ object SteamAutoCloud {
 
                     val commitSuccess = steamCloud.commitFileUpload(
                         transferSucceeded = uploadFileSuccess,
-                        appId = appInfo.appId,
+                        appId = appInfo.id,
                         fileSha = file.sha,
                         filename = file.prefixPath,
                     ).await()
@@ -481,7 +481,7 @@ object SteamAutoCloud {
                 }
 
                 steamCloud.completeAppUploadBatch(
-                    appId = appInfo.appId,
+                    appId = appInfo.id,
                     batchId = uploadBatchResponse.batchID,
                     batchEResult = if (uploadBatchSuccess) EResult.OK else EResult.Fail,
                 ).await()
@@ -515,10 +515,10 @@ object SteamAutoCloud {
         var microsecUploadFiles = 0L
 
         microsecTotal = measureTime {
-            val localAppChangeNumber = steamInstance.changeNumbersDao.getByAppId(appInfo.appId)?.changeNumber ?: -1
+            val localAppChangeNumber = steamInstance.changeNumbersDao.getByAppId(appInfo.id)?.changeNumber ?: -1
 
             val changeNumber = if (localAppChangeNumber >= 0) localAppChangeNumber else 0
-            val appFileListChange = steamCloud.getAppFileListChange(appInfo.appId, changeNumber).await()
+            val appFileListChange = steamCloud.getAppFileListChange(appInfo.id, changeNumber).await()
 
             val cloudAppChangeNumber = appFileListChange.currentChangeNumber
 
@@ -586,8 +586,8 @@ object SteamAutoCloud {
 
                     with(steamInstance) {
                         db.withTransaction {
-                            fileChangeListsDao.insert(appInfo.appId, updatedLocalFiles.map { it.value }.flatten())
-                            changeNumbersDao.insert(appInfo.appId, cloudAppChangeNumber)
+                            fileChangeListsDao.insert(appInfo.id, updatedLocalFiles.map { it.value }.flatten())
+                            changeNumbersDao.insert(appInfo.id, cloudAppChangeNumber)
                         }
                     }
 
@@ -599,7 +599,7 @@ object SteamAutoCloud {
                 parentScope.async {
                     Timber.i("Uploading local user files")
 
-                    val fileChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.appId)!!.let {
+                    val fileChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.id)!!.let {
                         val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
 
                         result.second
@@ -621,8 +621,8 @@ object SteamAutoCloud {
                     if (uploadResult.uploadBatchSuccess) {
                         with(steamInstance) {
                             with(db) {
-                                fileChangeListsDao.insert(appInfo.appId, allLocalUserFiles)
-                                changeNumbersDao.insert(appInfo.appId, uploadResult.appChangeNumber)
+                                fileChangeListsDao.insert(appInfo.id, allLocalUserFiles)
+                                changeNumbersDao.insert(appInfo.id, uploadResult.appChangeNumber)
                             }
                         }
                     } else {
@@ -641,7 +641,7 @@ object SteamAutoCloud {
                     var hasLocalChanges: Boolean
 
                     microsecAcPrepUserFiles = measureTime {
-                        hasLocalChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.appId)?.let {
+                        hasLocalChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.id)?.let {
                             getFilesDiff(allLocalUserFiles, it.userFileInfo).first
                         } == true
                     }.inWholeMicroseconds
@@ -686,7 +686,7 @@ object SteamAutoCloud {
                 microsecAcExit = measureTime {
                     // var fileChanges: FileChanges? = null
 
-                    val hasLocalChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.appId)
+                    val hasLocalChanges = steamInstance.fileChangeListsDao.getByAppId(appInfo.id)
                         ?.let {
                             val result = getFilesDiff(allLocalUserFiles, it.userFileInfo)
                             // fileChanges = result.second
@@ -742,10 +742,10 @@ object SteamAutoCloud {
         postSyncInfo
     }
 
-    private fun AppFileChangeList.printFileChangeList(appInfo: AppInfo) {
+    private fun AppFileChangeList.printFileChangeList(appInfo: SteamApp) {
         with(this) {
             Timber.i(
-                "GetAppFileListChange(${appInfo.appId}):" +
+                "GetAppFileListChange(${appInfo.id}):" +
                     "\n\tTotal Files: ${files.size}" +
                     "\n\tCurrent Change Number: $currentChangeNumber" +
                     "\n\tIs Only Delta: $isOnlyDelta" +

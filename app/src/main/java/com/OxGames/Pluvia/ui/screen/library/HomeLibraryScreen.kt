@@ -55,6 +55,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.OxGames.Pluvia.data.LibraryItem
@@ -77,7 +78,7 @@ import timber.log.Timber
 
 @Composable
 fun HomeLibraryScreen(
-    viewModel: LibraryViewModel = viewModel(),
+    viewModel: LibraryViewModel = hiltViewModel(),
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -394,7 +395,7 @@ private fun Preview_LibraryScreenContent() {
                     val item = fakeAppInfo(idx)
                     LibraryItem(
                         index = idx,
-                        appId = item.appId,
+                        appId = item.id,
                         name = item.name,
                         iconHash = item.iconHash,
                     )

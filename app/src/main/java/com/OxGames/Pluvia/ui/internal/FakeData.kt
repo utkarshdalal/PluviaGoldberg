@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.ui.internal
 
 import com.OxGames.Pluvia.BuildConfig
-import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.ConfigInfo
 import com.OxGames.Pluvia.data.LibraryAssetsInfo
 import com.OxGames.Pluvia.data.LibraryCapsuleInfo
@@ -17,14 +17,14 @@ import java.util.EnumSet
 /**
  * Fata data for Compose previewing.
  */
-internal fun fakeAppInfo(idx: Int): AppInfo {
+internal fun fakeAppInfo(idx: Int): SteamApp {
     if (!BuildConfig.DEBUG) {
         throw RuntimeException("Fake app info shouldn't be used in release")
     }
 
-    return AppInfo(
-        appId = 736260,
-        receiveIndex = 1,
+    return SteamApp(
+        id = 736260,
+        // receiveIndex = 1,
         packageId = 112233,
         depots = mapOf(),
         branches = mapOf(),
@@ -56,7 +56,7 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         homepageUrl = "",
         gameManualUrl = "",
         loadAllBeforeLaunch = false,
-        dlcAppIds = intArrayOf(),
+        dlcAppIds = emptyList(),
         isFreeApp = false,
         dlcForAppId = 0,
         mustOwnAppToPurchase = 0,
@@ -82,14 +82,14 @@ internal fun fakeAppInfo(idx: Int): AppInfo {
         installScriptOverride = false,
         config = ConfigInfo(
             installDir = "Baba Is You",
-            launch = arrayOf(),
+            launch = emptyList(),
             steamControllerTemplateIndex = 4,
             steamControllerTouchTemplateIndex = 1,
         ),
         ufs = UFS(
             quota = 0,
             maxNumFiles = 0,
-            saveFilePatterns = emptyArray(),
+            saveFilePatterns = emptyList(),
         ),
     )
 }
