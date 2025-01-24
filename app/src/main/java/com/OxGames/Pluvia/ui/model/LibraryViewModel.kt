@@ -5,86 +5,82 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.data.LibraryItem
+import androidx.lifecycle.viewModelScope
+import com.OxGames.Pluvia.db.dao.SteamAppDao
 import com.OxGames.Pluvia.enums.AppType
-import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.FabFilter
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import java.util.EnumSet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import timber.log.Timber
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class LibraryViewModel : ViewModel() {
+@HiltViewModel
+class LibraryViewModel @Inject constructor(
+    private val steamAppDao: SteamAppDao,
+) : ViewModel() {
+
     private val _state = MutableStateFlow(LibraryState())
     val state: StateFlow<LibraryState> = _state.asStateFlow()
 
     // Keep the library scroll state. This will last longer as the VM will stay alive.
     var listState: LazyListState by mutableStateOf(LazyListState(0, 0))
 
-    private val onAppInfoReceived: (SteamEvent.AppInfoReceived) -> Unit = {
-        getAppList()
-
-        Timber.d("Updating games list with ${state.value.appInfoList.count()} item(s)")
-    }
-
     init {
-        PluviaApp.events.on<SteamEvent.AppInfoReceived, Unit>(onAppInfoReceived)
-
-        getAppList()
-    }
-
-    override fun onCleared() {
-        Timber.d("onCleared")
-        PluviaApp.events.off<SteamEvent.AppInfoReceived, Unit>(onAppInfoReceived)
+        observeAppList()
     }
 
     fun onIsSearching(value: Boolean) {
         _state.update { it.copy(isSearching = value) }
 
         if (!value) {
-            getAppList()
+            observeAppList()
         }
     }
 
     fun onSearchQuery(value: String) {
         _state.update { it.copy(searchQuery = value) }
 
-        getAppList()
+        observeAppList()
     }
 
     fun onFabFilter(value: FabFilter) {
         _state.update { it.copy(appInfoSortType = value) }
 
-        getAppList()
+        observeAppList()
     }
 
-    private fun getAppList() {
-        val list = with(state.value) {
-            SteamService.getAppList(EnumSet.of(AppType.game))
-                .filter { if (appInfoSortType == FabFilter.INSTALLED) SteamService.isAppInstalled(it.appId) else true }
-                .filter { it.name.contains(searchQuery, true) }
-                .let {
-                    if (appInfoSortType == FabFilter.ALPHABETIC) {
-                        it.sortedBy { appInfo -> appInfo.name }
-                    } else {
-                        it.sortedBy { appInfo -> appInfo.receiveIndex }.reversed()
-                    }
-                }
-        }.mapIndexed { idx, item ->
-            // Slim down the list with only the necessary values.
-            LibraryItem(
-                index = idx,
-                appId = item.appId,
-                name = item.name,
-                iconHash = item.clientIconHash,
-            )
-        }
+    private fun observeAppList() {
+        viewModelScope.launch(Dispatchers.IO) {
+            // clears out the list to prepare to load the new one
+            _state.update { it.copy(appInfoList = emptyList()) }
+            steamAppDao.getAllAppsWithLicense(AppType.code(EnumSet.of(AppType.game))).collect { apps ->
+                _state.update { currentState ->
+                    val sortedList = apps
+                        .filter { if (currentState.appInfoSortType == FabFilter.INSTALLED) SteamService.isAppInstalled(it.id) else true }
+                        .filter { it.name.contains(currentState.searchQuery, true) }
+                        // TODO: include other sort types
+                        .sortedBy { appInfo -> appInfo.name }
+                        .mapIndexed { idx, item ->
+                            // Slim down the list with only the necessary values.
+                            LibraryItem(
+                                index = idx,
+                                appId = item.id,
+                                name = item.name,
+                                iconHash = item.clientIconHash,
+                            )
+                        }
 
-        _state.update { it.copy(appInfoList = list) }
+                    currentState.copy(appInfoList = sortedList)
+                }
+            }
+        }
     }
 }

@@ -48,7 +48,7 @@ private fun Preview_AppItem() {
                         val item = fakeAppInfo(idx)
                         LibraryItem(
                             index = idx,
-                            appId = item.appId,
+                            appId = item.id,
                             name = item.name,
                             iconHash = item.iconHash,
                         )

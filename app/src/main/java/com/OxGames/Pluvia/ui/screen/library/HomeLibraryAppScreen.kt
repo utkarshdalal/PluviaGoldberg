@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.OxGames.Pluvia.R
-import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.dialog.ContainerConfigDialog
 import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
@@ -73,6 +73,7 @@ import com.winlator.xenvironment.ImageFsInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -134,6 +135,8 @@ fun AppScreen(
         }
     }
 
+    Timber.d("Selected app $appId")
+
     val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
 
     val onDismissRequest: (() -> Unit)?
@@ -160,9 +163,11 @@ fun AppScreen(
         DialogType.INSTALL_APP -> {
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onConfirmClick = {
-                downloadProgress = 0f
-                downloadInfo = SteamService.downloadApp(appId)
-                msgDialogState = MessageDialogState(false)
+                CoroutineScope(Dispatchers.IO).launch {
+                    downloadProgress = 0f
+                    downloadInfo = SteamService.downloadApp(appId)
+                    msgDialogState = MessageDialogState(false)
+                }
             }
             onDismissClick = { msgDialogState = MessageDialogState(false) }
         }
@@ -270,6 +275,7 @@ fun AppScreen(
                     )
                 } else if (!isInstalled) {
                     val depots = SteamService.getDownloadableDepots(appId)
+                    Timber.d("There are ${depots.size} depots belonging to $appId")
                     // TODO: get space available based on where user wants to install
                     val availableBytes = StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
                     val availableSpace = StorageUtils.formatBinarySize(availableBytes)
@@ -385,7 +391,7 @@ fun AppScreen(
 @Composable
 private fun AppScreenContent(
     modifier: Modifier = Modifier,
-    appInfo: AppInfo?,
+    appInfo: SteamApp?,
     isInstalled: Boolean,
     isDownloading: Boolean,
     downloadProgress: Float,
