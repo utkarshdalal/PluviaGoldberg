@@ -199,12 +199,7 @@ private fun ChatScreenContent(
                                 )
 
                                 Text(
-                                    text = if (steamFriend.isPlayingGame) {
-                                        // TODO get game names
-                                        steamFriend.gameName.ifEmpty { "Playing game id: ${steamFriend.gameAppID}" }
-                                    } else {
-                                        steamFriend.state.name
-                                    },
+                                    text = steamFriend.isPlayingGameName,
                                     overflow = TextOverflow.Ellipsis,
                                     fontSize = 12.sp,
                                     maxLines = 1,

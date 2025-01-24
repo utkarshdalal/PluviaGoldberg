@@ -88,6 +88,13 @@ data class SteamFriend(
     val isPlayingGame: Boolean
         get() = if (isOnline) gameAppID > 0 || gameName.isEmpty().not() else false
 
+    val isPlayingGameName: String
+        get() = if (isPlayingGame) {
+            gameName.ifEmpty { "Playing game id: $gameAppID" }
+        } else {
+            state.name
+        }
+
     val isAwayOrSnooze: Boolean
         get() = state.let {
             it == EPersonaState.Away || it == EPersonaState.Snooze || it == EPersonaState.Busy
