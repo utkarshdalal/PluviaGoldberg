@@ -999,6 +999,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val logMessage = message ?: "No message given"
                 Timber.e(throwable, "[${clazz.simpleName}] -> $logMessage")
             }
+        }
         LogManager.addListener(logger)
     }
 
