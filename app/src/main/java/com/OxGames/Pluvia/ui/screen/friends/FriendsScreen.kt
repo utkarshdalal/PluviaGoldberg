@@ -3,7 +3,6 @@ package com.OxGames.Pluvia.ui.screen.friends
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.displayCutoutPadding
@@ -23,15 +22,18 @@ import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
+import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,11 +42,11 @@ import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.FriendsState
 import com.OxGames.Pluvia.ui.model.FriendsViewModel
-import com.OxGames.Pluvia.ui.screen.chat.ChatScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import `in`.dragonbra.javasteam.types.SteamID
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun FriendsScreen(
     viewModel: FriendsViewModel = hiltViewModel(),
@@ -52,10 +54,12 @@ fun FriendsScreen(
     onLogout: () -> Unit,
 ) {
     val state by viewModel.friendsState.collectAsStateWithLifecycle()
+    val navigator = rememberListDetailPaneScaffoldNavigator<SteamFriend>()
 
     val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     FriendsScreenContent(
+        navigator = navigator,
         state = state,
         onBack = { onBackPressedDispatcher?.onBackPressed() },
         onSettings = onSettings,
@@ -66,14 +70,13 @@ fun FriendsScreen(
 @OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun FriendsScreenContent(
+    navigator: ThreePaneScaffoldNavigator<SteamFriend>,
     state: FriendsState,
     onBack: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    val navigator = rememberListDetailPaneScaffoldNavigator<SteamFriend>()
 
     // Pretty much the same as 'NavigableListDetailPaneScaffold'
     BackHandler(navigator.canNavigateBack(BackNavigationBehavior.PopUntilContentChange)) {
@@ -105,10 +108,7 @@ private fun FriendsScreenContent(
                         paddingValues = paddingValues,
                         list = state.friendsList,
                         onItemClick = {
-                            navigator.navigateTo(
-                                ListDetailPaneScaffoldRole.Detail,
-                                it,
-                            )
+                            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it)
                         },
                     )
                 }
@@ -117,39 +117,34 @@ private fun FriendsScreenContent(
         detailPane = {
             val value = navigator.currentDestination?.content ?: SteamFriend(0)
             AnimatedPane {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                    content = {
-                        if (value.id == 0L) {
-                            Surface(
-                                modifier = Modifier.padding(horizontal = 24.dp),
-                                shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shadowElevation = 8.dp,
-                            ) {
-                                Text(
-                                    modifier = Modifier.padding(24.dp),
-                                    text = "Select a friend to message",
-                                )
+                Surface {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                        content = {
+                            if (value.id == 0L) {
+                                Surface(
+                                    modifier = Modifier.padding(horizontal = 24.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    shadowElevation = 8.dp,
+                                ) {
+                                    Text(
+                                        modifier = Modifier.padding(24.dp),
+                                        text = "Select a friend to their profile",
+                                    )
+                                }
+                            } else {
+                                // TODO profile screen
                             }
-                        } else {
-                            ChatScreen(
-                                steamFriend = value,
-                                onBack = {
-                                    // We're still in Adaptive navigation.
-                                    navigator.navigateBack()
-                                },
-                            )
-                        }
-                    },
-                )
+                        },
+                    )
+                }
             }
         },
     )
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FriendsListPane(
     paddingValues: PaddingValues,
@@ -168,7 +163,9 @@ private fun FriendsListPane(
                     isCollapsed = false,
                     header = key,
                     count = value.size,
-                    onHeaderAction = { },
+                    onHeaderAction = {
+                        // TODO (Un)Collapse children items.
+                    },
                 )
             }
 
@@ -176,9 +173,7 @@ private fun FriendsListPane(
                 FriendItem(
                     modifier = Modifier.animateItem(),
                     friend = item,
-                    onClick = {
-                        onItemClick(item)
-                    },
+                    onClick = { onItemClick(item) },
                 )
 
                 if (idx < value.lastIndex) {
@@ -189,11 +184,32 @@ private fun FriendsListPane(
     }
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffoldDestinationItem<SteamFriend>> {
+    override val values: Sequence<ThreePaneScaffoldDestinationItem<SteamFriend>>
+        get() = sequenceOf(
+            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.List),
+            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.Detail, SteamFriend(123L)),
+        )
+}
+
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
+@Preview(
+    uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
+    device = "spec:parent=pixel_5,orientation=landscape",
+)
 @Composable
-private fun Preview_FriendsScreenContent() {
+private fun Preview_FriendsScreenContent(
+    @PreviewParameter(FriendsScreenPreview::class) state: ThreePaneScaffoldDestinationItem<SteamFriend>,
+) {
+    val navigator = rememberListDetailPaneScaffoldNavigator(
+        initialDestinationHistory = listOf(state),
+    )
+
     PluviaTheme {
         FriendsScreenContent(
+            navigator = navigator,
             state = FriendsState(
                 friendsList = mapOf(
                     "TEST A" to List(3) { SteamFriend(id = it.toLong()) },
