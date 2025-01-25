@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BrightnessMedium
 import androidx.compose.material3.AlertDialog
@@ -28,19 +30,21 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.OxGames.Pluvia.PrefManager
-import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.materialkolor.PaletteStyle
 
 @Composable
-fun AppThemeDialog(
+fun AppPaletteDialog(
     openDialog: Boolean,
-    appTheme: AppTheme,
-    onSelected: (AppTheme) -> Unit,
+    paletteStyle: PaletteStyle,
+    onSelected: (PaletteStyle) -> Unit,
     onDismiss: () -> Unit,
 ) {
     if (!openDialog) {
         return
     }
+
+    val scrollState = rememberScrollState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -50,16 +54,20 @@ fun AppThemeDialog(
                 contentDescription = null,
             )
         },
-        title = { Text(text = "App Theme") },
+        title = { Text(text = "Palette Style") },
         text = {
-            Column(modifier = Modifier.selectableGroup()) {
-                AppTheme.entries.forEach { entry ->
+            Column(
+                modifier = Modifier
+                    .selectableGroup()
+                    .verticalScroll(scrollState),
+            ) {
+                PaletteStyle.entries.forEach { entry ->
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .height(56.dp)
                             .selectable(
-                                selected = entry == appTheme,
+                                selected = entry == paletteStyle,
                                 onClick = { onSelected(entry) },
                                 role = Role.RadioButton,
                             )
@@ -67,11 +75,11 @@ fun AppThemeDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         RadioButton(
-                            selected = entry == appTheme,
+                            selected = entry == paletteStyle,
                             onClick = null,
                         )
                         Text(
-                            text = entry.text,
+                            text = entry.name,
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.padding(start = 16.dp),
                         )
@@ -89,17 +97,17 @@ fun AppThemeDialog(
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
-private fun Preview_AppThemeDialog() {
+private fun Preview_AppPaletteDialog() {
     val content = LocalContext.current
     PrefManager.init(content)
 
-    var theme by remember { mutableStateOf(AppTheme.DAY) }
+    var style by remember { mutableStateOf(PaletteStyle.TonalSpot) }
 
     PluviaTheme {
-        AppThemeDialog(
+        AppPaletteDialog(
             openDialog = true,
-            appTheme = theme,
-            onSelected = { theme = it },
+            paletteStyle = style,
+            onSelected = { style = it },
             onDismiss = { },
         )
     }

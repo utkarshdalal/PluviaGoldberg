@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.di
 
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.enums.AppTheme
+import com.materialkolor.PaletteStyle
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,21 +20,37 @@ import kotlinx.coroutines.flow.StateFlow
 interface IAppTheme {
     val themeFlow: StateFlow<AppTheme>
     var currentTheme: AppTheme
+    val paletteFlow: StateFlow<PaletteStyle>
+    var currentPalette: PaletteStyle
 }
 
 class AppThemeImpl : IAppTheme {
 
     override val themeFlow: MutableStateFlow<AppTheme> = MutableStateFlow(PrefManager.appTheme)
 
-    override var currentTheme: AppTheme by AppThemePreferenceDelegate()
+    override var currentTheme: AppTheme by AppThemeDelegate()
 
-    inner class AppThemePreferenceDelegate : ReadWriteProperty<Any, AppTheme> {
+    override val paletteFlow: MutableStateFlow<PaletteStyle> = MutableStateFlow(PrefManager.appThemePalette)
+
+    override var currentPalette: PaletteStyle by AppPaletteDelegate()
+
+    inner class AppThemeDelegate : ReadWriteProperty<Any, AppTheme> {
 
         override fun getValue(thisRef: Any, property: KProperty<*>): AppTheme = PrefManager.appTheme
 
         override fun setValue(thisRef: Any, property: KProperty<*>, value: AppTheme) {
             themeFlow.value = value
             PrefManager.appTheme = value
+        }
+    }
+
+    inner class AppPaletteDelegate : ReadWriteProperty<Any, PaletteStyle> {
+
+        override fun getValue(thisRef: Any, property: KProperty<*>): PaletteStyle = PrefManager.appThemePalette
+
+        override fun setValue(thisRef: Any, property: KProperty<*>, value: PaletteStyle) {
+            paletteFlow.value = value
+            PrefManager.appThemePalette = value
         }
     }
 }

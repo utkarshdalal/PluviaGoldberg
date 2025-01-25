@@ -22,6 +22,7 @@ import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.materialkolor.PaletteStyle
 
 // See link for implementation
 // https://github.com/alorma/Compose-Settings
@@ -29,12 +30,16 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 @Composable
 fun SettingsScreen(
     appTheme: AppTheme,
+    paletteStyle: PaletteStyle,
     onAppTheme: (AppTheme) -> Unit,
+    onPaletteStyle: (PaletteStyle) -> Unit,
     onBack: () -> Unit,
 ) {
     SettingsScreenContent(
         appTheme = appTheme,
+        paletteStyle = paletteStyle,
         onAppTheme = onAppTheme,
+        onPaletteStyle = onPaletteStyle,
         onBack = onBack,
     )
 }
@@ -43,7 +48,9 @@ fun SettingsScreen(
 @Composable
 private fun SettingsScreenContent(
     appTheme: AppTheme,
+    paletteStyle: PaletteStyle,
     onAppTheme: (AppTheme) -> Unit,
+    onPaletteStyle: (PaletteStyle) -> Unit,
     onBack: () -> Unit,
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
@@ -68,7 +75,12 @@ private fun SettingsScreenContent(
                 .verticalScroll(scrollState),
         ) {
             SettingsGroupEmulation()
-            SettingsGroupInterface(appTheme = appTheme, onAppTheme = onAppTheme)
+            SettingsGroupInterface(
+                appTheme = appTheme,
+                paletteStyle = paletteStyle,
+                onAppTheme = onAppTheme,
+                onPaletteStyle = onPaletteStyle,
+            )
             SettingsGroupInfo()
             SettingsGroupDebug()
         }
@@ -83,7 +95,9 @@ private fun Preview_SettingsScreen() {
     PluviaTheme {
         SettingsScreenContent(
             appTheme = AppTheme.DAY,
+            paletteStyle = PaletteStyle.TonalSpot,
             onAppTheme = { },
+            onPaletteStyle = { },
             onBack = { },
         )
     }

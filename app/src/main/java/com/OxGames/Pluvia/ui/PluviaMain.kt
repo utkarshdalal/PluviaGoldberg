@@ -355,11 +355,14 @@ fun PluviaMain(
     }
 
     PluviaTheme(
-        darkTheme = when (state.appTheme) {
+        isDark = when (state.appTheme) {
             AppTheme.AUTO -> isSystemInDarkTheme()
             AppTheme.DAY -> false
             AppTheme.NIGHT -> true
+            AppTheme.AMOLED -> true
         },
+        isAmoled = (state.appTheme == AppTheme.AMOLED),
+        style = state.paletteStyle,
     ) {
         LoadingDialog(
             visible = state.loadingDialogVisible,
@@ -441,7 +444,9 @@ fun PluviaMain(
             composable(route = PluviaScreen.Settings.name) {
                 SettingsScreen(
                     appTheme = state.appTheme,
+                    paletteStyle = state.paletteStyle,
                     onAppTheme = viewModel::setTheme,
+                    onPaletteStyle = viewModel::setPalette,
                     onBack = { navController.navigateUp() },
                 )
             }
