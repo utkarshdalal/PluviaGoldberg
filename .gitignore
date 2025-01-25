@@ -54,3 +54,7 @@ app/.cxx/
 #Private keystore data
 app/keystores/*
 !app/keystores/.gitkeep
+
+# virglrenderer
+*.pyc
+__pycache__/
