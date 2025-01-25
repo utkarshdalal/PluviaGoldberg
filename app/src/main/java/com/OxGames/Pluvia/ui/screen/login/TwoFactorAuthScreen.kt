@@ -109,7 +109,8 @@ internal class TwoFactorPreview : PreviewParameterProvider<UserLoginState> {
     )
 }
 
-@Preview(device = "spec:width=1920px,height=1080px,dpi=440", uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL) // Odin2 Mini
+// Odin2 Mini
+@Preview(device = "spec:width=1920px,height=1080px,dpi=440", uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
 private fun Preview_TwoFactorAuthScreen(
