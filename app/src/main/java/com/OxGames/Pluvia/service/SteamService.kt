@@ -188,7 +188,7 @@ class SteamService : Service(), IChallengeUrlChanged {
          * Default timeout to use when reading the response body
          */
 
-        private val PROTOCOL_TYPES = EnumSet.of(ProtocolTypes.TCP, ProtocolTypes.UDP)
+        private val PROTOCOL_TYPES = EnumSet.of(ProtocolTypes.WEB_SOCKET)
 
         private var instance: SteamService? = null
 
