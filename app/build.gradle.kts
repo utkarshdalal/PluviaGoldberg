@@ -48,10 +48,12 @@ android {
         buildConfigField("boolean", "GOLD", "false")
         val iconValue = "@mipmap/ic_launcher"
         val iconRoundValue = "@mipmap/ic_launcher_round"
-        manifestPlaceholders.putAll(mapOf(
-            "icon" to iconValue,
-            "roundIcon" to iconRoundValue
-        ))
+        manifestPlaceholders.putAll(
+            mapOf(
+                "icon" to iconValue,
+                "roundIcon" to iconRoundValue,
+            ),
+        )
 
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))
@@ -65,7 +67,7 @@ android {
         proguardFiles(
             // getDefaultProguardFile("proguard-android-optimize.txt"),
             getDefaultProguardFile("proguard-android.txt"),
-            "proguard-rules.pro"
+            "proguard-rules.pro",
         )
     }
 
@@ -91,10 +93,12 @@ android {
             buildConfigField("boolean", "GOLD", "true")
             val iconValue = "@mipmap/ic_launcher_gold"
             val iconRoundValue = "@mipmap/ic_launcher_gold_round"
-            manifestPlaceholders.putAll(mapOf(
-                "icon" to iconValue,
-                "roundIcon" to iconRoundValue
-            ))
+            manifestPlaceholders.putAll(
+                mapOf(
+                    "icon" to iconValue,
+                    "roundIcon" to iconRoundValue,
+                ),
+            )
         }
     }
 
@@ -130,6 +134,10 @@ android {
         }
     }
     dynamicFeatures += setOf(":ubuntufs")
+
+    kotlinter {
+        ignoreFormatFailures  = false
+    }
 
     // cmake on release builds a proot that fails to process ld-2.31.so
     // externalNativeBuild {
