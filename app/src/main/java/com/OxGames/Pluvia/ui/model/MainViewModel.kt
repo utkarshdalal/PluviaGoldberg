@@ -16,6 +16,7 @@ import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.MainState
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
+import com.materialkolor.PaletteStyle
 import com.winlator.xserver.Window
 import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.AppProcessInfo
@@ -96,6 +97,12 @@ class MainViewModel @Inject constructor(
                 _state.update { it.copy(appTheme = value) }
             }
         }
+
+        viewModelScope.launch {
+            appTheme.paletteFlow.collect { value ->
+                _state.update { it.copy(paletteStyle = value) }
+            }
+        }
     }
 
     override fun onCleared() {
@@ -118,6 +125,10 @@ class MainViewModel @Inject constructor(
 
     fun setTheme(value: AppTheme) {
         appTheme.currentTheme = value
+    }
+
+    fun setPalette(value: PaletteStyle) {
+        appTheme.currentPalette = value
     }
 
     fun setAnnoyingDialogShown(value: Boolean) {

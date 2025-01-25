@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia.ui.screen.login
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -108,14 +109,14 @@ internal class TwoFactorPreview : PreviewParameterProvider<UserLoginState> {
     )
 }
 
-@Preview(device = "spec:width=1920px,height=1080px,dpi=440") // Odin2 Mini
-@Preview
+@Preview(device = "spec:width=1920px,height=1080px,dpi=440", uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL) // Odin2 Mini
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
 private fun Preview_TwoFactorAuthScreen(
     @PreviewParameter(TwoFactorPreview::class) state: UserLoginState,
 ) {
     var currentState by remember { mutableStateOf(state) }
-    PluviaTheme(darkTheme = true) {
+    PluviaTheme {
         Surface {
             Box(
                 modifier = Modifier.fillMaxSize(),

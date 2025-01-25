@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia.ui.screen.login
 
+import android.content.res.Configuration
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -320,14 +321,14 @@ internal class UserLoginPreview : PreviewParameterProvider<UserLoginState> {
     )
 }
 
-@Preview
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
 private fun Preview_UserLoginScreen(
     @PreviewParameter(UserLoginPreview::class) state: UserLoginState,
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
 
-    PluviaTheme(darkTheme = true) {
+    PluviaTheme {
         Surface {
             UserLoginScreenContent(
                 snackBarHostState = snackBarHostState,
