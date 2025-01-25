@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import com.OxGames.Pluvia.PrefManager
+import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
@@ -27,9 +28,13 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 @Composable
 fun SettingsScreen(
+    appTheme: AppTheme,
+    onAppTheme: (AppTheme) -> Unit,
     onBack: () -> Unit,
 ) {
     SettingsScreenContent(
+        appTheme = appTheme,
+        onAppTheme = onAppTheme,
         onBack = onBack,
     )
 }
@@ -37,6 +42,8 @@ fun SettingsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsScreenContent(
+    appTheme: AppTheme,
+    onAppTheme: (AppTheme) -> Unit,
     onBack: () -> Unit,
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
@@ -61,6 +68,7 @@ private fun SettingsScreenContent(
                 .verticalScroll(scrollState),
         ) {
             SettingsGroupEmulation()
+            SettingsGroupInterface(appTheme = appTheme, onAppTheme = onAppTheme)
             SettingsGroupInfo()
             SettingsGroupDebug()
         }
@@ -74,7 +82,9 @@ private fun Preview_SettingsScreen() {
     PrefManager.init(context)
     PluviaTheme {
         SettingsScreenContent(
-            onBack = {},
+            appTheme = AppTheme.DAY,
+            onAppTheme = { },
+            onBack = { },
         )
     }
 }

@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -12,10 +13,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -26,6 +27,7 @@ import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
+import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.SaveLocation
@@ -58,7 +60,7 @@ import timber.log.Timber
 
 @Composable
 fun PluviaMain(
-    viewModel: MainViewModel = viewModel(),
+    viewModel: MainViewModel = hiltViewModel(),
     navController: NavHostController = rememberNavController(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
 ) {
@@ -352,7 +354,13 @@ fun PluviaMain(
         }
     }
 
-    PluviaTheme {
+    PluviaTheme(
+        darkTheme = when (state.appTheme) {
+            AppTheme.AUTO -> isSystemInDarkTheme()
+            AppTheme.DAY -> false
+            AppTheme.NIGHT -> true
+        },
+    ) {
         LoadingDialog(
             visible = state.loadingDialogVisible,
             progress = state.loadingDialogProgress,
@@ -431,7 +439,11 @@ fun PluviaMain(
 
             /** Settings **/
             composable(route = PluviaScreen.Settings.name) {
-                SettingsScreen(onBack = { navController.navigateUp() })
+                SettingsScreen(
+                    appTheme = state.appTheme,
+                    onAppTheme = viewModel::setTheme,
+                    onBack = { navController.navigateUp() },
+                )
             }
         }
     }

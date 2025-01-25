@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.winlator.box86_64.Box86_64Preset
@@ -348,5 +349,15 @@ object PrefManager {
         }
         set(value) {
             setPref(TIPPED, value)
+        }
+
+    private val APP_THEME = intPreferencesKey("app_theme")
+    var appTheme: AppTheme
+        get() {
+            val value = getPref(APP_THEME, AppTheme.NIGHT.code)
+            return AppTheme.from(value)
+        }
+        set(value) {
+            setPref(APP_THEME, value.code)
         }
 }
