@@ -36,9 +36,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,9 +73,17 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 fun UserLoginScreen(
     viewModel: UserLoginViewModel = viewModel(),
 ) {
+    val snackBarHostState = remember { SnackbarHostState() }
     val userLoginState by viewModel.loginState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        viewModel.snackEvents.collect { message ->
+            snackBarHostState.showSnackbar(message)
+        }
+    }
+
     UserLoginScreenContent(
+        snackBarHostState = snackBarHostState,
         userLoginState = userLoginState,
         onUsername = viewModel::setUsername,
         onPassword = viewModel::setPassword,
@@ -88,6 +99,7 @@ fun UserLoginScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun UserLoginScreenContent(
+    snackBarHostState: SnackbarHostState,
     userLoginState: UserLoginState,
     onUsername: (String) -> Unit,
     onPassword: (String) -> Unit,
@@ -99,6 +111,7 @@ private fun UserLoginScreenContent(
     onSetTwoFactor: (String) -> Unit,
 ) {
     Scaffold(
+        snackbarHost = { SnackbarHost(snackBarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
@@ -161,7 +174,7 @@ private fun UserLoginScreenContent(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            if (userLoginState.isSteamConnected &&
+            if (
                 userLoginState.isLoggingIn.not() &&
                 userLoginState.loginResult != LoginResult.Success
             ) {
@@ -172,6 +185,7 @@ private fun UserLoginScreenContent(
                     when (screen) {
                         LoginScreen.CREDENTIAL -> {
                             UsernamePassword(
+                                isSteamConnected = userLoginState.isSteamConnected,
                                 username = userLoginState.username,
                                 onUsername = onUsername,
                                 password = userLoginState.password,
@@ -234,6 +248,7 @@ private fun UserLoginScreenContent(
 
 @Composable
 private fun UsernamePassword(
+    isSteamConnected: Boolean,
     username: String,
     onUsername: (String) -> Unit,
     password: String,
@@ -289,7 +304,7 @@ private fun UsernamePassword(
             Spacer(modifier = Modifier.width(32.dp))
             ElevatedButton(
                 onClick = onLoginBtnClick,
-                enabled = username.isNotEmpty() && password.isNotEmpty(),
+                enabled = username.isNotEmpty() && password.isNotEmpty() && isSteamConnected,
                 content = { Text(text = "Login") },
             )
         }
@@ -310,9 +325,12 @@ internal class UserLoginPreview : PreviewParameterProvider<UserLoginState> {
 private fun Preview_UserLoginScreen(
     @PreviewParameter(UserLoginPreview::class) state: UserLoginState,
 ) {
+    val snackBarHostState = remember { SnackbarHostState() }
+
     PluviaTheme(darkTheme = true) {
         Surface {
             UserLoginScreenContent(
+                snackBarHostState = snackBarHostState,
                 userLoginState = state,
                 onUsername = { },
                 onPassword = { },

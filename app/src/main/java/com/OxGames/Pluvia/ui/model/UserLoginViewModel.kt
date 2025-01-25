@@ -15,6 +15,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -22,6 +23,9 @@ import timber.log.Timber
 class UserLoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow(UserLoginState())
     val loginState: StateFlow<UserLoginState> = _loginState.asStateFlow()
+
+    private val _snackEvents = Channel<String>()
+    val snackEvents = _snackEvents.receiveAsFlow()
 
     private val submitChannel = Channel<String>()
 
@@ -103,6 +107,11 @@ class UserLoginViewModel : ViewModel() {
         }
     }
 
+    private val onRemoteDisconnected: (SteamEvent.RemotelyDisconnected) -> Unit = {
+        Timber.i("Disconnected from steam remotely")
+        _loginState.update { it.copy(isSteamConnected = false) }
+    }
+
     private val onLogonStarted: (SteamEvent.LogonStarted) -> Unit = {
         _loginState.update { currentState ->
             currentState.copy(isLoggingIn = true)
@@ -117,6 +126,8 @@ class UserLoginViewModel : ViewModel() {
                 loginResult = it.loginResult,
             )
         }
+
+        it.message?.let(::showSnack)
 
         // Why is this here? - Lossy Jan 17 2025
         // if (it.loginResult != LoginResult.Success) {
@@ -142,6 +153,8 @@ class UserLoginViewModel : ViewModel() {
         _loginState.update { currentState ->
             currentState.copy(isQrFailed = !it.success, qrCode = null)
         }
+
+        it.message?.let(::showSnack)
     }
 
     private val onLoggedOut: (SteamEvent.LoggedOut) -> Unit = {
@@ -168,6 +181,7 @@ class UserLoginViewModel : ViewModel() {
         PluviaApp.events.on<SteamEvent.QrChallengeReceived, Unit>(onQrChallengeReceived)
         PluviaApp.events.on<SteamEvent.QrAuthEnded, Unit>(onQrAuthEnded)
         PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
+        PluviaApp.events.on<SteamEvent.RemotelyDisconnected, Unit>(onRemoteDisconnected)
 
         val isLoggedIn = SteamService.isLoggedIn
         val isSteamConnected = SteamService.isConnected
@@ -196,6 +210,12 @@ class UserLoginViewModel : ViewModel() {
         PluviaApp.events.off<SteamEvent.LoggedOut, Unit>(onLoggedOut)
 
         SteamService.stopLoginWithQr()
+    }
+
+    private fun showSnack(message: String) {
+        viewModelScope.launch {
+            _snackEvents.send(message)
+        }
     }
 
     fun onCredentialLogin() {
