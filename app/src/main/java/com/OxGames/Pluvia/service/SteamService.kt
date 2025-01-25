@@ -65,6 +65,7 @@ import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects
 import `in`.dragonbra.javasteam.rpc.service.Chat
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
+import `in`.dragonbra.javasteam.steam.authentication.AuthenticationException
 import `in`.dragonbra.javasteam.steam.authentication.IAuthenticator
 import `in`.dragonbra.javasteam.steam.authentication.IChallengeUrlChanged
 import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
@@ -109,6 +110,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.Date
 import java.util.EnumSet
+import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.io.path.pathString
@@ -188,7 +190,7 @@ class SteamService : Service(), IChallengeUrlChanged {
          * Default timeout to use when reading the response body
          */
 
-        private val PROTOCOL_TYPES = EnumSet.of(ProtocolTypes.TCP, ProtocolTypes.UDP)
+        private val PROTOCOL_TYPES = EnumSet.of(ProtocolTypes.WEB_SOCKET)
 
         private var instance: SteamService? = null
 
@@ -827,24 +829,28 @@ class SteamService : Service(), IChallengeUrlChanged {
             shouldRememberPassword: Boolean,
             authenticator: IAuthenticator,
         ) = withContext(Dispatchers.IO) {
-            Timber.i("Logging in via credentials.")
+            try {
+                Timber.i("Logging in via credentials.")
 
-            instance!!.steamClient?.let { steamClient ->
-                val authDetails = AuthSessionDetails().apply {
-                    this.username = username.trim()
-                    this.password = password.trim()
-                    this.persistentSession = shouldRememberPassword
-                    this.authenticator = authenticator
-                    this.deviceFriendlyName = SteamUtils.getMachineName(instance!!)
-                }
+                instance!!.steamClient?.let { steamClient ->
+                    val authDetails = AuthSessionDetails().apply {
+                        this.username = username.trim()
+                        this.password = password.trim()
+                        this.persistentSession = shouldRememberPassword
+                        this.authenticator = authenticator
+                        this.deviceFriendlyName = SteamUtils.getMachineName(instance!!)
+                    }
 
-                val authSession = steamClient.authentication.beginAuthSessionViaCredentials(authDetails, this).await()
+                    PluviaApp.events.emit(SteamEvent.LogonStarted(username))
 
-                PluviaApp.events.emit(SteamEvent.LogonStarted(username))
+                    val authSession = steamClient.authentication.beginAuthSessionViaCredentials(authDetails).await()
 
-                val pollResult = authSession.pollingWaitForResult().await()
+                    val pollResult = authSession.pollingWaitForResult().await()
 
-                if (pollResult.accountName.isNotEmpty() && pollResult.refreshToken.isNotEmpty()) {
+                    if (pollResult.accountName.isEmpty() && pollResult.refreshToken.isEmpty()) {
+                        throw Exception("No account name or refresh token received.")
+                    }
+
                     login(
                         clientId = authSession.clientID,
                         username = pollResult.accountName,
@@ -852,81 +858,93 @@ class SteamService : Service(), IChallengeUrlChanged {
                         refreshToken = pollResult.refreshToken,
                         shouldRememberPassword = shouldRememberPassword,
                     )
+                } ?: run {
+                    Timber.e("Could not logon: Failed to connect to Steam")
+                    PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed, "No connection to Steam"))
                 }
-
-                return@withContext
+            } catch (e: Exception) {
+                Timber.e(e, "Login failed")
+                val message = when (e) {
+                    is CancellationException -> "Unknown cancellation"
+                    is AuthenticationException -> e.result?.name ?: e.message
+                    else -> e.message ?: e.javaClass.name
+                }
+                PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed, message))
             }
-
-            Timber.e("Could not logon: Failed to connect to Steam")
-            PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed))
         }
 
         suspend fun startLoginWithQr() = withContext(Dispatchers.IO) {
-            Timber.i("Logging in via QR.")
+            try {
+                Timber.i("Logging in via QR.")
 
-            val steamClient = instance!!.steamClient
+                instance!!.steamClient?.let { steamClient ->
+                    isWaitingForQRAuth = true
 
-            if (steamClient != null) {
-                isWaitingForQRAuth = true
-
-                val authDetails = AuthSessionDetails().apply {
-                    deviceFriendlyName = SteamUtils.getMachineName(instance!!)
-                }
-
-                val authSession = steamClient.authentication.beginAuthSessionViaQR(authDetails, this).await()
-
-                // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
-                authSession.challengeUrlChanged = instance
-
-                PluviaApp.events.emit(SteamEvent.QrChallengeReceived(authSession.challengeUrl))
-
-                Timber.d("PollingInterval: ${authSession.pollingInterval.toLong()}")
-
-                var authPollResult: AuthPollResult? = null
-
-                while (isWaitingForQRAuth && authPollResult == null) {
-                    try {
-                        authPollResult = authSession.pollAuthSessionStatus(this).await()
-                    } catch (e: Exception) {
-                        Timber.e("Poll auth session status error: $e")
-
-                        break
+                    val authDetails = AuthSessionDetails().apply {
+                        deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                     }
 
-                    // Sensitive info, only print in DEBUG build.
-                    if (BuildConfig.DEBUG && authPollResult != null) {
-                        Timber.d(
-                            "AccessToken: %s\nAccountName: %s\nRefreshToken: %s\nNewGuardData: %s",
-                            authPollResult.accessToken,
-                            authPollResult.accountName,
-                            authPollResult.refreshToken,
-                            authPollResult.newGuardData ?: "No new guard data",
-                        )
+                    val authSession = steamClient.authentication.beginAuthSessionViaQR(authDetails).await()
+
+                    // Steam will periodically refresh the challenge url, this callback allows you to draw a new qr code.
+                    authSession.challengeUrlChanged = instance
+
+                    PluviaApp.events.emit(SteamEvent.QrChallengeReceived(authSession.challengeUrl))
+
+                    Timber.d("PollingInterval: ${authSession.pollingInterval.toLong()}")
+
+                    var authPollResult: AuthPollResult? = null
+
+                    while (isWaitingForQRAuth && authPollResult == null) {
+                        try {
+                            authPollResult = authSession.pollAuthSessionStatus().await()
+                        } catch (e: Exception) {
+                            Timber.e(e, "Poll auth session status error")
+                            throw e
+                        }
+
+                        // Sensitive info, only print in DEBUG build.
+                        if (BuildConfig.DEBUG && authPollResult != null) {
+                            Timber.d(
+                                "AccessToken: %s\nAccountName: %s\nRefreshToken: %s\nNewGuardData: %s",
+                                authPollResult.accessToken,
+                                authPollResult.accountName,
+                                authPollResult.refreshToken,
+                                authPollResult.newGuardData ?: "No new guard data",
+                            )
+                        }
+
+                        delay(authSession.pollingInterval.toLong())
                     }
 
-                    delay(authSession.pollingInterval.toLong())
+                    isWaitingForQRAuth = false
+
+                    PluviaApp.events.emit(SteamEvent.QrAuthEnded(authPollResult != null))
+
+                    // there is a chance qr got cancelled and there is no authPollResult
+                    if (authPollResult == null) {
+                        Timber.e("Got no auth poll result")
+                        throw Exception("Got no auth poll result")
+                    }
+
+                    login(
+                        clientId = authSession.clientID,
+                        username = authPollResult.accountName,
+                        accessToken = authPollResult.accessToken,
+                        refreshToken = authPollResult.refreshToken,
+                    )
+                } ?: run {
+                    Timber.e("Could not start QR logon: Failed to connect to Steam")
+                    PluviaApp.events.emit(SteamEvent.QrAuthEnded(false, "No connection to Steam"))
                 }
-
-                isWaitingForQRAuth = false
-
-                PluviaApp.events.emit(SteamEvent.QrAuthEnded(authPollResult != null))
-
-                // there is a chance qr got cancelled and there is no authPollResult
-                if (authPollResult == null) {
-                    Timber.w("Got no auth poll result")
-                    return@withContext
+            } catch (e: Exception) {
+                Timber.e(e, "QR failed")
+                val message = when (e) {
+                    is CancellationException -> "QR Session timed out"
+                    is AuthenticationException -> e.result?.name ?: e.message
+                    else -> e.message ?: e.javaClass.name
                 }
-
-                login(
-                    clientId = authSession.clientID,
-                    username = authPollResult.accountName,
-                    accessToken = authPollResult.accessToken,
-                    refreshToken = authPollResult.refreshToken,
-                )
-            } else {
-                Timber.e("Could not start QR logon: Failed to connect to Steam")
-
-                PluviaApp.events.emit(SteamEvent.QrAuthEnded(false))
+                PluviaApp.events.emit(SteamEvent.QrAuthEnded(false, message))
             }
         }
 
@@ -1218,6 +1236,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             Timber.w("Attempting to reconnect (retry $retryAttempt)")
 
             // isLoggingOut = false
+            PluviaApp.events.emit(SteamEvent.RemotelyDisconnected)
 
             connectToSteam()
         } else {

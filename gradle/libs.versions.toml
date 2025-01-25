@@ -80,6 +80,7 @@ junit = { group = "junit", name = "junit", version.ref = "junit" }
 commons-io = { module = "commons-io:commons-io", version = "2.17.0" } # https://mvnrepository.com/artifact/commons-io/commons-io
 commons-lang3 = { module = "org.apache.commons:commons-lang3", version = "3.17.0" } # https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
 commons-validator = { module = "commons-validator:commons-validator", version = "1.9.0" } # https://mvnrepository.com/artifact/commons-validator/commons-validator
+ktor-engine = { module = "io.ktor:ktor-client-cio", version = "3.0.3" } # https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 xz = { module = "org.tukaani:xz", version = "1.10" } # https://mvnrepository.com/artifact/org.tukaani/xz
 
 [plugins]
@@ -129,6 +130,7 @@ steamkit-dev = [
     "commons-lang3",
     "commons-validator",
     "xz",
+    "ktor-engine"
 ]
 google = [
     "feature-delivery",
