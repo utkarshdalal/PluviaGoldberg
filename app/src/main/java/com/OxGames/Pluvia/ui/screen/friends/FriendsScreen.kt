@@ -85,6 +85,7 @@ import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun FriendsScreen(
     viewModel: FriendsViewModel = hiltViewModel(),
@@ -105,7 +106,7 @@ fun FriendsScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun FriendsScreenContent(
     navigator: ThreePaneScaffoldNavigator<SteamFriend>,
@@ -364,6 +365,7 @@ private fun FriendsListPane(
     }
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffoldDestinationItem<SteamFriend>> {
     private val friend = SteamFriend(
         id = 123L,
@@ -379,6 +381,7 @@ internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffold
         )
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
