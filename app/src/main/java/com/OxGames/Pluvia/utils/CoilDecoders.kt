@@ -76,7 +76,7 @@ class AnimatedPngDecoder(private val source: ImageSource) : Decoder {
     override suspend fun decode(): DecodeResult {
         val buffer = source.source().squashToDirectByteBuffer()
         return DecodeResult(
-            drawable = APNGDrawable(Loader { ByteBufferReader(buffer) }),
+            drawable = APNGDrawable { ByteBufferReader(buffer) },
             isSampled = false,
         )
     }

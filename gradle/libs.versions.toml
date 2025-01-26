@@ -1,6 +1,6 @@
 [versions]
 activityCompose = "1.10.0" # https://mvnrepository.com/artifact/androidx.activity/activity-compose
-agp = "8.7.3" # https://mvnrepository.com/artifact/com.android.application/com.android.application.gradle.plugin
+agp = "8.8.0" # https://mvnrepository.com/artifact/com.android.application/com.android.application.gradle.plugin
 apache-compress = "1.27.1" # https://mvnrepository.com/artifact/org.apache.commons/commons-compress
 apng = "3.0.2" # https://mvnrepository.com/artifact/com.github.penfeizhou.android.animation/apng
 composeBom = "2025.01.00" # https://mvnrepository.com/artifact/androidx.compose/compose-bom
