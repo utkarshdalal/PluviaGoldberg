@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
@@ -116,11 +117,7 @@ private fun rememberQrBitmap(content: String, size: Dp): Bitmap? {
             val matrixWidth = bitmapMatrix?.width ?: sizePx
             val matrixHeight = bitmapMatrix?.height ?: sizePx
 
-            val newBitmap = Bitmap.createBitmap(
-                bitmapMatrix?.width ?: sizePx,
-                bitmapMatrix?.height ?: sizePx,
-                Bitmap.Config.ARGB_8888,
-            )
+            val newBitmap = createBitmap(bitmapMatrix?.width ?: sizePx, bitmapMatrix?.height ?: sizePx)
 
             val pixels = IntArray(matrixWidth * matrixHeight)
 

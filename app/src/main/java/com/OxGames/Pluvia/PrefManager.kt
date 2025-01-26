@@ -11,8 +11,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.enums.Orientation
+import com.materialkolor.PaletteStyle
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.container.Container
 import com.winlator.core.DefaultVersion
@@ -348,5 +350,25 @@ object PrefManager {
         }
         set(value) {
             setPref(TIPPED, value)
+        }
+
+    private val APP_THEME = intPreferencesKey("app_theme")
+    var appTheme: AppTheme
+        get() {
+            val value = getPref(APP_THEME, AppTheme.AUTO.ordinal)
+            return AppTheme.entries.getOrNull(value) ?: AppTheme.AUTO
+        }
+        set(value) {
+            setPref(APP_THEME, value.ordinal)
+        }
+
+    private val APP_THEME_PALETTE = intPreferencesKey("app_theme_palette")
+    var appThemePalette: PaletteStyle
+        get() {
+            val value = getPref(APP_THEME_PALETTE, PaletteStyle.TonalSpot.ordinal)
+            return PaletteStyle.entries.getOrNull(value) ?: PaletteStyle.TonalSpot
+        }
+        set(value) {
+            setPref(APP_THEME_PALETTE, value.ordinal)
         }
 }

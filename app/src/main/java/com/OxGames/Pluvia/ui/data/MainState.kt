@@ -1,8 +1,12 @@
 package com.OxGames.Pluvia.ui.data
 
+import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
+import com.materialkolor.PaletteStyle
 
 data class MainState(
+    val appTheme: AppTheme = AppTheme.NIGHT,
+    val paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
     val resettedScreen: PluviaScreen? = null,
     val currentScreen: PluviaScreen = PluviaScreen.LoginUser,
     val hasLaunched: Boolean = false,
