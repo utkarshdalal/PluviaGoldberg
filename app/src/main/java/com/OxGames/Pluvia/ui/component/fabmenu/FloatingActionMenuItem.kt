@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.FloatingActionButtonElevation
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.contentColorFor
@@ -30,7 +31,7 @@ fun FloatingActionMenuItem(
     modifier: Modifier = Modifier,
     isSelected: Boolean = false,
     shape: Shape = FloatingActionButtonDefaults.smallShape,
-    containerColor: Color = FloatingActionButtonDefaults.containerColor,
+    containerColor: Color = MaterialTheme.colorScheme.secondary,
     contentColor: Color = contentColorFor(containerColor),
     elevation: FloatingActionButtonElevation = FloatingActionButtonDefaults.elevation(),
     interactionSource: MutableInteractionSource? = null,
