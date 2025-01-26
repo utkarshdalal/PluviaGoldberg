@@ -5,13 +5,18 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,6 +27,7 @@ import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -154,8 +161,18 @@ private fun LibraryScreenContent(
                         }
                     },
                 ) { paddingValues ->
+                    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                     LibraryListPane(
-                        paddingValues = paddingValues,
+                        paddingValues = PaddingValues(
+                            start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
+                            end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
+                            top = statusBarPadding,
+                            bottom = paddingValues.calculateBottomPadding(),
+                        ),
+                        contentPaddingValues = PaddingValues(
+                            top = paddingValues.calculateTopPadding().minus(statusBarPadding),
+                            bottom = 72.dp,
+                        ),
                         list = state.appInfoList,
                         onItemClick = { item ->
                             navigator.navigateTo(
@@ -257,6 +274,7 @@ private fun LibrarySearchBar(
                 if (state.isSearching) {
                     LibraryListPane(
                         paddingValues = PaddingValues(),
+                        contentPaddingValues = PaddingValues(bottom = 72.dp),
                         listState = listState,
                         list = state.appInfoList,
                         onItemClick = onItemClick,
@@ -270,6 +288,7 @@ private fun LibrarySearchBar(
 @Composable
 private fun LibraryListPane(
     paddingValues: PaddingValues,
+    contentPaddingValues: PaddingValues,
     listState: LazyListState = rememberLazyListState(),
     list: List<AppInfo>,
     onItemClick: (Int) -> Unit,
@@ -299,14 +318,18 @@ private fun LibraryListPane(
                 .padding(paddingValues)
                 .fillMaxSize(),
             state = listState,
-            contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
+            contentPadding = contentPaddingValues,
         ) {
-            items(list, key = { it.appId }) { item ->
+            itemsIndexed(list, key = { _, item -> item.appId }) { idx, item ->
                 AppItem(
                     modifier = Modifier.animateItem(),
                     appInfo = item,
                     onClick = { onItemClick(item.appId) },
                 )
+
+                if (idx < list.lastIndex) {
+                    HorizontalDivider()
+                }
             }
         }
     }

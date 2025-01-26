@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,13 +25,14 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 @Composable
 fun FloatingActionMenuLabel(
     modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.secondary,
     isSelected: Boolean,
     label: String,
 ) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(6.dp),
-        color = Color.Black.copy(alpha = 0.8f),
+        color = color,
     ) {
         Text(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
@@ -51,13 +53,11 @@ fun FloatingActionMenuLabel(
                     children = {
                         Icon(
                             imageVector = Icons.Default.Check,
-                            tint = Color.LightGray,
                             contentDescription = null,
                         )
                     },
                 ),
             ),
-            color = Color.White,
             fontSize = 14.sp,
             maxLines = 1,
         )

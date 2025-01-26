@@ -8,6 +8,8 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,13 +17,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
 import com.OxGames.Pluvia.utils.getAvatarURL
+import com.materialkolor.ktx.isLight
 import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
@@ -35,17 +40,32 @@ fun FriendItem(
     onClick: () -> Unit,
 ) {
     // Can't use CompositionLocal for colors. Instead we can use ListItemDefault.colors()
+
+    val isLight = LocalContentColor.current.isLight()
+
     ListItem(
         modifier = modifier.clickable { onClick() },
         colors = ListItemDefaults.colors(
-            headlineColor = friend.statusColor,
-            supportingColor = friend.statusColor,
+            containerColor = Color.Transparent,
+            headlineColor = if (!isLight) MaterialTheme.colorScheme.onSurface else friend.statusColor,
+            supportingColor = if (!isLight) MaterialTheme.colorScheme.onSurfaceVariant else friend.statusColor,
         ),
         headlineContent = {
             Text(
                 text = buildAnnotatedString {
                     append(friend.nameOrNickname)
-                    append(" ")
+                    if (friend.nickname.isNotEmpty()) {
+                        withStyle(
+                            style = SpanStyle(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                            ),
+                        ) {
+                            append(" * ")
+                        }
+                    } else {
+                        append(" ")
+                    }
                     appendInlineContent("icon", "[icon]")
                 },
                 inlineContent = mapOf(
@@ -59,7 +79,7 @@ fun FriendItem(
                             friend.statusIcon?.let {
                                 Icon(
                                     imageVector = it,
-                                    tint = Color.LightGray,
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     contentDescription = it.name,
                                 )
                             }
@@ -103,7 +123,7 @@ private fun Preview_FriendItem() {
                             gameName = if (index < 3) "" else "Team Fortress 2",
                             id = index.toLong(),
                             name = entry.key,
-                            nickname = entry.key,
+                            nickname = if (index < 3) "" else entry.key,
                             relation = EFriendRelationship.Friend,
                             state = entry.value,
                             stateFlags = EPersonaStateFlag.from(512.times(index + 1)),

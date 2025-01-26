@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.data.GameProcessInfo
+import com.OxGames.Pluvia.di.IAppTheme
+import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.events.AndroidEvent
@@ -14,9 +16,12 @@ import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.MainState
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
+import com.materialkolor.PaletteStyle
 import com.winlator.xserver.Window
+import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.AppProcessInfo
 import java.nio.file.Paths
+import javax.inject.Inject
 import kotlin.io.path.name
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +32,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-class MainViewModel : ViewModel() {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    private val appTheme: IAppTheme,
+) : ViewModel() {
 
     sealed class MainUiEvent {
         data object OnBackPressed : MainUiEvent()
@@ -83,6 +91,18 @@ class MainViewModel : ViewModel() {
         PluviaApp.events.on<SteamEvent.LogonStarted, Unit>(onLoggingIn)
         PluviaApp.events.on<SteamEvent.LogonEnded, Unit>(onLogonEnded)
         PluviaApp.events.on<SteamEvent.LoggedOut, Unit>(onLoggedOut)
+
+        viewModelScope.launch {
+            appTheme.themeFlow.collect { value ->
+                _state.update { it.copy(appTheme = value) }
+            }
+        }
+
+        viewModelScope.launch {
+            appTheme.paletteFlow.collect { value ->
+                _state.update { it.copy(paletteStyle = value) }
+            }
+        }
     }
 
     override fun onCleared() {
@@ -101,6 +121,14 @@ class MainViewModel : ViewModel() {
                 launchedAppId = SteamService.INVALID_APP_ID,
             )
         }
+    }
+
+    fun setTheme(value: AppTheme) {
+        appTheme.currentTheme = value
+    }
+
+    fun setPalette(value: PaletteStyle) {
+        appTheme.currentPalette = value
     }
 
     fun setAnnoyingDialogShown(value: Boolean) {

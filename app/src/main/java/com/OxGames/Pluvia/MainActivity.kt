@@ -3,12 +3,14 @@ package com.OxGames.Pluvia
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.res.Configuration
+import android.graphics.Color.TRANSPARENT
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.OrientationEventListener
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -72,6 +74,7 @@ class MainActivity : ComponentActivity() {
     private var index = totalIndex++
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.light(TRANSPARENT, TRANSPARENT))
         super.onCreate(savedInstanceState)
 
         // startOrientator() // causes memory leak since activity restarted every orientation change
@@ -80,7 +83,6 @@ class MainActivity : ComponentActivity() {
         PluviaApp.events.on<AndroidEvent.SetAllowedOrientation, Unit>(onSetAllowedOrientation)
         PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
-        enableEdgeToEdge()
         setContent {
             var hasNotificationPermission by remember { mutableStateOf(false) }
             val permissionLauncher = rememberLauncherForActivityResult(
