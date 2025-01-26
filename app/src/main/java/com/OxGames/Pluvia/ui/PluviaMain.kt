@@ -368,6 +368,7 @@ fun PluviaMain(
             visible = state.loadingDialogVisible,
             progress = state.loadingDialogProgress,
         )
+
         MessageDialog(
             visible = msgDialogState.visible,
             onDismissRequest = onDismissRequest,
@@ -379,11 +380,11 @@ fun PluviaMain(
             title = msgDialogState.title,
             message = msgDialogState.message,
         )
+
         NavHost(
+            modifier = Modifier.fillMaxSize(),
             navController = navController,
             startDestination = PluviaScreen.LoginUser.name,
-            modifier = Modifier
-                .fillMaxSize(),
         ) {
             /** Login **/
             composable(route = PluviaScreen.LoginUser.name) {

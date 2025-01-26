@@ -123,15 +123,13 @@ internal fun HomeNavigationWrapperUI(
         NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
     }
 
-    // TODO play nice with oxters nav,
-    //  but also handle our nav first!
     NavigationSuiteScaffold(
         navigationSuiteItems = {
             HomeDestination.entries.forEach {
                 item(
                     label = { Text(stringResource(it.title)) },
                     icon = { Icon(it.icon, stringResource(it.title)) },
-                    selected = it == destination,
+                    selected = (it == destination),
                     onClick = { onDestination(it) },
                 )
             }
