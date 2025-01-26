@@ -3,6 +3,7 @@ package com.OxGames.Pluvia.ui.screen.friends
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.displayCutoutPadding
@@ -131,6 +132,7 @@ private fun FriendsScreenContent(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FriendsListPane(
     paddingValues: PaddingValues,
