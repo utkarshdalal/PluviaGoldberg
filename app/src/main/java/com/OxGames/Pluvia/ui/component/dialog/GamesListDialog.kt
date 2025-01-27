@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -70,6 +71,8 @@ fun GamesListDialog(
                         )
                     },
                 ) { paddingValues ->
+                    val uriHandler = LocalUriHandler.current
+
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -92,7 +95,7 @@ fun GamesListDialog(
                                 modifier = Modifier
                                     .animateItem()
                                     .clickable {
-                                        // TODO launch to store page?
+                                        uriHandler.openUri(Constants.Library.STORE_URL + item.appId)
                                     },
                                 colors = ListItemDefaults.colors(
                                     containerColor = Color.Transparent,
@@ -108,10 +111,9 @@ fun GamesListDialog(
                                     }
                                 },
                                 leadingContent = {
-                                    ListItemImage {
-                                        // TODO load app icon.
-                                        Constants.Persona.MISSING_AVATAR_URL
-                                    }
+                                    ListItemImage(
+                                        image = { "${Constants.Library.ICON_URL}${item.appId}/${item.imgIconUrl}.jpg" },
+                                    )
                                 },
                             )
 
