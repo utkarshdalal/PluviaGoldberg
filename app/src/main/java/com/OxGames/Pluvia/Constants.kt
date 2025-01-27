@@ -4,7 +4,7 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Constants values that may be used around the app more than once.
- * Constants that are used in composables and or viewmodels should be here too.
+ * Constants that are used in composables and or view models should be here too.
  */
 object Constants {
 

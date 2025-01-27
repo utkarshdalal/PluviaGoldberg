@@ -18,8 +18,10 @@ import okio.ByteString.Companion.toByteString
 import timber.log.Timber
 
 /**
- * Coil ICO file decoder
+ * Custom [Decoder]'s for the Coil-Kt image loading library
  */
+
+// .ico file decoder
 class IconDecoder(
     private val source: SourceResult,
     private val options: Options,
@@ -67,10 +69,8 @@ class IconDecoder(
     }
 }
 
-/**
- * Coil APNG file decoder
- * From https://github.com/coil-kt/coil/issues/506#issuecomment-952526682
- */
+// .png (Animated) PNG file decoder
+// Reference: https://github.com/coil-kt/coil/issues/506#issuecomment-952526682
 class AnimatedPngDecoder(private val source: ImageSource) : Decoder {
     override suspend fun decode(): DecodeResult {
         val buffer = source.source().squashToDirectByteBuffer()
