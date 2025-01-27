@@ -28,6 +28,11 @@ object Constants {
         const val STICKER_URL = "https://steamcommunity-a.akamaihd.net/economy/sticker/"
     }
 
+    object Library {
+        const val ICON_URL = "https://cdn.cloudflare.steamstatic.com/steamcommunity/public/images/apps/"
+        const val STORE_URL = "https://store.steampowered.com/app/"
+    }
+
     object Misc {
         const val TIP_JAR_LINK = "https://buy.stripe.com/5kAaFU1bx2RFeLmbII"
         const val GITHUB_LINK = "https://github.com/oxters168/Pluvia"
