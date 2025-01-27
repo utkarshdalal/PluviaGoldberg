@@ -36,6 +36,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -52,9 +53,11 @@ import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -72,6 +75,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.SteamFriend
+import com.OxGames.Pluvia.ui.component.LoadingScreen
+import com.OxGames.Pluvia.ui.component.dialog.GamesListDialog
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.FriendsState
@@ -81,6 +86,10 @@ import com.OxGames.Pluvia.utils.getAvatarURL
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
+import `in`.dragonbra.javasteam.enums.EResult
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ProfileInfoCallback
+import `in`.dragonbra.javasteam.types.SteamID
+import java.util.Date
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -89,14 +98,15 @@ fun FriendsScreen(
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    val navigator = rememberListDetailPaneScaffoldNavigator<Unit>()
     val state by viewModel.friendsState.collectAsStateWithLifecycle()
-    val navigator = rememberListDetailPaneScaffoldNavigator<SteamFriend>()
 
     val onBackPressedDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
     FriendsScreenContent(
         navigator = navigator,
         state = state,
+        onFriendClick = viewModel::observeSelectedFriend,
         onBack = { onBackPressedDispatcher?.onBackPressed() },
         onSettings = onSettings,
         onLogout = onLogout,
@@ -106,8 +116,9 @@ fun FriendsScreen(
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun FriendsScreenContent(
-    navigator: ThreePaneScaffoldNavigator<SteamFriend>,
+    navigator: ThreePaneScaffoldNavigator<Unit>,
     state: FriendsState,
+    onFriendClick: (Long) -> Unit,
     onBack: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -118,6 +129,16 @@ private fun FriendsScreenContent(
     BackHandler(navigator.canNavigateBack(BackNavigationBehavior.PopUntilContentChange)) {
         navigator.navigateBack(BackNavigationBehavior.PopUntilContentChange)
     }
+
+    var showGamesDialog by remember { mutableStateOf(false) }
+
+    GamesListDialog(
+        visible = showGamesDialog,
+        list = state.profileFriendGames,
+        onDismissRequest = {
+            showGamesDialog = false
+        },
+    )
 
     ListDetailPaneScaffold(
         modifier = Modifier.displayCutoutPadding(),
@@ -144,26 +165,29 @@ private fun FriendsScreenContent(
                         paddingValues = paddingValues,
                         list = state.friendsList,
                         onItemClick = {
-                            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail, it)
+                            onFriendClick(it.id)
+                            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
                         },
                     )
                 }
             }
         },
         detailPane = {
-            val value = navigator.currentDestination?.content ?: SteamFriend(0)
             AnimatedPane {
                 Surface {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                         content = {
-                            if (value.id == 0L) {
+                            if (state.profileFriend == null) {
                                 DefaultDetailsScreen()
                             } else {
                                 ProfileDetailsScreen(
-                                    friend = value,
+                                    state = state,
                                     onBack = onBack,
+                                    onShowGames = {
+                                        showGamesDialog = true
+                                    },
                                 )
                             }
                         },
@@ -192,20 +216,12 @@ private fun DefaultDetailsScreen() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProfileDetailsScreen(
-    friend: SteamFriend,
+    state: FriendsState,
     onBack: () -> Unit,
+    onShowGames: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
-
-    // TODO placeholders
-    val steamLevel = 45
-    val favoriteBadge = "Years of Service"
-    val favoriteBadgeIcon = R.drawable.icon_background_gold
-
-    LaunchedEffect(friend) {
-        // TODO This isn't live data
-    }
 
     Scaffold(
         topBar = {
@@ -242,7 +258,7 @@ private fun ProfileDetailsScreen(
                     .clip(CircleShape)
                     .background(Color.DarkGray)
                     .size(92.dp),
-                imageModel = { friend.avatarHash.getAvatarURL() },
+                imageModel = { state.profileFriend!!.avatarHash.getAvatarURL() },
                 imageOptions = ImageOptions(
                     contentScale = ContentScale.Crop,
                     contentDescription = null,
@@ -255,15 +271,15 @@ private fun ProfileDetailsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = friend.nameOrNickname,
+                text = state.profileFriend!!.nameOrNickname,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.headlineLarge,
             )
 
             Text(
-                text = friend.isPlayingGameName,
-                color = friend.statusColor,
+                text = state.profileFriend.isPlayingGameName,
+                color = state.profileFriend.statusColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.titleLarge,
@@ -276,6 +292,7 @@ private fun ProfileDetailsScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // TODO hoist this
                 val cardItem: @Composable (String, ImageVector, () -> Unit) -> Unit = { text, icon, onClick ->
                     Card(
                         modifier = Modifier
@@ -292,7 +309,7 @@ private fun ProfileDetailsScreen(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(24.dp),
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -312,11 +329,39 @@ private fun ProfileDetailsScreen(
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 cardItem("Games", Icons.Outlined.Games) {
-                    // TODO click
+                    onShowGames()
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 cardItem("Options", Icons.Outlined.MoreVert) {
                     // TODO click
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.Start,
+                ) {
+                    if (state.profileFriendInfo == null) {
+                        LoadingScreen()
+                    } else {
+                        // 'headline' doesn't seem to be used anymore
+                        CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) {
+                            with(state.profileFriendInfo) {
+                                Text(text = "Name: $realName")
+                                Text(text = "City: $cityName")
+                                Text(text = "State: $stateName")
+                                Text(text = "Country: $countryName")
+                                Text(text = "Since: $timeCreated")
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(text = "Summary:\n$summary")
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -363,18 +408,11 @@ private fun FriendsListPane(
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
-internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffoldDestinationItem<SteamFriend>> {
-    private val friend = SteamFriend(
-        id = 123L,
-        nickname = "Pluvia".repeat(3).trimEnd(),
-        state = EPersonaState.Online,
-        gameName = "Left 4 Dead 2",
-    )
-
-    override val values: Sequence<ThreePaneScaffoldDestinationItem<SteamFriend>>
+internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffoldDestinationItem<Unit>> {
+    override val values: Sequence<ThreePaneScaffoldDestinationItem<Unit>>
         get() = sequenceOf(
             ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.List),
-            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.Detail, friend),
+            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.Detail),
         )
 }
 
@@ -386,7 +424,7 @@ internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffold
 )
 @Composable
 private fun Preview_FriendsScreenContent(
-    @PreviewParameter(FriendsScreenPreview::class) state: ThreePaneScaffoldDestinationItem<SteamFriend>,
+    @PreviewParameter(FriendsScreenPreview::class) state: ThreePaneScaffoldDestinationItem<Unit>,
 ) {
     val navigator = rememberListDetailPaneScaffoldNavigator(
         initialDestinationHistory = listOf(state),
@@ -401,7 +439,25 @@ private fun Preview_FriendsScreenContent(
                     "TEST B" to List(3) { SteamFriend(id = it.toLong() + 5) },
                     "TEST C" to List(3) { SteamFriend(id = it.toLong() + 10) },
                 ),
+                profileFriend = SteamFriend(
+                    id = 123L,
+                    nickname = "Pluvia".repeat(3).trimEnd(),
+                    state = EPersonaState.Online,
+                    gameName = "Left 4 Dead 2",
+                ),
+                profileFriendInfo = ProfileInfoCallback(
+                    result = EResult.OK,
+                    steamID = SteamID(123L),
+                    timeCreated = Date(9988776655 * 1000L),
+                    realName = "Pluvia",
+                    cityName = "Pluvia Town",
+                    stateName = "Pluviaville",
+                    countryName = "United Pluvia",
+                    headline = "",
+                    summary = "A Fake Summary ːsteamboredː ːsteamthisː",
+                ),
             ),
+            onFriendClick = { },
             onBack = { },
             onSettings = { },
             onLogout = { },

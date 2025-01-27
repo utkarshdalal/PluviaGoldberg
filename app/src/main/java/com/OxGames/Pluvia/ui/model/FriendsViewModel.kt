@@ -3,10 +3,13 @@ package com.OxGames.Pluvia.ui.model
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.FriendsState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import `in`.dragonbra.javasteam.types.SteamID
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,12 +24,43 @@ class FriendsViewModel @Inject constructor(
     private val _friendsState = MutableStateFlow(FriendsState())
     val friendsState: StateFlow<FriendsState> = _friendsState.asStateFlow()
 
+    private var selectedFriendJob: Job? = null
+    private var observeFriendListJob: Job? = null
+
     init {
         observeFriendList()
     }
 
+    override fun onCleared() {
+        selectedFriendJob?.cancel()
+        observeFriendListJob?.cancel()
+    }
+
+    fun observeSelectedFriend(friendID: Long) {
+        selectedFriendJob?.cancel()
+
+        // Force clear states when this method if is called again.
+        _friendsState.update { it.copy(profileFriend = null, profileFriendGames = emptyList(), profileFriendInfo = null) }
+
+        viewModelScope.launch {
+            val resp = SteamService.getProfileInfo(SteamID(friendID))
+            _friendsState.update { it.copy(profileFriendInfo = resp) }
+        }
+
+        viewModelScope.launch {
+            val resp = SteamService.getOwnedGames(friendID)
+            _friendsState.update { it.copy(profileFriendGames = resp) }
+        }
+
+        selectedFriendJob = viewModelScope.launch {
+            steamFriendDao.findFriend(friendID).collect { friend ->
+                _friendsState.update { it.copy(profileFriend = friend) }
+            }
+        }
+    }
+
     private fun observeFriendList() {
-        viewModelScope.launch(Dispatchers.IO) {
+        observeFriendListJob = viewModelScope.launch(Dispatchers.IO) {
             steamFriendDao.getAllFriends().collect { friends ->
                 _friendsState.update { currentState ->
                     val sortedList = friends
