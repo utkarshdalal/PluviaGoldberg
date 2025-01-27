@@ -1472,18 +1472,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                         onlineSessionInstances = callback.onlineSessionInstances,
                     ),
                 )
-            }
-        }
 
-        // Send off an event if we change states.
-        if (callback.friendID == steamClient!!.steamID) {
-            Timber.d("Emitting PersonaStateReceived")
-
-            dbScope.launch {
-                val id = callback.friendID.convertToUInt64()
-                val friend = friendDao.findFriend(id).first()
-
-                PluviaApp.events.emit(SteamEvent.PersonaStateReceived(friend))
+                // Send off an event if we change states.
+                if (callback.friendID == steamClient!!.steamID) {
+                    val loggedInAccount = friendDao.findFriend(id).first() ?: return@withTransaction
+                    PluviaApp.events.emit(SteamEvent.PersonaStateReceived(loggedInAccount))
+                }
             }
         }
     }

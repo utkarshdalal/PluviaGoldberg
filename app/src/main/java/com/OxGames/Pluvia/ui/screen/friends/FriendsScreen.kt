@@ -300,8 +300,8 @@ private fun ProfileDetailsScreen(
                             .size(72.dp)
                             .clickable(onClick = onClick),
                         colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.onSecondary
-                        )
+                            containerColor = MaterialTheme.colorScheme.onSecondary,
+                        ),
                     ) {
                         Column(
                             modifier = Modifier
