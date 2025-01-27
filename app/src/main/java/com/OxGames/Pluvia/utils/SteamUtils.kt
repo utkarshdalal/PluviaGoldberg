@@ -6,19 +6,49 @@ import android.provider.Settings
 import com.OxGames.Pluvia.service.SteamService
 import `in`.dragonbra.javasteam.util.HardwareUtils
 import java.io.FileOutputStream
+import java.math.RoundingMode
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.name
 
 object SteamUtils {
+
+    private val sfd by lazy {
+        SimpleDateFormat("MMM d - h:mm a", Locale.getDefault()).apply {
+            timeZone = TimeZone.getDefault()
+        }
+    }
+
+    private val df by lazy {
+        DecimalFormat("#.#").apply {
+            roundingMode = RoundingMode.HALF_UP
+        }
+    }
+
+    /**
+     * Converts steam time to actual time
+     * @return a string in the 'MMM d - h:mm a' format.
+     */
+    // TODO validate accuracy.
+    fun fromSteamTime(rtime: Int): String = sfd.format(rtime * 1000L)
+
+    /**
+     * Converts steam time from the playtime of a friend into an approximate double representing hours.
+     * @return A double representing how many hours were played, ie: 1.5 hrs
+     */
+    // TODO validate accuracy
+    fun formatPlayTime(rtime: Int): String = df.format(rtime / 60.0)
+
     /**
      * Strips non-ASCII characters from String
      */
-    fun removeSpecialChars(s: String): String {
-        return s.replace(Regex("[^\\u0000-\\u007F]"), "")
-    }
+    fun removeSpecialChars(s: String): String = s.replace(Regex("[^\\u0000-\\u007F]"), "")
 
     /**
      * Replaces any existing `steam_api.dll` or `steam_api64.dll` in the app directory

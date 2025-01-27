@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.utils
 
 import android.graphics.BitmapFactory
-import android.graphics.drawable.BitmapDrawable
+import androidx.core.graphics.drawable.toDrawable
 import coil.ImageLoader
 import coil.decode.DecodeResult
 import coil.decode.Decoder
@@ -12,7 +12,6 @@ import com.github.penfeizhou.animation.apng.APNGDrawable
 import com.github.penfeizhou.animation.apng.decode.APNGParser
 import com.github.penfeizhou.animation.io.ByteBufferReader
 import com.github.penfeizhou.animation.io.StreamReader
-import com.github.penfeizhou.animation.loader.Loader
 import java.nio.ByteBuffer
 import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
@@ -32,7 +31,7 @@ class IconDecoder(
             val bytes = bufferedSource.readByteArray()
             val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
             DecodeResult(
-                drawable = BitmapDrawable(options.context.resources, bitmap),
+                drawable = bitmap.toDrawable(options.context.resources),
                 isSampled = false,
             )
         } catch (e: Exception) {

@@ -2,15 +2,18 @@ package com.OxGames.Pluvia.service
 
 import androidx.room.withTransaction
 import com.OxGames.Pluvia.data.FriendMessage
+import com.OxGames.Pluvia.data.OwnedGames
 import com.OxGames.Pluvia.db.dao.FriendMessagesDao
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import `in`.dragonbra.javasteam.enums.EChatEntryType
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesChatSteamclient.CChat_RequestFriendPersonaStates_Request
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesFriendmessagesSteamclient
+import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesPlayerSteamclient
 import `in`.dragonbra.javasteam.rpc.service.Chat
 import `in`.dragonbra.javasteam.rpc.service.FriendMessages
 import `in`.dragonbra.javasteam.rpc.service.FriendMessagesClient
+import `in`.dragonbra.javasteam.rpc.service.Player
 import `in`.dragonbra.javasteam.steam.handlers.steamunifiedmessages.SteamUnifiedMessages
 import `in`.dragonbra.javasteam.types.SteamID
 import java.io.Closeable
@@ -55,6 +58,8 @@ class SteamUnifiedFriends(
 
     private var chat: Chat? = null
 
+    private var player: Player? = null
+
     private var friendMessages: FriendMessages? = null
 
     // TODO OfflineMessageNotificationCallback ?
@@ -63,7 +68,11 @@ class SteamUnifiedFriends(
 
     init {
         unifiedMessages = service.steamClient!!.getHandler<SteamUnifiedMessages>()
+
         chat = unifiedMessages!!.createService(Chat::class.java)
+
+        player = unifiedMessages!!.createService(Player::class.java)
+
         friendMessages = unifiedMessages!!.createService(FriendMessages::class.java)
 
         service.callbackManager!!.subscribeServiceNotification<FriendMessages, AckMessageNotification> {
@@ -123,6 +132,7 @@ class SteamUnifiedFriends(
     override fun close() {
         unifiedMessages = null
         chat = null
+        player = null
         friendMessages = null
 
         callbackSubscriptions.forEach {
@@ -300,5 +310,40 @@ class SteamUnifiedFriends(
         response.body.reactorsList.forEach { reactor ->
             // Last part of steamID3
         }
+    }
+
+    suspend fun getOwnedGames(steamID: Long): List<OwnedGames> {
+        val request = SteammessagesPlayerSteamclient.CPlayer_GetOwnedGames_Request.newBuilder().apply {
+            steamid = steamID
+            includePlayedFreeGames = true
+            includeFreeSub = true
+            includeAppinfo = true
+            includeExtendedAppinfo = true
+        }.build()
+
+        val result = player?.getOwnedGames(request)?.await()
+
+        if (result == null || result.result != EResult.OK) {
+            Timber.w("Unable to get owned games!")
+            return emptyList()
+        }
+
+        val list = result.body.gamesList.map { game ->
+            OwnedGames(
+                appId = game.appid,
+                name = game.name,
+                playtimeTwoWeeks = game.playtime2Weeks,
+                playtimeForever = game.playtimeForever,
+                imgIconUrl = game.imgIconUrl,
+                sortAs = game.sortAs,
+                rtimeLastPlayed = game.rtimeLastPlayed,
+            )
+        }
+
+        if (list.size != result.body.gamesCount) {
+            Timber.w("List was not the same as given")
+        }
+
+        return list
     }
 }

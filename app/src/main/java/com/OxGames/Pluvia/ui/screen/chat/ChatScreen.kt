@@ -63,14 +63,12 @@ import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
+import com.OxGames.Pluvia.utils.SteamUtils
 import com.OxGames.Pluvia.utils.getAvatarURL
 import com.OxGames.Pluvia.utils.getProfileUrl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -247,12 +245,6 @@ private fun ChatScreenContent(
             )
         },
     ) { paddingValues ->
-        val sfd = remember {
-            SimpleDateFormat("MMM d - h:mm a", Locale.getDefault()).apply {
-                timeZone = TimeZone.getDefault()
-            }
-        }
-
         // TODO Typing bar + Send + Emoji selector
         // TODO scroll to bottom
         // TODO scroll to bottom if we're ~3 messages slightly scrolled.
@@ -266,7 +258,7 @@ private fun ChatScreenContent(
             items(messages, key = { it.id }) { msg ->
                 ChatBubble(
                     message = msg.message,
-                    timestamp = sfd.format(msg.timestamp * 1000L),
+                    timestamp = SteamUtils.fromSteamTime(msg.timestamp),
                     fromLocal = msg.fromLocal,
                 )
             }

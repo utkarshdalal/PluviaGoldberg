@@ -19,6 +19,7 @@ import com.OxGames.Pluvia.data.LibraryAssetsInfo
 import com.OxGames.Pluvia.data.LibraryCapsuleInfo
 import com.OxGames.Pluvia.data.LibraryHeroInfo
 import com.OxGames.Pluvia.data.LibraryLogoInfo
+import com.OxGames.Pluvia.data.OwnedGames
 import com.OxGames.Pluvia.data.PackageInfo
 import com.OxGames.Pluvia.data.PostSyncInfo
 import com.OxGames.Pluvia.data.SaveFilePattern
@@ -85,6 +86,7 @@ import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.FriendsListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.NicknameListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ProfileInfoCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamgameserver.SteamGameServer
 import `in`.dragonbra.javasteam.steam.handlers.steammasterserver.SteamMasterServer
 import `in`.dragonbra.javasteam.steam.handlers.steamscreenshots.SteamScreenshots
@@ -1005,7 +1007,16 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         suspend fun getEmoticonList() = withContext(Dispatchers.IO) {
-            instance?.steamClient?.getHandler<PluviaHandler>()?.getEmoticonList() ?: Timber.w("Failed to get emotes")
+            // TODO keep callback or handle db operation here with await()
+            instance?.steamClient!!.getHandler<PluviaHandler>()!!.getEmoticonList()
+        }
+
+        suspend fun getProfileInfo(friendID: SteamID): ProfileInfoCallback = withContext(Dispatchers.IO) {
+            instance?._steamFriends!!.requestProfileInfo(friendID).await()
+        }
+
+        suspend fun getOwnedGames(friendID: Long): List<OwnedGames> = withContext(Dispatchers.IO) {
+            instance?._unifiedFriends!!.getOwnedGames(friendID)
         }
     }
 
@@ -1085,6 +1096,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
                     add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
                     add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
+                    add(subscribe(ProfileInfoCallback::class.java, ::onProfileInfo))
                 }
             }
 
@@ -1406,6 +1418,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                 emoticonDao.replaceAll(callback.emoteList)
             }
         }
+    }
+
+    private fun onProfileInfo(callback: ProfileInfoCallback) {
+        Timber.i("Getting profile info for ${callback.steamID}")
+        // TODO: We already wait with the caller, is this needed?
+        PluviaApp.events.emit(SteamEvent.OnProfileInfo(callback))
     }
 
     @OptIn(ExperimentalStdlibApi::class)

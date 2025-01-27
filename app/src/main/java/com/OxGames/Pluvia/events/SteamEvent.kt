@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.events
 
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.enums.LoginResult
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ProfileInfoCallback
 
 sealed interface SteamEvent<T> : Event<T> {
     data class Connected(val isAutoLoggingIn: Boolean) : SteamEvent<Unit>
@@ -15,4 +16,7 @@ sealed interface SteamEvent<T> : Event<T> {
     data object ForceCloseApp : SteamEvent<Unit>
     data object Disconnected : SteamEvent<Unit>
     data object RemotelyDisconnected : SteamEvent<Unit>
+
+    // This isn't a SteamEvent, but since its the only one now, it can stay
+    data class OnProfileInfo(val info: ProfileInfoCallback) : SteamEvent<Unit>
 }
