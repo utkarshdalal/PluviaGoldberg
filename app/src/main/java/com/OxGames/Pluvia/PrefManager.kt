@@ -29,7 +29,8 @@ import kotlinx.coroutines.runBlocking
 import timber.log.Timber
 
 /**
- * Kind of ugly, but works to be a universal preference manager.
+ * A universal Preference Manager that can be used anywhere within Pluvia.
+ * Note: King of ugly though.
  */
 object PrefManager {
 
