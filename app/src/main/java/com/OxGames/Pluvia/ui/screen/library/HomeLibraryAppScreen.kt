@@ -72,6 +72,7 @@ import com.winlator.xenvironment.ImageFsInstaller
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -83,11 +84,16 @@ fun AppScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    var downloadInfo by remember {
+    var downloadInfo by remember(appId) {
         mutableStateOf(SteamService.getAppDownloadInfo(appId))
     }
-    var downloadProgress by remember { mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f) }
-    var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
+    var downloadProgress by remember(appId) {
+        mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f)
+    }
+    var isInstalled by remember(appId) {
+        mutableStateOf(SteamService.isAppInstalled(appId))
+    }
+
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
 
     var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
@@ -431,6 +437,7 @@ private fun AppScreenContent(
                 previewPlaceholder = painterResource(R.drawable.testliblogo),
             )
         }
+
 
         // Controls Row
         Row(
