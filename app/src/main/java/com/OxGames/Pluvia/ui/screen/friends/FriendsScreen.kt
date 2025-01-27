@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Games
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -298,6 +299,9 @@ private fun ProfileDetailsScreen(
                         modifier = Modifier
                             .size(72.dp)
                             .clickable(onClick = onClick),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.onSecondary
+                        )
                     ) {
                         Column(
                             modifier = Modifier
