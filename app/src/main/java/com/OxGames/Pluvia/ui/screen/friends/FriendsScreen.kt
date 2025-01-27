@@ -1,10 +1,10 @@
 package com.OxGames.Pluvia.ui.screen.friends
 
 import android.content.res.Configuration
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -63,8 +65,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -76,6 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.SteamFriend
+import com.OxGames.Pluvia.ui.component.EmoticonText
 import com.OxGames.Pluvia.ui.component.LoadingScreen
 import com.OxGames.Pluvia.ui.component.dialog.GamesListDialog
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
@@ -84,6 +88,7 @@ import com.OxGames.Pluvia.ui.data.FriendsState
 import com.OxGames.Pluvia.ui.model.FriendsViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.getAvatarURL
+import com.OxGames.Pluvia.utils.getProfileUrl
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
@@ -114,7 +119,7 @@ fun FriendsScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun FriendsScreenContent(
     navigator: ThreePaneScaffoldNavigator<Unit>,
@@ -124,12 +129,8 @@ private fun FriendsScreenContent(
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    val listState = rememberLazyListState() // Hoisted high to preserve state
     val snackbarHost = remember { SnackbarHostState() }
-
-    // Pretty much the same as 'NavigableListDetailPaneScaffold'
-    BackHandler(navigator.canNavigateBack(BackNavigationBehavior.PopUntilContentChange)) {
-        navigator.navigateBack(BackNavigationBehavior.PopUntilContentChange)
-    }
 
     var showGamesDialog by remember { mutableStateOf(false) }
 
@@ -141,62 +142,129 @@ private fun FriendsScreenContent(
         },
     )
 
+    // Pretty much the same as 'NavigableListDetailPaneScaffold'
+    BackHandler(navigator.canNavigateBack(BackNavigationBehavior.PopUntilContentChange)) {
+        navigator.navigateBack(BackNavigationBehavior.PopUntilContentChange)
+    }
+
     ListDetailPaneScaffold(
         modifier = Modifier.displayCutoutPadding(),
         directive = navigator.scaffoldDirective,
         value = navigator.scaffoldValue,
         listPane = {
             AnimatedPane {
-                Scaffold(
-                    snackbarHost = { SnackbarHost(snackbarHost) },
-                    topBar = {
-                        CenterAlignedTopAppBar(
-                            title = { Text(text = "Friends") },
-                            actions = {
-                                AccountButton(
-                                    onSettings = onSettings,
-                                    onLogout = onLogout,
-                                )
-                            },
-                            navigationIcon = { BackButton(onClick = onBack) },
-                        )
+                FriendsListPane(
+                    state = state,
+                    listState = listState,
+                    snackbarHost = snackbarHost,
+                    onBack = onBack,
+                    onFriendClick = {
+                        onFriendClick(it.id)
+                        navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
                     },
-                ) { paddingValues ->
-                    FriendsListPane(
-                        paddingValues = paddingValues,
-                        list = state.friendsList,
-                        onItemClick = {
-                            onFriendClick(it.id)
-                            navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
-                        },
-                    )
-                }
+                    onSettings = onSettings,
+                    onLogout = onLogout,
+                )
             }
         },
         detailPane = {
             AnimatedPane {
-                Surface {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                        content = {
-                            if (state.profileFriend == null) {
-                                DefaultDetailsScreen()
-                            } else {
-                                ProfileDetailsScreen(
-                                    state = state,
-                                    onBack = onBack,
-                                    onShowGames = {
-                                        showGamesDialog = true
-                                    },
-                                )
-                            }
-                        },
-                    )
-                }
+                FriendsDetailPane(
+                    state = state,
+                    onBack = onBack,
+                    onShowGames = {
+                        showGamesDialog = true
+                    },
+                )
             }
         },
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FriendsListPane(
+    state: FriendsState,
+    snackbarHost: SnackbarHostState,
+    listState: LazyListState,
+    onBack: () -> Unit,
+    onFriendClick: (SteamFriend) -> Unit,
+    onSettings: () -> Unit,
+    onLogout: () -> Unit,
+) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHost) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text(text = "Friends") },
+                actions = {
+                    AccountButton(
+                        onSettings = onSettings,
+                        onLogout = onLogout,
+                    )
+                },
+                navigationIcon = { BackButton(onClick = onBack) },
+            )
+        },
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize(),
+            state = listState,
+            contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
+        ) {
+            state.friendsList.forEach { (key, value) ->
+                stickyHeader {
+                    StickyHeaderItem(
+                        isCollapsed = false,
+                        header = key,
+                        count = value.size,
+                        onHeaderAction = {
+                            // TODO (Un)Collapse children items.
+                        },
+                    )
+                }
+
+                itemsIndexed(value, key = { _, item -> item.id }) { idx, friend ->
+                    FriendItem(
+                        modifier = Modifier.animateItem(),
+                        friend = friend,
+                        onClick = { onFriendClick(friend) },
+                    )
+
+                    if (idx < value.lastIndex) {
+                        HorizontalDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FriendsDetailPane(
+    state: FriendsState,
+    onBack: () -> Unit,
+    onShowGames: () -> Unit,
+) {
+    Surface {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+            content = {
+                if (state.profileFriend == null) {
+                    DefaultDetailsScreen()
+                } else {
+                    ProfileDetailsScreen(
+                        state = state,
+                        onBack = onBack,
+                        onShowGames = onShowGames,
+                    )
+                }
+            },
+        )
+    }
 }
 
 @Composable
@@ -243,6 +311,9 @@ private fun ProfileDetailsScreen(
             }
         },
     ) { paddingValues ->
+        val uriHandler = LocalUriHandler.current
+        val context = LocalContext.current
+
         Column(
             modifier = Modifier
                 .verticalScroll(scrollState)
@@ -293,57 +364,48 @@ private fun ProfileDetailsScreen(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // TODO hoist this
-                val cardItem: @Composable (String, ImageVector, () -> Unit) -> Unit = { text, icon, onClick ->
-                    Card(
-                        modifier = Modifier
-                            .size(72.dp)
-                            .clickable(onClick = onClick),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.onSecondary,
-                        ),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = text,
-                                style = MaterialTheme.typography.bodyMedium,
-                            )
-                        }
-                    }
-                }
-
-                cardItem("Chat", Icons.AutoMirrored.Outlined.Chat) {
-                    // TODO click
-                }
+                ProfileButton(
+                    icon = Icons.AutoMirrored.Outlined.Chat,
+                    text = "Chat",
+                    onClick = {
+                        // TODO chat
+                    },
+                )
                 Spacer(modifier = Modifier.width(16.dp))
-                cardItem("Profile", Icons.Outlined.Person) {
-                    // TODO click
-                }
+                ProfileButton(
+                    icon = Icons.Outlined.Person,
+                    text = "Profile",
+                    onClick = {
+                        uriHandler.openUri(state.profileFriend.id.getProfileUrl())
+                    },
+                )
                 Spacer(modifier = Modifier.width(16.dp))
-                cardItem("Games", Icons.Outlined.Games) {
-                    onShowGames()
-                }
+                ProfileButton(
+                    icon = Icons.Outlined.Games,
+                    text = "Games",
+                    onClick = onShowGames,
+                )
                 Spacer(modifier = Modifier.width(16.dp))
-                cardItem("Options", Icons.Outlined.MoreVert) {
-                    // TODO click
-                }
+                ProfileButton(
+                    icon = Icons.Outlined.MoreVert,
+                    text = "More",
+                    onClick = {
+                        // TODO more options, such as:
+                        //  Friend management: Remove, Block, Unblock
+                        //  Notification settings
+                        val msg = "'More' not available yet"
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    },
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Card {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.onSecondary,
+                ),
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -362,57 +424,23 @@ private fun ProfileDetailsScreen(
                                 Text(text = "Country: $countryName")
                                 Text(text = "Since: $timeCreated")
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text(text = "Summary:\n$summary")
+                                Text(text = "Summary:")
+                                EmoticonText(text = summary)
                             }
                         }
                     }
                 }
             }
-        }
-    }
-}
 
-@Composable
-private fun FriendsListPane(
-    paddingValues: PaddingValues,
-    list: Map<String, List<SteamFriend>>,
-    onItemClick: (SteamFriend) -> Unit,
-) {
-    LazyColumn(
-        modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
-    ) {
-        list.forEach { (key, value) ->
-            stickyHeader {
-                StickyHeaderItem(
-                    isCollapsed = false,
-                    header = key,
-                    count = value.size,
-                    onHeaderAction = {
-                        // TODO (Un)Collapse children items.
-                    },
-                )
-            }
-
-            itemsIndexed(value, key = { _, item -> item.id }) { idx, item ->
-                FriendItem(
-                    modifier = Modifier.animateItem(),
-                    friend = item,
-                    onClick = { onItemClick(item) },
-                )
-
-                if (idx < value.lastIndex) {
-                    HorizontalDivider()
-                }
-            }
+            // Bottom scroll padding
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
-internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffoldDestinationItem<Unit>> {
+internal class FriendsScreenPreview :
+    PreviewParameterProvider<ThreePaneScaffoldDestinationItem<Unit>> {
     override val values: Sequence<ThreePaneScaffoldDestinationItem<Unit>>
         get() = sequenceOf(
             ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.List),
@@ -458,7 +486,7 @@ private fun Preview_FriendsScreenContent(
                     stateName = "Pluviaville",
                     countryName = "United Pluvia",
                     headline = "",
-                    summary = "A Fake Summary ːsteamboredː ːsteamthisː",
+                    summary = "A [emoticon]roar[/emoticon] Fake Summary ːsteamboredː ːsteamthisː",
                 ),
             ),
             onFriendClick = { },
