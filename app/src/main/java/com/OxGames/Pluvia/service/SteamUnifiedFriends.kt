@@ -116,7 +116,7 @@ class SteamUnifiedFriends(
                                 fromLocal = false,
                                 message = it.body.message,
                                 timestamp = it.body.rtime32ServerTimestamp,
-                                lowPriority = it.body.lowPriority,
+                                // lowPriority = it.body.lowPriority,
                             )
 
                             messagesDao.insertMessage(chatMsg)
@@ -148,12 +148,14 @@ class SteamUnifiedFriends(
         chat?.requestFriendPersonaStates(request)
     }
 
-    suspend fun getRecentMessages(friendID: SteamID) {
-        Timber.i("Getting Recent messages for: ${friendID.convertToUInt64()}")
+    suspend fun getRecentMessages(friendID: Long) {
+        Timber.i("Getting Recent messages for: $friendID")
+
+        val userSteamID = SteamService.userSteamId!!
 
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_GetRecentMessages_Request.newBuilder().apply {
-            steamid1 = SteamService.userSteamId!!.convertToUInt64() // You
-            steamid2 = friendID.convertToUInt64() // Friend
+            steamid1 = userSteamID.convertToUInt64() // You
+            steamid2 = friendID // Friend
             // The rest here and below is what steam has looking at NHA2
             count = 50
             rtime32StartTime = 0
@@ -166,25 +168,28 @@ class SteamUnifiedFriends(
         val response = friendMessages!!.getRecentMessages(request).await()
 
         if (response.result != EResult.OK) {
-            Timber.w("Failed to get message history for friend: ${friendID.convertToUInt64()}, ${response.result}")
+            Timber.w("Failed to get message history for friend: $friendID, ${response.result}")
             return
         }
 
         // TODO: Insert new messages into database
         // TODO: Do not dupe messages
-        response.body.messagesList.forEach { message ->
-            // message.accountid
-            // message.timestamp
-            // message.message
-            // message.ordinal
-            // message.reactionsList.forEach { reaction ->
-            //     reaction.reaction
-            //     reaction.reactionType
-            //     reaction.reactionBytes
-            //     reaction.reactorsList
-            //     reaction.reactorsCount
-            // }
+        // TODO: reactions
+        val regex = "\\[U:\\d+:(\\d+)]".toRegex()
+        val userSteamId3 = regex.find(userSteamID.render())!!.groupValues[1].toInt()
+        val messages = response.body.messagesList.map { message ->
+            FriendMessage(
+                steamIDFriend = friendID,
+                fromLocal = userSteamId3 == message.accountid,
+                message = message.message,
+                timestamp = message.timestamp,
+            )
         }
+
+        service.db.withTransaction {
+            messagesDao.insertMessagesIfNotExist(messages)
+        }
+
         Timber.i("More available: ${response.body.moreAvailable}")
     }
 
@@ -239,10 +244,10 @@ class SteamUnifiedFriends(
         // Once chat notifications are implemented, we should clear it here as well.
     }
 
-    fun ackMessage(friendID: SteamID) {
-        Timber.d("Ack-ing message for friend: ${friendID.convertToUInt64()}")
+    fun ackMessage(friendID: Long) {
+        Timber.d("Ack-ing message for friend: $friendID")
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_AckMessage_Notification.newBuilder().apply {
-            steamidPartner = friendID.convertToUInt64()
+            steamidPartner = friendID
             timestamp = System.currentTimeMillis().div(1000).toInt()
         }.build()
 

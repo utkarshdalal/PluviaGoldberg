@@ -2,6 +2,9 @@ package com.OxGames.Pluvia.ui.component
 
 import android.content.res.Configuration
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
@@ -37,6 +40,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
@@ -65,16 +69,19 @@ private val plainUrlPattern = "(https?://\\S+)".toRegex()
 private val hrPattern = "\\[hr]([^\\[]*?)\\[/hr]".toRegex()
 private val codePattern = "\\[code]([^\\[]*?)\\[/code]".toRegex()
 private val quotePattern = "\\[quote=([^]]+)]([^\\[]*?)\\[/quote]".toRegex()
+private val stickerPattern = "\\[sticker type=\"(.*?)\".*?]\\[/sticker]".toRegex()
 
 private val bbCodePattern = (
     "$colonPattern|$emoticonPattern|$h1Pattern|$h2Pattern|$h3Pattern|$boldPattern|$underlinePattern|" +
-        "$italicPattern|$strikePattern|$spoilerPattern|$urlPattern|$plainUrlPattern|$hrPattern|$codePattern|$quotePattern"
+        "$italicPattern|$strikePattern|$spoilerPattern|$urlPattern|$plainUrlPattern|$hrPattern|$codePattern|" +
+        "$quotePattern|$stickerPattern"
     ).toRegex()
 
 @Composable
 fun BBCodeText(
     modifier: Modifier = Modifier,
     text: String,
+    color: Color = Color.Unspecified,
     style: TextStyle = LocalTextStyle.current,
 ) {
     val revealedSpoilers = remember { mutableStateMapOf<String, Boolean>() }
@@ -242,6 +249,12 @@ fun BBCodeText(
                         append(match.groupValues[17])
                     }
                 }
+                // Sticker
+                match.groups[18] != null -> {
+                    val stickerType = match.groupValues[18]
+                    val stickerId = "sticker_$stickerType"
+                    appendInlineContent(stickerId, "[sticker]")
+                }
             }
 
             currentIndex = match.range.last + 1
@@ -253,48 +266,86 @@ fun BBCodeText(
     }
 
     // Build inline content map
+// Build inline content map
     val inlineContentMap = buildMap {
         matches.forEach { match ->
-            val emoticonName = match.groupValues
-                .getOrNull(1)
-                ?.takeUnless { it.isEmpty() }
-                ?: match.groupValues.getOrNull(2)
+            when {
+                // Handle emoticons
+                match.groups[1] != null || match.groups[2] != null -> {
+                    val emoticonName = match.groupValues
+                        .getOrNull(1)
+                        ?.takeUnless { it.isEmpty() }
+                        ?: match.groupValues.getOrNull(2)
 
-            emoticonName?.let { emoticon ->
-                // Cant idiom this with 'to'
-                put(
-                    emoticon,
-                    InlineTextContent(
-                        placeholder = Placeholder(
-                            width = style.fontSize,
-                            height = style.fontSize,
-                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
-                        ),
-                        children = {
-                            CoilImage(
-                                modifier = Modifier.size(style.fontSize.value.dp),
-                                imageModel = { Constants.Chat.EMOTICON_URL + emoticon },
-                                imageOptions = ImageOptions(
-                                    contentDescription = emoticon,
-                                    contentScale = ContentScale.Fit,
+                    emoticonName?.let { emoticon ->
+                        put(
+                            emoticon,
+                            InlineTextContent(
+                                placeholder = Placeholder(
+                                    width = style.fontSize,
+                                    height = style.fontSize,
+                                    placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
                                 ),
-                                loading = {
-                                    CircularProgressIndicator()
+                                children = {
+                                    CoilImage(
+                                        modifier = Modifier.size(style.fontSize.value.dp),
+                                        imageModel = { Constants.Chat.EMOTICON_URL + emoticon },
+                                        imageOptions = ImageOptions(
+                                            contentDescription = emoticon,
+                                            contentScale = ContentScale.Fit,
+                                        ),
+                                        loading = {
+                                            CircularProgressIndicator()
+                                        },
+                                        failure = {
+                                            Icon(Icons.Filled.QuestionMark, null)
+                                        },
+                                        previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
+                                    )
                                 },
-                                failure = {
-                                    Icon(Icons.Filled.QuestionMark, null)
-                                },
-                                previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
-                            )
-                        },
-                    ),
-                )
+                            ),
+                        )
+                    }
+                }
+                // Handle stickers
+                match.groups[18] != null -> {
+                    val stickerType = match.groupValues[18]
+                    val stickerId = "sticker_$stickerType"
+                    put(
+                        stickerId,
+                        InlineTextContent(
+                            placeholder = Placeholder(
+                                width = 150.sp,
+                                height = 150.sp,
+                                placeholderVerticalAlign = PlaceholderVerticalAlign.Center,
+                            ),
+                            children = {
+                                CoilImage(
+                                    modifier = Modifier.size(150.dp),
+                                    imageModel = { Constants.Chat.STICKER_URL + stickerType },
+                                    imageOptions = ImageOptions(
+                                        contentDescription = stickerType,
+                                        contentScale = ContentScale.Fit,
+                                    ),
+                                    loading = {
+                                        CircularProgressIndicator()
+                                    },
+                                    failure = {
+                                        Icon(Icons.Filled.QuestionMark, null)
+                                    },
+                                    previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
+                                )
+                            },
+                        ),
+                    )
+                }
             }
         }
     }
 
     Text(
         text = annotatedString,
+        color = color,
         modifier = modifier.pointerInput(Unit) {
             detectTapGestures { offset ->
                 val position = annotatedString
@@ -329,8 +380,9 @@ fun BBCodeText(
 private fun Preview_BBCodeText() {
     PluviaTheme {
         Surface {
-            BBCodeText(
-                text = """
+            Column {
+                BBCodeText(
+                    text = """
                 [h1]Header 1 text[/h1]
                 [h2]Header 2 text[/h2]
                 [h3]Header 3 text[/h3]
@@ -347,8 +399,13 @@ private fun Preview_BBCodeText() {
                 [code]Fixed-width font, preserves spaces[/code]
                 Some ːsteamhappyː for ːsteamsadː testing.
                 Hello World! [emoticon]steamhappy[/emoticon]
-                """.trimIndent(),
-            )
+                    """.trimIndent(),
+                )
+
+                Spacer(Modifier.height(14.dp))
+
+                BBCodeText(text = "[sticker type=\"Winter2019JingleIntensifies\" limit=\"0\"][/sticker]")
+            }
         }
     }
 }

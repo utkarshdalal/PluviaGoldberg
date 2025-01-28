@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.OxGames.Pluvia.ui.component.BBCodeText
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 @Composable
@@ -53,7 +54,7 @@ fun ChatBubble(
         ) {
             Column(modifier = Modifier.padding(contentPadding)) {
                 // The message
-                Text(
+                BBCodeText(
                     modifier = Modifier.align(if (fromLocal) Alignment.End else Alignment.Start),
                     text = message,
                     color = textColor,

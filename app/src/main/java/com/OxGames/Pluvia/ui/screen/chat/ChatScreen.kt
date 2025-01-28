@@ -1,6 +1,7 @@
 package com.OxGames.Pluvia.ui.screen.chat
 
 import android.content.res.Configuration
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
@@ -25,9 +27,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -65,7 +69,6 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
 import com.OxGames.Pluvia.utils.SteamUtils
 import com.OxGames.Pluvia.utils.getAvatarURL
-import com.OxGames.Pluvia.utils.getProfileUrl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
@@ -94,9 +97,9 @@ class ChatViewModel @Inject constructor(
     private val _chatState = MutableStateFlow(ChatState())
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
 
-    var emoticonJob: Job? = null
-    var friendJob: Job? = null
-    var messagesJob: Job? = null
+    private var emoticonJob: Job? = null
+    private var friendJob: Job? = null
+    private var messagesJob: Job? = null
 
     override fun onCleared() {
         super.onCleared()
@@ -108,35 +111,39 @@ class ChatViewModel @Inject constructor(
         messagesJob?.cancel()
     }
 
-    init {
+    fun setFriend(id: Long) {
         viewModelScope.launch {
             // Since were initiating a chat, refresh our list of emoticons and stickers
             SteamService.getEmoticonList()
+            SteamService.getRecentMessages(id)
+            SteamService.ackMessage(id)
         }
 
         emoticonJob = viewModelScope.launch {
             emoticonDao.getAll().collect { list ->
+                Timber.tag("ChatViewModel").d("Got Emotes: ${list.size}")
                 _chatState.update { it.copy(emoticons = list) }
             }
         }
-    }
 
-    fun setFriend(id: Long) {
         friendJob = viewModelScope.launch {
             friendDao.findFriend(id).collect { friend ->
                 if (friend == null) {
                     throw RuntimeException("Friend is null and cannot proceed")
                 }
-
+                Timber.tag("ChatViewModel").d("Friend update $friend")
                 _chatState.update { it.copy(friend = friend) }
             }
         }
 
         messagesJob = viewModelScope.launch {
             messagesDao.getAllMessagesForFriend(id).collect { list ->
+                Timber.tag("ChatViewModel").d("New messages ${list.size}")
                 _chatState.update { it.copy(messages = list) }
             }
         }
+
+        Timber.d("Chatting with $id")
     }
 }
 
@@ -247,7 +254,7 @@ private fun ChatScreenContent(
                         ) {
                             DropdownMenuItem(
                                 text = { Text(text = "View Profile") },
-                                onClick = { uriHandler.openUri(steamFriend.id.getProfileUrl()) },
+                                onClick = { /* TODO */ },
                             )
                             DropdownMenuItem(
                                 text = { Text(text = "View Previous Names") },
@@ -272,19 +279,49 @@ private fun ChatScreenContent(
         // TODO Typing bar + Send + Emoji selector
         // TODO scroll to bottom
         // TODO scroll to bottom if we're ~3 messages slightly scrolled.
-        LazyColumn(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize()
-                .imePadding(),
-            state = scrollState,
-        ) {
-            items(messages, key = { it.id }) { msg ->
-                ChatBubble(
-                    message = msg.message,
-                    timestamp = SteamUtils.fromSteamTime(msg.timestamp),
-                    fromLocal = msg.fromLocal,
-                )
+
+        Crossfade(targetState = messages.isEmpty()) { state ->
+            when (state) {
+                true -> {
+                    Box(
+                        modifier = Modifier
+                            .padding(paddingValues)
+                            .fillMaxSize()
+                            .imePadding(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Surface(
+                            modifier = Modifier.padding(horizontal = 24.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shadowElevation = 8.dp,
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(24.dp),
+                                text = "No chat history",
+                            )
+                        }
+                    }
+                }
+
+                false -> {
+                    LazyColumn(
+                        modifier = Modifier
+                            .padding(paddingValues)
+                            .fillMaxSize()
+                            .imePadding(),
+                        state = scrollState,
+                        reverseLayout = true,
+                    ) {
+                        items(messages, key = { it.id }) { msg ->
+                            ChatBubble(
+                                message = msg.message,
+                                timestamp = SteamUtils.fromSteamTime(msg.timestamp),
+                                fromLocal = msg.fromLocal,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -310,7 +347,7 @@ private fun Preview_ChatScreenContent() {
                     steamIDFriend = 76561198003805806,
                     fromLocal = it % 3 == 0,
                     message = "Hey!, ".repeat(it.plus(1).times(1)),
-                    lowPriority = false,
+                    // lowPriority = false,
                     timestamp = 1737438789,
                 )
             },

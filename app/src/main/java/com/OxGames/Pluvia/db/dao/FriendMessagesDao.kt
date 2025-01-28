@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.OxGames.Pluvia.data.FriendMessage
 import `in`.dragonbra.javasteam.types.SteamID
@@ -34,4 +35,43 @@ interface FriendMessagesDao {
 
     @Query("SELECT COUNT(*) FROM chat_message WHERE steam_id_friend = :steamId")
     fun getMessageCountForFriend(steamId: SteamID): Flow<Int>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM chat_message WHERE steam_id_friend = :steamId AND timestamp = :timestamp AND message = :message)")
+    suspend fun messageExists(steamId: Long, timestamp: Int, message: String): Boolean
+
+    @Transaction
+    suspend fun insertMessageIfNotExists(message: FriendMessage): Boolean {
+        val exists = messageExists(
+            steamId = message.steamIDFriend,
+            timestamp = message.timestamp,
+            message = message.message,
+        )
+
+        if (!exists) {
+            insertMessage(message)
+            return true
+        }
+
+        return false
+    }
+
+    @Transaction
+    suspend fun insertMessagesIfNotExist(messages: List<FriendMessage>): List<FriendMessage> {
+        val insertedMessages = mutableListOf<FriendMessage>()
+
+        messages.forEach { message ->
+            val exists = messageExists(
+                steamId = message.steamIDFriend,
+                timestamp = message.timestamp,
+                message = message.message,
+            )
+
+            if (!exists) {
+                insertMessage(message)
+                insertedMessages.add(message)
+            }
+        }
+
+        return insertedMessages
+    }
 }
