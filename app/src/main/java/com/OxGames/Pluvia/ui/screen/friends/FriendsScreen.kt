@@ -102,8 +102,9 @@ import java.util.Date
 @Composable
 fun FriendsScreen(
     viewModel: FriendsViewModel = hiltViewModel(),
-    onSettings: () -> Unit,
+    onChat: (Long) -> Unit,
     onLogout: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val navigator = rememberListDetailPaneScaffoldNavigator<Unit>()
     val state by viewModel.friendsState.collectAsStateWithLifecycle()
@@ -113,11 +114,12 @@ fun FriendsScreen(
     FriendsScreenContent(
         navigator = navigator,
         state = state,
-        onFriendClick = viewModel::observeSelectedFriend,
         onBack = { onBackPressedDispatcher?.onBackPressed() },
+        onChat = onChat,
+        onFriendClick = viewModel::observeSelectedFriend,
         onHeaderAction = viewModel::onHeaderAction,
-        onSettings = onSettings,
         onLogout = onLogout,
+        onSettings = onSettings,
     )
 }
 
@@ -126,11 +128,12 @@ fun FriendsScreen(
 private fun FriendsScreenContent(
     navigator: ThreePaneScaffoldNavigator<Unit>,
     state: FriendsState,
+    onBack: () -> Unit,
+    onChat: (Long) -> Unit,
     onFriendClick: (Long) -> Unit,
     onHeaderAction: (String) -> Unit,
-    onBack: () -> Unit,
-    onSettings: () -> Unit,
     onLogout: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val listState = rememberLazyListState() // Hoisted high to preserve state
     val snackbarHost = remember { SnackbarHostState() }
@@ -161,13 +164,14 @@ private fun FriendsScreenContent(
                     listState = listState,
                     snackbarHost = snackbarHost,
                     onBack = onBack,
-                    onHeaderAction = onHeaderAction,
+                    onChat = onChat,
                     onFriendClick = {
                         onFriendClick(it.id)
                         navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
                     },
-                    onSettings = onSettings,
+                    onHeaderAction = onHeaderAction,
                     onLogout = onLogout,
+                    onSettings = onSettings,
                 )
             }
         },
@@ -176,6 +180,7 @@ private fun FriendsScreenContent(
                 FriendsDetailPane(
                     state = state,
                     onBack = onBack,
+                    onChat = onChat,
                     onShowGames = {
                         showGamesDialog = true
                     },
@@ -192,10 +197,11 @@ private fun FriendsListPane(
     snackbarHost: SnackbarHostState,
     listState: LazyListState,
     onBack: () -> Unit,
+    onChat: (Long) -> Unit,
     onFriendClick: (SteamFriend) -> Unit,
     onHeaderAction: (String) -> Unit,
-    onSettings: () -> Unit,
     onLogout: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
@@ -234,7 +240,7 @@ private fun FriendsListPane(
                         FriendItem(
                             modifier = Modifier.animateItem(),
                             friend = friend,
-                            onClick = { /* TODO */ },
+                            onClick = { onChat(friend.id) },
                             onLongClick = { onFriendClick(friend) },
                         )
 
@@ -252,6 +258,7 @@ private fun FriendsListPane(
 private fun FriendsDetailPane(
     state: FriendsState,
     onBack: () -> Unit,
+    onChat: (Long) -> Unit,
     onShowGames: () -> Unit,
 ) {
     Surface {
@@ -265,6 +272,7 @@ private fun FriendsDetailPane(
                     ProfileDetailsScreen(
                         state = state,
                         onBack = onBack,
+                        onChat = onChat,
                         onShowGames = onShowGames,
                     )
                 }
@@ -293,6 +301,7 @@ private fun DefaultDetailsScreen() {
 private fun ProfileDetailsScreen(
     state: FriendsState,
     onBack: () -> Unit,
+    onChat: (Long) -> Unit,
     onShowGames: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
@@ -374,9 +383,7 @@ private fun ProfileDetailsScreen(
                 ProfileButton(
                     icon = Icons.AutoMirrored.Outlined.Chat,
                     text = "Chat",
-                    onClick = {
-                        // TODO chat
-                    },
+                    onClick = { onChat(state.profileFriend.id) },
                 )
                 Spacer(modifier = Modifier.width(16.dp))
                 ProfileButton(
@@ -503,6 +510,7 @@ private fun Preview_FriendsScreenContent(
             onBack = { },
             onSettings = { },
             onLogout = { },
+            onChat = { },
         )
     }
 }
