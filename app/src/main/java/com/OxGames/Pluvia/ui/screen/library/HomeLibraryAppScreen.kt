@@ -3,7 +3,7 @@ package com.OxGames.Pluvia.ui.screen.library
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -461,8 +461,8 @@ private fun AppScreenContent(
                 )
             }
 
-            Crossfade(targetState = isDownloading) { downloading ->
-                if (downloading) {
+            if (isDownloading) {
+                AnimatedVisibility(visible = true) {
                     Column(
                         modifier = Modifier
                             .align(Alignment.CenterVertically)
@@ -478,13 +478,9 @@ private fun AppScreenContent(
                             progress = { downloadProgress },
                         )
                     }
-                } else {
-                    Spacer(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                    )
                 }
+            } else {
+                Spacer(Modifier.weight(1f))
             }
 
             Box {
