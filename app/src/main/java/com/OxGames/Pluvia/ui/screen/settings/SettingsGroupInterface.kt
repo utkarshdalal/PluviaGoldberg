@@ -6,9 +6,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.ui.component.dialog.AppPaletteDialog
 import com.OxGames.Pluvia.ui.component.dialog.AppThemeDialog
+import com.OxGames.Pluvia.ui.component.dialog.StartScreenDialog
+import com.OxGames.Pluvia.ui.theme.settingsTileColors
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.materialkolor.PaletteStyle
@@ -22,6 +25,8 @@ fun SettingsGroupInterface(
 ) {
     var openAppThemeDialog by rememberSaveable { mutableStateOf(false) }
     var openAppPaletteDialog by rememberSaveable { mutableStateOf(false) }
+    var openStartScreenDialog by rememberSaveable { mutableStateOf(false) }
+    var startScreenOption by rememberSaveable { mutableStateOf(PrefManager.startScreen) }
 
     AppThemeDialog(
         openDialog = openAppThemeDialog,
@@ -41,8 +46,29 @@ fun SettingsGroupInterface(
         },
     )
 
+    StartScreenDialog(
+        openDialog = openStartScreenDialog,
+        destination = startScreenOption,
+        onSelected = {
+            startScreenOption = it
+            PrefManager.startScreen = it
+        },
+        onDismiss = {
+            openStartScreenDialog = false
+        },
+    )
+
     SettingsGroup(title = { Text(text = "Interface") }) {
         SettingsMenuLink(
+            colors = settingsTileColors(),
+            title = { Text(text = "Start Destination") },
+            subtitle = { Text(text = "Choose between Library, Downloads, Friends") },
+            onClick = {
+                openStartScreenDialog = true
+            },
+        )
+        SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text(text = "App Theme") },
             subtitle = { Text(text = "Choose between Day, Night, or Auto") },
             onClick = {
@@ -50,6 +76,7 @@ fun SettingsGroupInterface(
             },
         )
         SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text(text = "Palette Style") },
             subtitle = { Text(text = "Change the Material Design 3 color palette") },
             onClick = {
