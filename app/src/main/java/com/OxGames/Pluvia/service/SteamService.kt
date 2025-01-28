@@ -1007,7 +1007,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         suspend fun getEmoticonList() = withContext(Dispatchers.IO) {
-            // TODO keep callback or handle db operation here with await()
             instance?.steamClient!!.getHandler<PluviaHandler>()!!.getEmoticonList()
         }
 
@@ -1017,6 +1016,14 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         suspend fun getOwnedGames(friendID: Long): List<OwnedGames> = withContext(Dispatchers.IO) {
             instance?._unifiedFriends!!.getOwnedGames(friendID)
+        }
+
+        suspend fun getRecentMessages(friendID: Long) = withContext(Dispatchers.IO) {
+            instance?._unifiedFriends!!.getRecentMessages(friendID)
+        }
+
+        suspend fun ackMessage(friendID: Long) = withContext(Dispatchers.IO) {
+            instance?._unifiedFriends!!.ackMessage(friendID)
         }
     }
 

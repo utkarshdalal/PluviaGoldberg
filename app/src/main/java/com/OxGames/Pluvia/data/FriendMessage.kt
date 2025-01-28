@@ -11,6 +11,5 @@ data class FriendMessage(
     @ColumnInfo(name = "steam_id_friend") val steamIDFriend: Long,
     @ColumnInfo(name = "from_local") val fromLocal: Boolean,
     @ColumnInfo(name = "message") val message: String,
-    @ColumnInfo(name = "low_priority") val lowPriority: Boolean,
     @ColumnInfo(name = "timestamp") val timestamp: Int,
 )
