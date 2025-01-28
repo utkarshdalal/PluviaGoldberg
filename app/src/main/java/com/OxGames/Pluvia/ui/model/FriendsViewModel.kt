@@ -59,6 +59,19 @@ class FriendsViewModel @Inject constructor(
         }
     }
 
+    fun onHeaderAction(value: String) {
+        // TODO save value as preference & restore it
+        _friendsState.update { currentState ->
+            val list = currentState.collapsedListSections.toMutableSet()
+            if (value in list) {
+                list.remove(value)
+            } else {
+                list.add(value)
+            }
+            currentState.copy(collapsedListSections = list)
+        }
+    }
+
     private fun observeFriendList() {
         observeFriendListJob = viewModelScope.launch(Dispatchers.IO) {
             steamFriendDao.getAllFriends().collect { friends ->

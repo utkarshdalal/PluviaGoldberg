@@ -115,6 +115,7 @@ fun FriendsScreen(
         state = state,
         onFriendClick = viewModel::observeSelectedFriend,
         onBack = { onBackPressedDispatcher?.onBackPressed() },
+        onHeaderAction = viewModel::onHeaderAction,
         onSettings = onSettings,
         onLogout = onLogout,
     )
@@ -126,6 +127,7 @@ private fun FriendsScreenContent(
     navigator: ThreePaneScaffoldNavigator<Unit>,
     state: FriendsState,
     onFriendClick: (Long) -> Unit,
+    onHeaderAction: (String) -> Unit,
     onBack: () -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -159,6 +161,7 @@ private fun FriendsScreenContent(
                     listState = listState,
                     snackbarHost = snackbarHost,
                     onBack = onBack,
+                    onHeaderAction = onHeaderAction,
                     onFriendClick = {
                         onFriendClick(it.id)
                         navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
@@ -190,6 +193,7 @@ private fun FriendsListPane(
     listState: LazyListState,
     onBack: () -> Unit,
     onFriendClick: (SteamFriend) -> Unit,
+    onHeaderAction: (String) -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
@@ -218,24 +222,24 @@ private fun FriendsListPane(
             state.friendsList.forEach { (key, value) ->
                 stickyHeader {
                     StickyHeaderItem(
-                        isCollapsed = false,
+                        isCollapsed = key in state.collapsedListSections,
                         header = key,
                         count = value.size,
-                        onHeaderAction = {
-                            // TODO (Un)Collapse children items.
-                        },
+                        onHeaderAction = { onHeaderAction(key) },
                     )
                 }
 
-                itemsIndexed(value, key = { _, item -> item.id }) { idx, friend ->
-                    FriendItem(
-                        modifier = Modifier.animateItem(),
-                        friend = friend,
-                        onClick = { onFriendClick(friend) },
-                    )
+                if (key !in state.collapsedListSections) {
+                    itemsIndexed(value, key = { _, item -> item.id }) { idx, friend ->
+                        FriendItem(
+                            modifier = Modifier.animateItem(),
+                            friend = friend,
+                            onClick = { onFriendClick(friend) },
+                        )
 
-                    if (idx < value.lastIndex) {
-                        HorizontalDivider()
+                        if (idx < value.lastIndex) {
+                            HorizontalDivider()
+                        }
                     }
                 }
             }
@@ -493,6 +497,7 @@ private fun Preview_FriendsScreenContent(
                 ),
             ),
             onFriendClick = { },
+            onHeaderAction = { },
             onBack = { },
             onSettings = { },
             onLogout = { },

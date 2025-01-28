@@ -6,6 +6,7 @@ import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ProfileInfo
 
 data class FriendsState(
     val friendsList: Map<String, List<SteamFriend>> = emptyMap(),
+    val collapsedListSections: Set<String> = emptySet(),
     val profileFriend: SteamFriend? = null,
     val profileFriendInfo: ProfileInfoCallback? = null,
     val profileFriendGames: List<OwnedGames> = emptyList(),
