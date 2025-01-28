@@ -45,7 +45,8 @@ private fun Preview_StickyHeaderItem() {
                     gameName = "Team Fortess 2",
                     name = "Name The Game",
                 ),
-                onClick = {},
+                onClick = { },
+                onLongClick = { },
             )
         }
     }

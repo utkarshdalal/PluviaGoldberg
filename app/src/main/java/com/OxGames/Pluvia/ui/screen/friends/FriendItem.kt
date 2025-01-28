@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.ui.screen.friends
 
 import android.content.res.Configuration
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
@@ -36,14 +36,18 @@ import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 fun FriendItem(
     modifier: Modifier = Modifier,
     friend: SteamFriend,
-    onClick: () -> Unit,
+    onClick: (SteamFriend) -> Unit,
+    onLongClick: (SteamFriend) -> Unit,
 ) {
     // Can't use CompositionLocal for colors. Instead we can use ListItemDefault.colors()
 
     val isLight = MaterialTheme.colorScheme.background.isLight()
 
     ListItem(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier.combinedClickable(
+            onClick = { onClick(friend) },
+            onLongClick = { onLongClick(friend) },
+        ),
         colors = ListItemDefaults.colors(
             containerColor = Color.Transparent,
             headlineColor = if (isLight) MaterialTheme.colorScheme.onSurface else friend.statusColor,
@@ -128,6 +132,7 @@ private fun Preview_FriendItem() {
                             stateFlags = EPersonaStateFlag.from(512.times(index + 1)),
                         ),
                         onClick = { },
+                        onLongClick = { },
                     )
                 }
             }
