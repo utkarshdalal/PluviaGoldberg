@@ -34,10 +34,11 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onClickPlay: (Int, Boolean) -> Unit,
+    onChat: (Long) -> Unit,
     onClickExit: () -> Unit,
-    onSettings: () -> Unit,
+    onClickPlay: (Int, Boolean) -> Unit,
     onLogout: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
@@ -68,9 +69,10 @@ fun HomeScreen(
     HomeScreenContent(
         destination = homeState.currentDestination,
         onDestination = viewModel::onDestination,
+        onChat = onChat,
         onClickPlay = onClickPlay,
-        onSettings = onSettings,
         onLogout = onLogout,
+        onSettings = onSettings,
     )
 }
 
@@ -78,9 +80,10 @@ fun HomeScreen(
 private fun HomeScreenContent(
     destination: HomeDestination,
     onDestination: (HomeDestination) -> Unit,
+    onChat: (Long) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
-    onSettings: () -> Unit,
     onLogout: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     HomeNavigationWrapperUI(
         destination = destination,
@@ -100,7 +103,7 @@ private fun HomeScreenContent(
 
             HomeDestination.Friends -> FriendsScreen(
                 onSettings = onSettings,
-                onChat = { /* TODO */ },
+                onChat = onChat,
                 onLogout = onLogout,
             )
         }
@@ -154,9 +157,10 @@ private fun Preview_HomeScreenContent() {
         HomeScreenContent(
             destination = destination,
             onDestination = { destination = it },
+            onChat = {},
             onClickPlay = { _, _ -> },
-            onSettings = {},
             onLogout = {},
+            onSettings = {},
         )
     }
 }

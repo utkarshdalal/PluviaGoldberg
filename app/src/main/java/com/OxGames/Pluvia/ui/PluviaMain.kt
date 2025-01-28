@@ -19,9 +19,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.Constants
@@ -42,6 +44,7 @@ import com.OxGames.Pluvia.ui.enums.Orientation
 import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.MainViewModel
 import com.OxGames.Pluvia.ui.screen.HomeScreen
+import com.OxGames.Pluvia.ui.screen.chat.ChatScreen
 import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen
 import com.OxGames.Pluvia.ui.screen.xserver.XServerScreen
@@ -80,7 +83,7 @@ fun PluviaMain(
         viewModel.uiEvent.collect { event ->
             when (event) {
                 MainViewModel.MainUiEvent.LaunchApp -> {
-                    navController.navigate(PluviaScreen.XServer.name)
+                    navController.navigate(PluviaScreen.XServer.route)
                 }
 
                 MainViewModel.MainUiEvent.OnBackPressed -> {
@@ -95,7 +98,7 @@ fun PluviaMain(
                 MainViewModel.MainUiEvent.OnLoggedOut -> {
                     // Pop stack and go back to login.
                     navController.popBackStack(
-                        route = PluviaScreen.LoginUser.name,
+                        route = PluviaScreen.LoginUser.route,
                         inclusive = false,
                         saveState = false,
                     )
@@ -106,7 +109,7 @@ fun PluviaMain(
                         LoginResult.Success -> {
                             // TODO: add preference for first screen on login
                             Timber.i("Navigating to library")
-                            navController.navigate(PluviaScreen.Home.name)
+                            navController.navigate(PluviaScreen.Home.route)
 
                             // If a crash happen, lets not ask for a tip yet.
                             // Instead, ask the user to contribute their issues to be addressed.
@@ -191,7 +194,7 @@ fun PluviaMain(
 
         // Go to the Home screen if we're already logged in.
         if (SteamService.isLoggedIn && state.currentScreen == PluviaScreen.LoginUser) {
-            navController.navigate(PluviaScreen.Home.name)
+            navController.navigate(PluviaScreen.Home.route)
         }
     }
 
@@ -384,15 +387,15 @@ fun PluviaMain(
         NavHost(
             modifier = Modifier.fillMaxSize(),
             navController = navController,
-            startDestination = PluviaScreen.LoginUser.name,
+            startDestination = PluviaScreen.LoginUser.route,
         ) {
             /** Login **/
-            composable(route = PluviaScreen.LoginUser.name) {
+            composable(route = PluviaScreen.LoginUser.route) {
                 UserLoginScreen()
             }
             /** Library, Downloads, Friends **/
             composable(
-                route = PluviaScreen.Home.name,
+                route = PluviaScreen.Home.route,
                 deepLinks = listOf(navDeepLink { uriPattern = "pluvia://home" }),
             ) {
                 HomeScreen(
@@ -411,8 +414,11 @@ fun PluviaMain(
                     onClickExit = {
                         PluviaApp.events.emit(AndroidEvent.EndProcess)
                     },
+                    onChat = {
+                        navController.navigate(PluviaScreen.Chat.route(it))
+                    },
                     onSettings = {
-                        navController.navigate(PluviaScreen.Settings.name)
+                        navController.navigate(PluviaScreen.Settings.route)
                     },
                     onLogout = {
                         SteamService.logOut()
@@ -421,9 +427,27 @@ fun PluviaMain(
             }
 
             /** Full Screen Chat **/
+            composable(
+                route = "chat/{id}",
+                arguments = listOf(
+                    navArgument(PluviaScreen.Chat.ARG_ID) {
+                        type = NavType.LongType
+                    },
+                ),
+            ) {
+                val id = it.arguments?.getLong(PluviaScreen.Chat.ARG_ID) ?: throw RuntimeException("Unable to get ID to chat")
+                ChatScreen(
+                    friendId = id,
+                    onBack = {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            navController.popBackStack()
+                        }
+                    },
+                )
+            }
 
             /** Game Screen **/
-            composable(route = PluviaScreen.XServer.name) {
+            composable(route = PluviaScreen.XServer.route) {
                 XServerScreen(
                     appId = state.launchedAppId,
                     bootToContainer = state.bootToContainer,
@@ -442,7 +466,7 @@ fun PluviaMain(
             }
 
             /** Settings **/
-            composable(route = PluviaScreen.Settings.name) {
+            composable(route = PluviaScreen.Settings.route) {
                 SettingsScreen(
                     appTheme = state.appTheme,
                     paletteStyle = state.paletteStyle,

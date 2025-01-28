@@ -70,11 +70,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 data class ChatState(
     val friend: SteamFriend = SteamFriend(0),
@@ -92,14 +94,35 @@ class ChatViewModel @Inject constructor(
     private val _chatState = MutableStateFlow(ChatState())
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
 
-    fun setFriend(id: Long) {
-        viewModelScope.launch {
-            SteamService.getEmoticonList()
+    var emoticonJob: Job? = null
+    var friendJob: Job? = null
+    var messagesJob: Job? = null
 
+    override fun onCleared() {
+        super.onCleared()
+
+        Timber.d("onCleared")
+
+        emoticonJob?.cancel()
+        friendJob?.cancel()
+        messagesJob?.cancel()
+    }
+
+    init {
+        viewModelScope.launch {
+            // Since were initiating a chat, refresh our list of emoticons and stickers
+            SteamService.getEmoticonList()
+        }
+
+        emoticonJob = viewModelScope.launch {
             emoticonDao.getAll().collect { list ->
                 _chatState.update { it.copy(emoticons = list) }
             }
+        }
+    }
 
+    fun setFriend(id: Long) {
+        friendJob = viewModelScope.launch {
             friendDao.findFriend(id).collect { friend ->
                 if (friend == null) {
                     throw RuntimeException("Friend is null and cannot proceed")
@@ -107,7 +130,9 @@ class ChatViewModel @Inject constructor(
 
                 _chatState.update { it.copy(friend = friend) }
             }
+        }
 
+        messagesJob = viewModelScope.launch {
             messagesDao.getAllMessagesForFriend(id).collect { list ->
                 _chatState.update { it.copy(messages = list) }
             }
@@ -117,13 +142,12 @@ class ChatViewModel @Inject constructor(
 
 @Composable
 fun ChatScreen(
-    steamFriend: SteamFriend,
-    viewModel: ChatViewModel = hiltViewModel(key = steamFriend.id.toString()),
+    friendId: Long,
+    viewModel: ChatViewModel = hiltViewModel(),
     onBack: () -> Unit,
 ) {
     val state by viewModel.chatState.collectAsStateWithLifecycle()
-
-    viewModel.setFriend(steamFriend.id)
+    viewModel.setFriend(friendId)
 
     ChatScreenContent(
         steamFriend = state.friend,
