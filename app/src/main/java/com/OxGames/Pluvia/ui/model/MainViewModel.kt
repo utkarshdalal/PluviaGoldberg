@@ -148,7 +148,16 @@ class MainViewModel @Inject constructor(
     }
 
     fun setCurrentScreen(currentScreen: String?) {
-        PluviaScreen.valueOf(currentScreen ?: PluviaScreen.LoginUser.name).also(::setCurrentScreen)
+        val screen = when (currentScreen) {
+            "login" -> PluviaScreen.LoginUser
+            "home" -> PluviaScreen.Home
+            "xserver" -> PluviaScreen.XServer
+            "settings" -> PluviaScreen.Settings
+            "chat/{id}" -> PluviaScreen.Chat
+            else -> PluviaScreen.LoginUser
+        }
+
+        setCurrentScreen(screen)
     }
 
     fun setCurrentScreen(value: PluviaScreen) {
