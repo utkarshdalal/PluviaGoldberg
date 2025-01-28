@@ -89,6 +89,7 @@ import com.OxGames.Pluvia.ui.model.FriendsViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.getAvatarURL
 import com.OxGames.Pluvia.utils.getProfileUrl
+import com.materialkolor.ktx.isLight
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import `in`.dragonbra.javasteam.enums.EPersonaState
@@ -313,6 +314,7 @@ private fun ProfileDetailsScreen(
     ) { paddingValues ->
         val uriHandler = LocalUriHandler.current
         val context = LocalContext.current
+        val isLight = MaterialTheme.colorScheme.background.isLight()
 
         Column(
             modifier = Modifier
@@ -351,7 +353,7 @@ private fun ProfileDetailsScreen(
 
             Text(
                 text = state.profileFriend.isPlayingGameName,
-                color = state.profileFriend.statusColor,
+                color = if (isLight) Color.Unspecified else state.profileFriend.statusColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.titleLarge,
@@ -403,7 +405,7 @@ private fun ProfileDetailsScreen(
 
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.onSecondary,
+                    containerColor = if (isLight) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSecondary,
                 ),
             ) {
                 Column(
@@ -449,6 +451,7 @@ internal class FriendsScreenPreview :
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
