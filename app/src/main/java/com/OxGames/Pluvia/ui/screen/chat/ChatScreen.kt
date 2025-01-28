@@ -5,9 +5,11 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -18,10 +20,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,18 +36,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -171,9 +170,8 @@ private fun ChatScreenContent(
     onBack: () -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
-    var expanded by remember { mutableStateOf(false) }
-    val uriHandler = LocalUriHandler.current
     val scrollState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
@@ -187,7 +185,6 @@ private fun ChatScreenContent(
                         ListItemImage(
                             image = { steamFriend.avatarHash.getAvatarURL() },
                             size = 40.dp,
-                            contentDescription = "Logged in account user profile",
                         )
 
                         Spacer(modifier = Modifier.size(12.dp))
@@ -242,36 +239,14 @@ private fun ChatScreenContent(
                     BackButton(onClick = onBack)
                 },
                 actions = {
-                    Box {
-                        IconButton(
-                            onClick = { expanded = !expanded },
-                            content = { Icon(imageVector = Icons.Default.MoreVert, contentDescription = null) },
-                        )
-
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(text = "View Profile") },
-                                onClick = { /* TODO */ },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(text = "View Previous Names") },
-                                onClick = { TODO() },
-                            )
-                            DropdownMenuItem(
-                                text = { Text(text = "More Settings") },
-                                onClick = {
-                                    // TODO()
-                                    //  3. Friend settings:
-                                    //      3a. Add to favorites
-                                    //      3b. Block communication
-                                    //      3c. Friend (specific) notification settings
-                                },
-                            )
-                        }
-                    }
+                    IconButton(
+                        onClick = {
+                            // TODO
+                            val msg = "View profile not implemented!\nTry long pressing a friend in the friends list?"
+                            scope.launch { snackbarHost.showSnackbar(msg) }
+                        },
+                        content = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
+                    )
                 },
             )
         },
@@ -282,27 +257,7 @@ private fun ChatScreenContent(
 
         Crossfade(targetState = messages.isEmpty()) { state ->
             when (state) {
-                true -> {
-                    Box(
-                        modifier = Modifier
-                            .padding(paddingValues)
-                            .fillMaxSize()
-                            .imePadding(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Surface(
-                            modifier = Modifier.padding(horizontal = 24.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shadowElevation = 8.dp,
-                        ) {
-                            Text(
-                                modifier = Modifier.padding(24.dp),
-                                text = "No chat history",
-                            )
-                        }
-                    }
-                }
+                true -> NoChatHistoryBox(paddingValues = paddingValues)
 
                 false -> {
                     LazyColumn(
@@ -313,6 +268,19 @@ private fun ChatScreenContent(
                         state = scrollState,
                         reverseLayout = true,
                     ) {
+                        stickyHeader {
+                            Surface(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                            ) {
+                                Text(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp,
+                                    text = "Chatting is still an early feature.\n" +
+                                        "Please report any issues in the project repo.",
+                                )
+                            }
+                        }
                         items(messages, key = { it.id }) { msg ->
                             ChatBubble(
                                 message = msg.message,
@@ -323,6 +291,29 @@ private fun ChatScreenContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NoChatHistoryBox(paddingValues: PaddingValues) {
+    Box(
+        modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize()
+            .imePadding(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            modifier = Modifier.padding(horizontal = 24.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shadowElevation = 8.dp,
+        ) {
+            Text(
+                modifier = Modifier.padding(24.dp),
+                text = "No chat history",
+            )
         }
     }
 }
