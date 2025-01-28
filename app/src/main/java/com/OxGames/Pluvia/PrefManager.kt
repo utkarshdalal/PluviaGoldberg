@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.service.SteamService
+import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.materialkolor.PaletteStyle
 import com.winlator.box86_64.Box86_64Preset
@@ -371,5 +372,15 @@ object PrefManager {
         }
         set(value) {
             setPref(APP_THEME_PALETTE, value.ordinal)
+        }
+
+    private val START_SCREEN = intPreferencesKey("start screen")
+    var startScreen: HomeDestination
+        get() {
+            val value = getPref(START_SCREEN, HomeDestination.Library.ordinal)
+            return HomeDestination.entries.getOrNull(value) ?: HomeDestination.Library
+        }
+        set(value) {
+            setPref(START_SCREEN, value.ordinal)
         }
 }
