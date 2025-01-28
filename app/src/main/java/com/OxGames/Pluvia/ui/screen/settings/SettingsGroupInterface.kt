@@ -1,16 +1,20 @@
 package com.OxGames.Pluvia.ui.screen.settings
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessMedium
+import androidx.compose.material.icons.filled.ColorLens
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.enums.AppTheme
-import com.OxGames.Pluvia.ui.component.dialog.AppPaletteDialog
-import com.OxGames.Pluvia.ui.component.dialog.AppThemeDialog
-import com.OxGames.Pluvia.ui.component.dialog.StartScreenDialog
+import com.OxGames.Pluvia.ui.component.dialog.SingleChoiceDialog
+import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.theme.settingsTileColors
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
@@ -23,36 +27,55 @@ fun SettingsGroupInterface(
     onAppTheme: (AppTheme) -> Unit,
     onPaletteStyle: (PaletteStyle) -> Unit,
 ) {
+    val context = LocalContext.current
+
     var openAppThemeDialog by rememberSaveable { mutableStateOf(false) }
     var openAppPaletteDialog by rememberSaveable { mutableStateOf(false) }
-    var openStartScreenDialog by rememberSaveable { mutableStateOf(false) }
-    var startScreenOption by rememberSaveable { mutableStateOf(PrefManager.startScreen) }
 
-    AppThemeDialog(
+    var openStartScreenDialog by rememberSaveable { mutableStateOf(false) }
+    var startScreenOption by rememberSaveable(openStartScreenDialog) { mutableStateOf(PrefManager.startScreen) }
+
+    SingleChoiceDialog(
         openDialog = openAppThemeDialog,
-        appTheme = appTheme,
-        onSelected = onAppTheme,
+        icon = Icons.Default.BrightnessMedium,
+        title = "App Theme",
+        items = AppTheme.entries.map { it.text },
+        onSelected = {
+            val entry = AppTheme.entries[it]
+            onAppTheme(entry)
+        },
+        currentItem = appTheme.ordinal,
         onDismiss = {
             openAppThemeDialog = false
         },
     )
 
-    AppPaletteDialog(
+    SingleChoiceDialog(
         openDialog = openAppPaletteDialog,
-        paletteStyle = paletteStyle,
-        onSelected = onPaletteStyle,
+        icon = Icons.Default.ColorLens,
+        title = "Palette Style",
+        items = PaletteStyle.entries.map { it.name },
+        onSelected = {
+            val entry = PaletteStyle.entries[it]
+            onPaletteStyle(entry)
+        },
+        currentItem = paletteStyle.ordinal,
         onDismiss = {
             openAppPaletteDialog = false
         },
     )
 
-    StartScreenDialog(
+    SingleChoiceDialog(
         openDialog = openStartScreenDialog,
-        destination = startScreenOption,
+        icon = Icons.Default.Map,
+        title = "Start Screen",
+        items = HomeDestination.entries.map { context.getString(it.title) },
         onSelected = {
-            startScreenOption = it
-            PrefManager.startScreen = it
+            val entry = HomeDestination.entries[it]
+            startScreenOption = entry
+            PrefManager.startScreen = entry
         },
+        currentItem = startScreenOption.ordinal,
         onDismiss = {
             openStartScreenDialog = false
         },
@@ -62,7 +85,7 @@ fun SettingsGroupInterface(
         SettingsMenuLink(
             colors = settingsTileColors(),
             title = { Text(text = "Start Destination") },
-            subtitle = { Text(text = "Choose between Library, Downloads, Friends") },
+            subtitle = { Text(text = "Choose between Library, Downloads, or Friends") },
             onClick = {
                 openStartScreenDialog = true
             },
