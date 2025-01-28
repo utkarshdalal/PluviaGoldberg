@@ -404,9 +404,11 @@ private fun ProfileDetailsScreen(
                     icon = Icons.Outlined.MoreVert,
                     text = "More",
                     onClick = {
-                        // TODO more options, such as:
-                        //  Friend management: Remove, Block, Unblock
-                        //  Notification settings
+                        // TODO: options like....
+                        //  Add to favorites
+                        //  Block communication
+                        //  Friend (specific) notification settings
+                        //  Friend management: Remove, Block, Unblock, view Alias
                         val msg = "'More' not available yet"
                         Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                     },

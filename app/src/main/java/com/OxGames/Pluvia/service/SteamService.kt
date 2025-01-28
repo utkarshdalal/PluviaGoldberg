@@ -83,6 +83,7 @@ import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCal
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
+import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.AliasHistoryCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.FriendsListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.NicknameListCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.PersonaStatesCallback
@@ -1025,6 +1026,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         suspend fun ackMessage(friendID: Long) = withContext(Dispatchers.IO) {
             instance?._unifiedFriends!!.ackMessage(friendID)
         }
+
+        suspend fun requestAliasHistory(friendID: Long) = withContext(Dispatchers.IO) {
+            instance?.steamClient!!.getHandler<SteamFriends>()?.requestAliasHistory(SteamID(friendID))
+        }
     }
 
     override fun onCreate() {
@@ -1103,7 +1108,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
                     add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
                     add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
-                    add(subscribe(ProfileInfoCallback::class.java, ::onProfileInfo))
+                    add(subscribe(AliasHistoryCallback::class.java) { PluviaApp.events.emit(SteamEvent.OnAliasHistory(it)) })
                 }
             }
 
@@ -1425,12 +1430,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                 emoticonDao.replaceAll(callback.emoteList)
             }
         }
-    }
-
-    private fun onProfileInfo(callback: ProfileInfoCallback) {
-        Timber.i("Getting profile info for ${callback.steamID}")
-        // TODO: We already wait with the caller, is this needed?
-        PluviaApp.events.emit(SteamEvent.OnProfileInfo(callback))
     }
 
     @OptIn(ExperimentalStdlibApi::class)
