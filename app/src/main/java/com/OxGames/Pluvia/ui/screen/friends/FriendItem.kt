@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -41,14 +40,14 @@ fun FriendItem(
 ) {
     // Can't use CompositionLocal for colors. Instead we can use ListItemDefault.colors()
 
-    val isLight = LocalContentColor.current.isLight()
+    val isLight = MaterialTheme.colorScheme.background.isLight()
 
     ListItem(
         modifier = modifier.clickable { onClick() },
         colors = ListItemDefaults.colors(
             containerColor = Color.Transparent,
-            headlineColor = if (!isLight) MaterialTheme.colorScheme.onSurface else friend.statusColor,
-            supportingColor = if (!isLight) MaterialTheme.colorScheme.onSurfaceVariant else friend.statusColor,
+            headlineColor = if (isLight) MaterialTheme.colorScheme.onSurface else friend.statusColor,
+            supportingColor = if (isLight) MaterialTheme.colorScheme.onSurfaceVariant else friend.statusColor,
         ),
         headlineContent = {
             Text(

@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
+import com.materialkolor.ktx.isLight
 
 @Composable
 fun ProfileButton(
@@ -31,12 +32,13 @@ fun ProfileButton(
     text: String,
     onClick: () -> Unit,
 ) {
+    val isLight = MaterialTheme.colorScheme.background.isLight()
     Card(
         modifier = Modifier
             .size(72.dp)
             .clickable(onClick = onClick),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.onSecondary,
+            containerColor = if (isLight) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSecondary,
         ),
     ) {
         Column(
@@ -60,6 +62,7 @@ fun ProfileButton(
     }
 }
 
+@Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Composable
 private fun Preview_ProfileButton() {
