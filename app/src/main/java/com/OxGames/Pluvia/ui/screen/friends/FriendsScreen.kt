@@ -79,7 +79,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowWidthSizeClass
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.SteamFriend
-import com.OxGames.Pluvia.ui.component.EmoticonText
+import com.OxGames.Pluvia.ui.component.BBCodeText
 import com.OxGames.Pluvia.ui.component.LoadingScreen
 import com.OxGames.Pluvia.ui.component.dialog.GamesListDialog
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
@@ -234,7 +234,8 @@ private fun FriendsListPane(
                         FriendItem(
                             modifier = Modifier.animateItem(),
                             friend = friend,
-                            onClick = { onFriendClick(friend) },
+                            onClick = { /* TODO */ },
+                            onLongClick = { onFriendClick(friend) },
                         )
 
                         if (idx < value.lastIndex) {
@@ -424,14 +425,15 @@ private fun ProfileDetailsScreen(
                         // 'headline' doesn't seem to be used anymore
                         CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) {
                             with(state.profileFriendInfo) {
-                                Text(text = "Name: $realName")
-                                Text(text = "City: $cityName")
-                                Text(text = "State: $stateName")
-                                Text(text = "Country: $countryName")
-                                Text(text = "Since: $timeCreated")
+                                // Meh...
+                                if (realName.isNotEmpty()) Text(text = "Name: $realName")
+                                if (cityName.isNotEmpty()) Text(text = "City: $cityName")
+                                if (stateName.isNotEmpty()) Text(text = "State: $stateName")
+                                if (stateName.isNotEmpty()) Text(text = "Country: $countryName")
+                                Text(text = "Created: $timeCreated")
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(text = "Summary:")
-                                EmoticonText(text = summary)
+                                BBCodeText(text = summary)
                             }
                         }
                     }
