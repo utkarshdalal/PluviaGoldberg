@@ -100,6 +100,7 @@ private fun HomeScreenContent(
 
             HomeDestination.Friends -> FriendsScreen(
                 onSettings = onSettings,
+                onChat = { /* TODO */ },
                 onLogout = onLogout,
             )
         }
