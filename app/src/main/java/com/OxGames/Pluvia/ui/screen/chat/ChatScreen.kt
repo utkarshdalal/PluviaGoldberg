@@ -1,16 +1,19 @@
 package com.OxGames.Pluvia.ui.screen.chat
 
 import android.content.res.Configuration
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,10 +32,13 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -41,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.PlatformTextStyle
@@ -173,10 +180,21 @@ private fun ChatScreenContent(
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
+    // Needed?
+    val topBarState = rememberTopAppBarState()
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior(topBarState)
+
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        // Exclude ime and navigation bar padding so this can be added by the ChatInput composable
+        contentWindowInsets = ScaffoldDefaults
+            .contentWindowInsets
+            .exclude(WindowInsets.navigationBars)
+            .exclude(WindowInsets.ime),
         snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = {
             CenterAlignedTopAppBar(
+                scrollBehavior = scrollBehavior,
                 title = {
                     Row(
                         horizontalArrangement = Arrangement.Center,
@@ -254,56 +272,58 @@ private fun ChatScreenContent(
         // TODO Typing bar + Send + Emoji selector
         // TODO scroll to bottom
         // TODO scroll to bottom if we're ~3 messages slightly scrolled.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
 
-        Crossfade(targetState = messages.isEmpty()) { state ->
-            when (state) {
-                true -> NoChatHistoryBox(paddingValues = paddingValues)
-
-                false -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .padding(paddingValues)
-                            .fillMaxSize()
-                            .imePadding(),
-                        state = scrollState,
-                        reverseLayout = true,
-                    ) {
-                        stickyHeader {
-                            Surface(
-                                color = MaterialTheme.colorScheme.tertiaryContainer,
-                            ) {
-                                Text(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    textAlign = TextAlign.Center,
-                                    fontSize = 12.sp,
-                                    text = "Chatting is still an early feature.\n" +
-                                        "Please report any issues in the project repo.",
-                                )
-                            }
-                        }
-                        items(messages, key = { it.id }) { msg ->
-                            ChatBubble(
-                                message = msg.message,
-                                timestamp = SteamUtils.fromSteamTime(msg.timestamp),
-                                fromLocal = msg.fromLocal,
+        ) {
+            // Surround with Box in order to "Jump to Bottom"
+            Box(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    state = scrollState,
+                    reverseLayout = true,
+                ) {
+                    stickyHeader {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                        ) {
+                            Text(
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                fontSize = 12.sp,
+                                text = "Chatting is still an early feature.\n" +
+                                    "Please report any issues in the project repo.",
                             )
                         }
                     }
+                    items(messages, key = { it.id }) { msg ->
+                        ChatBubble(
+                            message = msg.message,
+                            timestamp = SteamUtils.fromSteamTime(msg.timestamp),
+                            fromLocal = msg.fromLocal,
+                        )
+                    }
                 }
             }
+
+            ChatInput(
+                // let this element handle the padding so that the elevation is shown behind the
+                // navigation bar
+                modifier = Modifier
+                    .navigationBarsPadding()
+                    .imePadding(),
+                onMessageSent = { },
+                resetScroll = { },
+            )
         }
     }
 }
 
 @Composable
-private fun NoChatHistoryBox(paddingValues: PaddingValues) {
-    Box(
-        modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize()
-            .imePadding(),
-        contentAlignment = Alignment.Center,
-    ) {
+private fun NoChatHistoryBox() {
+    Box(contentAlignment = Alignment.Center) {
         Surface(
             modifier = Modifier.padding(horizontal = 24.dp),
             shape = RoundedCornerShape(16.dp),

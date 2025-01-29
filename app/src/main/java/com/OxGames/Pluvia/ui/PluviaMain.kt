@@ -3,14 +3,12 @@ package com.OxGames.Pluvia.ui
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -385,7 +383,6 @@ fun PluviaMain(
         )
 
         NavHost(
-            modifier = Modifier.fillMaxSize(),
             navController = navController,
             startDestination = PluviaScreen.LoginUser.route,
         ) {

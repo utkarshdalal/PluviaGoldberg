@@ -78,8 +78,8 @@ enum class EmojiStickerSelector {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ChatInput(
-    onMessageSent: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onMessageSent: (String) -> Unit,
     resetScroll: () -> Unit = {},
 ) {
     var isEmoticonsShowing by rememberSaveable { mutableStateOf(false) }
