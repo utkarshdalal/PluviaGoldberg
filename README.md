@@ -1,4 +1,10 @@
-# ![PluviaIcon32](https://github.com/user-attachments/assets/4b872272-9391-488f-afe3-a4ac898d32ac) Pluvia
+<h1>
+  <img src="https://github.com/user-attachments/assets/4b872272-9391-488f-afe3-a4ac898d32ac">
+  Pluvia
+  <a href="https://discord.gg/3tcEdhMG3e" target="_blank">
+      <img src="https://img.shields.io/discord/1334544589419188274.svg?label=&logo=discord&logoColor=ffffff&color=5865F2&labelColor=404EED">
+  </a>
+</h1>
 
 Pluvia is a lightweight unofficial Steam client for Android with the ability to play DRM-Free games from your account and chat with friends.
 
