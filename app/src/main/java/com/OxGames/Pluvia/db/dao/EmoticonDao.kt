@@ -17,6 +17,9 @@ interface EmoticonDao {
     @Query("SELECT * FROM emoticon ORDER BY isSticker DESC, appID DESC, name DESC")
     fun getAll(): Flow<List<Emoticon>>
 
+    @Query("SELECT * FROM emoticon ORDER BY isSticker DESC, appID DESC, name DESC")
+    fun getAllAsList(): List<Emoticon>
+
     @Query("DELETE FROM emoticon")
     suspend fun deleteAll()
 

@@ -35,7 +35,7 @@ object SteamUtils {
      * Converts steam time to actual time
      * @return a string in the 'MMM d - h:mm a' format.
      */
-    // TODO validate accuracy.
+    // Note: Mostly correct, has a slight skew when near another minute
     fun fromSteamTime(rtime: Int): String = sfd.format(rtime * 1000L)
 
     /**
