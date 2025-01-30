@@ -3,6 +3,7 @@ package com.OxGames.Pluvia.ui.screen.library
 import android.content.Intent
 import android.content.res.Configuration
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -83,11 +84,16 @@ fun AppScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    var downloadInfo by remember {
+    var downloadInfo by remember(appId) {
         mutableStateOf(SteamService.getAppDownloadInfo(appId))
     }
-    var downloadProgress by remember { mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f) }
-    var isInstalled by remember { mutableStateOf(SteamService.isAppInstalled(appId)) }
+    var downloadProgress by remember(appId) {
+        mutableFloatStateOf(downloadInfo?.getProgress() ?: 0f)
+    }
+    var isInstalled by remember(appId) {
+        mutableStateOf(SteamService.isAppInstalled(appId))
+    }
+
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
 
     var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
@@ -455,20 +461,22 @@ private fun AppScreenContent(
             }
 
             if (isDownloading) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.CenterVertically)
-                        .weight(1f)
-                        .padding(4.dp),
-                ) {
-                    Text(
-                        modifier = Modifier.align(Alignment.End),
-                        text = "${(downloadProgress * 100f).toInt()}%",
-                    )
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        progress = { downloadProgress },
-                    )
+                AnimatedVisibility(visible = true) {
+                    Column(
+                        modifier = Modifier
+                            .align(Alignment.CenterVertically)
+                            .weight(1f)
+                            .padding(4.dp),
+                    ) {
+                        Text(
+                            modifier = Modifier.align(Alignment.End),
+                            text = "${(downloadProgress * 100f).toInt()}%",
+                        )
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            progress = { downloadProgress },
+                        )
+                    }
                 }
             } else {
                 Spacer(Modifier.weight(1f))

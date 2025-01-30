@@ -149,13 +149,19 @@ private fun LibraryScreenContent(
                             FloatingActionMenuItem(
                                 labelText = "Installed",
                                 isSelected = state.appInfoSortType == FabFilter.INSTALLED,
-                                onClick = { onFabFilter(FabFilter.INSTALLED) },
+                                onClick = {
+                                    onFabFilter(FabFilter.INSTALLED)
+                                    fabState.close()
+                                },
                                 content = { Icon(Icons.Filled.InstallMobile, "Installed") },
                             )
                             FloatingActionMenuItem(
                                 labelText = "Alphabetic",
                                 isSelected = state.appInfoSortType == FabFilter.ALPHABETIC,
-                                onClick = { onFabFilter(FabFilter.ALPHABETIC) },
+                                onClick = {
+                                    onFabFilter(FabFilter.ALPHABETIC)
+                                    fabState.close()
+                                },
                                 content = { Icon(Icons.Filled.SortByAlpha, "Alphabetic") },
                             )
                         }
