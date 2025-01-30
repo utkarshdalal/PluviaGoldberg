@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -29,9 +31,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.Games
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PersonOff
+import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -61,6 +69,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -330,6 +339,7 @@ private fun ProfileDetailsScreen(
         val uriHandler = LocalUriHandler.current
         val context = LocalContext.current
         val isLight = MaterialTheme.colorScheme.background.isLight()
+        var moreExpanded by rememberSaveable { mutableStateOf(false) }
 
         Column(
             modifier = Modifier
@@ -405,15 +415,89 @@ private fun ProfileDetailsScreen(
                     icon = Icons.Outlined.MoreVert,
                     text = "More",
                     onClick = {
-                        // TODO: options like....
-                        //  Add to favorites
-                        //  Block communication
-                        //  Friend (specific) notification settings
-                        //  Friend management: Remove, Block, Unblock, view Alias
-                        val msg = "'More' not available yet"
-                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                        moreExpanded = !moreExpanded
                     },
                 )
+            }
+
+            AnimatedVisibility(visible = moreExpanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ProfileButton(
+                            icon = Icons.Outlined.History,
+                            text = "View Aliases",
+                            onClick = {
+                                // TODO
+                                Toast.makeText(context, "Aliases TODO", Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        ProfileButton(
+                            icon = Icons.Outlined.Edit,
+                            text = "Set Nickname",
+                            onClick = {
+                                // TODO
+                                Toast.makeText(context, "Nickname TODO", Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        ProfileButton(
+                            icon = Icons.Outlined.PersonOff,
+                            text = "Block Friend",
+                            onClick = {
+                                // TODO
+                                Toast.makeText(context, "Block TODO", Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        ProfileButton(
+                            icon = Icons.Outlined.PersonRemove,
+                            text = "Remove Friend",
+                            onClick = {
+                                // TODO
+                                Toast.makeText(context, "Remove TODO", Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ProfileButton(
+                            icon = Icons.Outlined.Favorite,
+                            text = "Add to Favorites",
+                            onClick = {
+                                // TODO
+                                Toast.makeText(context, "Favorites TODO", Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                        Spacer(modifier = Modifier.width(16.dp))
+                        ProfileButton(
+                            icon = Icons.Outlined.Notifications,
+                            text = "Set Alerts",
+                            onClick = {
+                                // TODO
+                                Toast.makeText(context, "Notifications TODO", Toast.LENGTH_SHORT).show()
+                            },
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -461,8 +545,8 @@ internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffold
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
-@Preview
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
+@Preview
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
     device = "spec:parent=pixel_5,orientation=landscape",

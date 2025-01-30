@@ -346,7 +346,7 @@ internal class MessagesPreviewProvider : PreviewParameterProvider<List<FriendMes
                 id = it.plus(1).toLong(),
                 steamIDFriend = 76561198003805806,
                 fromLocal = it % 3 == 0,
-                message = "Hey!, ".repeat(it.plus(1).times(1)),
+                message = "Hey!, ".repeat(it.plus(1).times(2)),
                 // lowPriority = false,
                 timestamp = 1737438789,
             )

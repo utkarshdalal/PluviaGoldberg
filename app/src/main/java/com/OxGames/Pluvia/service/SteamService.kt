@@ -1035,6 +1035,14 @@ class SteamService : Service(), IChallengeUrlChanged {
         suspend fun requestAliasHistory(friendID: Long) = withContext(Dispatchers.IO) {
             instance?.steamClient!!.getHandler<SteamFriends>()?.requestAliasHistory(SteamID(friendID))
         }
+
+        suspend fun sendTypingMessage(friendID: SteamID) = withContext(Dispatchers.IO) {
+            instance?._unifiedFriends!!.setIsTyping(friendID)
+        }
+
+        suspend fun sendMessage(friendID: Long, message: String) = withContext(Dispatchers.IO) {
+            instance?._unifiedFriends!!.sendMessage(friendID, message)
+        }
     }
 
     override fun onCreate() {
