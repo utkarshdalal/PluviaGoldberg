@@ -105,7 +105,6 @@ fun PluviaMain(
                 is MainViewModel.MainUiEvent.OnLogonEnded -> {
                     when (event.result) {
                         LoginResult.Success -> {
-                            // TODO: add preference for first screen on login
                             Timber.i("Navigating to library")
                             navController.navigate(PluviaScreen.Home.route)
 
