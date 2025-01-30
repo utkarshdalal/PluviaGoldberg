@@ -102,7 +102,7 @@ private fun TwoFactorTextField(
 }
 
 internal class TwoFactorPreview : PreviewParameterProvider<UserLoginState> {
-    override val values: Sequence<UserLoginState> = sequenceOf(
+    override val values = sequenceOf(
         UserLoginState(loginResult = LoginResult.DeviceConfirm),
         UserLoginState(loginResult = LoginResult.DeviceAuth),
         UserLoginState(loginResult = LoginResult.EmailAuth),
