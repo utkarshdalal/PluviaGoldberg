@@ -8,6 +8,7 @@ import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.ChatState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import `in`.dragonbra.javasteam.types.SteamID
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,6 +72,19 @@ class ChatViewModel @Inject constructor(
                     Timber.tag("ChatViewModel").d("New messages ${list.size}")
                     _chatState.update { it.copy(messages = list) }
                 }
+            }
+        }
+    }
+
+    fun onSendMessage(message: String) {
+        viewModelScope.launch {
+            with(_chatState.value.friend) {
+                if (!SteamID(id).isValid) {
+                    Timber.w("Friend ID invalid, not sending message")
+                    return@launch
+                }
+
+                SteamService.sendMessage(id, message)
             }
         }
     }

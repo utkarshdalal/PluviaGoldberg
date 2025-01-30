@@ -98,14 +98,15 @@ fun ChatScreen(
     ChatScreenContent(
         state = state,
         onBack = onBack,
+        onSendMessage = viewModel::onSendMessage,
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ChatScreenContent(
     state: ChatState,
     onBack: () -> Unit,
+    onSendMessage: (String) -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
     val scrollState = rememberLazyListState()
@@ -147,14 +148,11 @@ private fun ChatScreenContent(
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding(),
-                onMessageSent = {
-                    // TODO
-                },
-                onSticker = {
-                    // TODO
-                },
-                resetScroll = {
-                    // TODO
+                onMessageSent = onSendMessage,
+                onResetScroll = {
+                    scope.launch {
+                        scrollState.animateScrollToItem(0)
+                    }
                 },
             )
         }
@@ -375,6 +373,7 @@ private fun Preview_ChatScreenContent(
                 messages = messages,
             ),
             onBack = { },
+            onSendMessage = { },
         )
     }
 }
