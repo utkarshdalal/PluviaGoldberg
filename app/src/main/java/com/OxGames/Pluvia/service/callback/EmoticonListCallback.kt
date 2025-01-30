@@ -18,7 +18,12 @@ class EmoticonListCallback(packetMsg: IPacketMsg) : CallbackMsg() {
         jobID = resp.targetJobID
 
         emoteList = buildList {
-            addAll(resp.body.emoticonsList.map { Emoticon(name = it.name, appID = it.appid, isSticker = false) })
+            addAll(
+                resp.body.emoticonsList.map {
+                    val fixedName = it.name.substring(1, it.name.length - 1)
+                    Emoticon(name = fixedName, appID = it.appid, isSticker = false)
+                },
+            )
             addAll(resp.body.stickersList.map { Emoticon(name = it.name, appID = it.appid, isSticker = true) })
         }
     }

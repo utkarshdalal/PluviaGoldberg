@@ -15,7 +15,7 @@ class PluviaHandler : ClientMsgHandler() {
 
     companion object {
         fun getCallback(packetMsg: IPacketMsg): CallbackMsg? = when (packetMsg.msgType) {
-            EMsg.ClientGetEmoticonList -> EmoticonListCallback(packetMsg)
+            EMsg.ClientEmoticonList -> EmoticonListCallback(packetMsg)
             else -> null
         }
     }

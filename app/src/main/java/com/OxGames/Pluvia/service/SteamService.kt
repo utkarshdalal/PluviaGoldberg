@@ -13,6 +13,7 @@ import com.OxGames.Pluvia.data.BranchInfo
 import com.OxGames.Pluvia.data.ConfigInfo
 import com.OxGames.Pluvia.data.DepotInfo
 import com.OxGames.Pluvia.data.DownloadInfo
+import com.OxGames.Pluvia.data.Emoticon
 import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.data.LibraryAssetsInfo
@@ -1011,6 +1012,10 @@ class SteamService : Service(), IChallengeUrlChanged {
             instance?.steamClient!!.getHandler<PluviaHandler>()!!.getEmoticonList()
         }
 
+        suspend fun fetchEmoticons(): List<Emoticon> = withContext(Dispatchers.IO) {
+            instance?.emoticonDao!!.getAllAsList()
+        }
+
         suspend fun getProfileInfo(friendID: SteamID): ProfileInfoCallback = withContext(Dispatchers.IO) {
             instance?._steamFriends!!.requestProfileInfo(friendID).await()
         }
@@ -1073,16 +1078,16 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
 
             // create our steam client instance
-            steamClient = SteamClient(configuration)
+            steamClient = SteamClient(configuration).apply {
+                addHandler(PluviaHandler())
 
-            steamClient!!.addHandler(PluviaHandler())
-
-            // remove callbacks we're not using.
-            steamClient!!.removeHandler(SteamGameServer::class.java)
-            steamClient!!.removeHandler(SteamMasterServer::class.java)
-            steamClient!!.removeHandler(SteamWorkshop::class.java)
-            steamClient!!.removeHandler(SteamScreenshots::class.java)
-            steamClient!!.removeHandler(SteamUserStats::class.java)
+                // remove callbacks we're not using.
+                removeHandler(SteamGameServer::class.java)
+                removeHandler(SteamMasterServer::class.java)
+                removeHandler(SteamWorkshop::class.java)
+                removeHandler(SteamScreenshots::class.java)
+                removeHandler(SteamUserStats::class.java)
+            }
 
             // create the callback manager which will route callbacks to function calls
             callbackManager = CallbackManager(steamClient!!)
