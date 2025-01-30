@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 
 /**
@@ -382,5 +383,15 @@ object PrefManager {
         }
         set(value) {
             setPref(START_SCREEN, value.ordinal)
+        }
+
+    private val FRIENDS_LIST_HEADER = stringPreferencesKey("friends_list_header")
+    var friendsListHeader: Set<String>
+        get() {
+            val value = getPref(FRIENDS_LIST_HEADER, "[]")
+            return Json.decodeFromString<Set<String>>(value)
+        }
+        set(value) {
+            setPref(FRIENDS_LIST_HEADER, Json.encodeToString(value))
         }
 }

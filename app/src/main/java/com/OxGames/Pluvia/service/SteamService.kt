@@ -127,7 +127,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
@@ -258,7 +257,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         suspend fun getPersonaStateOf(steamId: SteamID): SteamFriend? = withContext(Dispatchers.IO) {
-            instance!!.db.steamFriendDao().findFriend(steamId.convertToUInt64()).first()
+            instance!!.db.steamFriendDao().findFriend(steamId.convertToUInt64())
         }
 
         fun getAppList(filter: EnumSet<AppType>): List<AppInfo> {
@@ -1037,7 +1036,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             instance?.steamClient!!.getHandler<SteamFriends>()?.requestAliasHistory(SteamID(friendID))
         }
 
-        suspend fun sendTypingMessage(friendID: SteamID) = withContext(Dispatchers.IO) {
+        suspend fun sendTypingMessage(friendID: Long) = withContext(Dispatchers.IO) {
             instance?._unifiedFriends!!.setIsTyping(friendID)
         }
 
@@ -1404,7 +1403,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     }
                     .forEach { filteredFriend ->
                         val friendId = filteredFriend.steamID.convertToUInt64()
-                        val friend = friendDao.findFriend(friendId).first()
+                        val friend = friendDao.findFriend(friendId)
 
                         if (friend == null) {
                             // Not in the DB, create them.
@@ -1424,7 +1423,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                 // Add logged in account if we don't exist yet.
                 val selfId = userSteamId!!.convertToUInt64()
-                val self = friendDao.findFriend(selfId).first()
+                val self = friendDao.findFriend(selfId)
 
                 if (self == null) {
                     friendDao.insert(SteamFriend(id = selfId))
@@ -1463,7 +1462,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         dbScope.launch {
             db.withTransaction {
                 val id = callback.friendID.convertToUInt64()
-                val friend = friendDao.findFriend(id).first()
+                val friend = friendDao.findFriend(id)
 
                 if (friend == null) {
                     Timber.w("onPersonaStateReceived: failed to find friend to update: $id")
@@ -1495,7 +1494,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                 // Send off an event if we change states.
                 if (callback.friendID == steamClient!!.steamID) {
-                    val loggedInAccount = friendDao.findFriend(id).first() ?: return@withTransaction
+                    val loggedInAccount = friendDao.findFriend(id) ?: return@withTransaction
                     PluviaApp.events.emit(SteamEvent.PersonaStateReceived(loggedInAccount))
                 }
             }

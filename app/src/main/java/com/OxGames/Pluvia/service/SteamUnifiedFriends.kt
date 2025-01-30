@@ -17,7 +17,6 @@ import `in`.dragonbra.javasteam.steam.handlers.steamunifiedmessages.callback.Ser
 import `in`.dragonbra.javasteam.types.SteamID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -30,12 +29,7 @@ import timber.log.Timber
 // https://github.com/LossyDragon/Vapulla
 
 // TODO
-//  ----- CHAT CHECKLIST ---
-//  1. Implement chat functionality, including sending and receiving messages life.
-//  2. Implement getting chat message history.
-//  3. Implement rich preview
-//  4. Implement Stickers and Emoticons
-//  5. Implement Reactions
+//  Implement Reactions
 
 typealias AckMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_AckMessage_Notification.Builder
 typealias IncomingMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_IncomingMessage_Notification.Builder
@@ -132,17 +126,17 @@ class SteamUnifiedFriends(
         Timber.i("More available: ${response.body.moreAvailable}")
     }
 
-    suspend fun setIsTyping(friendID: SteamID) {
-        Timber.i("Sending 'is typing' to ${friendID.convertToUInt64()}")
+    suspend fun setIsTyping(friendID: Long) {
+        Timber.i("Sending 'is typing' to $friendID")
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_SendMessage_Request.newBuilder().apply {
-            steamid = friendID.convertToUInt64()
+            steamid = friendID
             chatEntryType = EChatEntryType.Typing.code()
         }.build()
 
         val response = friendMessages!!.sendMessage(request).await()
 
         if (response.result != EResult.OK) {
-            Timber.w("Failed to send typing message to friend: ${friendID.convertToUInt64()}, ${response.result}")
+            Timber.w("Failed to send typing message to friend: $friendID, ${response.result}")
             return
         }
 
@@ -301,24 +295,31 @@ class SteamUnifiedFriends(
      * Another steam client (logged into the same account) has opened up chat to acknowledge the message(s).
      */
     private fun onAckMessage(notification: ServiceMethodNotification<AckMessageNotification>) {
-        Timber.i("Ack-ing Message")
-        // it.body.steamidPartner
-        // TODO: 'read' a message since another client has opened the chat.
+        val friendID = notification.body.steamidPartner
+        Timber.i("Ack-ing Message for $friendID")
+        CoroutineScope(Dispatchers.IO).launch {
+            service.db.withTransaction {
+                val friend = service.friendDao.findFriend(friendID)
+                friend?.let { service.friendDao.update(friend.copy(unreadMessageCount = 0)) }
+            }
+        }
     }
 
     /**
      * We're receiving information that someone is either typing a message or sent a message.
      */
     private fun onIncomingMessage(notification: ServiceMethodNotification<IncomingMessageNotification>) {
-        Timber.i("Incoming Message")
+        val steamIDFriend = notification.body.steamidFriend
+        Timber.i("Incoming Message form $steamIDFriend")
+
         when (notification.body.chatEntryType) {
             EChatEntryType.Typing.code() -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     service.db.withTransaction {
-                        val friend = service.friendDao.findFriend(notification.body.steamidFriend).first()
+                        val friend = service.friendDao.findFriend(steamIDFriend)
 
                         if (friend == null) {
-                            Timber.w("Unable to find friend ${notification.body.steamidFriend}")
+                            Timber.w("Unable to find friend $steamIDFriend")
                             return@withTransaction
                         }
 
@@ -330,21 +331,20 @@ class SteamUnifiedFriends(
             EChatEntryType.ChatMsg.code() -> {
                 CoroutineScope(Dispatchers.IO).launch {
                     service.db.withTransaction {
-                        val friend = service.friendDao.findFriend(notification.body.steamidFriend).first()
+                        val friend = service.friendDao.findFriend(steamIDFriend)
 
                         if (friend == null) {
-                            Timber.w("Unable to find friend ${notification.body.steamidFriend}")
+                            Timber.w("Unable to find friend $steamIDFriend")
                             return@withTransaction
                         }
 
                         service.friendDao.update(friend.copy(isTyping = false))
 
                         val chatMsg = FriendMessage(
-                            steamIDFriend = notification.body.steamidFriend,
+                            steamIDFriend = steamIDFriend,
                             fromLocal = false,
                             message = notification.body.message,
                             timestamp = notification.body.rtime32ServerTimestamp,
-                            // lowPriority = it.body.lowPriority,
                         )
 
                         service.messagesDao.insertMessage(chatMsg)

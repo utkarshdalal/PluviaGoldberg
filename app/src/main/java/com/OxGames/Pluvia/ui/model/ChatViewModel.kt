@@ -58,7 +58,7 @@ class ChatViewModel @Inject constructor(
             }
 
             launch {
-                friendDao.findFriend(id).collect { friend ->
+                friendDao.findFriendFlow(id).collect { friend ->
                     if (friend == null) {
                         throw RuntimeException("Friend is null and cannot proceed")
                     }

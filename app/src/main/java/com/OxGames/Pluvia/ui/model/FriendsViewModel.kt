@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.model
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.FriendsState
@@ -53,7 +54,7 @@ class FriendsViewModel @Inject constructor(
         }
 
         selectedFriendJob = viewModelScope.launch {
-            steamFriendDao.findFriend(friendID).collect { friend ->
+            steamFriendDao.findFriendFlow(friendID).collect { friend ->
                 _friendsState.update { it.copy(profileFriend = friend) }
             }
         }
@@ -68,13 +69,14 @@ class FriendsViewModel @Inject constructor(
             } else {
                 list.add(value)
             }
+            PrefManager.friendsListHeader = list
             currentState.copy(collapsedListSections = list)
         }
     }
 
     private fun observeFriendList() {
         observeFriendListJob = viewModelScope.launch(Dispatchers.IO) {
-            steamFriendDao.getAllFriends().collect { friends ->
+            steamFriendDao.getAllFriendsFlow().collect { friends ->
                 _friendsState.update { currentState ->
                     val sortedList = friends
                         .filter { it.isFriend && !it.isBlocked }
