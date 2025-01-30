@@ -92,6 +92,7 @@ import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ProfileInfo
 import `in`.dragonbra.javasteam.steam.handlers.steamgameserver.SteamGameServer
 import `in`.dragonbra.javasteam.steam.handlers.steammasterserver.SteamMasterServer
 import `in`.dragonbra.javasteam.steam.handlers.steamscreenshots.SteamScreenshots
+import `in`.dragonbra.javasteam.steam.handlers.steamuser.ChatMode
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.LogOnDetails
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.SteamUser
 import `in`.dragonbra.javasteam.steam.handlers.steamuser.callback.LoggedOffCallback
@@ -162,14 +163,13 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     internal var callbackManager: CallbackManager? = null
     internal var steamClient: SteamClient? = null
+    internal val callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
     private var _unifiedFriends: SteamUnifiedFriends? = null
     private var _steamUser: SteamUser? = null
     private var _steamApps: SteamApps? = null
     private var _steamFriends: SteamFriends? = null
     private var _steamCloud: SteamCloud? = null
-
-    private val _callbackSubscriptions: ArrayList<Closeable> = ArrayList()
 
     private var _loginResult: LoginResult = LoginResult.Failed
 
@@ -828,6 +828,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
                     loginID = SteamUtils.getUniqueDeviceId(instance!!),
                     machineName = SteamUtils.getMachineName(instance!!),
+                    chatMode = ChatMode.NEW_STEAM_CHAT,
                 ),
             )
         }
@@ -1109,7 +1110,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             _unifiedFriends = SteamUnifiedFriends(this)
 
             // subscribe to the callbacks we are interested in
-            with(_callbackSubscriptions) {
+            with(callbackSubscriptions) {
                 with(callbackManager!!) {
                     add(subscribe(ConnectedCallback::class.java, ::onConnected))
                     add(subscribe(DisconnectedCallback::class.java, ::onDisconnected))
@@ -1232,11 +1233,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         _steamFriends = null
         _steamCloud = null
 
-        for (subscription in _callbackSubscriptions) {
+        for (subscription in callbackSubscriptions) {
             subscription.close()
         }
 
-        _callbackSubscriptions.clear()
+        callbackSubscriptions.clear()
         callbackManager = null
 
         _unifiedFriends?.close()

@@ -91,8 +91,7 @@ enum class EmojiStickerSelector {
 fun ChatInput(
     modifier: Modifier = Modifier,
     onMessageSent: (String) -> Unit,
-    onSticker: (String) -> Unit,
-    resetScroll: () -> Unit = {},
+    onResetScroll: () -> Unit = {},
 ) {
     var isEmoticonsShowing by rememberSaveable { mutableStateOf(EmojiStickerSelector.NONE) }
     val dismissKeyboard = { isEmoticonsShowing = EmojiStickerSelector.NONE }
@@ -120,7 +119,7 @@ fun ChatInput(
                 onTextFieldFocused = { focused ->
                     if (focused) {
                         isEmoticonsShowing = EmojiStickerSelector.NONE
-                        resetScroll()
+                        onResetScroll()
                     }
                     textFieldFocusState = focused
                 },
@@ -129,7 +128,7 @@ fun ChatInput(
                     // Reset text field and close keyboard
                     textState = TextFieldValue()
                     // Move scroll to bottom
-                    resetScroll()
+                    onResetScroll()
                 },
                 isEmoticonShowing = isEmoticonsShowing,
                 onEmoticonClick = {
@@ -143,8 +142,11 @@ fun ChatInput(
 
             SelectorExpanded(
                 isEmoticonsShowing = isEmoticonsShowing,
-                onTextAdded = { textState = textState.addText(it) },
-                onStickerAdded = onSticker,
+                onTextAdded = { textState = textState.addText(":$it: ") },
+                onStickerAdded = {
+                    onMessageSent("/sticker $it")
+                    onResetScroll()
+                },
             )
         }
     }
@@ -458,7 +460,7 @@ fun Preview_ChatInput() {
                 .fillMaxSize(),
         ) {
             Box(modifier = Modifier.weight(1f))
-            ChatInput(onMessageSent = {}, onSticker = {})
+            ChatInput(onMessageSent = {})
         }
     }
 }
