@@ -211,8 +211,8 @@ class SteamUnifiedFriends(
         // response.body.serverTimestamp
     }
 
-    suspend fun sendMessage(friendID: SteamID, chatMessage: String) {
-        Timber.i("Sending chat message to ${friendID.convertToUInt64()}")
+    suspend fun sendMessage(friendID: Long, chatMessage: String) {
+        Timber.i("Sending chat message to $friendID")
         val trimmedMessage = chatMessage.trim()
 
         if (trimmedMessage.isEmpty()) {
@@ -223,7 +223,7 @@ class SteamUnifiedFriends(
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_SendMessage_Request.newBuilder().apply {
             chatEntryType = EChatEntryType.ChatMsg.code()
             message = chatMessage
-            steamid = friendID.convertToUInt64()
+            steamid = friendID
             containsBbcode = true
             echoToSender = false
             lowPriority = false
@@ -232,7 +232,7 @@ class SteamUnifiedFriends(
         val response = friendMessages!!.sendMessage(request).await()
 
         if (response.result != EResult.OK) {
-            Timber.w("Failed to send chat message to friend: ${friendID.convertToUInt64()}, ${response.result}")
+            Timber.w("Failed to send chat message to friend: $friendID, ${response.result}")
             return
         }
 
