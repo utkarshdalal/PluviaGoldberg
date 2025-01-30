@@ -52,6 +52,7 @@ import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldDestinationItem
+import androidx.compose.material3.adaptive.layout.ThreePaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.ThreePaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
@@ -455,14 +456,8 @@ private fun ProfileDetailsScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
-internal class FriendsScreenPreview :
-    PreviewParameterProvider<ThreePaneScaffoldDestinationItem<Unit>> {
-    override val values: Sequence<ThreePaneScaffoldDestinationItem<Unit>>
-        get() = sequenceOf(
-            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.List),
-            ThreePaneScaffoldDestinationItem(ListDetailPaneScaffoldRole.Detail),
-        )
+internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffoldRole> {
+    override val values = sequenceOf(ListDetailPaneScaffoldRole.List, ListDetailPaneScaffoldRole.Detail)
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -474,10 +469,10 @@ internal class FriendsScreenPreview :
 )
 @Composable
 private fun Preview_FriendsScreenContent(
-    @PreviewParameter(FriendsScreenPreview::class) state: ThreePaneScaffoldDestinationItem<Unit>,
+    @PreviewParameter(FriendsScreenPreview::class) state: ThreePaneScaffoldRole,
 ) {
     val navigator = rememberListDetailPaneScaffoldNavigator(
-        initialDestinationHistory = listOf(state),
+        initialDestinationHistory = listOf(ThreePaneScaffoldDestinationItem<Unit>(state)),
     )
 
     PluviaTheme {
