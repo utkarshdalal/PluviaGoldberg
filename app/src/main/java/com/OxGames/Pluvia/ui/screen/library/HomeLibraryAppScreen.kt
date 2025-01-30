@@ -438,7 +438,6 @@ private fun AppScreenContent(
             )
         }
 
-
         // Controls Row
         Row(
             modifier = Modifier
