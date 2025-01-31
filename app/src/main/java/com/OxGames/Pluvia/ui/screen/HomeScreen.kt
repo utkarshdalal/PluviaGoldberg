@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.toSize
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.OxGames.Pluvia.Constants
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.model.HomeViewModel
@@ -42,12 +43,12 @@ fun HomeScreen(
 ) {
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
-    // When in Downloads or Friends, pressing back brings us back to Library
-    BackHandler(enabled = homeState.currentDestination != HomeDestination.Library) {
-        viewModel.onDestination(HomeDestination.Library)
+    // When in Downloads or Friends, pressing back brings us back to default screen from preference (Default: Library)
+    BackHandler(enabled = homeState.currentDestination != PrefManager.startScreen) {
+        viewModel.onDestination(PrefManager.startScreen)
     }
     // Pressing back again; while logged in, confirm we want to close the app.
-    BackHandler(enabled = homeState.currentDestination == HomeDestination.Library) {
+    BackHandler(enabled = homeState.currentDestination == PrefManager.startScreen) {
         viewModel.onConfirmExit(true)
     }
 
