@@ -303,7 +303,6 @@ class SteamUnifiedFriends(
                 playtimeForever = game.playtimeForever,
                 imgIconUrl = game.imgIconUrl,
                 sortAs = game.sortAs,
-                rtimeLastPlayed = game.rtimeLastPlayed,
             )
         }
 

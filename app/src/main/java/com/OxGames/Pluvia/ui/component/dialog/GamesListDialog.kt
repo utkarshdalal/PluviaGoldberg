@@ -104,9 +104,12 @@ fun GamesListDialog(
                                 supportingContent = {
                                     Column {
                                         CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodySmall) {
-                                            Text(text = "Playtime 2 weeks: ${SteamUtils.formatPlayTime(item.playtimeTwoWeeks)} hrs")
-                                            Text(text = "Total playtime: ${SteamUtils.formatPlayTime(item.playtimeForever)} hrs")
-                                            Text(text = "Last played: ${SteamUtils.fromSteamTime(item.rtimeLastPlayed)}")
+                                            if (item.playtimeTwoWeeks > 10) {
+                                                val twoWeeks = SteamUtils.formatPlayTime(item.playtimeTwoWeeks)
+                                                Text(text = "Playtime last 2 weeks: $twoWeeks hrs")
+                                            }
+                                            val total = SteamUtils.formatPlayTime(item.playtimeForever)
+                                            Text(text = "Total Playtime: $total hrs")
                                         }
                                     }
                                 },
@@ -142,7 +145,6 @@ private fun Preview_GamesListDialog() {
                     playtimeForever = 19154 * it,
                     imgIconUrl = "",
                     sortAs = "Game Name Alt: $it",
-                    rtimeLastPlayed = 1731210123 * it,
                 )
             },
             onDismissRequest = { },

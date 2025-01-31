@@ -6,10 +6,8 @@ import android.provider.Settings
 import com.OxGames.Pluvia.service.SteamService
 import `in`.dragonbra.javasteam.util.HardwareUtils
 import java.io.FileOutputStream
-import java.math.RoundingMode
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
@@ -25,12 +23,6 @@ object SteamUtils {
         }
     }
 
-    private val df by lazy {
-        DecimalFormat("#.#").apply {
-            roundingMode = RoundingMode.HALF_UP
-        }
-    }
-
     /**
      * Converts steam time to actual time
      * @return a string in the 'MMM d - h:mm a' format.
@@ -40,10 +32,16 @@ object SteamUtils {
 
     /**
      * Converts steam time from the playtime of a friend into an approximate double representing hours.
-     * @return A double representing how many hours were played, ie: 1.5 hrs
+     * @return A string representing how many hours were played, ie: 1.5 hrs
      */
-    // TODO validate accuracy
-    fun formatPlayTime(rtime: Int): String = df.format(rtime / 60.0)
+    fun formatPlayTime(time: Int): String {
+        val hours = time / 60.0
+        return if (hours % 1 == 0.0) {
+            hours.toInt().toString()
+        } else {
+            String.format(Locale.getDefault(), "%.1f", time / 60.0)
+        }
+    }
 
     /**
      * Strips non-ASCII characters from String
