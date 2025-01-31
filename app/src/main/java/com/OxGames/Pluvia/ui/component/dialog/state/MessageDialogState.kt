@@ -1,7 +1,6 @@
 package com.OxGames.Pluvia.ui.component.dialog.state
 
 import androidx.compose.runtime.saveable.mapSaver
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.OxGames.Pluvia.ui.enums.DialogType
 
 data class MessageDialogState(
@@ -9,7 +8,6 @@ data class MessageDialogState(
     val type: DialogType = DialogType.NONE,
     val confirmBtnText: String = "Confirm",
     val dismissBtnText: String = "Dismiss",
-    val icon: ImageVector? = null, // TODO unable to be saved.
     val title: String? = null,
     val message: String? = null,
 ) {

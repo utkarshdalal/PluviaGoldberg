@@ -376,7 +376,7 @@ fun PluviaMain(
             confirmBtnText = msgDialogState.confirmBtnText,
             onDismissClick = onDismissClick,
             dismissBtnText = msgDialogState.dismissBtnText,
-            icon = msgDialogState.icon,
+            icon = msgDialogState.type.icon,
             title = msgDialogState.title,
             message = msgDialogState.message,
         )
