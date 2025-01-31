@@ -30,6 +30,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Favorite
@@ -40,6 +44,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PersonOff
 import androidx.compose.material.icons.outlined.PersonRemove
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -49,11 +54,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.layout.AnimatedPane
@@ -93,9 +100,12 @@ import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.component.BBCodeText
 import com.OxGames.Pluvia.ui.component.LoadingScreen
 import com.OxGames.Pluvia.ui.component.dialog.GamesListDialog
+import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
+import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.FriendsState
+import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.internal.fakeSteamFriends
 import com.OxGames.Pluvia.ui.model.FriendsViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
@@ -127,9 +137,12 @@ fun FriendsScreen(
         state = state,
         onBack = { onBackPressedDispatcher?.onBackPressed() },
         onChat = onChat,
+        onBlock = viewModel::onBlock,
+        onRemove = viewModel::onRemove,
         onFriendClick = viewModel::observeSelectedFriend,
         onHeaderAction = viewModel::onHeaderAction,
         onLogout = onLogout,
+        onNickName = viewModel::onNickName,
         onSettings = onSettings,
     )
 }
@@ -141,9 +154,12 @@ private fun FriendsScreenContent(
     state: FriendsState,
     onBack: () -> Unit,
     onChat: (Long) -> Unit,
+    onBlock: (Long) -> Unit,
+    onRemove: (Long) -> Unit,
     onFriendClick: (Long) -> Unit,
     onHeaderAction: (String) -> Unit,
     onLogout: () -> Unit,
+    onNickName: (String) -> Unit,
     onSettings: () -> Unit,
 ) {
     val listState = rememberLazyListState() // Hoisted high to preserve state
@@ -192,6 +208,9 @@ private fun FriendsScreenContent(
                     state = state,
                     onBack = onBack,
                     onChat = onChat,
+                    onBlock = onBlock,
+                    onRemove = onRemove,
+                    onNickName = onNickName,
                     onShowGames = {
                         showGamesDialog = true
                     },
@@ -270,6 +289,9 @@ private fun FriendsDetailPane(
     state: FriendsState,
     onBack: () -> Unit,
     onChat: (Long) -> Unit,
+    onBlock: (Long) -> Unit,
+    onRemove: (Long) -> Unit,
+    onNickName: (String) -> Unit,
     onShowGames: () -> Unit,
 ) {
     Surface {
@@ -284,6 +306,9 @@ private fun FriendsDetailPane(
                         state = state,
                         onBack = onBack,
                         onChat = onChat,
+                        onBlock = onBlock,
+                        onRemove = onRemove,
+                        onNickName = onNickName,
                         onShowGames = onShowGames,
                     )
                 }
@@ -313,10 +338,120 @@ private fun ProfileDetailsScreen(
     state: FriendsState,
     onBack: () -> Unit,
     onChat: (Long) -> Unit,
+    onBlock: (Long) -> Unit,
+    onRemove: (Long) -> Unit,
+    onNickName: (String) -> Unit,
     onShowGames: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+    val context = LocalContext.current
+
+    var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
+        mutableStateOf(MessageDialogState(false))
+    }
+
+    val onDismissRequest: (() -> Unit)?
+    val onDismissClick: (() -> Unit)?
+    val onConfirmClick: (() -> Unit)?
+
+    when (msgDialogState.type) {
+        DialogType.FRIEND_BLOCK -> {
+            onConfirmClick = {
+                onBlock(state.profileFriend!!.id)
+                msgDialogState = MessageDialogState(visible = false)
+            }
+            onDismissRequest = { msgDialogState = MessageDialogState(visible = false) }
+            onDismissClick = { msgDialogState = MessageDialogState(visible = false) }
+        }
+
+        DialogType.FRIEND_REMOVE -> {
+            onConfirmClick = {
+                onRemove(state.profileFriend!!.id)
+                msgDialogState = MessageDialogState(visible = false)
+            }
+            onDismissRequest = { msgDialogState = MessageDialogState(visible = false) }
+            onDismissClick = { msgDialogState = MessageDialogState(visible = false) }
+        }
+
+        DialogType.FRIEND_FAVORITE -> {
+            onConfirmClick = {
+                Toast.makeText(context, "Favorite TODO", Toast.LENGTH_SHORT).show()
+                msgDialogState = MessageDialogState(visible = false)
+            }
+            onDismissRequest = { msgDialogState = MessageDialogState(visible = false) }
+            onDismissClick = { msgDialogState = MessageDialogState(visible = false) }
+        }
+
+        DialogType.FRIEND_UN_FAVORITE -> {
+            onConfirmClick = {
+                Toast.makeText(context, "Un-Favorite TODO", Toast.LENGTH_SHORT).show()
+                msgDialogState = MessageDialogState(visible = false)
+            }
+            onDismissRequest = { msgDialogState = MessageDialogState(visible = false) }
+            onDismissClick = { msgDialogState = MessageDialogState(visible = false) }
+        }
+
+        else -> {
+            onDismissRequest = null
+            onDismissClick = null
+            onConfirmClick = null
+        }
+    }
+
+    MessageDialog(
+        visible = msgDialogState.visible,
+        onDismissRequest = onDismissRequest,
+        onConfirmClick = onConfirmClick,
+        confirmBtnText = msgDialogState.confirmBtnText,
+        onDismissClick = onDismissClick,
+        dismissBtnText = msgDialogState.dismissBtnText,
+        icon = msgDialogState.icon,
+        title = msgDialogState.title,
+        message = msgDialogState.message,
+    )
+
+    var setNickNameDialog by rememberSaveable { mutableStateOf(false) }
+    var newNickName by rememberSaveable(state.profileFriend!!.nickname) {
+        mutableStateOf(state.profileFriend.nickname)
+    }
+    if (setNickNameDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                setNickNameDialog = false
+            },
+            icon = { Icon(imageVector = Icons.Default.Edit, contentDescription = null) },
+            title = { Text(text = "Set Nickname") },
+            text = {
+                Column {
+                    Text(text = "Set a new nickname for ${state.profileFriend!!.name}")
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(
+                        value = newNickName,
+                        onValueChange = { newNickName = it },
+                        label = { Text(text = "Nickname") },
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        setNickNameDialog = false
+                        onNickName(newNickName)
+                    },
+                    content = { Text(text = "Confirm") },
+                )
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        setNickNameDialog = false
+                    },
+                    content = { Text(text = "Cancel") },
+                )
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -338,7 +473,6 @@ private fun ProfileDetailsScreen(
         },
     ) { paddingValues ->
         val uriHandler = LocalUriHandler.current
-        val context = LocalContext.current
         val isLight = MaterialTheme.colorScheme.background.isLight()
         var moreExpanded by rememberSaveable { mutableStateOf(false) }
 
@@ -449,8 +583,7 @@ private fun ProfileDetailsScreen(
                             icon = Icons.Outlined.Edit,
                             text = "Set Nickname",
                             onClick = {
-                                // TODO
-                                Toast.makeText(context, "Nickname TODO", Toast.LENGTH_SHORT).show()
+                                setNickNameDialog = true
                             },
                         )
                         Spacer(modifier = Modifier.width(16.dp))
@@ -458,8 +591,16 @@ private fun ProfileDetailsScreen(
                             icon = Icons.Outlined.PersonOff,
                             text = "Block Friend",
                             onClick = {
-                                // TODO
-                                Toast.makeText(context, "Block TODO", Toast.LENGTH_SHORT).show()
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.FRIEND_BLOCK,
+                                    confirmBtnText = "Block",
+                                    dismissBtnText = "Cancel",
+                                    icon = Icons.Default.Block,
+                                    title = "Block Friend",
+                                    message = "Are you sure you want to block ${state.profileFriend.nameOrNickname}?\n" +
+                                        "This will block them on all steam clients.",
+                                )
                             },
                         )
                         Spacer(modifier = Modifier.width(16.dp))
@@ -467,8 +608,16 @@ private fun ProfileDetailsScreen(
                             icon = Icons.Outlined.PersonRemove,
                             text = "Remove Friend",
                             onClick = {
-                                // TODO
-                                Toast.makeText(context, "Remove TODO", Toast.LENGTH_SHORT).show()
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.FRIEND_REMOVE,
+                                    confirmBtnText = "Remove",
+                                    dismissBtnText = "Cancel",
+                                    icon = Icons.Default.PersonRemove,
+                                    title = "Remove Friend",
+                                    message = "Are you sure you want to remove ${state.profileFriend.nameOrNickname}?\n" +
+                                        "This will remove them on all steam clients.",
+                                )
                             },
                         )
                     }
@@ -484,8 +633,16 @@ private fun ProfileDetailsScreen(
                             icon = Icons.Outlined.Favorite,
                             text = "Add to Favorites",
                             onClick = {
-                                // TODO
-                                Toast.makeText(context, "Favorites TODO", Toast.LENGTH_SHORT).show()
+                                msgDialogState = MessageDialogState(
+                                    visible = true,
+                                    type = DialogType.FRIEND_FAVORITE,
+                                    confirmBtnText = "Favorite",
+                                    dismissBtnText = "Cancel",
+                                    icon = Icons.Default.Favorite,
+                                    title = "Favorite Friend",
+                                    message = "Are you sure you want to favorite ${state.profileFriend.nameOrNickname}?\n" +
+                                        "This will favorite them on all steam clients.",
+                                )
                             },
                         )
                         Spacer(modifier = Modifier.width(16.dp))
@@ -592,6 +749,9 @@ private fun Preview_FriendsScreenContent(
                 onSettings = { },
                 onLogout = { },
                 onChat = { },
+                onBlock = { },
+                onRemove = { },
+                onNickName = { },
             )
         }
     }

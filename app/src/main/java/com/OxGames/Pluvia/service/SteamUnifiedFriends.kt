@@ -3,8 +3,10 @@ package com.OxGames.Pluvia.service
 import androidx.room.withTransaction
 import com.OxGames.Pluvia.data.FriendMessage
 import com.OxGames.Pluvia.data.OwnedGames
+import `in`.dragonbra.javasteam.enums.EAccountType
 import `in`.dragonbra.javasteam.enums.EChatEntryType
 import `in`.dragonbra.javasteam.enums.EResult
+import `in`.dragonbra.javasteam.enums.EUniverse
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesChatSteamclient
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesFriendmessagesSteamclient
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesPlayerSteamclient
@@ -12,6 +14,7 @@ import `in`.dragonbra.javasteam.rpc.service.Chat
 import `in`.dragonbra.javasteam.rpc.service.FriendMessages
 import `in`.dragonbra.javasteam.rpc.service.FriendMessagesClient
 import `in`.dragonbra.javasteam.rpc.service.Player
+import `in`.dragonbra.javasteam.rpc.service.PlayerClient
 import `in`.dragonbra.javasteam.steam.handlers.steamunifiedmessages.SteamUnifiedMessages
 import `in`.dragonbra.javasteam.steam.handlers.steamunifiedmessages.callback.ServiceMethodNotification
 import `in`.dragonbra.javasteam.types.SteamID
@@ -20,11 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
-// For chat ideas, check out:
+// References:
 // https://github.com/marwaniaaj/RichLinksJetpackCompose/tree/main
 // https://blog.stackademic.com/rick-link-representation-in-jetpack-compose-d33956e8719e
 // https://github.com/lukasroberts/AndroidLinkView
-// https://github.com/Aldikitta/JetComposeChatWithMe
 // https://github.com/android/compose-samples/tree/main/Jetchat
 // https://github.com/LossyDragon/Vapulla
 
@@ -36,10 +38,12 @@ import timber.log.Timber
 
 typealias AckMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_AckMessage_Notification.Builder
 typealias IncomingMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_IncomingMessage_Notification.Builder
+typealias FriendNicknameChanged = SteammessagesPlayerSteamclient.CPlayer_FriendNicknameChanged_Notification.Builder
 
 class SteamUnifiedFriends(
     private val service: SteamService,
 ) : AutoCloseable {
+
     private var unifiedMessages: SteamUnifiedMessages? = null
 
     private var chat: Chat? = null
@@ -61,6 +65,7 @@ class SteamUnifiedFriends(
             with(service.callbackSubscriptions) {
                 add(subscribeServiceNotification<FriendMessagesClient, IncomingMessageNotification>(::onIncomingMessage))
                 add(subscribeServiceNotification<FriendMessages, AckMessageNotification>(::onAckMessage))
+                add(subscribeServiceNotification<PlayerClient, FriendNicknameChanged>(::onNickNameChanged))
             }
         }
     }
@@ -80,6 +85,9 @@ class SteamUnifiedFriends(
         chat?.requestFriendPersonaStates(request)
     }
 
+    /**
+     * Gets the last 50 messages from the specified friend. Steam may not provide all 50.
+     */
     suspend fun getRecentMessages(friendID: Long) {
         Timber.i("Getting Recent messages for: $friendID")
 
@@ -122,6 +130,9 @@ class SteamUnifiedFriends(
         Timber.i("More available: ${response.body.moreAvailable}")
     }
 
+    /**
+     * Sends a 'is typing' message to the specified friend.
+     */
     suspend fun setIsTyping(friendID: Long) {
         Timber.i("Sending 'is typing' to $friendID")
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_SendMessage_Request.newBuilder().apply {
@@ -140,6 +151,9 @@ class SteamUnifiedFriends(
         // response.body.serverTimestamp
     }
 
+    /**
+     * Sends a chat message to the specified friend.
+     */
     suspend fun sendMessage(friendID: Long, chatMessage: String) {
         Timber.i("Sending chat message to $friendID")
         val trimmedMessage = chatMessage.trim()
@@ -179,6 +193,9 @@ class SteamUnifiedFriends(
         // Once chat notifications are implemented, we should clear it here as well.
     }
 
+    /**
+     * Acknowledge the message, this will mark other clients that we have read the message.
+     */
     fun ackMessage(friendID: Long) {
         Timber.d("Ack-ing message for friend: $friendID")
         val request = SteammessagesFriendmessagesSteamclient.CFriendMessages_AckMessage_Notification.newBuilder().apply {
@@ -190,7 +207,9 @@ class SteamUnifiedFriends(
         friendMessages!!.ackMessage(request)
     }
 
-    // TODO
+    /**
+     * TODO
+     */
     suspend fun getActiveMessageSessions() {
         Timber.i("Get Active message sessions")
 
@@ -216,8 +235,14 @@ class SteamUnifiedFriends(
         }
     }
 
+    /**
+     * TODO
+     */
     // suspend fun getPerFriendPreferences()
 
+    /**
+     * TODO
+     */
     suspend fun updateMessageReaction(
         friendID: SteamID,
         serverTimestamp: Int,
@@ -251,6 +276,9 @@ class SteamUnifiedFriends(
         }
     }
 
+    /**
+     * Gets a list of games that the user owns. If the library is private, it will be empty.
+     */
     suspend fun getOwnedGames(steamID: Long): List<OwnedGames> {
         val request = SteammessagesPlayerSteamclient.CPlayer_GetOwnedGames_Request.newBuilder().apply {
             steamid = steamID
@@ -296,6 +324,22 @@ class SteamUnifiedFriends(
             service.db.withTransaction {
                 val friend = service.friendDao.findFriend(friendID)
                 friend?.let { service.friendDao.update(friend.copy(unreadMessageCount = 0)) }
+            }
+        }
+    }
+
+    /**
+     * Someone has changed their nickname.
+     */
+    private fun onNickNameChanged(notification: ServiceMethodNotification<FriendNicknameChanged>) {
+        CoroutineScope(Dispatchers.IO).launch {
+            Timber.i("Nickname Changed for ${notification.body.accountid} -> ${notification.body.nickname}")
+            val friendID = SteamID(notification.body.accountid.toLong(), EUniverse.Public, EAccountType.Individual)
+
+            service.db.withTransaction {
+                service.friendDao.findFriend(friendID.convertToUInt64())?.let {
+                    service.friendDao.update(it.copy(nickname = notification.body.nickname))
+                }
             }
         }
     }
