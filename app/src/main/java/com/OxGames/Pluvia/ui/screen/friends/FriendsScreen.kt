@@ -32,11 +32,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
-import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Favorite
@@ -417,7 +414,7 @@ private fun ProfileDetailsScreen(
         confirmBtnText = msgDialogState.confirmBtnText,
         onDismissClick = onDismissClick,
         dismissBtnText = msgDialogState.dismissBtnText,
-        icon = msgDialogState.icon,
+        icon = msgDialogState.type.icon,
         title = msgDialogState.title,
         message = msgDialogState.message,
     )
@@ -640,7 +637,6 @@ private fun ProfileDetailsScreen(
                                     type = DialogType.FRIEND_BLOCK,
                                     confirmBtnText = "Block",
                                     dismissBtnText = "Cancel",
-                                    icon = Icons.Default.Block,
                                     title = "Block Friend",
                                     message = "Are you sure you want to block ${state.profileFriend.nameOrNickname}?\n" +
                                         "This will block them on all steam clients.",
@@ -657,7 +653,6 @@ private fun ProfileDetailsScreen(
                                     type = DialogType.FRIEND_REMOVE,
                                     confirmBtnText = "Remove",
                                     dismissBtnText = "Cancel",
-                                    icon = Icons.Default.PersonRemove,
                                     title = "Remove Friend",
                                     message = "Are you sure you want to remove ${state.profileFriend.nameOrNickname}?\n" +
                                         "This will remove them on all steam clients.",
@@ -682,7 +677,6 @@ private fun ProfileDetailsScreen(
                                     type = DialogType.FRIEND_FAVORITE,
                                     confirmBtnText = "Favorite",
                                     dismissBtnText = "Cancel",
-                                    icon = Icons.Default.Favorite,
                                     title = "Favorite Friend",
                                     message = "Are you sure you want to favorite ${state.profileFriend.nameOrNickname}?\n" +
                                         "This will favorite them on all steam clients.",
