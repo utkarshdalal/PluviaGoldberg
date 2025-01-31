@@ -1145,7 +1145,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
                     add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
                     add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
-                    add(subscribe(AliasHistoryCallback::class.java) { PluviaApp.events.emit(SteamEvent.OnAliasHistory(it)) })
+                    add(subscribe(AliasHistoryCallback::class.java, ::onAliasHistory))
                 }
             }
 
@@ -1467,6 +1467,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 emoticonDao.replaceAll(callback.emoteList)
             }
         }
+    }
+
+    private fun onAliasHistory(callback: AliasHistoryCallback) {
+        val names = callback.responses.flatMap { map -> map.names }.map { map -> map.name }
+        PluviaApp.events.emit(SteamEvent.OnAliasHistory(names))
     }
 
     @OptIn(ExperimentalStdlibApi::class)

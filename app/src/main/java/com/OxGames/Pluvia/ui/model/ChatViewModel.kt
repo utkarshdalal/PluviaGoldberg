@@ -1,5 +1,9 @@
 package com.OxGames.Pluvia.ui.model
 
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.db.dao.EmoticonDao
@@ -27,6 +31,9 @@ class ChatViewModel @Inject constructor(
 
     private val _chatState = MutableStateFlow(ChatState())
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
+
+    // Keep the chat scroll state. This will last longer as the VM will stay alive.
+    var listState: LazyListState by mutableStateOf(LazyListState(0, 0))
 
     private var chatJob: Job? = null
     private var typingJob: Job? = null
