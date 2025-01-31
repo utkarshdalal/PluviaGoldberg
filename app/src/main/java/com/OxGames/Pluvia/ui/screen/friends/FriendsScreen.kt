@@ -172,7 +172,7 @@ private fun FriendsScreenContent(
     val listState = rememberLazyListState() // Hoisted high to preserve state
     val snackbarHost = remember { SnackbarHostState() }
 
-    var showGamesDialog by remember { mutableStateOf(false) }
+    var showGamesDialog by rememberSaveable { mutableStateOf(false) }
 
     GamesListDialog(
         visible = showGamesDialog,
