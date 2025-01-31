@@ -91,7 +91,8 @@ enum class EmojiStickerSelector {
 fun ChatInput(
     modifier: Modifier = Modifier,
     onMessageSent: (String) -> Unit,
-    onResetScroll: () -> Unit = {},
+    onTyping: () -> Unit,
+    onResetScroll: () -> Unit,
 ) {
     var isEmoticonsShowing by rememberSaveable { mutableStateOf(EmojiStickerSelector.NONE) }
     val dismissKeyboard = { isEmoticonsShowing = EmojiStickerSelector.NONE }
@@ -112,7 +113,10 @@ fun ChatInput(
         Column(modifier = modifier) {
             UserInputText(
                 textFieldValue = textState,
-                onTextChanged = { textState = it },
+                onTextChanged = {
+                    textState = it
+                    onTyping()
+                },
                 // Only show the keyboard if there's no input selector and text field has focus
                 keyboardShown = isEmoticonsShowing == EmojiStickerSelector.NONE && textFieldFocusState,
                 // Close extended selector if text field receives focus
@@ -460,7 +464,11 @@ fun Preview_ChatInput() {
                 .fillMaxSize(),
         ) {
             Box(modifier = Modifier.weight(1f))
-            ChatInput(onMessageSent = {})
+            ChatInput(
+                onMessageSent = {},
+                onTyping = {},
+                onResetScroll = {},
+            )
         }
     }
 }

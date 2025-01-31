@@ -74,13 +74,12 @@ import com.OxGames.Pluvia.data.FriendMessage
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.ChatState
+import com.OxGames.Pluvia.ui.internal.fakeSteamFriends
 import com.OxGames.Pluvia.ui.model.ChatViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
 import com.OxGames.Pluvia.utils.SteamUtils
 import com.OxGames.Pluvia.utils.getAvatarURL
-import `in`.dragonbra.javasteam.enums.EPersonaState
-import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 import kotlinx.coroutines.launch
 
 @Composable
@@ -98,6 +97,7 @@ fun ChatScreen(
     ChatScreenContent(
         state = state,
         onBack = onBack,
+        onTyping = viewModel::onTyping,
         onSendMessage = viewModel::onSendMessage,
     )
 }
@@ -106,6 +106,7 @@ fun ChatScreen(
 private fun ChatScreenContent(
     state: ChatState,
     onBack: () -> Unit,
+    onTyping: () -> Unit,
     onSendMessage: (String) -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
@@ -149,6 +150,7 @@ private fun ChatScreenContent(
                     .navigationBarsPadding()
                     .imePadding(),
                 onMessageSent = onSendMessage,
+                onTyping = onTyping,
                 onResetScroll = {
                     scope.launch {
                         scrollState.animateScrollToItem(0)
@@ -344,9 +346,16 @@ internal class MessagesPreviewProvider : PreviewParameterProvider<List<FriendMes
                 id = it.plus(1).toLong(),
                 steamIDFriend = 76561198003805806,
                 fromLocal = it % 3 == 0,
-                message = "Hey!, ".repeat(it.plus(1).times(2)),
+                message = if (it > 18) {
+                    "[sticker type=\"Delivery Cat in a Blanket\", value=0][/sticker]"
+                } else {
+                    """
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+                    sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                    """.trimIndent()
+                },
                 // lowPriority = false,
-                timestamp = 1737438789,
+                timestamp = 1737438789 + it,
             )
         },
     )
@@ -361,19 +370,12 @@ private fun Preview_ChatScreenContent(
     PluviaTheme {
         ChatScreenContent(
             state = ChatState(
-                friend = SteamFriend(
-                    id = 76561198003805806,
-                    state = EPersonaState.Online,
-                    avatarHash = "cfc54391f2f2ba745b701ad1287f73e50dc26d74",
-                    name = "Lossy",
-                    nickname = "Lossy with a nickname which should clip",
-                    gameAppID = 440,
-                    stateFlags = EPersonaStateFlag.from(2048),
-                ),
+                friend = fakeSteamFriends()[1],
                 messages = messages,
             ),
             onBack = { },
             onSendMessage = { },
+            onTyping = { },
         )
     }
 }
