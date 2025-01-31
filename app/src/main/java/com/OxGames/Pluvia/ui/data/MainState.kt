@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.ui.data
 
 import com.OxGames.Pluvia.enums.AppTheme
-import com.OxGames.Pluvia.ui.enums.PluviaScreen
+import com.OxGames.Pluvia.ui.screen.PluviaScreen
 import com.materialkolor.PaletteStyle
 
 data class MainState(

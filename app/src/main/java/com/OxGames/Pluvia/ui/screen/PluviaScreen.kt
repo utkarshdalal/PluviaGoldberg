@@ -1,9 +1,8 @@
-package com.OxGames.Pluvia.ui.enums
+package com.OxGames.Pluvia.ui.screen
 
 /**
  * Destinations for top level screens, excluding home screen destinations.
  */
-// TODO move out of enums
 sealed class PluviaScreen(val route: String) {
     data object LoginUser : PluviaScreen("login")
     data object Home : PluviaScreen("home")

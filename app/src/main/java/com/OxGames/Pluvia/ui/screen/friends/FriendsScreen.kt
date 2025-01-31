@@ -87,6 +87,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowWidthSizeClass
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.component.BBCodeText
@@ -555,6 +556,9 @@ internal class FriendsScreenPreview : PreviewParameterProvider<ThreePaneScaffold
 private fun Preview_FriendsScreenContent(
     @PreviewParameter(FriendsScreenPreview::class) state: ThreePaneScaffoldRole,
 ) {
+    val context = LocalContext.current
+    PrefManager.init(context)
+
     val navigator = rememberListDetailPaneScaffoldNavigator(
         initialDestinationHistory = listOf(ThreePaneScaffoldDestinationItem<Unit>(state)),
     )

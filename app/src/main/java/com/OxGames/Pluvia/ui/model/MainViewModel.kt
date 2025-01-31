@@ -15,7 +15,7 @@ import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.MainState
-import com.OxGames.Pluvia.ui.enums.PluviaScreen
+import com.OxGames.Pluvia.ui.screen.PluviaScreen
 import com.materialkolor.PaletteStyle
 import com.winlator.xserver.Window
 import dagger.hilt.android.lifecycle.HiltViewModel
