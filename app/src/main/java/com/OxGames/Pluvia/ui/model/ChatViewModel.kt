@@ -29,6 +29,8 @@ class ChatViewModel @Inject constructor(
     val chatState: StateFlow<ChatState> = _chatState.asStateFlow()
 
     private var chatJob: Job? = null
+    private var typingJob: Job? = null
+    private var lastTypingSent = 0L
 
     override fun onCleared() {
         super.onCleared()
@@ -76,7 +78,22 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun onTyping() {
+        val now = System.currentTimeMillis()
+
+        if (typingJob == null || now - lastTypingSent > 15000) {
+            typingJob?.cancel()
+            typingJob = viewModelScope.launch {
+                SteamService.sendTypingMessage(_chatState.value.friend.id)
+                lastTypingSent = now
+            }
+        }
+    }
+
     fun onSendMessage(message: String) {
+        typingJob?.cancel()
+        typingJob = null
+
         viewModelScope.launch {
             with(_chatState.value.friend) {
                 if (!SteamID(id).isValid) {

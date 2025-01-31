@@ -78,6 +78,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -96,6 +97,7 @@ import com.OxGames.Pluvia.ui.component.dialog.GamesListDialog
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.FriendsState
+import com.OxGames.Pluvia.ui.internal.fakeSteamFriends
 import com.OxGames.Pluvia.ui.model.FriendsViewModel
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.getAvatarURL
@@ -103,7 +105,6 @@ import com.OxGames.Pluvia.utils.getProfileUrl
 import com.materialkolor.ktx.isLight
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
-import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ProfileInfoCallback
 import `in`.dragonbra.javasteam.types.SteamID
@@ -564,38 +565,35 @@ private fun Preview_FriendsScreenContent(
     )
 
     PluviaTheme {
-        FriendsScreenContent(
-            navigator = navigator,
-            state = FriendsState(
-                friendsList = mapOf(
-                    "TEST A" to List(3) { SteamFriend(id = it.toLong()) },
-                    "TEST B" to List(3) { SteamFriend(id = it.toLong() + 5) },
-                    "TEST C" to List(3) { SteamFriend(id = it.toLong() + 10) },
+        Surface {
+            FriendsScreenContent(
+                navigator = navigator,
+                state = FriendsState(
+                    friendsList = mapOf(
+                        "In-Game" to fakeSteamFriends(),
+                        "Online" to fakeSteamFriends(id = 5, inGame = false),
+                        "Offline" to fakeSteamFriends(id = 10, online = false, inGame = false),
+                    ),
+                    profileFriend = fakeSteamFriends()[1],
+                    profileFriendInfo = ProfileInfoCallback(
+                        result = EResult.OK,
+                        steamID = SteamID(123L),
+                        timeCreated = Date(9988776655 * 1000L),
+                        realName = "Friend Name",
+                        cityName = "Friend Town",
+                        stateName = "Friend State",
+                        countryName = "Friend Country",
+                        headline = "",
+                        summary = "[emoticon]roar[/emoticon] Very nice profile! ːsteamboredː ːsteamthisː",
+                    ),
                 ),
-                profileFriend = SteamFriend(
-                    id = 123L,
-                    nickname = "Pluvia".repeat(3).trimEnd(),
-                    state = EPersonaState.Online,
-                    gameName = "Left 4 Dead 2",
-                ),
-                profileFriendInfo = ProfileInfoCallback(
-                    result = EResult.OK,
-                    steamID = SteamID(123L),
-                    timeCreated = Date(9988776655 * 1000L),
-                    realName = "Pluvia",
-                    cityName = "Pluvia Town",
-                    stateName = "Pluviaville",
-                    countryName = "United Pluvia",
-                    headline = "",
-                    summary = "A [emoticon]roar[/emoticon] Fake Summary ːsteamboredː ːsteamthisː",
-                ),
-            ),
-            onFriendClick = { },
-            onHeaderAction = { },
-            onBack = { },
-            onSettings = { },
-            onLogout = { },
-            onChat = { },
-        )
+                onFriendClick = { },
+                onHeaderAction = { },
+                onBack = { },
+                onSettings = { },
+                onLogout = { },
+                onChat = { },
+            )
+        }
     }
 }
