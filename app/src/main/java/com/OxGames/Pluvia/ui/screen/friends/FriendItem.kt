@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.screen.friends
 
 import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.InlineTextContent
@@ -102,7 +103,10 @@ fun FriendItem(
             }
         },
         leadingContent = {
-            ListItemImage { friend.avatarHash.getAvatarURL() }
+            ListItemImage(
+                modifier = Modifier.clickable { onLongClick(friend) },
+                image = { friend.avatarHash.getAvatarURL() },
+            )
         },
     )
 }

@@ -21,12 +21,13 @@ import com.skydoves.landscapist.coil.CoilImage
 
 @Composable
 internal fun ListItemImage(
+    modifier: Modifier = Modifier,
     contentDescription: String? = null,
     size: Dp = 40.dp,
     image: () -> Any?,
 ) {
     CoilImage(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
             .clip(CircleShape),
         imageModel = image,

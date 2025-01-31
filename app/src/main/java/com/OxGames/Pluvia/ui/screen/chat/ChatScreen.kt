@@ -29,11 +29,9 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -141,11 +139,10 @@ private fun ChatScreenContent(
             ChatTopBar(
                 steamFriend = state.friend,
                 onBack = onBack,
-                onProfile = {
-                    // TODO
-                    val msg = "View profile not implemented!\nTry long pressing a friend in the friends list?"
-                    scope.launch { snackbarHost.showSnackbar(msg) }
-                },
+                // onProfile = {
+                //     val msg = "View profile not implemented!\nTry long pressing a friend in the friends list?"
+                //     scope.launch { snackbarHost.showSnackbar(msg) }
+                // },
             )
         },
     ) { paddingValues ->
@@ -276,7 +273,7 @@ private fun NoChatHistoryBox() {
 private fun ChatTopBar(
     steamFriend: SteamFriend,
     onBack: () -> Unit,
-    onProfile: () -> Unit,
+    // onProfile: () -> Unit,
 ) {
     CenterAlignedTopAppBar(
         title = {
@@ -340,12 +337,12 @@ private fun ChatTopBar(
         navigationIcon = {
             BackButton(onClick = onBack)
         },
-        actions = {
-            IconButton(
-                onClick = onProfile,
-                content = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
-            )
-        },
+        // actions = {
+        //     IconButton(
+        //         onClick = onProfile,
+        //         content = { Icon(imageVector = Icons.Default.Person, contentDescription = null) },
+        //     )
+        // },
     )
 }
 
