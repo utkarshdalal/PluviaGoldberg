@@ -73,6 +73,24 @@ class FriendsViewModel @Inject constructor(
         }
     }
 
+    fun onBlock(friendID: Long) {
+        viewModelScope.launch {
+            SteamService.blockFriend(friendID)
+        }
+    }
+
+    fun onRemove(friendID: Long) {
+        viewModelScope.launch {
+            SteamService.removeFriend(friendID)
+        }
+    }
+
+    fun onNickName(value: String) {
+        viewModelScope.launch {
+            SteamService.setNickName(_friendsState.value.profileFriend!!.id, value)
+        }
+    }
+
     private fun observeFriendList() {
         observeFriendListJob = viewModelScope.launch(Dispatchers.IO) {
             steamFriendDao.getAllFriendsFlow().collect { friends ->

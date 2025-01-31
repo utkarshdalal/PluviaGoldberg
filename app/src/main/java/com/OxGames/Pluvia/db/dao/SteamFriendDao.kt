@@ -46,4 +46,7 @@ interface SteamFriendDao {
 
     @Query("SELECT * FROM steam_friend WHERE name LIKE '%' || :name || '%' OR nickname LIKE '%' || :name || '%'")
     fun findFriendFlow(name: String): Flow<List<SteamFriend>>
+
+    @Query("DELETE FROM steam_friend WHERE id = :friendId")
+    suspend fun remove(friendId: Long)
 }

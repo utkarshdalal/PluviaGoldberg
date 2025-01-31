@@ -19,4 +19,9 @@ enum class DialogType {
     INSTALL_IMAGEFS,
 
     NONE,
+
+    FRIEND_BLOCK,
+    FRIEND_REMOVE,
+    FRIEND_FAVORITE,
+    FRIEND_UN_FAVORITE,
 }

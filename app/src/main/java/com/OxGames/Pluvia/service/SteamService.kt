@@ -60,6 +60,7 @@ import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import com.winlator.xenvironment.ImageFs
 import dagger.hilt.android.AndroidEntryPoint
+import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.ELicenseType
 import `in`.dragonbra.javasteam.enums.EOSType
 import `in`.dragonbra.javasteam.enums.EPaymentMethod
@@ -1042,6 +1043,29 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         suspend fun sendMessage(friendID: Long, message: String) = withContext(Dispatchers.IO) {
             instance?._unifiedFriends!!.sendMessage(friendID, message)
+        }
+
+        suspend fun blockFriend(friendID: Long) = withContext(Dispatchers.IO) {
+            val friend = SteamID(friendID)
+            val result = instance?._steamFriends!!.ignoreFriend(friend).await()
+
+            if (result.result == EResult.OK) {
+                val blockedFriend = instance!!.friendDao.findFriend(friendID)
+                blockedFriend?.let {
+                    instance?.friendDao!!.update(it.copy(relation = EFriendRelationship.Blocked))
+                }
+            }
+        }
+
+        suspend fun removeFriend(friendID: Long) = withContext(Dispatchers.IO) {
+            val friend = SteamID(friendID)
+            instance?._steamFriends!!.removeFriend(friend)
+            instance?.friendDao!!.remove(friendID)
+        }
+
+        suspend fun setNickName(friendID: Long, value: String) = withContext(Dispatchers.IO) {
+            val friend = SteamID(friendID)
+            instance?._steamFriends!!.setFriendNickname(friend, value)
         }
     }
 
