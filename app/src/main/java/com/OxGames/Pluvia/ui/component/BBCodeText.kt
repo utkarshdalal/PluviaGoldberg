@@ -53,7 +53,9 @@ import com.skydoves.landscapist.coil.CoilImage
  * See: https://steamcommunity.com/comment/ForumTopic/formattinghelp
  */
 
-// TODO web rich previews?
+// TODO:
+//  Slash commands
+//  Rich Previews with http links
 
 // private val noParsePattern = "\\[noparse]([^\\[]+)\\[/noparse]".toRegex()
 private val colonPattern = "\u02D0([^\u02D0]+)\u02D0".toRegex()

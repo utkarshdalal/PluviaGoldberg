@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
+import com.OxGames.Pluvia.data.OwnedGames
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
@@ -62,18 +63,30 @@ class FriendsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            val resp = SteamService.getProfileInfo(SteamID(friendID))
-            _friendsState.update { it.copy(profileFriendInfo = resp) }
-        }
+            launch {
+                val resp = SteamService.getProfileInfo(SteamID(friendID))
+                _friendsState.update { it.copy(profileFriendInfo = resp) }
+            }
+            launch {
+                val resp = SteamService.getOwnedGames(friendID).sortedWith(
+                    compareBy<OwnedGames> { (it.sortAs ?: it.name).lowercase() }
+                        .thenByDescending { it.playtimeTwoWeeks },
+                )
 
-        viewModelScope.launch {
-            val resp = SteamService.getOwnedGames(friendID)
-            _friendsState.update { it.copy(profileFriendGames = resp) }
-        }
+                resp.forEach {
+                    Timber.d(it.toString())
+                }
 
-        selectedFriendJob = viewModelScope.launch {
-            steamFriendDao.findFriendFlow(friendID).collect { friend ->
-                _friendsState.update { it.copy(profileFriend = friend) }
+                _friendsState.update { it.copy(profileFriendGames = resp) }
+            }
+            selectedFriendJob = launch {
+                steamFriendDao.findFriendFlow(friendID).collect { friend ->
+                    if (friend == null) {
+                        Timber.w("Collecting friend was null")
+                        return@collect
+                    }
+                    _friendsState.update { it.copy(profileFriend = friend) }
+                }
             }
         }
     }

@@ -122,6 +122,8 @@ import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.ProfileInfo
 import `in`.dragonbra.javasteam.types.SteamID
 import java.util.Date
 
+// TODO pressing back wont make the selected profile go to the initial details screen.
+
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun FriendsScreen(
