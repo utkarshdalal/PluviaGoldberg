@@ -11,4 +11,5 @@ data class FriendsState(
     val profileFriend: SteamFriend? = null,
     val profileFriendInfo: ProfileInfoCallback? = null,
     val profileFriendGames: List<OwnedGames> = emptyList(),
+    val profileFriendAlias: List<String> = emptyList(),
 )

@@ -42,7 +42,7 @@ private fun Preview_StickyHeaderItem() {
                     id = 0,
                     state = EPersonaState.Online,
                     gameAppID = 440,
-                    gameName = "Team Fortess 2",
+                    gameName = "Team Fortress 2",
                     name = "Name The Game",
                 ),
                 onClick = { },

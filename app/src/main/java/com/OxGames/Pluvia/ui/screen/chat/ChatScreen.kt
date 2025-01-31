@@ -97,6 +97,7 @@ fun ChatScreen(
 
     ChatScreenContent(
         state = state,
+        scrollState = viewModel.listState,
         onBack = onBack,
         onTyping = viewModel::onTyping,
         onSendMessage = viewModel::onSendMessage,
@@ -106,12 +107,12 @@ fun ChatScreen(
 @Composable
 private fun ChatScreenContent(
     state: ChatState,
+    scrollState: LazyListState,
     onBack: () -> Unit,
     onTyping: () -> Unit,
     onSendMessage: (String) -> Unit,
 ) {
     val snackbarHost = remember { SnackbarHostState() }
-    val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
     // NOTE: This should be removed once chat is considered stable.
@@ -169,6 +170,7 @@ private fun ChatScreenContent(
                 onMessageSent = onSendMessage,
                 onTyping = onTyping,
                 onResetScroll = {
+                    // Scroll to the bottom of the list regardless of the scroll state
                     scope.launch {
                         scrollState.animateScrollToItem(0)
                     }
@@ -212,6 +214,12 @@ private fun ChatMessages(
             derivedStateOf {
                 // Arbitrary threshold to show the button
                 scrollState.firstVisibleItemIndex > 3
+            }
+        }
+
+        LaunchedEffect(state.messages) {
+            if (!jumpToBottomButtonEnabled) {
+                scrollState.animateScrollToItem(0)
             }
         }
 
@@ -376,6 +384,7 @@ private fun Preview_ChatScreenContent(
                 friend = fakeSteamFriends()[1],
                 messages = messages,
             ),
+            scrollState = rememberLazyListState(),
             onBack = { },
             onSendMessage = { },
             onTyping = { },

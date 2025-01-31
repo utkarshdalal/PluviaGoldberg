@@ -2,8 +2,10 @@ package com.OxGames.Pluvia.ui.model
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
+import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.FriendsState
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @HiltViewModel
 class FriendsViewModel @Inject constructor(
@@ -28,20 +31,35 @@ class FriendsViewModel @Inject constructor(
     private var selectedFriendJob: Job? = null
     private var observeFriendListJob: Job? = null
 
+    private val onAliasHistory: (SteamEvent.OnAliasHistory) -> Unit = {
+        _friendsState.update { currentState -> currentState.copy(profileFriendAlias = it.names) }
+    }
+
     init {
         observeFriendList()
+        PluviaApp.events.on<SteamEvent.OnAliasHistory, Unit>(onAliasHistory)
     }
 
     override fun onCleared() {
+        Timber.d("onCleared")
+
         selectedFriendJob?.cancel()
         observeFriendListJob?.cancel()
+        PluviaApp.events.off<SteamEvent.OnAliasHistory, Unit>(onAliasHistory)
     }
 
     fun observeSelectedFriend(friendID: Long) {
         selectedFriendJob?.cancel()
 
         // Force clear states when this method if is called again.
-        _friendsState.update { it.copy(profileFriend = null, profileFriendGames = emptyList(), profileFriendInfo = null) }
+        _friendsState.update {
+            it.copy(
+                profileFriend = null,
+                profileFriendGames = emptyList(),
+                profileFriendInfo = null,
+                profileFriendAlias = emptyList(),
+            )
+        }
 
         viewModelScope.launch {
             val resp = SteamService.getProfileInfo(SteamID(friendID))
@@ -88,6 +106,12 @@ class FriendsViewModel @Inject constructor(
     fun onNickName(value: String) {
         viewModelScope.launch {
             SteamService.setNickName(_friendsState.value.profileFriend!!.id, value)
+        }
+    }
+
+    fun onAlias() {
+        viewModelScope.launch {
+            SteamService.requestAliasHistory(_friendsState.value.profileFriend!!.id)
         }
     }
 

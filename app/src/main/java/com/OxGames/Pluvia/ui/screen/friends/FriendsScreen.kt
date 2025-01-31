@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +35,7 @@ import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material.icons.outlined.Edit
@@ -144,6 +147,7 @@ fun FriendsScreen(
         onLogout = onLogout,
         onNickName = viewModel::onNickName,
         onSettings = onSettings,
+        onAlias = viewModel::onAlias,
     )
 }
 
@@ -161,6 +165,7 @@ private fun FriendsScreenContent(
     onLogout: () -> Unit,
     onNickName: (String) -> Unit,
     onSettings: () -> Unit,
+    onAlias: () -> Unit,
 ) {
     val listState = rememberLazyListState() // Hoisted high to preserve state
     val snackbarHost = remember { SnackbarHostState() }
@@ -214,13 +219,14 @@ private fun FriendsScreenContent(
                     onShowGames = {
                         showGamesDialog = true
                     },
+                    onAlias = onAlias,
                 )
             }
         },
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun FriendsListPane(
     state: FriendsState,
@@ -293,6 +299,7 @@ private fun FriendsDetailPane(
     onRemove: (Long) -> Unit,
     onNickName: (String) -> Unit,
     onShowGames: () -> Unit,
+    onAlias: () -> Unit,
 ) {
     Surface {
         Box(
@@ -310,6 +317,7 @@ private fun FriendsDetailPane(
                         onRemove = onRemove,
                         onNickName = onNickName,
                         onShowGames = onShowGames,
+                        onAlias = onAlias,
                     )
                 }
             },
@@ -342,6 +350,7 @@ private fun ProfileDetailsScreen(
     onRemove: (Long) -> Unit,
     onNickName: (String) -> Unit,
     onShowGames: () -> Unit,
+    onAlias: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
     val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
@@ -448,6 +457,39 @@ private fun ProfileDetailsScreen(
                         setNickNameDialog = false
                     },
                     content = { Text(text = "Cancel") },
+                )
+            },
+        )
+    }
+
+    var showPreviousAliasDialog by rememberSaveable { mutableStateOf(false) }
+    if (showPreviousAliasDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showPreviousAliasDialog = false
+            },
+            icon = { Icon(imageVector = Icons.Default.History, contentDescription = null) },
+            title = { Text(text = "Past Aliases") },
+            text = {
+                LazyColumn {
+                    items(state.profileFriendAlias) { alias ->
+                        Text(text = alias)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+
+                    if (state.profileFriendAlias.isEmpty()) {
+                        item {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = "No past aliases found")
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showPreviousAliasDialog = false },
+                    content = { Text(text = "Close") },
                 )
             },
         )
@@ -574,8 +616,8 @@ private fun ProfileDetailsScreen(
                             icon = Icons.Outlined.History,
                             text = "View Aliases",
                             onClick = {
-                                // TODO
-                                Toast.makeText(context, "Aliases TODO", Toast.LENGTH_SHORT).show()
+                                onAlias()
+                                showPreviousAliasDialog = true
                             },
                         )
                         Spacer(modifier = Modifier.width(16.dp))
@@ -752,6 +794,7 @@ private fun Preview_FriendsScreenContent(
                 onBlock = { },
                 onRemove = { },
                 onNickName = { },
+                onAlias = { },
             )
         }
     }

@@ -1,6 +1,7 @@
 package com.OxGames.Pluvia.ui.screen.friends
 
 import android.content.res.Configuration
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.InlineTextContent
@@ -32,6 +33,7 @@ import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 
 // https://m3.material.io/components/lists/specs#d156b3f2-6763-4fde-ba6f-0f088ce5a4e4
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FriendItem(
     modifier: Modifier = Modifier,
