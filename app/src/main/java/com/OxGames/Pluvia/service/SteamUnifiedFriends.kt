@@ -30,6 +30,9 @@ import timber.log.Timber
 
 // TODO
 //  Implement Reactions
+//  OfflineMessageNotificationCallback ?
+//  FriendMsgEchoCallback ?
+//  EmoticonListCallback ?
 
 typealias AckMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_AckMessage_Notification.Builder
 typealias IncomingMessageNotification = SteammessagesFriendmessagesSteamclient.CFriendMessages_IncomingMessage_Notification.Builder
@@ -44,10 +47,6 @@ class SteamUnifiedFriends(
     private var player: Player? = null
 
     private var friendMessages: FriendMessages? = null
-
-    // TODO OfflineMessageNotificationCallback ?
-    // TODO FriendMsgEchoCallback ?
-    // TODO EmoticonListCallback ?
 
     init {
         unifiedMessages = service.steamClient!!.getHandler<SteamUnifiedMessages>()
@@ -105,9 +104,6 @@ class SteamUnifiedFriends(
             return
         }
 
-        // TODO: Insert new messages into database
-        // TODO: Do not dupe messages
-        // TODO: reactions
         val regex = "\\[U:\\d+:(\\d+)]".toRegex()
         val userSteamId3 = regex.find(userSteamID.render())!!.groupValues[1].toInt()
         val messages = response.body.messagesList.map { message ->
@@ -194,6 +190,7 @@ class SteamUnifiedFriends(
         friendMessages!!.ackMessage(request)
     }
 
+    // TODO
     suspend fun getActiveMessageSessions() {
         Timber.i("Get Active message sessions")
 
@@ -208,8 +205,6 @@ class SteamUnifiedFriends(
             Timber.w("Failed to get active message sessions, ${response.result}")
             return
         }
-
-        // TODO
 
         // response.body.timestamp
 
