@@ -394,4 +394,12 @@ object PrefManager {
         set(value) {
             setPref(FRIENDS_LIST_HEADER, Json.encodeToString(value))
         }
+
+    // NOTE: This should be removed once chat is considered stable.
+    private val ACK_CHAT_PREVIEW = booleanPreferencesKey("ack_chat_preview")
+    var ackChatPreview: Boolean
+        get() = getPref(ACK_CHAT_PREVIEW, false)
+        set(value) {
+            setPref(ACK_CHAT_PREVIEW, value)
+        }
 }

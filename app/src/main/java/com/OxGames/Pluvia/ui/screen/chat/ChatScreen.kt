@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.exclude
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
@@ -43,6 +42,7 @@ import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.data.FriendMessage
 import com.OxGames.Pluvia.data.SteamFriend
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
@@ -112,6 +113,22 @@ private fun ChatScreenContent(
     val snackbarHost = remember { SnackbarHostState() }
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+
+    // NOTE: This should be removed once chat is considered stable.
+    LaunchedEffect(Unit) {
+        if (!PrefManager.ackChatPreview) {
+            scope.launch {
+                val result = snackbarHost.showSnackbar(
+                    message = "Chatting is still an early feature.\nPlease report any issues in the project repo.",
+                    actionLabel = "OK",
+                )
+
+                if (result == SnackbarResult.ActionPerformed) {
+                    PrefManager.ackChatPreview = true
+                }
+            }
+        }
+    }
 
     Scaffold(
         // Exclude ime and navigation bar padding so this can be added by the ChatInput composable
@@ -180,20 +197,6 @@ private fun ChatMessages(
             state = scrollState,
             reverseLayout = true,
         ) {
-            stickyHeader {
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                ) {
-                    Text(
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                        fontSize = 12.sp,
-                        text = "Chatting is still an early feature.\n" +
-                            "Please report any issues in the project repo.",
-                    )
-                }
-            }
-
             items(state.messages, key = { it.id }) { msg ->
                 ChatBubble(
                     message = msg.message,
