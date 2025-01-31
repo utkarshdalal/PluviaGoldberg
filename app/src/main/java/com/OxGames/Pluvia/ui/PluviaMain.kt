@@ -39,9 +39,9 @@ import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.enums.Orientation
-import com.OxGames.Pluvia.ui.enums.PluviaScreen
 import com.OxGames.Pluvia.ui.model.MainViewModel
 import com.OxGames.Pluvia.ui.screen.HomeScreen
+import com.OxGames.Pluvia.ui.screen.PluviaScreen
 import com.OxGames.Pluvia.ui.screen.chat.ChatScreen
 import com.OxGames.Pluvia.ui.screen.login.UserLoginScreen
 import com.OxGames.Pluvia.ui.screen.settings.SettingsScreen

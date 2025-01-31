@@ -50,7 +50,7 @@ fun EmoticonImage(
     image: () -> Any?,
 ) {
     CoilImage(
-        modifier = Modifier.size(size), // TODO may not be pixel perfect
+        modifier = Modifier.size(size),
         imageModel = image,
         loading = {
             CircularProgressIndicator()

@@ -61,7 +61,6 @@ class FriendsViewModel @Inject constructor(
     }
 
     fun onHeaderAction(value: String) {
-        // TODO save value as preference & restore it
         _friendsState.update { currentState ->
             val list = currentState.collapsedListSections.toMutableSet()
             if (value in list) {
