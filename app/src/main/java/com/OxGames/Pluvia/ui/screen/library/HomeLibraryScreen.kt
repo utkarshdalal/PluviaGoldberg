@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,7 +57,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenu
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenuItem
@@ -87,6 +87,7 @@ fun HomeLibraryScreen(
 
     LibraryScreenContent(
         state = state,
+        listState = viewModel.listState,
         fabState = fabState,
         onFabFilter = viewModel::onFabFilter,
         onIsSearching = viewModel::onIsSearching,
@@ -101,6 +102,7 @@ fun HomeLibraryScreen(
 @Composable
 private fun LibraryScreenContent(
     state: LibraryState,
+    listState: LazyListState,
     fabState: FloatingActionMenuState,
     onIsSearching: (Boolean) -> Unit,
     onSearchQuery: (String) -> Unit,
@@ -126,8 +128,10 @@ private fun LibraryScreenContent(
                 Scaffold(
                     snackbarHost = { SnackbarHost(snackbarHost) },
                     topBar = {
+                        val searchListState = rememberLazyListState()
                         LibrarySearchBar(
                             state = state,
+                            listState = searchListState,
                             onIsSearching = onIsSearching,
                             onSearchQuery = onSearchQuery,
                             onSettings = onSettings,
@@ -169,6 +173,7 @@ private fun LibraryScreenContent(
                 ) { paddingValues ->
                     val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
                     LibraryListPane(
+                        listState = listState,
                         paddingValues = PaddingValues(
                             start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
                             end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
@@ -210,14 +215,13 @@ private fun LibraryScreenContent(
 @Composable
 private fun LibrarySearchBar(
     state: LibraryState,
+    listState: LazyListState,
     onIsSearching: (Boolean) -> Unit,
     onSearchQuery: (String) -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
     onItemClick: (Int) -> Unit,
 ) {
-    val listState = rememberLazyListState()
-
     // Debouncer: Scroll to the top after a short amount of time after typing quickly
     val internalSearchText = remember { MutableStateFlow(state.searchQuery) }
     LaunchedEffect(Unit) {
@@ -295,8 +299,8 @@ private fun LibrarySearchBar(
 private fun LibraryListPane(
     paddingValues: PaddingValues,
     contentPaddingValues: PaddingValues,
-    listState: LazyListState = rememberLazyListState(),
-    list: List<AppInfo>,
+    listState: LazyListState,
+    list: List<LibraryItem>,
     onItemClick: (Int) -> Unit,
 ) {
     if (list.isEmpty()) {
@@ -326,14 +330,14 @@ private fun LibraryListPane(
             state = listState,
             contentPadding = contentPaddingValues,
         ) {
-            itemsIndexed(list, key = { _, item -> item.appId }) { idx, item ->
+            items(items = list, key = { it.index }) { item ->
                 AppItem(
                     modifier = Modifier.animateItem(),
                     appInfo = item,
                     onClick = { onItemClick(item.appId) },
                 )
 
-                if (idx < list.lastIndex) {
+                if (item.index < list.lastIndex) {
                     HorizontalDivider()
                 }
             }
@@ -384,8 +388,17 @@ private fun LibraryDetailPane(
 private fun Preview_LibraryScreenContent() {
     PluviaTheme {
         LibraryScreenContent(
+            listState = rememberLazyListState(),
             state = LibraryState(
-                appInfoList = List(15) { fakeAppInfo(it).copy(appId = it) },
+                appInfoList = List(5) { idx ->
+                    val item = fakeAppInfo(idx)
+                    LibraryItem(
+                        index = idx,
+                        appId = item.appId,
+                        name = item.name,
+                        iconHash = item.iconHash,
+                    )
+                },
             ),
             fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),
             onIsSearching = {},

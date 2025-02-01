@@ -3,6 +3,8 @@ package com.OxGames.Pluvia.ui.component.settings
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import com.alorma.compose.settings.ui.base.internal.LocalSettingsGroupEnabled
+import com.alorma.compose.settings.ui.base.internal.SettingsTileColors
+import com.alorma.compose.settings.ui.base.internal.SettingsTileDefaults
 import com.winlator.core.envvars.EnvVarInfo
 import com.winlator.core.envvars.EnvVarSelectionType
 import com.winlator.core.envvars.EnvVars
@@ -12,6 +14,7 @@ import kotlin.text.split
 fun SettingsEnvVars(
     enabled: Boolean = LocalSettingsGroupEnabled.current,
     envVars: EnvVars,
+    colors: SettingsTileColors = SettingsTileDefaults.colors(),
     onEnvVarsChange: (EnvVars) -> Unit,
     knownEnvVars: Map<String, EnvVarInfo>,
     envVarAction: (@Composable (String) -> Unit)? = null,
@@ -22,6 +25,7 @@ fun SettingsEnvVars(
         when (envVarInfo?.selectionType ?: EnvVarSelectionType.NONE) {
             EnvVarSelectionType.TOGGLE -> {
                 SettingsSwitchWithAction(
+                    colors = colors,
                     enabled = enabled,
                     title = { Text(identifier) },
                     state = envVarInfo?.possibleValues?.indexOf(value) != 0,
@@ -40,6 +44,7 @@ fun SettingsEnvVars(
                     .map { envVarInfo!!.possibleValues.indexOf(it) }
                     .filter { it >= 0 && it < envVarInfo!!.possibleValues.size }
                 SettingsMultiListDropdown(
+                    colors = colors,
                     enabled = enabled,
                     title = { Text(identifier) },
                     values = values,
@@ -65,6 +70,7 @@ fun SettingsEnvVars(
             EnvVarSelectionType.NONE -> {
                 if (envVarInfo?.possibleValues?.isNotEmpty() == true) {
                     SettingsListDropdown(
+                        colors = colors,
                         enabled = enabled,
                         title = { Text(identifier) },
                         value = envVarInfo.possibleValues.indexOf(value),
@@ -80,6 +86,7 @@ fun SettingsEnvVars(
                     )
                 } else {
                     SettingsTextField(
+                        colors = colors,
                         enabled = enabled,
                         title = { Text(identifier) },
                         value = value,

@@ -1,7 +1,12 @@
 package com.OxGames.Pluvia.ui.model
 
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.OxGames.Pluvia.PluviaApp
+import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
@@ -18,6 +23,9 @@ class LibraryViewModel : ViewModel() {
     private val _state = MutableStateFlow(LibraryState())
     val state: StateFlow<LibraryState> = _state.asStateFlow()
 
+    // Keep the library scroll state. This will last longer as the VM will stay alive.
+    var listState: LazyListState by mutableStateOf(LazyListState(0, 0))
+
     private val onAppInfoReceived: (SteamEvent.AppInfoReceived) -> Unit = {
         getAppList()
 
@@ -31,6 +39,7 @@ class LibraryViewModel : ViewModel() {
     }
 
     override fun onCleared() {
+        Timber.d("onCleared")
         PluviaApp.events.off<SteamEvent.AppInfoReceived, Unit>(onAppInfoReceived)
     }
 
@@ -66,10 +75,16 @@ class LibraryViewModel : ViewModel() {
                         it.sortedBy { appInfo -> appInfo.receiveIndex }.reversed()
                     }
                 }
+        }.mapIndexed { idx, item ->
+            // Slim down the list with only the necessary values.
+            LibraryItem(
+                index = idx,
+                appId = item.appId,
+                name = item.name,
+                iconHash = item.clientIconHash,
+            )
         }
 
-        _state.update { currentValue ->
-            currentValue.copy(appInfoList = list)
-        }
+        _state.update { it.copy(appInfoList = list) }
     }
 }

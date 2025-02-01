@@ -13,6 +13,7 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.OxGames.Pluvia.ui.component.icons.VR
 import com.OxGames.Pluvia.ui.theme.friendAwayOrSnooze
+import com.OxGames.Pluvia.ui.theme.friendBlocked
 import com.OxGames.Pluvia.ui.theme.friendInGame
 import com.OxGames.Pluvia.ui.theme.friendInGameAwayOrSnooze
 import com.OxGames.Pluvia.ui.theme.friendOffline
@@ -69,6 +70,12 @@ data class SteamFriend(
     val clanTag: String = "",
     @ColumnInfo("online_session_instances")
     val onlineSessionInstances: Int = 0,
+
+    // Chat message
+    @ColumnInfo("chat_entry_type")
+    val isTyping: Boolean = false,
+    @ColumnInfo("unread_messages")
+    val unreadMessageCount: Int = 0,
 ) {
     val isOnline: Boolean
         get() = (state.code() in 1..6)
@@ -81,6 +88,17 @@ data class SteamFriend(
 
     val isPlayingGame: Boolean
         get() = if (isOnline) gameAppID > 0 || gameName.isEmpty().not() else false
+
+    val isPlayingGameName: String
+        get() = if (isPlayingGame) {
+            gameName.ifEmpty { "Playing game id: $gameAppID" }
+        } else {
+            if (isBlocked) {
+                relation.name
+            } else {
+                state.name
+            }
+        }
 
     val isAwayOrSnooze: Boolean
         get() = state.let {
@@ -103,6 +121,7 @@ data class SteamFriend(
 
     val statusColor: Color
         get() = when {
+            isBlocked -> friendBlocked
             isOffline -> friendOffline
             isInGameAwayOrSnooze -> friendInGameAwayOrSnooze
             isAwayOrSnooze -> friendAwayOrSnooze

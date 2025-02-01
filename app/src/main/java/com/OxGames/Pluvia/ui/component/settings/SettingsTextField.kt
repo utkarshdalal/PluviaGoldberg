@@ -2,7 +2,6 @@ package com.OxGames.Pluvia.ui.component.settings
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
@@ -14,6 +13,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.base.internal.LocalSettingsGroupEnabled
+import com.alorma.compose.settings.ui.base.internal.SettingsTileColors
+import com.alorma.compose.settings.ui.base.internal.SettingsTileDefaults
 
 @Composable
 fun SettingsTextField(
@@ -24,7 +25,7 @@ fun SettingsTextField(
     icon: @Composable (() -> Unit)? = null,
     subtitle: @Composable (() -> Unit)? = null,
     action: @Composable (() -> Unit)? = null,
-    colors: ListItemColors = ListItemDefaults.colors(),
+    colors: SettingsTileColors = SettingsTileDefaults.colors(),
     tonalElevation: Dp = ListItemDefaults.Elevation,
     shadowElevation: Dp = ListItemDefaults.Elevation,
     onValueChange: (String) -> Unit,
