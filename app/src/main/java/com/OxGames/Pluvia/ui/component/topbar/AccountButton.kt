@@ -24,6 +24,7 @@ import com.OxGames.Pluvia.ui.util.ListItemImage
 import com.OxGames.Pluvia.utils.getAvatarURL
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @Composable
 fun AccountButton(
@@ -41,7 +42,8 @@ fun AccountButton(
 
     DisposableEffect(true) {
         val onPersonaStateReceived: (SteamEvent.PersonaStateReceived) -> Unit = { event ->
-            event.persona?.let { persona = it }
+            Timber.d("onPersonaStateReceived: ${event.persona.state}")
+            persona = event.persona
         }
 
         PluviaApp.events.on<SteamEvent.PersonaStateReceived, Unit>(onPersonaStateReceived)

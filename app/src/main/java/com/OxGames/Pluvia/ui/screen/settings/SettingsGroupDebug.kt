@@ -18,6 +18,7 @@ import coil.imageLoader
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.ui.component.dialog.CrashLogDialog
+import com.OxGames.Pluvia.ui.theme.settingsTileColors
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import java.io.File
@@ -66,6 +67,7 @@ fun SettingsGroupDebug() {
 
     SettingsGroup(title = { Text(text = "Debug") }) {
         SettingsMenuLink(
+            colors = settingsTileColors(),
             title = { Text(text = "View latest crash") },
             subtitle = {
                 val text = if (latestCrashFile != null) {
@@ -81,6 +83,7 @@ fun SettingsGroupDebug() {
 
         if (BuildConfig.DEBUG) {
             SettingsMenuLink(
+                colors = settingsTileColors(),
                 title = { Text(text = "Clear Preferences") },
                 onClick = {
                     scope.launch {
@@ -91,6 +94,7 @@ fun SettingsGroupDebug() {
             )
 
             SettingsMenuLink(
+                colors = settingsTileColors(),
                 title = { Text(text = "Clear Image Cache") },
                 onClick = {
                     context.imageLoader.diskCache?.clear()

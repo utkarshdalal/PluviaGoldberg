@@ -14,7 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
-import com.OxGames.Pluvia.data.AppInfo
+import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.ui.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
@@ -22,7 +22,7 @@ import com.OxGames.Pluvia.ui.util.ListItemImage
 @Composable
 fun AppItem(
     modifier: Modifier = Modifier,
-    appInfo: AppInfo,
+    appInfo: LibraryItem,
     onClick: () -> Unit,
 ) {
     ListItem(
@@ -43,10 +43,21 @@ private fun Preview_AppItem() {
     PluviaTheme {
         Surface {
             LazyColumn {
-                items(List(5) { fakeAppInfo(it) }) {
-                    AppItem(appInfo = it, onClick = {})
-                    HorizontalDivider(modifier = Modifier.fillMaxWidth())
-                }
+                items(
+                    items = List(5) { idx ->
+                        val item = fakeAppInfo(idx)
+                        LibraryItem(
+                            index = idx,
+                            appId = item.appId,
+                            name = item.name,
+                            iconHash = item.iconHash,
+                        )
+                    },
+                    itemContent = {
+                        AppItem(appInfo = it, onClick = {})
+                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                    },
+                )
             }
         }
     }

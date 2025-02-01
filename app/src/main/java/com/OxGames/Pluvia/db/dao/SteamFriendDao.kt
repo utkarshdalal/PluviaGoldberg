@@ -36,11 +36,17 @@ interface SteamFriendDao {
     suspend fun clearAllNicknames()
 
     @Query("SELECT * FROM steam_friend ORDER BY name ASC")
-    fun getAllFriends(): Flow<List<SteamFriend>>
+    fun getAllFriendsFlow(): Flow<List<SteamFriend>>
 
     @Query("SELECT * FROM steam_friend WHERE id = :id")
-    fun findFriend(id: Long): Flow<SteamFriend?>
+    fun findFriendFlow(id: Long): Flow<SteamFriend?>
+
+    @Query("SELECT * FROM steam_friend WHERE id = :id")
+    fun findFriend(id: Long): SteamFriend?
 
     @Query("SELECT * FROM steam_friend WHERE name LIKE '%' || :name || '%' OR nickname LIKE '%' || :name || '%'")
-    fun findFriend(name: String): Flow<List<SteamFriend>>
+    fun findFriendFlow(name: String): Flow<List<SteamFriend>>
+
+    @Query("DELETE FROM steam_friend WHERE id = :friendId")
+    suspend fun remove(friendId: Long)
 }

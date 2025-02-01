@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.OxGames.Pluvia.ui.component.settings.SettingsEnvVars
+import com.OxGames.Pluvia.ui.theme.settingsTileColors
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.box86_64.Box86_64PresetManager
 import com.winlator.core.StringUtils
@@ -203,6 +204,7 @@ fun Box64PresetsDialog(
                                 useHtmlInMsg = true,
                             )
                             SettingsEnvVars(
+                                colors = settingsTileColors(),
                                 enabled = isCustom(),
                                 envVars = EnvVars(envVars),
                                 onEnvVarsChange = {

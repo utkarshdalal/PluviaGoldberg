@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.service.SteamService
+import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.materialkolor.PaletteStyle
 import com.winlator.box86_64.Box86_64Preset
@@ -26,10 +27,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
 import timber.log.Timber
 
 /**
- * Kind of ugly, but works to be a universal preference manager.
+ * A universal Preference Manager that can be used anywhere within Pluvia.
+ * Note: King of ugly though.
  */
 object PrefManager {
 
@@ -370,5 +373,33 @@ object PrefManager {
         }
         set(value) {
             setPref(APP_THEME_PALETTE, value.ordinal)
+        }
+
+    private val START_SCREEN = intPreferencesKey("start screen")
+    var startScreen: HomeDestination
+        get() {
+            val value = getPref(START_SCREEN, HomeDestination.Library.ordinal)
+            return HomeDestination.entries.getOrNull(value) ?: HomeDestination.Library
+        }
+        set(value) {
+            setPref(START_SCREEN, value.ordinal)
+        }
+
+    private val FRIENDS_LIST_HEADER = stringPreferencesKey("friends_list_header")
+    var friendsListHeader: Set<String>
+        get() {
+            val value = getPref(FRIENDS_LIST_HEADER, "[]")
+            return Json.decodeFromString<Set<String>>(value)
+        }
+        set(value) {
+            setPref(FRIENDS_LIST_HEADER, Json.encodeToString(value))
+        }
+
+    // NOTE: This should be removed once chat is considered stable.
+    private val ACK_CHAT_PREVIEW = booleanPreferencesKey("ack_chat_preview")
+    var ackChatPreview: Boolean
+        get() = getPref(ACK_CHAT_PREVIEW, false)
+        set(value) {
+            setPref(ACK_CHAT_PREVIEW, value)
         }
 }
