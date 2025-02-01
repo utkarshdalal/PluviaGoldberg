@@ -80,9 +80,11 @@ enum class BBCode(val pattern: String, val groupCount: Int = 1) {
         ordinal + 1 + entries.foldIndexed(
             0,
         ) { index, accum, current ->
-            if (index < ordinal)
+            if (index < ordinal) {
                 accum + current.groupCount - 1
-            else accum
+            } else {
+                accum
+            }
         }
 
     companion object {
@@ -115,8 +117,8 @@ fun BBCodeText(
             }
 
             when {
-                match.groups[BBCode.COLON.groupIndex()] != null
-                    || match.groups[BBCode.EMOTICON.groupIndex()] != null
+                match.groups[BBCode.COLON.groupIndex()] != null ||
+                    match.groups[BBCode.EMOTICON.groupIndex()] != null
                 -> {
                     val emoticonName = match.groupValues
                         .getOrNull(1)
@@ -199,8 +201,8 @@ fun BBCodeText(
                     )
                     pop()
                 }
-                match.groups[BBCode.URL.groupIndex()] != null
-                        && match.groups[BBCode.URL.groupIndex() + 1] != null
+                match.groups[BBCode.URL.groupIndex()] != null &&
+                    match.groups[BBCode.URL.groupIndex() + 1] != null
                 -> {
                     val url = match.groupValues[BBCode.URL.groupIndex()]
                     val linkText = match.groupValues[BBCode.URL.groupIndex() + 1].trim()
@@ -241,8 +243,8 @@ fun BBCodeText(
                         block = { append(match.groupValues[BBCode.CODE.groupIndex()]) },
                     )
                 }
-                match.groups[BBCode.QUOTE.groupIndex()] != null
-                        && match.groups[BBCode.QUOTE.groupIndex() + 1] != null
+                match.groups[BBCode.QUOTE.groupIndex()] != null &&
+                    match.groups[BBCode.QUOTE.groupIndex() + 1] != null
                 -> {
                     withStyle(
                         style = SpanStyle(
