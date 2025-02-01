@@ -149,11 +149,11 @@ class MainViewModel @Inject constructor(
 
     fun setCurrentScreen(currentScreen: String?) {
         val screen = when (currentScreen) {
-            "login" -> PluviaScreen.LoginUser
-            "home" -> PluviaScreen.Home
-            "xserver" -> PluviaScreen.XServer
-            "settings" -> PluviaScreen.Settings
-            "chat/{id}" -> PluviaScreen.Chat
+            PluviaScreen.LoginUser.route -> PluviaScreen.LoginUser
+            PluviaScreen.Home.route -> PluviaScreen.Home
+            PluviaScreen.XServer.route -> PluviaScreen.XServer
+            PluviaScreen.Settings.route -> PluviaScreen.Settings
+            PluviaScreen.Chat.route -> PluviaScreen.Chat
             else -> PluviaScreen.LoginUser
         }
 

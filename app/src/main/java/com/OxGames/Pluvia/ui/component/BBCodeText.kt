@@ -57,29 +57,41 @@ import com.skydoves.landscapist.coil.CoilImage
 //  Slash commands
 //  Rich Previews with http links
 
-// private val noParsePattern = "\\[noparse]([^\\[]+)\\[/noparse]".toRegex()
-private val colonPattern = "\u02D0([^\u02D0]+)\u02D0".toRegex()
-private val emoticonPattern = "\\[emoticon]([^\\[]+)\\[/emoticon]".toRegex()
-private val h1Pattern = "\\[h1]([^\\[]+)\\[/h1]".toRegex()
-private val h2Pattern = "\\[h2]([^\\[]+)\\[/h2]".toRegex()
-private val h3Pattern = "\\[h3]([^\\[]+)\\[/h3]".toRegex()
-private val boldPattern = "\\[b]([^\\[]+)\\[/b]".toRegex()
-private val italicPattern = "\\[i]([^\\[]+)\\[/i]".toRegex()
-private val underlinePattern = "\\[u]([^\\[]+)\\[/u]".toRegex()
-private val strikePattern = "\\[strike]([^\\[]+)\\[/strike]".toRegex()
-private val spoilerPattern = "\\[spoiler]([^\\[]+)\\[/spoiler]".toRegex()
-private val urlPattern = "\\[url=([^]]+)]([^\\[]+)\\[/url]".toRegex()
-private val plainUrlPattern = "(https?://\\S+)".toRegex()
-private val hrPattern = "\\[hr]([^\\[]*?)\\[/hr]".toRegex()
-private val codePattern = "\\[code]([^\\[]*?)\\[/code]".toRegex()
-private val quotePattern = "\\[quote=([^]]+)]([^\\[]*?)\\[/quote]".toRegex()
-private val stickerPattern = "\\[sticker type=\"(.*?)\".*?]\\[/sticker]".toRegex()
+enum class BBCode(val pattern: String, val groupCount: Int = 1) {
+    COLON("\u02D0([^\u02D0]+)\u02D0"),
+    EMOTICON("\\[emoticon]([^\\[]+)\\[/emoticon]"),
+    H1("\\[h1]([^\\[]+)\\[/h1]"),
+    H2("\\[h2]([^\\[]+)\\[/h2]"),
+    H3("\\[h3]([^\\[]+)\\[/h3]"),
+    BOLD("\\[b]([^\\[]+)\\[/b]"),
+    ITALIC("\\[i]([^\\[]+)\\[/i]"),
+    UNDERLINE("\\[u]([^\\[]+)\\[/u]"),
+    STRIKE_THROUGH("\\[strike]([^\\[]+)\\[/strike]"),
+    SPOILER("\\[spoiler]([^\\[]+)\\[/spoiler]"),
+    URL("\\[url=([^]]+)]([^\\[]+)\\[/url]", 2),
+    PLAIN_URL("(https?://\\S+)"),
+    HORIZONTAL_RULE("\\[hr]([^\\[]*?)\\[/hr]"),
+    CODE("\\[code]([^\\[]*?)\\[/code]"),
+    QUOTE("\\[quote=([^]]+)]([^\\[]*?)\\[/quote]", 2),
+    STICKER("\\[sticker type=\"(.*?)\".*?]\\[/sticker]"),
+    ;
 
-private val bbCodePattern = (
-    "$colonPattern|$emoticonPattern|$h1Pattern|$h2Pattern|$h3Pattern|$boldPattern|$underlinePattern|" +
-        "$italicPattern|$strikePattern|$spoilerPattern|$urlPattern|$plainUrlPattern|$hrPattern|$codePattern|" +
-        "$quotePattern|$stickerPattern"
-    ).toRegex()
+    fun groupIndex(): Int =
+        ordinal + 1 + entries.foldIndexed(
+            0,
+        ) { index, accum, current ->
+            if (index < ordinal)
+                accum + current.groupCount - 1
+            else accum
+        }
+
+    companion object {
+        fun pattern(): Regex = entries
+            .map { it.pattern }
+            .joinToString("|")
+            .toRegex()
+    }
+}
 
 @Composable
 fun BBCodeText(
@@ -91,7 +103,7 @@ fun BBCodeText(
     val revealedSpoilers = remember { mutableStateMapOf<String, Boolean>() }
     val layoutResult = remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    val matches = bbCodePattern.findAll(text).toList()
+    val matches = BBCode.pattern().findAll(text).toList()
 
     val annotatedString = buildAnnotatedString {
         var currentIndex = 0
@@ -103,81 +115,75 @@ fun BBCodeText(
             }
 
             when {
-                match.groups[1] != null || match.groups[2] != null -> {
+                match.groups[BBCode.COLON.groupIndex()] != null
+                    || match.groups[BBCode.EMOTICON.groupIndex()] != null
+                -> {
                     val emoticonName = match.groupValues
                         .getOrNull(1)
                         ?.takeUnless { it.isEmpty() }
-                        ?: match.groupValues.getOrNull(2)
+                        ?: match.groupValues.getOrNull(BBCode.EMOTICON.groupIndex())
 
                     emoticonName?.let { emoticon ->
                         appendInlineContent(emoticon, "[emoji]")
                     }
                 }
-                // H1
-                match.groups[3] != null -> {
+                match.groups[BBCode.H1.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(
                             fontSize = style.fontSize * 1.5f,
                             fontWeight = FontWeight.Bold,
                             baselineShift = BaselineShift(0.2f),
                         ),
-                        block = { append(match.groupValues[3]) },
+                        block = { append(match.groupValues[BBCode.H1.groupIndex()]) },
                     )
                 }
-                // H2
-                match.groups[4] != null -> {
+                match.groups[BBCode.H2.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(
                             fontSize = style.fontSize * 1.25f,
                             fontWeight = FontWeight.Bold,
                             baselineShift = BaselineShift(0.2f),
                         ),
-                        block = { append(match.groupValues[4]) },
+                        block = { append(match.groupValues[BBCode.H2.groupIndex()]) },
                     )
                 }
-                // H3
-                match.groups[5] != null -> {
+                match.groups[BBCode.H3.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(
                             fontSize = style.fontSize * 1.10f,
                             fontWeight = FontWeight.Bold,
                             baselineShift = BaselineShift(0.2f),
                         ),
-                        block = { append(match.groupValues[5]) },
+                        block = { append(match.groupValues[BBCode.H3.groupIndex()]) },
                     )
                 }
-                // Bold
-                match.groups[6] != null -> {
+                match.groups[BBCode.BOLD.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(fontWeight = FontWeight.Bold, baselineShift = BaselineShift(0.2f)),
-                        block = { append(match.groupValues[6]) },
+                        block = { append(match.groupValues[BBCode.BOLD.groupIndex()]) },
 
                     )
                 }
-                // Underline
-                match.groups[7] != null -> {
+                match.groups[BBCode.UNDERLINE.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(textDecoration = TextDecoration.Underline, baselineShift = BaselineShift(0.2f)),
-                        block = { append(match.groupValues[7]) },
+                        block = { append(match.groupValues[BBCode.UNDERLINE.groupIndex()]) },
                     )
                 }
-                // Italic
-                match.groups[8] != null -> {
+                match.groups[BBCode.ITALIC.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(fontStyle = FontStyle.Italic, baselineShift = BaselineShift(0.2f)),
-                        block = { append(match.groupValues[8]) },
+                        block = { append(match.groupValues[BBCode.ITALIC.groupIndex()]) },
                     )
                 }
-                // Strike-through
-                match.groups[9] != null -> {
+                match.groups[BBCode.STRIKE_THROUGH.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(textDecoration = TextDecoration.LineThrough, baselineShift = BaselineShift(0.2f)),
-                        block = { append(match.groupValues[9]) },
+                        block = { append(match.groupValues[BBCode.STRIKE_THROUGH.groupIndex()]) },
                     )
                 }
-                // Spoiler
-                match.groups[10] != null -> {
-                    val spoilerText = match.groupValues[10]
+                match.groups[BBCode.SPOILER.groupIndex()] != null -> {
+                    val spoilerText = match.groupValues[BBCode.SPOILER.groupIndex()]
                     val spoilerId = "spoiler_${match.range.first}"
 
                     val isRevealed = revealedSpoilers[spoilerId] ?: false
@@ -193,10 +199,11 @@ fun BBCodeText(
                     )
                     pop()
                 }
-                // BBcode URL
-                match.groups[11] != null && match.groups[12] != null -> {
-                    val url = match.groupValues[11]
-                    val linkText = match.groupValues[12].trim()
+                match.groups[BBCode.URL.groupIndex()] != null
+                        && match.groups[BBCode.URL.groupIndex() + 1] != null
+                -> {
+                    val url = match.groupValues[BBCode.URL.groupIndex()]
+                    val linkText = match.groupValues[BBCode.URL.groupIndex() + 1].trim()
 
                     pushStringAnnotation("URL", url)
                     withStyle(
@@ -209,9 +216,8 @@ fun BBCodeText(
                     )
                     pop()
                 }
-                // Plain URL
-                match.groups[13] != null -> {
-                    val url = match.groupValues[13]
+                match.groups[BBCode.PLAIN_URL.groupIndex()] != null -> {
+                    val url = match.groupValues[BBCode.PLAIN_URL.groupIndex()]
                     pushStringAnnotation("URL", url)
                     withStyle(
                         style = SpanStyle(
@@ -223,22 +229,21 @@ fun BBCodeText(
                     )
                     pop()
                 }
-                // Horizontal Rule
-                match.groups[14] != null -> {
+                match.groups[BBCode.HORIZONTAL_RULE.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(textDecoration = TextDecoration.LineThrough, baselineShift = BaselineShift(0.2f)),
                         block = { append("        ") },
                     )
                 }
-                // Code
-                match.groups[15] != null -> {
+                match.groups[BBCode.CODE.groupIndex()] != null -> {
                     withStyle(
                         style = SpanStyle(fontFamily = FontFamily.Monospace, baselineShift = BaselineShift(0.2f)),
-                        block = { append(match.groupValues[15]) },
+                        block = { append(match.groupValues[BBCode.CODE.groupIndex()]) },
                     )
                 }
-                // Quote
-                match.groups[16] != null && match.groups[17] != null -> {
+                match.groups[BBCode.QUOTE.groupIndex()] != null
+                        && match.groups[BBCode.QUOTE.groupIndex() + 1] != null
+                -> {
                     withStyle(
                         style = SpanStyle(
                             background = MaterialTheme.colorScheme.surfaceVariant,
@@ -247,15 +252,14 @@ fun BBCodeText(
                     ) {
                         withStyle(
                             style = SpanStyle(fontStyle = FontStyle.Italic, baselineShift = BaselineShift(0.2f)),
-                            block = { append("Originally posted by ${match.groupValues[16]}:\n") },
+                            block = { append("Originally posted by ${match.groupValues[BBCode.QUOTE.groupIndex()]}:\n") },
                         )
 
-                        append(match.groupValues[17])
+                        append(match.groupValues[BBCode.QUOTE.groupIndex() + 1])
                     }
                 }
-                // Sticker
-                match.groups[18] != null -> {
-                    val stickerType = match.groupValues[18]
+                match.groups[BBCode.STICKER.groupIndex()] != null -> {
+                    val stickerType = match.groupValues[BBCode.STICKER.groupIndex()]
                     val stickerId = "sticker_$stickerType"
                     appendInlineContent(stickerId, "[sticker]")
                 }

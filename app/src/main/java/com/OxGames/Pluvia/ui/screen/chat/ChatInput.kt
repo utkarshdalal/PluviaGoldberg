@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -226,13 +227,11 @@ private fun UserInputText(
     onEmoticonClick: () -> Unit,
 ) {
     Box(
-        Modifier
-            .height(56.dp)
-            .fillMaxSize(),
+        Modifier.fillMaxWidth(),
     ) {
         UserInputTextField(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
                 .semantics {
                     keyboardShownProperty = keyboardShown
                 },
@@ -277,7 +276,7 @@ private fun UserInputTextField(
         keyboardActions = KeyboardActions {
             if (textFieldValue.text.isNotBlank()) onMessageSent()
         },
-        maxLines = 1,
+        maxLines = 3,
         textStyle = LocalTextStyle.current.copy(color = LocalContentColor.current),
         placeholder = {
             Text(text = "Send a message")
