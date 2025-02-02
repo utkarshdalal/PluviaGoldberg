@@ -15,7 +15,7 @@ import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.MainState
-import com.OxGames.Pluvia.ui.enums.PluviaScreen
+import com.OxGames.Pluvia.ui.screen.PluviaScreen
 import com.materialkolor.PaletteStyle
 import com.winlator.xserver.Window
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -148,7 +148,16 @@ class MainViewModel @Inject constructor(
     }
 
     fun setCurrentScreen(currentScreen: String?) {
-        PluviaScreen.valueOf(currentScreen ?: PluviaScreen.LoginUser.name).also(::setCurrentScreen)
+        val screen = when (currentScreen) {
+            PluviaScreen.LoginUser.route -> PluviaScreen.LoginUser
+            PluviaScreen.Home.route -> PluviaScreen.Home
+            PluviaScreen.XServer.route -> PluviaScreen.XServer
+            PluviaScreen.Settings.route -> PluviaScreen.Settings
+            PluviaScreen.Chat.route -> PluviaScreen.Chat
+            else -> PluviaScreen.LoginUser
+        }
+
+        setCurrentScreen(screen)
     }
 
     fun setCurrentScreen(value: PluviaScreen) {

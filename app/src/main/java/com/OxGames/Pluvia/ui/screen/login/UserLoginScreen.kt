@@ -313,7 +313,7 @@ private fun UsernamePassword(
 }
 
 internal class UserLoginPreview : PreviewParameterProvider<UserLoginState> {
-    override val values: Sequence<UserLoginState> = sequenceOf(
+    override val values = sequenceOf(
         UserLoginState(isSteamConnected = true),
         UserLoginState(isSteamConnected = true, loginScreen = LoginScreen.QR, qrCode = "Hello World!"),
         UserLoginState(isSteamConnected = true, loginScreen = LoginScreen.QR, isQrFailed = true),

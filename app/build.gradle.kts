@@ -184,11 +184,12 @@ dependencies {
     // Support
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.apng)
+    implementation(libs.datastore.preferences)
     implementation(libs.jetbrains.kotlinx.json)
     implementation(libs.kotlin.coroutines)
-    implementation(libs.zxing)
-    implementation(libs.datastore.preferences)
     implementation(libs.timber)
+    implementation(libs.zxing)
 
     // Google Protobufs
     implementation(libs.protobuf.java)
