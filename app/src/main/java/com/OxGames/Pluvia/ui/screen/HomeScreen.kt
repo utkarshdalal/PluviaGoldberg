@@ -23,30 +23,32 @@ import androidx.compose.ui.unit.toSize
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.OxGames.Pluvia.Constants
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
 import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.model.HomeViewModel
 import com.OxGames.Pluvia.ui.screen.downloads.HomeDownloadsScreen
-import com.OxGames.Pluvia.ui.screen.friends.HomeFriendsScreen
+import com.OxGames.Pluvia.ui.screen.friends.FriendsScreen
 import com.OxGames.Pluvia.ui.screen.library.HomeLibraryScreen
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    onClickPlay: (Int, Boolean) -> Unit,
+    onChat: (Long) -> Unit,
     onClickExit: () -> Unit,
-    onSettings: () -> Unit,
+    onClickPlay: (Int, Boolean) -> Unit,
     onLogout: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
-    // When in Downloads or Friends, pressing back brings us back to Library
-    BackHandler(enabled = homeState.currentDestination != HomeDestination.Library) {
-        viewModel.onDestination(HomeDestination.Library)
+    // When in Downloads or Friends, pressing back brings us back to default screen from preference (Default: Library)
+    BackHandler(enabled = homeState.currentDestination != PrefManager.startScreen) {
+        viewModel.onDestination(PrefManager.startScreen)
     }
     // Pressing back again; while logged in, confirm we want to close the app.
-    BackHandler(enabled = homeState.currentDestination == HomeDestination.Library) {
+    BackHandler(enabled = homeState.currentDestination == PrefManager.startScreen) {
         viewModel.onConfirmExit(true)
     }
 
@@ -68,9 +70,10 @@ fun HomeScreen(
     HomeScreenContent(
         destination = homeState.currentDestination,
         onDestination = viewModel::onDestination,
+        onChat = onChat,
         onClickPlay = onClickPlay,
-        onSettings = onSettings,
         onLogout = onLogout,
+        onSettings = onSettings,
     )
 }
 
@@ -78,9 +81,10 @@ fun HomeScreen(
 private fun HomeScreenContent(
     destination: HomeDestination,
     onDestination: (HomeDestination) -> Unit,
+    onChat: (Long) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
-    onSettings: () -> Unit,
     onLogout: () -> Unit,
+    onSettings: () -> Unit,
 ) {
     HomeNavigationWrapperUI(
         destination = destination,
@@ -98,8 +102,9 @@ private fun HomeScreenContent(
                 onLogout = onLogout,
             )
 
-            HomeDestination.Friends -> HomeFriendsScreen(
+            HomeDestination.Friends -> FriendsScreen(
                 onSettings = onSettings,
+                onChat = onChat,
                 onLogout = onLogout,
             )
         }
@@ -153,9 +158,10 @@ private fun Preview_HomeScreenContent() {
         HomeScreenContent(
             destination = destination,
             onDestination = { destination = it },
+            onChat = {},
             onClickPlay = { _, _ -> },
-            onSettings = {},
             onLogout = {},
+            onSettings = {},
         )
     }
 }

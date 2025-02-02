@@ -8,6 +8,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * A local running crash handler.
+ * Any uncaught exceptions will be saved located locally in a text file, aka: Crash Report.
+ * File location: /<user storage>/Android/data/com.OxGames.Pluvia/files/crash_logs/
+ */
 class CrashHandler(
     private val context: Context,
     private val defaultHandler: Thread.UncaughtExceptionHandler?,

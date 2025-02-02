@@ -21,12 +21,13 @@ import com.skydoves.landscapist.coil.CoilImage
 
 @Composable
 internal fun ListItemImage(
+    modifier: Modifier = Modifier,
     contentDescription: String? = null,
     size: Dp = 40.dp,
     image: () -> Any?,
 ) {
     CoilImage(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
             .clip(CircleShape),
         imageModel = image,
@@ -44,10 +45,52 @@ internal fun ListItemImage(
     )
 }
 
+@Composable
+fun EmoticonImage(
+    size: Dp = 54.dp,
+    image: () -> Any?,
+) {
+    CoilImage(
+        modifier = Modifier.size(size),
+        imageModel = image,
+        loading = {
+            CircularProgressIndicator()
+        },
+        failure = {
+            Icon(Icons.Filled.QuestionMark, null)
+        },
+        previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
+    )
+}
+
+@Composable
+fun StickerImage(
+    size: Dp = 150.dp,
+    image: () -> Any?,
+) {
+    EmoticonImage(size, image)
+}
+
 @Preview
 @Composable
 private fun Preview_ListItemImage() {
     PluviaTheme {
         ListItemImage { }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_EmoticonImage() {
+    PluviaTheme {
+        EmoticonImage { "https://steamcommunity-a.akamaihd.net/economy/emoticonlarge/roar" }
+    }
+}
+
+@Preview
+@Composable
+private fun Preview_StickerImage() {
+    PluviaTheme {
+        StickerImage { "https://steamcommunity-a.akamaihd.net/economy/sticker/Delivery%20Cat%20in%20a%20Blanket" }
     }
 }

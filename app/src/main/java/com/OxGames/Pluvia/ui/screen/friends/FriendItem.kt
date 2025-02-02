@@ -1,14 +1,15 @@
 package com.OxGames.Pluvia.ui.screen.friends
 
 import android.content.res.Configuration
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,22 +34,27 @@ import `in`.dragonbra.javasteam.enums.EPersonaStateFlag
 
 // https://m3.material.io/components/lists/specs#d156b3f2-6763-4fde-ba6f-0f088ce5a4e4
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FriendItem(
     modifier: Modifier = Modifier,
     friend: SteamFriend,
-    onClick: () -> Unit,
+    onClick: (SteamFriend) -> Unit,
+    onLongClick: (SteamFriend) -> Unit,
 ) {
     // Can't use CompositionLocal for colors. Instead we can use ListItemDefault.colors()
 
-    val isLight = LocalContentColor.current.isLight()
+    val isLight = MaterialTheme.colorScheme.background.isLight()
 
     ListItem(
-        modifier = modifier.clickable { onClick() },
+        modifier = modifier.combinedClickable(
+            onClick = { onClick(friend) },
+            onLongClick = { onLongClick(friend) },
+        ),
         colors = ListItemDefaults.colors(
             containerColor = Color.Transparent,
-            headlineColor = if (!isLight) MaterialTheme.colorScheme.onSurface else friend.statusColor,
-            supportingColor = if (!isLight) MaterialTheme.colorScheme.onSurfaceVariant else friend.statusColor,
+            headlineColor = if (isLight) MaterialTheme.colorScheme.onSurface else friend.statusColor,
+            supportingColor = if (isLight) MaterialTheme.colorScheme.onSurfaceVariant else friend.statusColor,
         ),
         headlineContent = {
             Text(
@@ -97,7 +103,10 @@ fun FriendItem(
             }
         },
         leadingContent = {
-            ListItemImage { friend.avatarHash.getAvatarURL() }
+            ListItemImage(
+                modifier = Modifier.clickable { onLongClick(friend) },
+                image = { friend.avatarHash.getAvatarURL() },
+            )
         },
     )
 }
@@ -129,6 +138,7 @@ private fun Preview_FriendItem() {
                             stateFlags = EPersonaStateFlag.from(512.times(index + 1)),
                         ),
                         onClick = { },
+                        onLongClick = { },
                     )
                 }
             }

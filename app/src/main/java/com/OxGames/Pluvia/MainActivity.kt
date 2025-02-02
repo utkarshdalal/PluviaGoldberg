@@ -31,6 +31,7 @@ import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.PluviaMain
 import com.OxGames.Pluvia.ui.enums.Orientation
+import com.OxGames.Pluvia.utils.AnimatedPngDecoder
 import com.OxGames.Pluvia.utils.IconDecoder
 import com.skydoves.landscapist.coil.LocalCoilImageLoader
 import com.winlator.core.AppUtils
@@ -118,6 +119,7 @@ class MainActivity : ComponentActivity() {
                     .diskCache(diskCache)
                     .components {
                         add(IconDecoder.Factory())
+                        add(AnimatedPngDecoder.Factory())
                     }
                     .logger(logger)
                     .build()

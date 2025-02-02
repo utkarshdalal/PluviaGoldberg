@@ -1,6 +1,12 @@
 package com.OxGames.Pluvia.ui.enums
 
-enum class DialogType {
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.PersonRemove
+import androidx.compose.ui.graphics.vector.ImageVector
+
+enum class DialogType(val icon: ImageVector? = null) {
     CRASH,
     SUPPORT,
     SYNC_CONFLICT,
@@ -19,4 +25,9 @@ enum class DialogType {
     INSTALL_IMAGEFS,
 
     NONE,
+
+    FRIEND_BLOCK(Icons.Default.Block),
+    FRIEND_REMOVE(Icons.Default.PersonRemove),
+    FRIEND_FAVORITE(Icons.Default.Favorite),
+    FRIEND_UN_FAVORITE,
 }

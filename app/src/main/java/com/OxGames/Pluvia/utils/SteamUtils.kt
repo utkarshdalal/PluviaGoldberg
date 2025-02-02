@@ -8,17 +8,45 @@ import `in`.dragonbra.javasteam.util.HardwareUtils
 import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.name
 
 object SteamUtils {
+
+    private val sfd by lazy {
+        SimpleDateFormat("MMM d - h:mm a", Locale.getDefault()).apply {
+            timeZone = TimeZone.getDefault()
+        }
+    }
+
+    /**
+     * Converts steam time to actual time
+     * @return a string in the 'MMM d - h:mm a' format.
+     */
+    // Note: Mostly correct, has a slight skew when near another minute
+    fun fromSteamTime(rtime: Int): String = sfd.format(rtime * 1000L)
+
+    /**
+     * Converts steam time from the playtime of a friend into an approximate double representing hours.
+     * @return A string representing how many hours were played, ie: 1.5 hrs
+     */
+    fun formatPlayTime(time: Int): String {
+        val hours = time / 60.0
+        return if (hours % 1 == 0.0) {
+            hours.toInt().toString()
+        } else {
+            String.format(Locale.getDefault(), "%.1f", time / 60.0)
+        }
+    }
+
     /**
      * Strips non-ASCII characters from String
      */
-    fun removeSpecialChars(s: String): String {
-        return s.replace(Regex("[^\\u0000-\\u007F]"), "")
-    }
+    fun removeSpecialChars(s: String): String = s.replace(Regex("[^\\u0000-\\u007F]"), "")
 
     /**
      * Replaces any existing `steam_api.dll` or `steam_api64.dll` in the app directory
