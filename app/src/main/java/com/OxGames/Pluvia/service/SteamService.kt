@@ -761,7 +761,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             accessToken: String? = null,
             refreshToken: String? = null,
             password: String? = null,
-            shouldRememberPassword: Boolean = false,
+            rememberSession: Boolean = false,
             twoFactorAuth: String? = null,
             emailAuth: String? = null,
             clientId: Long? = null,
@@ -771,30 +771,25 @@ class SteamService : Service(), IChallengeUrlChanged {
             // Sensitive info, only print in DEBUG build.
             if (BuildConfig.DEBUG) {
                 Timber.d(
-                    "Login Information\n\tUsername: " +
-                        "$username\n\tAccessToken: " +
-                        "$accessToken\n\tRefreshToken: " +
-                        "$refreshToken\n\tPassword: " +
-                        "$password\n\tShouldRememberPass: " +
-                        "$shouldRememberPassword\n\tTwoFactorAuth: " +
-                        "$twoFactorAuth\n\tEmailAuth: $emailAuth",
+                    "Login Information\n\t" +
+                        "Username: $username\n\t" +
+                        "AccessToken: $accessToken\n\t" +
+                        "RefreshToken:$refreshToken\n\t" +
+                        "Password: $password\n\t" +
+                        "Remember Session: $rememberSession\n\t" +
+                        "TwoFactorAuth: $twoFactorAuth\n\t" +
+                        "EmailAuth: $emailAuth",
                 )
             }
 
             PrefManager.username = username
 
-            if ((password != null && shouldRememberPassword) || refreshToken != null) {
-                if (password != null) {
-                    PrefManager.password = password
-                }
-
+            if ((password != null && rememberSession) || refreshToken != null) {
                 if (accessToken != null) {
-                    PrefManager.password = ""
                     PrefManager.accessToken = accessToken
                 }
 
                 if (refreshToken != null) {
-                    PrefManager.password = ""
                     PrefManager.refreshToken = refreshToken
                 }
 
@@ -819,7 +814,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     } else {
                         null
                     },
-                    shouldRememberPassword = shouldRememberPassword,
+                    shouldRememberPassword = rememberSession,
                     twoFactorCode = twoFactorAuth,
                     authCode = emailAuth,
                     accessToken = refreshToken,
@@ -836,7 +831,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         suspend fun startLoginWithCredentials(
             username: String,
             password: String,
-            shouldRememberPassword: Boolean,
+            rememberSession: Boolean,
             authenticator: IAuthenticator,
         ) = withContext(Dispatchers.IO) {
             try {
@@ -846,7 +841,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     val authDetails = AuthSessionDetails().apply {
                         this.username = username.trim()
                         this.password = password.trim()
-                        this.persistentSession = shouldRememberPassword
+                        this.persistentSession = rememberSession
                         this.authenticator = authenticator
                         this.deviceFriendlyName = SteamUtils.getMachineName(instance!!)
                     }
@@ -866,7 +861,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         username = pollResult.accountName,
                         accessToken = pollResult.accessToken,
                         refreshToken = pollResult.refreshToken,
-                        shouldRememberPassword = shouldRememberPassword,
+                        rememberSession = rememberSession,
                     )
                 } ?: run {
                     Timber.e("Could not logon: Failed to connect to Steam")
@@ -1285,14 +1280,13 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         var isAutoLoggingIn = false
 
-        if (PrefManager.username.isNotEmpty() && (PrefManager.refreshToken.isNotEmpty() || PrefManager.password.isNotEmpty())) {
+        if (PrefManager.username.isNotEmpty() && PrefManager.refreshToken.isNotEmpty()) {
             isAutoLoggingIn = true
 
             login(
                 username = PrefManager.username,
                 refreshToken = PrefManager.refreshToken,
-                password = PrefManager.password.ifEmpty { null },
-                shouldRememberPassword = PrefManager.password.isNotEmpty(),
+                rememberSession = true,
             )
         }
 
