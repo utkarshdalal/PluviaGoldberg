@@ -6,7 +6,7 @@ import com.OxGames.Pluvia.enums.LoginScreen
 data class UserLoginState(
     val username: String = "",
     val password: String = "",
-    val rememberPass: Boolean = false,
+    val rememberSession: Boolean = false,
     val twoFactorCode: String = "",
 
     val isSteamConnected: Boolean = false,
@@ -26,7 +26,7 @@ data class UserLoginState(
         return "UserLoginState(" +
             "username='$username', " +
             "password='$password', " +
-            "rememberPass=$rememberPass, " +
+            "rememberSession=$rememberSession, " +
             "twoFactorCode='$twoFactorCode', " +
             "isSteamConnected=$isSteamConnected, " +
             "isLoggingIn=$isLoggingIn, " +

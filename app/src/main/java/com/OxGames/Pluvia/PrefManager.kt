@@ -53,6 +53,9 @@ object PrefManager {
         dataStore = context.datastore
 
         // Note: Should remove after a few release versions. we've moved to encrypted values.
+        val oldPassword = stringPreferencesKey("password")
+        removePref(oldPassword)
+
         val oldAccessToken = stringPreferencesKey("access_token")
         val oldRefreshToken = stringPreferencesKey("refresh_token")
         getPref(oldAccessToken, "").let {
@@ -340,13 +343,6 @@ object PrefManager {
             scope.launch {
                 dataStore.edit { pref -> pref[CLIENT_ID] = value!! }
             }
-        }
-
-    private val PASSWORD = stringPreferencesKey("password")
-    var password: String
-        get() = getPref(PASSWORD, "")
-        set(value) {
-            setPref(PASSWORD, value)
         }
 
     /**
