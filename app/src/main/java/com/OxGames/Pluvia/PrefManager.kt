@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.byteArrayPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -21,9 +22,9 @@ import com.winlator.container.Container
 import com.winlator.core.DefaultVersion
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import java.util.EnumSet
-import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -44,12 +45,33 @@ object PrefManager {
         },
     )
 
-    private val scope = CoroutineScope(Dispatchers.IO + CoroutineName("PrefManager"))
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private lateinit var dataStore: DataStore<Preferences>
 
     fun init(context: Context) {
         dataStore = context.datastore
+
+        // Note: Should remove after a few release versions. we've moved to encrypted values.
+        val oldPassword = stringPreferencesKey("password")
+        removePref(oldPassword)
+
+        val oldAccessToken = stringPreferencesKey("access_token")
+        val oldRefreshToken = stringPreferencesKey("refresh_token")
+        getPref(oldAccessToken, "").let {
+            if (it.isNotEmpty()) {
+                Timber.i("Converting old access token to encrypted")
+                accessToken = it
+                removePref(oldAccessToken)
+            }
+        }
+        getPref(oldRefreshToken, "").let {
+            if (it.isNotEmpty()) {
+                Timber.i("Converting old refresh token to encrypted")
+                refreshToken = it
+                removePref(oldRefreshToken)
+            }
+        }
     }
 
     fun clearPreferences() {
@@ -76,11 +98,11 @@ object PrefManager {
         }
     }
 
-    // private fun <T> removePref(key: Preferences.Key<T>) {
-    //     scope.launch {
-    //         dataStore.edit { pref -> pref.remove(key) }
-    //     }
-    // }
+    private fun <T> removePref(key: Preferences.Key<T>) {
+        scope.launch {
+            dataStore.edit { pref -> pref.remove(key) }
+        }
+    }
 
     /* Container Default Settings */
     private val SCREEN_SIZE = stringPreferencesKey("screen_size")
@@ -281,18 +303,36 @@ object PrefManager {
             setPref(APP_STAGING_PATH, value)
         }
 
-    private val ACCESS_TOKEN = stringPreferencesKey("access_token")
+    private val ACCESS_TOKEN_ENC = byteArrayPreferencesKey("access_token_enc")
     var accessToken: String
-        get() = getPref(ACCESS_TOKEN, "")
+        get() {
+            val encryptedBytes = getPref(ACCESS_TOKEN_ENC, ByteArray(0))
+            return if (encryptedBytes.isEmpty()) {
+                ""
+            } else {
+                val bytes = Crypto.decrypt(encryptedBytes)
+                String(bytes)
+            }
+        }
         set(value) {
-            setPref(ACCESS_TOKEN, value)
+            val bytes = Crypto.encrypt(value.toByteArray())
+            setPref(ACCESS_TOKEN_ENC, bytes)
         }
 
-    private val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
+    private val REFRESH_TOKEN_ENC = byteArrayPreferencesKey("refresh_token_enc")
     var refreshToken: String
-        get() = getPref(REFRESH_TOKEN, "")
+        get() {
+            val encryptedBytes = getPref(REFRESH_TOKEN_ENC, ByteArray(0))
+            return if (encryptedBytes.isEmpty()) {
+                ""
+            } else {
+                val bytes = Crypto.decrypt(encryptedBytes)
+                String(bytes)
+            }
+        }
         set(value) {
-            setPref(REFRESH_TOKEN, value)
+            val bytes = Crypto.encrypt(value.toByteArray())
+            setPref(REFRESH_TOKEN_ENC, bytes)
         }
 
     // Special: Because null value.
@@ -303,20 +343,6 @@ object PrefManager {
             scope.launch {
                 dataStore.edit { pref -> pref[CLIENT_ID] = value!! }
             }
-        }
-
-    private val REMEMBER_PASSWORD = booleanPreferencesKey("remember_password")
-    var rememberPassword: Boolean
-        get() = getPref(REMEMBER_PASSWORD, false)
-        set(value) {
-            setPref(REMEMBER_PASSWORD, value)
-        }
-
-    private val PASSWORD = stringPreferencesKey("password")
-    var password: String
-        get() = getPref(PASSWORD, "")
-        set(value) {
-            setPref(PASSWORD, value)
         }
 
     /**

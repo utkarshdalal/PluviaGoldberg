@@ -25,6 +25,7 @@ materialKolor = "2.0.0" # https://mvnrepository.com/artifact/com.materialkolor/m
 navigation-compose = "2.8.5" # https://mvnrepository.com/artifact/androidx.navigation/navigation-compose
 protobuf = "4.29.3" # https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java
 room-runtime = "2.6.1" # https://mvnrepository.com/artifact/androidx.room/room-runtime
+runner = "1.6.2" # https://mvnrepository.com/artifact/androidx.test/runner
 settings = "2.10.0" # https://github.com/alorma/Compose-Settings/releases
 spongycastle = "1.58.0.0" # https://mvnrepository.com/artifact/com.madgag.spongycastle/prov
 steamkit = "1.6.0-SNAPSHOT" # https://mvnrepository.com/artifact/in.dragonbra/javasteam
@@ -49,7 +50,7 @@ androidx-room-paging = { module = "androidx.room:room-paging", version.ref = "ro
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room-runtime" }
 # TODO: Remove 'version' once 1.8.0 is rolled into stable BOM, see https://developer.android.com/jetpack/androidx/releases/compose-ui
 #   This fixes `Placement happened before lookahead` crash when animating lists items.
-androidx-ui = { group = "androidx.compose.ui", name = "ui", version = "1.8.0-alpha08" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui", version = "1.8.0-beta01" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
@@ -76,6 +77,7 @@ zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 # Testing
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-runner = { group = "androidx.test", name = "runner", version.ref = "runner" }
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
