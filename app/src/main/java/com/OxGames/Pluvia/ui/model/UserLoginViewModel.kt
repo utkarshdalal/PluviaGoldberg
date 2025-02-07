@@ -228,7 +228,7 @@ class UserLoginViewModel : ViewModel() {
                 SteamService.startLoginWithCredentials(
                     username = username,
                     password = password,
-                    shouldRememberPassword = rememberPass,
+                    rememberSession = rememberSession,
                     authenticator = authenticator,
                 )
             }
@@ -273,9 +273,9 @@ class UserLoginViewModel : ViewModel() {
         }
     }
 
-    fun setRememberPass(rememberPass: Boolean) {
+    fun setRememberSession(rememberPass: Boolean) {
         _loginState.update { currentState ->
-            currentState.copy(rememberPass = rememberPass)
+            currentState.copy(rememberSession = rememberPass)
         }
     }
 
