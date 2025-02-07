@@ -15,10 +15,8 @@
 
     <application
         android:name=".PluviaApp"
-        android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:allowBackup="false"
         android:extractNativeLibs="true"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="${icon}"
         android:isGame="true"
         android:label="@string/app_name"
