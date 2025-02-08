@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import com.OxGames.Pluvia.data.LibraryItem
 import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.db.dao.SteamAppDao
+import com.OxGames.Pluvia.db.dao.SteamLicenseDao
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
@@ -18,6 +19,7 @@ import java.util.EnumSet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -61,24 +63,29 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             // clears out the list to prepare to load the new one
             _state.update { it.copy(appInfoList = emptyList()) }
-            steamAppDao.getAllAppsWithLicense(AppType.code(EnumSet.of(AppType.game))).collect { apps ->
-                _state.update { currentState ->
-                    val sortedList = apps
-                        .filter { if (currentState.appInfoSortType == FabFilter.INSTALLED) SteamService.isAppInstalled(it.id) else true }
-                        .filter { it.name.contains(currentState.searchQuery, true) }
-                        // TODO: include other sort types
-                        .sortedBy { appInfo -> appInfo.name }
-                        .mapIndexed { idx, item ->
-                            // Slim down the list with only the necessary values.
-                            LibraryItem(
-                                index = idx,
-                                appId = item.id,
-                                name = item.name,
-                                iconHash = item.clientIconHash,
-                            )
-                        }
+            SteamService.userSteamId?.accountID?.toInt()?.let { steamId ->
+                steamAppDao.getAllOwnedApps(
+                    ownerId = steamId,
+                    filter = AppType.code(EnumSet.of(AppType.game)),
+                ).collect { apps ->
+                    _state.update { currentState ->
+                        val sortedList = apps
+                            .filter { if (currentState.appInfoSortType == FabFilter.INSTALLED) SteamService.isAppInstalled(it.id) else true }
+                            .filter { it.name.contains(currentState.searchQuery, true) }
+                            // TODO: include other sort types
+                            .sortedBy { appInfo -> appInfo.name }
+                            .mapIndexed { idx, item ->
+                                // Slim down the list with only the necessary values.
+                                LibraryItem(
+                                    index = idx,
+                                    appId = item.id,
+                                    name = item.name,
+                                    iconHash = item.clientIconHash,
+                                )
+                            }
 
-                    currentState.copy(appInfoList = sortedList)
+                        currentState.copy(appInfoList = sortedList)
+                    }
                 }
             }
         }
