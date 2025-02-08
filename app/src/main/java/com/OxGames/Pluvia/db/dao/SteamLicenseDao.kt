@@ -17,7 +17,6 @@ interface SteamLicenseDao {
     @Update
     suspend fun update(license: SteamLicense)
 
-
     @Query("UPDATE steam_license SET app_ids = :appIds WHERE id = :packageId")
     suspend fun updateApps(packageId: Int, appIds: List<Int>)
 

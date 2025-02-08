@@ -1,7 +1,7 @@
 package com.OxGames.Pluvia.enums
 
-import timber.log.Timber
 import java.util.EnumSet
+import timber.log.Timber
 
 enum class AppType(val code: Int) {
     invalid(0),
@@ -27,7 +27,7 @@ enum class AppType(val code: Int) {
 
     companion object {
         fun from(keyValue: String?): AppType {
-            return when(keyValue?.lowercase()) {
+            return when (keyValue?.lowercase()) {
                 invalid.name -> invalid
                 game.name -> game
                 application.name -> application

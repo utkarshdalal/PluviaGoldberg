@@ -1,8 +1,8 @@
 package com.OxGames.Pluvia.service
 
 import androidx.room.withTransaction
-import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.PostSyncInfo
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.UserFileInfo
 import com.OxGames.Pluvia.data.UserFilesDownloadResult
 import com.OxGames.Pluvia.data.UserFilesUploadResult

@@ -10,7 +10,7 @@ enum class ControllerSupport(val code: Int) {
 
     companion object {
         fun from(keyValue: String?): ControllerSupport {
-            return when(keyValue?.lowercase()) {
+            return when (keyValue?.lowercase()) {
                 none.name -> none
                 partial.name -> partial
                 full.name -> full

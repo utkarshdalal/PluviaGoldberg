@@ -9,26 +9,25 @@ import androidx.room.withTransaction
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
-import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.DepotInfo
 import com.OxGames.Pluvia.data.DownloadInfo
 import com.OxGames.Pluvia.data.Emoticon
 import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.data.LaunchInfo
-import com.OxGames.Pluvia.data.SteamLicense
 import com.OxGames.Pluvia.data.OwnedGames
 import com.OxGames.Pluvia.data.PostSyncInfo
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.SteamFriend
+import com.OxGames.Pluvia.data.SteamLicense
 import com.OxGames.Pluvia.data.UserFileInfo
 import com.OxGames.Pluvia.db.PluviaDatabase
 import com.OxGames.Pluvia.db.dao.ChangeNumbersDao
 import com.OxGames.Pluvia.db.dao.EmoticonDao
 import com.OxGames.Pluvia.db.dao.FileChangeListsDao
-import com.OxGames.Pluvia.db.dao.SteamAppDao
 import com.OxGames.Pluvia.db.dao.FriendMessagesDao
+import com.OxGames.Pluvia.db.dao.SteamAppDao
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import com.OxGames.Pluvia.db.dao.SteamLicenseDao
-import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.OSArch
@@ -123,12 +122,10 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
@@ -278,7 +275,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun getPkgInfoOf(appId: Int): SteamLicense? {
             return runBlocking {
                 instance?.licenseDao?.findLicense(
-                    instance?.appDao?.findApp(appId)?.first()?.packageId ?: INVALID_PKG_ID
+                    instance?.appDao?.findApp(appId)?.first()?.packageId ?: INVALID_PKG_ID,
                 )?.first()
             }
             // var license: SteamLicense? = null
@@ -1380,17 +1377,19 @@ class SteamService : Service(), IChallengeUrlChanged {
                 serviceScope.launch {
                     while (isLoggedIn) {
                         val picsChangesCallback = _steamApps?.picsGetChangesSince(PrefManager.lastPICSChangeNumber, true, true)?.await()
-                        if (picsChangesCallback != null
-                            && picsChangesCallback.currentChangeNumber != PrefManager.lastPICSChangeNumber
+                        if (picsChangesCallback != null &&
+                            picsChangesCallback.currentChangeNumber != PrefManager.lastPICSChangeNumber
                         ) {
                             @SuppressLint("BinaryOperationInTimber")
-                            Timber.d("lastChangeNumber: ${picsChangesCallback.lastChangeNumber}" +
+                            Timber.d(
+                                "lastChangeNumber: ${picsChangesCallback.lastChangeNumber}" +
                                     "\ncurrentChangeNumber: ${picsChangesCallback.currentChangeNumber}" +
                                     "\nisRequiresFullUpdate: ${picsChangesCallback.isRequiresFullUpdate}" +
                                     "\nisRequiresFullAppUpdate: ${picsChangesCallback.isRequiresFullAppUpdate}" +
                                     "\nisRequiresFullPackageUpdate: ${picsChangesCallback.isRequiresFullPackageUpdate}" +
                                     "\nappChangesCount: ${picsChangesCallback.appChanges.size}" +
-                                    "\npkgChangesCount: ${picsChangesCallback.packageChanges.size}")
+                                    "\npkgChangesCount: ${picsChangesCallback.packageChanges.size}",
+                            )
 
                             PrefManager.lastPICSChangeNumber = picsChangesCallback.currentChangeNumber
                             dbScope.launch {
@@ -1405,7 +1404,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
                                 val accessTokens = _steamApps?.picsGetAccessTokens(
                                     emptyList<Int>(),
-                                    pkgsForAccessTokens
+                                    pkgsForAccessTokens,
                                 )?.await()?.packageTokens ?: emptyMap()
                                 requestAndAddPkgsToDb(pkgsWithChanges.map { PICSRequest(it.id, accessTokens[it.id] ?: 0) })
                             }
@@ -1748,7 +1747,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 receivedPICS = true,
                                 lastChangeNumber = app.changeNumber,
                             )
-                    } else null
+                    } else {
+                        null
+                    }
                 }.filterNotNull().toTypedArray()
 
                 db.withTransaction {

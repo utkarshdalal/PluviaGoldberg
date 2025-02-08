@@ -21,8 +21,8 @@ import com.OxGames.Pluvia.enums.PathType
 import com.OxGames.Pluvia.enums.ReleaseState
 import com.OxGames.Pluvia.service.SteamService.Companion.INVALID_APP_ID
 import `in`.dragonbra.javasteam.types.KeyValue
-import timber.log.Timber
 import java.util.Date
+import timber.log.Timber
 
 /**
  * Extension functions relating to [KeyValue] as the receiver type.

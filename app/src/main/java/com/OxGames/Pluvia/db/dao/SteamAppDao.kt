@@ -8,8 +8,8 @@ import androidx.room.Update
 import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.service.SteamService.Companion.INVALID_PKG_ID
-import kotlinx.coroutines.flow.Flow
 import java.util.EnumSet
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SteamAppDao {
@@ -20,12 +20,14 @@ interface SteamAppDao {
     @Update
     suspend fun update(app: SteamApp)
 
-
-    @Query("SELECT * FROM steam_app WHERE package_id != :invalidPkgId AND owner_account_id = :ownerId AND type != 0 AND type & :filter = type")
+    @Query(
+        "SELECT * FROM steam_app WHERE package_id != :invalidPkgId " +
+            "AND owner_account_id = :ownerId AND type != 0 AND type & :filter = type",
+    )
     fun getAllOwnedApps(
         ownerId: Int,
         filter: Int = AppType.code(EnumSet.allOf(AppType::class.java)),
-        invalidPkgId: Int = INVALID_PKG_ID
+        invalidPkgId: Int = INVALID_PKG_ID,
     ): Flow<List<SteamApp>>
 
     @Query("SELECT * FROM steam_app WHERE received_pics = 0")
