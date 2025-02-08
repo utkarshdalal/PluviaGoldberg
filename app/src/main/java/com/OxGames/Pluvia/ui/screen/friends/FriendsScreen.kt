@@ -556,7 +556,7 @@ private fun ProfileDetailsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = state.profileFriend!!.nameOrNickname,
+                text = state.profileFriend.nameOrNickname,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.headlineLarge,
@@ -728,16 +728,22 @@ private fun ProfileDetailsScreen(
                     } else {
                         // 'headline' doesn't seem to be used anymore
                         CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) {
+                            // Meh...
                             with(state.profileFriendInfo) {
-                                // Meh...
-                                if (realName.isNotEmpty()) Text(text = "Name: $realName")
-                                if (cityName.isNotEmpty()) Text(text = "City: $cityName")
-                                if (stateName.isNotEmpty()) Text(text = "State: $stateName")
-                                if (stateName.isNotEmpty()) Text(text = "Country: $countryName")
-                                Text(text = "Created: $timeCreated")
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(text = "Summary:")
-                                BBCodeText(text = summary)
+                                // Steam launch: Sept 12, 2003
+                                val isValid = timeCreated.after(Date(1063267200000L))
+                                if (isValid) {
+                                    if (realName.isNotEmpty()) Text(text = "Name: $realName")
+                                    if (cityName.isNotEmpty()) Text(text = "City: $cityName")
+                                    if (stateName.isNotEmpty()) Text(text = "State: $stateName")
+                                    if (stateName.isNotEmpty()) Text(text = "Country: $countryName")
+                                    Text(text = "Created: $timeCreated")
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(text = "Summary:")
+                                    BBCodeText(text = summary)
+                                } else {
+                                    Text("Profile most likely private.\nUnable to retrieve info")
+                                }
                             }
                         }
                     }
