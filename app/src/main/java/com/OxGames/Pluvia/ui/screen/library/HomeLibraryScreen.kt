@@ -20,12 +20,16 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AvTimer
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -151,9 +155,18 @@ private fun LibraryScreenContent(
                             imageVector = Icons.Filled.FilterList,
                             closeImageVector = Icons.Filled.Close,
                         ) {
+                            // FloatingActionMenuItem(
+                            //     labelText = "Alphabetic",
+                            //     isSelected = state.appInfoSortType.contains(FabFilter.ALPHABETIC),
+                            //     onClick = {
+                            //         onFabFilter(FabFilter.ALPHABETIC)
+                            //         fabState.close()
+                            //     },
+                            //     content = { Icon(Icons.Filled.SortByAlpha, "Alphabetic") },
+                            // )
                             FloatingActionMenuItem(
                                 labelText = "Installed",
-                                isSelected = state.appInfoSortType == FabFilter.INSTALLED,
+                                isSelected = state.appInfoSortType.contains(FabFilter.INSTALLED),
                                 onClick = {
                                     onFabFilter(FabFilter.INSTALLED)
                                     fabState.close()
@@ -161,13 +174,40 @@ private fun LibraryScreenContent(
                                 content = { Icon(Icons.Filled.InstallMobile, "Installed") },
                             )
                             FloatingActionMenuItem(
-                                labelText = "Alphabetic",
-                                isSelected = state.appInfoSortType == FabFilter.ALPHABETIC,
+                                labelText = "Game",
+                                isSelected = state.appInfoSortType.contains(FabFilter.GAME),
                                 onClick = {
-                                    onFabFilter(FabFilter.ALPHABETIC)
+                                    onFabFilter(FabFilter.GAME)
                                     fabState.close()
                                 },
-                                content = { Icon(Icons.Filled.SortByAlpha, "Alphabetic") },
+                                content = { Icon(Icons.Filled.VideogameAsset, "Game") },
+                            )
+                            FloatingActionMenuItem(
+                                labelText = "Application",
+                                isSelected = state.appInfoSortType.contains(FabFilter.APPLICATION),
+                                onClick = {
+                                    onFabFilter(FabFilter.APPLICATION)
+                                    fabState.close()
+                                },
+                                content = { Icon(Icons.Filled.Computer, "Application") },
+                            )
+                            FloatingActionMenuItem(
+                                labelText = "Tool",
+                                isSelected = state.appInfoSortType.contains(FabFilter.TOOL),
+                                onClick = {
+                                    onFabFilter(FabFilter.TOOL)
+                                    fabState.close()
+                                },
+                                content = { Icon(Icons.Filled.Build, "Tool") },
+                            )
+                            FloatingActionMenuItem(
+                                labelText = "Demo",
+                                isSelected = state.appInfoSortType.contains(FabFilter.DEMO),
+                                onClick = {
+                                    onFabFilter(FabFilter.DEMO)
+                                    fabState.close()
+                                },
+                                content = { Icon(Icons.Filled.AvTimer, "Demo") },
                             )
                         }
                     },

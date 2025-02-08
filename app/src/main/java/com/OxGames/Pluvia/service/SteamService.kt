@@ -1422,17 +1422,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                         .collect { appIds ->
                             Timber.d("Collected ${appIds.size} app(s) to PICS")
                             isRequestingAppInfo = true
-                            val multiJob = _steamApps?.picsGetProductInfo(
-                                appIds
-                                    .map { PICSRequest(it.appId) },
-                                emptyList(),
-                            )?.await()
-                            val appBoolMap = appIds.map { Pair(it.appId, it.addToDbIfUnowned) }.toMap()
+                            val multiJob = _steamApps?.picsGetProductInfo(appIds.map { PICSRequest(it.appId) }, emptyList())?.await()
+                            val appBoolMap = appIds.associate { it.appId to it.addToDbIfUnowned }
                             val appMap = multiJob?.results
                                 ?.map { it as PICSProductInfoCallback }
                                 ?.flatMap { it.apps.toList() }
-                                ?.map { Pair(it.first, Pair(it.second, appBoolMap[it.first] == true)) }
-                                ?.toMap()
+                                ?.associate { it.first to Pair(it.second, appBoolMap[it.first] == true) }
                             addAppsToDb(appMap)
                             isRequestingAppInfo = false
                         }
