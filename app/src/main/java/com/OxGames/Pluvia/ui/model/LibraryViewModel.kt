@@ -8,7 +8,6 @@ import androidx.lifecycle.ViewModel
 import com.OxGames.Pluvia.data.LibraryItem
 import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.db.dao.SteamAppDao
-import com.OxGames.Pluvia.db.dao.SteamLicenseDao
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
@@ -19,7 +18,6 @@ import java.util.EnumSet
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -54,7 +52,15 @@ class LibraryViewModel @Inject constructor(
     }
 
     fun onFabFilter(value: FabFilter) {
-        _state.update { it.copy(appInfoSortType = value) }
+        _state.update { currentState ->
+            val updatedFilter = currentState.appInfoSortType
+            if (updatedFilter.contains(value)) {
+                updatedFilter.remove(value)
+            } else {
+                updatedFilter.add(value)
+            }
+            currentState.copy(appInfoSortType = updatedFilter)
+        }
 
         observeAppList()
     }
@@ -66,16 +72,17 @@ class LibraryViewModel @Inject constructor(
             SteamService.userSteamId?.accountID?.toInt()?.let { steamId ->
                 steamAppDao.getAllOwnedApps(
                     ownerId = steamId,
-                    filter = AppType.code(EnumSet.of(AppType.game)),
+                    filter = AppType.code(FabFilter.getAppType(_state.value.appInfoSortType)),
                 ).collect { apps ->
                     _state.update { currentState ->
                         val sortedList = apps
                             // filter out spacewar
+                            .asSequence()
                             .filter { it.id != 480 }
-                            .filter { if (currentState.appInfoSortType == FabFilter.INSTALLED) SteamService.isAppInstalled(it.id) else true }
+                            .filter { if (currentState.appInfoSortType.contains(FabFilter.INSTALLED)) SteamService.isAppInstalled(it.id) else true }
                             .filter { it.name.contains(currentState.searchQuery, true) }
                             // TODO: include other sort types
-                            .sortedBy { appInfo -> appInfo.name }
+                            .sortedBy { appInfo -> appInfo.name.lowercase() }
                             .mapIndexed { idx, item ->
                                 // Slim down the list with only the necessary values.
                                 LibraryItem(
@@ -85,6 +92,7 @@ class LibraryViewModel @Inject constructor(
                                     iconHash = item.clientIconHash,
                                 )
                             }
+                            .toList()
 
                         currentState.copy(appInfoList = sortedList)
                     }
