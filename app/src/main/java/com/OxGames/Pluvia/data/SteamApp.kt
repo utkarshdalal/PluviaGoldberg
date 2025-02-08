@@ -18,6 +18,8 @@ data class SteamApp(
     // val receiveIndex: Int,
     @ColumnInfo("package_id")
     val packageId: Int = INVALID_PKG_ID,
+    @ColumnInfo("owner_account_id")
+    val ownerAccountId: Int = -1,
     @ColumnInfo("received_pics")
     val receivedPICS: Boolean = false,
     @ColumnInfo("last_change_number")

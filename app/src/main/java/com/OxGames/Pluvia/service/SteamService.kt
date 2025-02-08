@@ -16,10 +16,6 @@ import com.OxGames.Pluvia.data.Emoticon
 import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.data.LaunchInfo
 import com.OxGames.Pluvia.data.SteamLicense
-import com.OxGames.Pluvia.data.LibraryAssetsInfo
-import com.OxGames.Pluvia.data.LibraryCapsuleInfo
-import com.OxGames.Pluvia.data.LibraryHeroInfo
-import com.OxGames.Pluvia.data.LibraryLogoInfo
 import com.OxGames.Pluvia.data.OwnedGames
 import com.OxGames.Pluvia.data.PostSyncInfo
 import com.OxGames.Pluvia.data.SteamFriend
@@ -75,7 +71,6 @@ import `in`.dragonbra.javasteam.steam.contentdownloader.FileManifestProvider
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
 import `in`.dragonbra.javasteam.steam.discovery.ServerQuality
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.GamePlayedInfo
-import `in`.dragonbra.javasteam.steam.handlers.steamapps.License
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSProductInfo
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
@@ -191,7 +186,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private var retryAttempt = 0
 
-    private val appIdFlowSender: MutableSharedFlow<Int> = MutableSharedFlow()
+    data class AppRequest(val appId: Int, val addToDbIfUnowned: Boolean = false)
+    private val appIdFlowSender: MutableSharedFlow<AppRequest> = MutableSharedFlow()
     private val appIdFlowReceiver = appIdFlowSender.asSharedFlow()
 
     private val dbScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -279,10 +275,6 @@ class SteamService : Service(), IChallengeUrlChanged {
             instance!!.db.steamFriendDao().findFriend(steamId.convertToUInt64())
         }
 
-        fun getAppList(filter: EnumSet<AppType>): Flow<List<SteamApp>> {
-            return instance?.appDao?.getAllAppsWithLicense(AppType.code(filter)) ?: emptyFlow()
-        }
-
         fun getPkgInfoOf(appId: Int): SteamLicense? {
             return runBlocking {
                 instance?.licenseDao?.findLicense(
@@ -305,10 +297,10 @@ class SteamService : Service(), IChallengeUrlChanged {
             return runBlocking { instance?.appDao?.findApp(appId)?.first() }
         }
 
-        fun queueAppPICSRequests(vararg appIds: Int) {
+        fun queueAppPICSRequests(vararg apps: AppRequest) {
             instance?.let { steamInstance ->
                 steamInstance.serviceScope.launch {
-                    steamInstance.appIdFlowSender.emitAll(flowOf(*appIds.toTypedArray()))
+                    steamInstance.appIdFlowSender.emitAll(flowOf(*apps))
                 }
             }
         }
@@ -1402,9 +1394,10 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                             PrefManager.lastPICSChangeNumber = picsChangesCallback.currentChangeNumber
                             dbScope.launch {
+                                // Timber.d("Adding ${appToAdd?.name} with appId of ${appToAdd?.id} and pkgId of ${appToAdd?.packageId}")
                                 val appIds = picsChangesCallback.appChanges.values
                                     .filter { it.changeNumber != appDao.findApp(it.id).first()?.lastChangeNumber }
-                                    .map { it.id }.toIntArray()
+                                    .map { AppRequest(it.id) }.toTypedArray()
                                 queueAppPICSRequests(*appIds)
 
                                 val pkgsWithChanges = picsChangesCallback.packageChanges.values
@@ -1429,10 +1422,16 @@ class SteamService : Service(), IChallengeUrlChanged {
                         .collect { appIds ->
                             Timber.d("Collected ${appIds.size} app(s) to PICS")
                             isRequestingAppInfo = true
-                            val multiJob = _steamApps?.picsGetProductInfo(appIds.map { PICSRequest(it) }, emptyList())?.await()
+                            val multiJob = _steamApps?.picsGetProductInfo(
+                                appIds
+                                    .map { PICSRequest(it.appId) },
+                                emptyList(),
+                            )?.await()
+                            val appBoolMap = appIds.map { Pair(it.appId, it.addToDbIfUnowned) }.toMap()
                             val appMap = multiJob?.results
                                 ?.map { it as PICSProductInfoCallback }
                                 ?.flatMap { it.apps.toList() }
+                                ?.map { Pair(it.first, Pair(it.second, appBoolMap[it.first] == true)) }
                                 ?.toMap()
                             addAppsToDb(appMap)
                             isRequestingAppInfo = false
@@ -1623,7 +1622,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (callback.result == EResult.OK) {
             dbScope.launch {
                 // check first if any apps already exist in the db that need PICS
-                val apps = appDao.getAllAppsWithoutPICS().firstOrNull()?.map { it.id }?.toIntArray()
+                val apps = appDao.getAllAppsWithoutPICS().firstOrNull()?.map { AppRequest(it.id) }?.toTypedArray()
                 Timber.d("${apps?.size ?: 0} app(s) need PICS")
                 if (apps?.isNotEmpty() == true) {
                     queueAppPICSRequests(*apps)
@@ -1666,12 +1665,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 licenseDao.insert(*licensesToAdd)
                             }
                             requestAndAddPkgsToDb(changedOrNewLicenses.map { PICSRequest(it.packageID, it.accessToken) })
-
-                            // isRequestingPkgInfo = true
-                            // _steamApps!!.picsGetProductInfo(
-                            //     apps = emptyList(),
-                            //     packages = changedOrNewLicenses.map { PICSRequest(it.packageID, it.accessToken) },
-                            // )
                         }
                     }
                 }
@@ -1710,7 +1703,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             }.toTypedArray()
                             appDao.insert(*steamAppsToAdd)
 
-                            queueAppPICSRequests(*appIds.toIntArray())
+                            queueAppPICSRequests(*appIds.map { AppRequest(it) }.toTypedArray())
                         }
                     }
 
@@ -1720,10 +1713,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
     }
 
-    private fun addAppsToDb(apps: Map<Int, PICSProductInfo>?) {
+    private fun addAppsToDb(apps: Map<Int, Pair<PICSProductInfo, Boolean>>?) {
         if (!apps.isNullOrEmpty()) {
             dbScope.launch {
-                val apps = apps.values.map { app ->
+                val apps = apps.values.map {
                     // // val isBaba = app.id == 736260
                     // // val isNoita = app.id == 881100
                     // // val isHades = app.id == 1145360
@@ -1743,11 +1736,20 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // 	// 	printAllKeyValues(it.original)
                     //     // }
                     // }
+                    val app = it.first
+                    val includeIfNotOwned = it.second
                     val appFromDb = appDao.findApp(app.id).first()
-                    if (app.changeNumber != appFromDb?.lastChangeNumber) {
+                    val packageId = appFromDb?.packageId ?: INVALID_PKG_ID
+                    val pkgFromDb = if (packageId != INVALID_PKG_ID) licenseDao.findLicense(packageId).first() else null
+                    val ownerAccountId = pkgFromDb?.ownerAccountId ?: -1
+                    if (
+                        app.changeNumber != appFromDb?.lastChangeNumber &&
+                        (includeIfNotOwned || ownerAccountId == userSteamId?.accountID?.toInt())
+                    ) {
                         app.keyValues.generateSteamApp()
                             .copy(
-                                packageId = appFromDb?.packageId ?: INVALID_PKG_ID,
+                                packageId = packageId,
+                                ownerAccountId = ownerAccountId,
                                 receivedPICS = true,
                                 lastChangeNumber = app.changeNumber,
                             )
