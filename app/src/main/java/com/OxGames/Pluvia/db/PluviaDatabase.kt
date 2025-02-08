@@ -19,8 +19,8 @@ import com.OxGames.Pluvia.db.converters.UserFileInfoListConverter
 import com.OxGames.Pluvia.db.dao.ChangeNumbersDao
 import com.OxGames.Pluvia.db.dao.EmoticonDao
 import com.OxGames.Pluvia.db.dao.FileChangeListsDao
-import com.OxGames.Pluvia.db.dao.SteamAppDao
 import com.OxGames.Pluvia.db.dao.FriendMessagesDao
+import com.OxGames.Pluvia.db.dao.SteamAppDao
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
 import com.OxGames.Pluvia.db.dao.SteamLicenseDao
 

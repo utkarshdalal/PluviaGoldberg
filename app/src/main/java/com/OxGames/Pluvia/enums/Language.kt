@@ -32,7 +32,7 @@ enum class Language {
 
     companion object {
         fun from(keyValue: String?): Language {
-            return when(keyValue?.lowercase()) {
+            return when (keyValue?.lowercase()) {
                 english.name -> english
                 german.name -> german
                 french.name -> french

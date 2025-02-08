@@ -42,7 +42,8 @@ fun <T> Flow<T>.timeChunked(
                                     // ticker = ticker(duration)
                                     ticker = customTicker(delayMillis)
                                 }
-                            } ?: run { // Handle upstream completion
+                            } ?: run {
+                                // Handle upstream completion
                                 if (buffer.isNotEmpty()) {
                                     emit(ArrayList(buffer))
                                 }

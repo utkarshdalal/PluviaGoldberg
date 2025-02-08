@@ -1,12 +1,12 @@
 package com.OxGames.Pluvia.ui.internal
 
 import com.OxGames.Pluvia.BuildConfig
-import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.ConfigInfo
 import com.OxGames.Pluvia.data.LibraryAssetsInfo
 import com.OxGames.Pluvia.data.LibraryCapsuleInfo
 import com.OxGames.Pluvia.data.LibraryHeroInfo
 import com.OxGames.Pluvia.data.LibraryLogoInfo
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.UFS
 import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.enums.ControllerSupport

@@ -28,7 +28,6 @@ import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
