@@ -70,6 +70,8 @@ class LibraryViewModel @Inject constructor(
                 ).collect { apps ->
                     _state.update { currentState ->
                         val sortedList = apps
+                            // filter out spacewar
+                            .filter { it.id != 480 }
                             .filter { if (currentState.appInfoSortType == FabFilter.INSTALLED) SteamService.isAppInstalled(it.id) else true }
                             .filter { it.name.contains(currentState.searchQuery, true) }
                             // TODO: include other sort types
