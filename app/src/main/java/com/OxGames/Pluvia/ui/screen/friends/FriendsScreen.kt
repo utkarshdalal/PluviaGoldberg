@@ -101,6 +101,7 @@ import com.OxGames.Pluvia.ui.component.BBCodeText
 import com.OxGames.Pluvia.ui.component.LoadingScreen
 import com.OxGames.Pluvia.ui.component.dialog.GamesListDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
+import com.OxGames.Pluvia.ui.component.dialog.WebViewDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
@@ -494,6 +495,15 @@ private fun ProfileDetailsScreen(
         )
     }
 
+    var showInternalBrowserDialog by rememberSaveable { mutableStateOf(false) }
+    WebViewDialog(
+        isVisible = showInternalBrowserDialog,
+        url = state.profileFriend!!.id.getProfileUrl(),
+        onDismissRequest = {
+            showInternalBrowserDialog = false
+        },
+    )
+
     Scaffold(
         topBar = {
             // Show Top App Bar when in Compact or Medium screen space.
@@ -533,7 +543,7 @@ private fun ProfileDetailsScreen(
                     .clip(CircleShape)
                     .background(Color.DarkGray)
                     .size(92.dp),
-                imageModel = { state.profileFriend!!.avatarHash.getAvatarURL() },
+                imageModel = { state.profileFriend.avatarHash.getAvatarURL() },
                 imageOptions = ImageOptions(
                     contentScale = ContentScale.Crop,
                     contentDescription = null,
@@ -577,7 +587,11 @@ private fun ProfileDetailsScreen(
                     icon = Icons.Outlined.Person,
                     text = "Profile",
                     onClick = {
-                        uriHandler.openUri(state.profileFriend.id.getProfileUrl())
+                        if (PrefManager.openWebLinksExternally) {
+                            uriHandler.openUri(state.profileFriend.id.getProfileUrl())
+                        } else {
+                            showInternalBrowserDialog = true
+                        }
                     },
                 )
                 Spacer(modifier = Modifier.width(16.dp))
