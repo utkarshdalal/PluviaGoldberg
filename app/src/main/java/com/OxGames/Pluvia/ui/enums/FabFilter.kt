@@ -14,7 +14,7 @@ enum class FabFilter(val code: Int) {
 
     companion object {
         fun getAppType(fabFilter: EnumSet<FabFilter>): EnumSet<AppType> {
-            val output: EnumSet<AppType> = EnumSet.noneOf<AppType>(AppType::class.java)
+            val output: EnumSet<AppType> = EnumSet.noneOf(AppType::class.java)
             if (fabFilter.contains(GAME)) {
                 output.add(AppType.game)
             }

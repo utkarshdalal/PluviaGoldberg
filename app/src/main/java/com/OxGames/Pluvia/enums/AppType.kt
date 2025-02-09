@@ -55,6 +55,7 @@ enum class AppType(val code: Int) {
                 }
             }
         }
+
         fun from(code: Int): EnumSet<AppType> {
             val result = EnumSet.noneOf(AppType::class.java)
             AppType.entries.forEach { appType ->
@@ -64,6 +65,7 @@ enum class AppType(val code: Int) {
             }
             return result
         }
+
         fun code(value: EnumSet<AppType>): Int {
             return value.map { it.code }.reduce { first, second -> first or second }
         }

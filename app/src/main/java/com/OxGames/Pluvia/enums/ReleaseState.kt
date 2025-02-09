@@ -22,6 +22,7 @@ enum class ReleaseState(val code: Int) {
                 }
             }
         }
+
         fun from(code: Int): ReleaseState {
             ReleaseState.entries.forEach { appType ->
                 if (code == appType.code) {

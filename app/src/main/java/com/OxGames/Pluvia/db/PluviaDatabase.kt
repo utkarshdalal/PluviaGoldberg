@@ -40,11 +40,11 @@ const val DATABASE_NAME = "pluvia.db"
     exportSchema = false, // Should export once stable.
 )
 @TypeConverters(
-    LicenseConverter::class,
     AppConverter::class,
-    FriendConverter::class,
-    PathTypeConverter::class,
     ByteArrayConverter::class,
+    FriendConverter::class,
+    LicenseConverter::class,
+    PathTypeConverter::class,
     UserFileInfoListConverter::class,
 )
 abstract class PluviaDatabase : RoomDatabase() {

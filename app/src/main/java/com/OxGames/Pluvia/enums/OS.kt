@@ -36,6 +36,7 @@ enum class OS(val code: Int) {
             }
             return result
         }
+
         fun code(value: EnumSet<OS>): Int {
             return value.map { it.code }.reduce { first, second -> first or second }
         }

@@ -620,7 +620,7 @@ object SteamAutoCloud {
 
                     if (uploadResult.uploadBatchSuccess) {
                         with(steamInstance) {
-                            with(db) {
+                            db.withTransaction {
                                 fileChangeListsDao.insert(appInfo.id, allLocalUserFiles)
                                 changeNumbersDao.insert(appInfo.id, uploadResult.appChangeNumber)
                             }
