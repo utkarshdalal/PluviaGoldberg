@@ -91,6 +91,7 @@ xz = { module = "org.tukaani:xz", version = "1.10" } # https://mvnrepository.com
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+android-dynamic-feature = { id = "com.android.dynamic-feature", version.ref = "agp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "dagger-hilt" }
 jetbrains-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -98,7 +99,6 @@ jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = 
 jetbrains-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlinter = { id = "org.jmailen.kotlinter", version.ref = "kotlinter" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-android-dynamic-feature = { id = "com.android.dynamic-feature", version.ref = "agp" }
 
 [bundles]
 hilt = [

@@ -104,6 +104,14 @@ object PrefManager {
         }
     }
 
+    /* PICS */
+    private val LAST_PICS_CHANGE_NUMBER = intPreferencesKey("last_pics_change_number")
+    var lastPICSChangeNumber: Int
+        get() = getPref(LAST_PICS_CHANGE_NUMBER, 0)
+        set(value) {
+            setPref(LAST_PICS_CHANGE_NUMBER, value)
+        }
+
     /* Container Default Settings */
     private val SCREEN_SIZE = stringPreferencesKey("screen_size")
     var screenSize: String

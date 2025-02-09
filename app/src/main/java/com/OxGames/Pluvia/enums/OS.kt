@@ -3,11 +3,11 @@ package com.OxGames.Pluvia.enums
 import java.util.EnumSet
 import timber.log.Timber
 
-enum class OS {
-    windows,
-    macos,
-    linux,
-    none,
+enum class OS(val code: Int) {
+    none(0),
+    windows(0x01),
+    macos(0x02),
+    linux(0x04),
     ;
 
     companion object {
@@ -25,6 +25,20 @@ enum class OS {
                 ?.toCollection(EnumSet.noneOf(OS::class.java))
 
             return osses ?: EnumSet.of(none)
+        }
+
+        fun from(code: Int): EnumSet<OS> {
+            val result = EnumSet.noneOf(OS::class.java)
+            OS.entries.forEach { appType ->
+                if (code and appType.code == appType.code) {
+                    result.add(appType)
+                }
+            }
+            return result
+        }
+
+        fun code(value: EnumSet<OS>): Int {
+            return value.map { it.code }.reduce { first, second -> first or second }
         }
     }
 }

@@ -1,7 +1,10 @@
 package com.OxGames.Pluvia.data
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class LibraryAssetsInfo(
-    val libraryCapsule: LibraryCapsuleInfo,
-    val libraryHero: LibraryHeroInfo,
-    val libraryLogo: LibraryLogoInfo,
+    val libraryCapsule: LibraryCapsuleInfo = LibraryCapsuleInfo(),
+    val libraryHero: LibraryHeroInfo = LibraryHeroInfo(),
+    val libraryLogo: LibraryLogoInfo = LibraryLogoInfo(),
 )

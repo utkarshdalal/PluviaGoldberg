@@ -8,38 +8,28 @@ import androidx.room.withTransaction
 import com.OxGames.Pluvia.BuildConfig
 import com.OxGames.Pluvia.PluviaApp
 import com.OxGames.Pluvia.PrefManager
-import com.OxGames.Pluvia.data.AppInfo
-import com.OxGames.Pluvia.data.BranchInfo
-import com.OxGames.Pluvia.data.ConfigInfo
 import com.OxGames.Pluvia.data.DepotInfo
 import com.OxGames.Pluvia.data.DownloadInfo
 import com.OxGames.Pluvia.data.Emoticon
 import com.OxGames.Pluvia.data.GameProcessInfo
 import com.OxGames.Pluvia.data.LaunchInfo
-import com.OxGames.Pluvia.data.LibraryAssetsInfo
-import com.OxGames.Pluvia.data.LibraryCapsuleInfo
-import com.OxGames.Pluvia.data.LibraryHeroInfo
-import com.OxGames.Pluvia.data.LibraryLogoInfo
 import com.OxGames.Pluvia.data.OwnedGames
-import com.OxGames.Pluvia.data.PackageInfo
 import com.OxGames.Pluvia.data.PostSyncInfo
-import com.OxGames.Pluvia.data.SaveFilePattern
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.data.SteamFriend
-import com.OxGames.Pluvia.data.UFS
+import com.OxGames.Pluvia.data.SteamLicense
 import com.OxGames.Pluvia.data.UserFileInfo
 import com.OxGames.Pluvia.db.PluviaDatabase
 import com.OxGames.Pluvia.db.dao.ChangeNumbersDao
 import com.OxGames.Pluvia.db.dao.EmoticonDao
 import com.OxGames.Pluvia.db.dao.FileChangeListsDao
 import com.OxGames.Pluvia.db.dao.FriendMessagesDao
+import com.OxGames.Pluvia.db.dao.SteamAppDao
 import com.OxGames.Pluvia.db.dao.SteamFriendDao
-import com.OxGames.Pluvia.enums.AppType
-import com.OxGames.Pluvia.enums.ControllerSupport
+import com.OxGames.Pluvia.db.dao.SteamLicenseDao
 import com.OxGames.Pluvia.enums.LoginResult
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.OSArch
-import com.OxGames.Pluvia.enums.PathType
-import com.OxGames.Pluvia.enums.ReleaseState
 import com.OxGames.Pluvia.enums.SaveLocation
 import com.OxGames.Pluvia.enums.SyncResult
 import com.OxGames.Pluvia.events.AndroidEvent
@@ -48,8 +38,8 @@ import com.OxGames.Pluvia.service.callback.EmoticonListCallback
 import com.OxGames.Pluvia.service.handler.PluviaHandler
 import com.OxGames.Pluvia.utils.FileUtils
 import com.OxGames.Pluvia.utils.SteamUtils
-import com.OxGames.Pluvia.utils.generateManifest
-import com.OxGames.Pluvia.utils.toLangImgMap
+import com.OxGames.Pluvia.utils.generateSteamApp
+import com.OxGames.Pluvia.utils.timeChunked
 import com.google.android.play.core.ktx.bytesDownloaded
 import com.google.android.play.core.ktx.requestCancelInstall
 import com.google.android.play.core.ktx.requestInstall
@@ -79,6 +69,7 @@ import `in`.dragonbra.javasteam.steam.contentdownloader.FileManifestProvider
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
 import `in`.dragonbra.javasteam.steam.discovery.ServerQuality
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.GamePlayedInfo
+import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSProductInfo
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
@@ -115,7 +106,6 @@ import java.io.File
 import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.Date
 import java.util.EnumSet
 import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
@@ -124,14 +114,25 @@ import kotlin.io.path.pathString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
@@ -140,6 +141,12 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     @Inject
     lateinit var db: PluviaDatabase
+
+    @Inject
+    lateinit var licenseDao: SteamLicenseDao
+
+    @Inject
+    lateinit var appDao: SteamAppDao
 
     @Inject
     lateinit var friendDao: SteamFriendDao
@@ -175,13 +182,17 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private var retryAttempt = 0
 
-    private val packageInfo = ConcurrentHashMap<Int, PackageInfo>()
-    private val appInfo = ConcurrentHashMap<Int, AppInfo>()
+    data class AppRequest(val appId: Int, val addToDbIfUnowned: Boolean = false)
+
+    private val appIdFlowSender: MutableSharedFlow<AppRequest> = MutableSharedFlow()
+    private val appIdFlowReceiver = appIdFlowSender.asSharedFlow()
 
     private val dbScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     companion object {
+        const val MAX_SIMULTANEOUS_PICS_REQUESTS = 50
+        const val PICS_CHANGE_CHECK_DELAY = 60000L
         const val MAX_RETRY_ATTEMPTS = 20
         const val MAX_USER_FILE_RETRIES = 3
 
@@ -261,20 +272,33 @@ class SteamService : Service(), IChallengeUrlChanged {
             instance!!.db.steamFriendDao().findFriend(steamId.convertToUInt64())
         }
 
-        fun getAppList(filter: EnumSet<AppType>): List<AppInfo> {
-            return instance?.appInfo?.values?.filter { filter.contains(it.type) } ?: emptyList()
-        }
-
-        fun getPkgInfoOf(appId: Int): PackageInfo? {
-            return instance?.packageInfo?.values?.firstOrNull {
-                // logD("Pkg (${it.packageId}) apps: ${it.appIds.joinToString(",")}")
-                it.appIds.contains(appId)
+        fun getPkgInfoOf(appId: Int): SteamLicense? {
+            return runBlocking {
+                instance?.licenseDao?.findLicense(
+                    instance?.appDao?.findApp(appId)?.first()?.packageId ?: INVALID_PKG_ID,
+                )?.first()
             }
+            // var license: SteamLicense? = null
+            // instance?.licenseDao?.getAllLicenses()?.collect { licenses ->
+            //     license = licenses.firstOrNull { it.appIds.contains(appId) }
+            // }
+            // return null
+
+            // return instance?.packageInfo?.values?.firstOrNull {
+            //     // logD("Pkg (${it.packageId}) apps: ${it.appIds.joinToString(",")}")
+            //     it.appIds.contains(appId)
+            // }
         }
 
-        fun getAppInfoOf(appId: Int): AppInfo? {
-            return instance?.appInfo?.values?.firstOrNull {
-                it.appId == appId
+        fun getAppInfoOf(appId: Int): SteamApp? {
+            return runBlocking { instance?.appDao?.findApp(appId)?.first() }
+        }
+
+        fun queueAppPICSRequests(vararg apps: AppRequest) {
+            instance?.let { steamInstance ->
+                steamInstance.serviceScope.launch {
+                    steamInstance.appIdFlowSender.emitAll(flowOf(*apps))
+                }
             }
         }
 
@@ -984,13 +1008,17 @@ class SteamService : Service(), IChallengeUrlChanged {
             PrefManager.clearPreferences()
 
             with(instance!!) {
-                serviceScope.launch {
-                    changeNumbersDao.deleteAll()
-                    fileChangeListsDao.deleteAll()
+                dbScope.launch {
+                    db.withTransaction {
+                        db.emoticonDao().deleteAll()
+                        db.friendMessagesDao().deleteAllMessages()
+                        appDao.deleteAll()
+                        changeNumbersDao.deleteAll()
+                        fileChangeListsDao.deleteAll()
+                        friendDao.deleteAll()
+                        licenseDao.deleteAll()
+                    }
                 }
-
-                appInfo.clear()
-                packageInfo.clear()
             }
 
             isLoggingIn = false
@@ -1136,7 +1164,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(LoggedOffCallback::class.java, ::onLoggedOff))
                     add(subscribe(PersonaStatesCallback::class.java, ::onPersonaStateReceived))
                     add(subscribe(LicenseListCallback::class.java, ::onLicenseList))
-                    add(subscribe(PICSProductInfoCallback::class.java, ::onPICSProductInfo))
                     add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
                     add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
                     add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
@@ -1261,9 +1288,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         _unifiedFriends?.close()
         _unifiedFriends = null
 
-        packageInfo.clear()
-        appInfo.clear()
-
         isStopping = false
         retryAttempt = 0
 
@@ -1327,6 +1351,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         steamClient!!.disconnect()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     private fun onLoggedOn(callback: LoggedOnCallback) {
         Timber.i("Logged onto Steam: ${callback.result}")
 
@@ -1344,6 +1369,75 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // retrieve persona data of logged in user
                 serviceScope.launch {
                     requestUserPersona()
+                }
+
+                // continuously check for pics changes
+                serviceScope.launch {
+                    while (isLoggedIn) {
+                        val picsChangesCallback = _steamApps?.picsGetChangesSince(
+                            lastChangeNumber = PrefManager.lastPICSChangeNumber,
+                            sendAppChangeList = true,
+                            sendPackageChangelist = true,
+                        )?.await()
+
+                        if (picsChangesCallback != null &&
+                            picsChangesCallback.currentChangeNumber != PrefManager.lastPICSChangeNumber
+                        ) {
+                            Timber.d(
+                                "lastChangeNumber: ${picsChangesCallback.lastChangeNumber}" +
+                                    "\ncurrentChangeNumber: ${picsChangesCallback.currentChangeNumber}" +
+                                    "\nisRequiresFullUpdate: ${picsChangesCallback.isRequiresFullUpdate}" +
+                                    "\nisRequiresFullAppUpdate: ${picsChangesCallback.isRequiresFullAppUpdate}" +
+                                    "\nisRequiresFullPackageUpdate: ${picsChangesCallback.isRequiresFullPackageUpdate}" +
+                                    "\nappChangesCount: ${picsChangesCallback.appChanges.size}" +
+                                    "\npkgChangesCount: ${picsChangesCallback.packageChanges.size}",
+                            )
+
+                            PrefManager.lastPICSChangeNumber = picsChangesCallback.currentChangeNumber
+
+                            dbScope.launch {
+                                // Timber.d("Adding ${appToAdd?.name} with appId of ${appToAdd?.id} and pkgId of ${appToAdd?.packageId}")
+
+                                val appIds = picsChangesCallback.appChanges.values
+                                    .filter { it.changeNumber != appDao.findApp(it.id).first()?.lastChangeNumber }
+                                    .map { AppRequest(it.id) }.toTypedArray()
+                                queueAppPICSRequests(*appIds)
+
+                                val pkgsWithChanges = picsChangesCallback.packageChanges.values
+                                    .filter { it.changeNumber != licenseDao.findLicense(it.id).first()?.lastChangeNumber }
+                                val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
+                                val accessTokens = _steamApps?.picsGetAccessTokens(
+                                    emptyList(),
+                                    pkgsForAccessTokens,
+                                )?.await()?.packageTokens ?: emptyMap()
+                                requestAndAddPkgsToDb(pkgsWithChanges.map { PICSRequest(it.id, accessTokens[it.id] ?: 0) })
+                            }
+                        }
+
+                        delay(PICS_CHANGE_CHECK_DELAY)
+                    }
+                }
+
+                // request app pics data when needed
+                serviceScope.launch {
+                    appIdFlowReceiver
+                        .timeChunked(MAX_SIMULTANEOUS_PICS_REQUESTS)
+                        .buffer(Channel.RENDEZVOUS)
+                        .collect { appIds ->
+                            Timber.d("Collected ${appIds.size} app(s) to PICS")
+
+                            isRequestingAppInfo = true
+
+                            val multiJob = _steamApps?.picsGetProductInfo(appIds.map { PICSRequest(it.appId) }, emptyList())?.await()
+                            val appBoolMap = appIds.associate { it.appId to it.addToDbIfUnowned }
+                            val appMap = multiJob?.results
+                                ?.map { it as PICSProductInfoCallback }
+                                ?.flatMap { it.apps.toList() }
+                                ?.associate { it.first to Pair(it.second, appBoolMap[it.first] == true) }
+                            addAppsToDb(appMap)
+
+                            isRequestingAppInfo = false
+                        }
                 }
 
                 // since we automatically receive the license list from steam on log on
@@ -1528,233 +1622,148 @@ class SteamService : Service(), IChallengeUrlChanged {
         Timber.i("Received License List ${callback.result}, size: ${callback.licenseList.size}")
 
         if (callback.result == EResult.OK) {
-            for (i in callback.licenseList.indices) {
-                val license = callback.licenseList[i]
-
-                packageInfo[license.packageID] = PackageInfo(
-                    packageId = license.packageID,
-                    receiveIndex = i,
-                    ownerAccountId = license.ownerAccountID,
-                    lastChangeNumber = license.lastChangeNumber,
-                    accessToken = license.accessToken,
-                    territoryCode = license.territoryCode,
-                    licenseFlags = license.licenseFlags,
-                    licenseType = license.licenseType ?: ELicenseType.NoLicense,
-                    paymentMethod = license.paymentMethod ?: EPaymentMethod.None,
-                    purchaseCountryCode = license.purchaseCode,
-                    appIds = IntArray(0),
-                    depotIds = IntArray(0),
-                )
+            dbScope.launch {
+                // check first if any apps already exist in the db that need PICS
+                val apps = appDao.getAllAppsWithoutPICS().firstOrNull()?.map { AppRequest(it.id) }?.toTypedArray()
+                Timber.d("${apps?.size ?: 0} app(s) need PICS")
+                if (apps?.isNotEmpty() == true) {
+                    queueAppPICSRequests(*apps)
+                }
             }
+            dbScope.launch {
+                licenseDao.getAllLicenses().collect { oldLicenses ->
+                    // this collect gets called each time the db has changes
+                    // so we need to make sure we only do things here if we're logged in
+                    if (isLoggedIn) {
+                        // Timber.i("Database contains ${oldLicenses.size} license(s)")
+                        // TODO: will there be a scenario where old licenses don't exist anymore and need deleting?
+                        val changedOrNewLicenses = callback.licenseList.filter { newLicense ->
+                            val oldLicense = oldLicenses.firstOrNull { it.id == newLicense.packageID }
+                            // Timber.d("${newLicense.packageID} -> ${newLicense.lastChangeNumber}")
+                            oldLicense?.let { it.lastChangeNumber != newLicense.lastChangeNumber } != false
+                        }
 
-            isRequestingPkgInfo = true
+                        if (changedOrNewLicenses.isNotEmpty()) {
+                            Timber.i("There are ${changedOrNewLicenses.size} license(s) that need to be inserted into the database")
+                            db.withTransaction {
+                                val licensesToAdd = changedOrNewLicenses.map { license ->
+                                    SteamLicense(
+                                        id = license.packageID,
+                                        ownerAccountId = license.ownerAccountID,
+                                        lastChangeNumber = license.lastChangeNumber,
+                                        accessToken = license.accessToken,
+                                        territoryCode = license.territoryCode,
+                                        licenseFlags = license.licenseFlags,
+                                        licenseType = license.licenseType ?: ELicenseType.NoLicense,
+                                        paymentMethod = license.paymentMethod ?: EPaymentMethod.None,
+                                        purchaseCountryCode = license.purchaseCode,
+                                        timeCreated = license.timeCreated,
+                                        timeNextProcess = license.timeNextProcess,
+                                        minuteLimit = license.minuteLimit,
+                                        minutesUsed = license.minutesUsed,
+                                        purchaseCode = license.purchaseCode,
+                                        masterPackageID = license.masterPackageID,
+                                    )
+                                }.toTypedArray()
 
-            _steamApps!!.picsGetProductInfo(
-                apps = emptyList(),
-                packages = callback.licenseList.map { PICSRequest(it.packageID, it.accessToken) },
-            )
+                                licenseDao.insert(*licensesToAdd)
+                            }
+
+                            requestAndAddPkgsToDb(changedOrNewLicenses.map { PICSRequest(it.packageID, it.accessToken) })
+                        }
+                    }
+                }
+            }
         }
 
         isReceivingLicenseList = false
     }
 
-    private fun onPICSProductInfo(callback: PICSProductInfoCallback) {
-        // logD("Received PICSProductInfo")
+    private fun requestAndAddPkgsToDb(picsRequests: List<PICSRequest>) {
+        serviceScope.launch {
+            isRequestingPkgInfo = true
 
-        if (callback.packages.isNotEmpty()) {
-            for (pkg in callback.packages.values) {
-                // logD("Received pkg ${pkg.id}")
+            val packages = _steamApps!!.picsGetProductInfo(apps = emptyList(), packages = picsRequests).await()
+                .results
+                .map { it as PICSProductInfoCallback }
+                .flatMap { it.packages.values }
 
-                packageInfo[pkg.id]?.let { pi ->
-                    pi.appIds = pkg.keyValues["appids"].children.map { it.asInteger() }.toIntArray()
-                    pi.depotIds = pkg.keyValues["depotids"].children.map { it.asInteger() }.toIntArray()
+            if (packages.isNotEmpty()) {
+                Timber.i("Received PICS of ${packages.size} package(s)")
+                dbScope.launch {
+                    db.withTransaction {
+                        packages.forEach { pkg ->
+                            val appIds = pkg.keyValues["appids"].children.map { it.asInteger() }
+                            val depotIds = pkg.keyValues["depotids"].children.map { it.asInteger() }
+                            licenseDao.updateApps(pkg.id, appIds)
+                            licenseDao.updateDepots(pkg.id, depotIds)
+
+                            val steamAppsToAdd = appIds.map { appId ->
+                                appDao.findApp(appId).first()?.copy(packageId = pkg.id)
+                                    ?: SteamApp(id = appId, packageId = pkg.id)
+                            }.toTypedArray()
+                            appDao.insert(*steamAppsToAdd)
+
+                            queueAppPICSRequests(*appIds.map { AppRequest(it) }.toTypedArray())
+                        }
+                    }
+
+                    isRequestingPkgInfo = false
                 }
             }
-
-            isRequestingPkgInfo = false
-            isRequestingAppInfo = true
-
-            _steamApps?.picsGetProductInfo(
-                apps = packageInfo.values
-                    .flatMap { it.appIds.asIterable() }
-                    .map { PICSRequest(it) },
-                packages = emptyList(),
-            )
         }
+    }
 
-        if (callback.apps.isNotEmpty()) {
-            val apps = callback.apps.values.toTypedArray()
-
-            for (i in apps.indices) {
-                val app = apps[i]
-
-                val pkg = packageInfo.values.firstOrNull { it.appIds.contains(app.id) }
-
-                // logD("Received app ${app.id}")
-
-                val launchConfigs = app.keyValues["config"]["launch"].children
-
-                appInfo[app.id] = AppInfo(
-                    appId = app.id,
-                    receiveIndex = packageInfo.values
-                        .filter { it.receiveIndex < (pkg?.receiveIndex ?: Int.MAX_VALUE) }
-                        .fold(initial = 0) { accum, pkgInfo -> accum + pkgInfo.appIds.size } + i,
-                    packageId = pkg?.packageId ?: INVALID_PKG_ID,
-                    depots = app.keyValues["depots"].children
-                        .filter { currentDepot ->
-                            currentDepot.name.toIntOrNull() != null
-                        }
-                        .associate { currentDepot ->
-                            val depotId = currentDepot.name.toInt()
-
-                            // val currentDepot = app.keyValues["depots"]["$depotId"]
-
-                            val manifests = currentDepot["manifests"].children.generateManifest()
-
-                            val encryptedManifests = currentDepot["encryptedManifests"].children.generateManifest()
-
-                            depotId to DepotInfo(
-                                depotId = depotId,
-                                dlcAppId = currentDepot["dlcappid"].asInteger(INVALID_APP_ID),
-                                depotFromApp = currentDepot["depotfromapp"].asInteger(
-                                    INVALID_APP_ID,
-                                ),
-                                sharedInstall = currentDepot["sharedinstall"].asBoolean(),
-                                osList = OS.from(currentDepot["config"]["oslist"].value),
-                                osArch = OSArch.from(currentDepot["config"]["osarch"].value),
-                                manifests = manifests,
-                                encryptedManifests = encryptedManifests,
-                            )
-                        },
-                    branches = app.keyValues["depots"]["branches"].children.associate {
-                        it.name to BranchInfo(
-                            name = it.name,
-                            buildId = it["buildid"].asLong(),
-                            pwdRequired = it["pwdrequired"].asBoolean(),
-                            timeUpdated = Date(it["timeupdated"].asLong() * 1000L),
+    private fun addAppsToDb(apps: Map<Int, Pair<PICSProductInfo, Boolean>>?) {
+        if (!apps.isNullOrEmpty()) {
+            dbScope.launch {
+                val filteredApps = apps.values.mapNotNull {
+                    // // val isBaba = app.id == 736260
+                    // // val isNoita = app.id == 881100
+                    // // val isHades = app.id == 1145360
+                    // // val isCS2 = app.id == 730
+                    // // val isPsuedo = app.id == 2365810
+                    // // val isPathway = app.id == 546430
+                    // // val isSeaOfStars = app.id == 1244090
+                    // // val isMessenger = app.id == 764790
+                    // // val isWargroove = app.id == 607050
+                    // // val isTetrisEffect = app.id == 1003590
+                    // // val isLittleKitty = app.id == 1177980
+                    // val isFactorio = app.id == 427520
+                    // if (isFactorio) {
+                    // 	logD("${app.id}: ${app.keyValues["common"]["name"].value}");
+                    // 	printAllKeyValues(app.keyValues)
+                    // 	// getPkgInfoOf(app.id)?.let {
+                    // 	// 	printAllKeyValues(it.original)
+                    //     // }
+                    // }
+                    val app = it.first
+                    val includeIfNotOwned = it.second
+                    val appFromDb = appDao.findApp(app.id).first()
+                    val packageId = appFromDb?.packageId ?: INVALID_PKG_ID
+                    val pkgFromDb = if (packageId != INVALID_PKG_ID) licenseDao.findLicense(packageId).first() else null
+                    val ownerAccountId = pkgFromDb?.ownerAccountId ?: -1
+                    if (
+                        app.changeNumber != appFromDb?.lastChangeNumber &&
+                        (includeIfNotOwned || ownerAccountId == userSteamId?.accountID?.toInt())
+                    ) {
+                        app.keyValues.generateSteamApp().copy(
+                            packageId = packageId,
+                            ownerAccountId = ownerAccountId,
+                            receivedPICS = true,
+                            lastChangeNumber = app.changeNumber,
                         )
-                    },
-                    name = app.keyValues["common"]["name"].value.orEmpty(),
-                    type = AppType.valueOf(
-                        app.keyValues["common"]["type"].value?.lowercase() ?: "invalid",
-                    ),
-                    osList = OS.from(app.keyValues["common"]["oslist"].value),
-                    releaseState = ReleaseState.valueOf(
-                        app.keyValues["common"]["releasestate"].value ?: "released",
-                    ),
-                    metacriticScore = app.keyValues["common"]["metacritic_score"].asByte(),
-                    metacriticFullUrl = app.keyValues["common"]["metacritic_fullurl"].value.orEmpty(),
-                    logoHash = app.keyValues["common"]["logo"].value.orEmpty(),
-                    logoSmallHash = app.keyValues["common"]["logo_small"].value.orEmpty(),
-                    iconHash = app.keyValues["common"]["icon"].value.orEmpty(),
-                    clientIconHash = app.keyValues["common"]["clienticon"].value.orEmpty(),
-                    clientTgaHash = app.keyValues["common"]["clienttga"].value.orEmpty(),
-                    smallCapsule = app.keyValues["common"]["small_capsule"].children.toLangImgMap(),
-                    headerImage = app.keyValues["common"]["header_image"].children.toLangImgMap(),
-                    libraryAssets = LibraryAssetsInfo(
-                        libraryCapsule = LibraryCapsuleInfo(
-                            image = app.keyValues["common"]["library_assets_full"]["library_capsule"]["image"].children.toLangImgMap(),
-                            image2x = app.keyValues["common"]["library_assets_full"]["library_capsule"]["image2x"].children.toLangImgMap(),
-                        ),
-                        libraryHero = LibraryHeroInfo(
-                            image = app.keyValues["common"]["library_assets_full"]["library_hero"]["image"].children.toLangImgMap(),
-                            image2x = app.keyValues["common"]["library_assets_full"]["library_hero"]["image2x"].children.toLangImgMap(),
-                        ),
-                        libraryLogo = LibraryLogoInfo(
-                            image = app.keyValues["common"]["library_assets_full"]["library_logo"]["image"].children.toLangImgMap(),
-                            image2x = app.keyValues["common"]["library_assets_full"]["library_logo"]["image2x"].children.toLangImgMap(),
-                        ),
-                    ),
-                    primaryGenre = app.keyValues["common"]["primary_genre"].asBoolean(),
-                    reviewScore = app.keyValues["common"]["review_score"].asByte(),
-                    reviewPercentage = app.keyValues["common"]["review_percentage"].asByte(),
-                    controllerSupport = ControllerSupport.valueOf(
-                        app.keyValues["common"]["controller_support"].value ?: "none",
-                    ),
-                    demoOfAppId = app.keyValues["common"]["extended"]["demoofappid"].asInteger(),
-                    developer = app.keyValues["common"]["extended"]["developer"].value.orEmpty(),
-                    publisher = app.keyValues["common"]["extended"]["publisher"].value.orEmpty(),
-                    homepageUrl = app.keyValues["common"]["extended"]["homepage"].value.orEmpty(),
-                    gameManualUrl = app.keyValues["common"]["extended"]["gamemanualurl"].value.orEmpty(),
-                    loadAllBeforeLaunch = app.keyValues["common"]["extended"]["loadallbeforelaunch"].asBoolean(),
-                    // dlcAppIds = (app.keyValues["common"]["extended"]["listofdlc"].value).Split(",").Select(uint.Parse).ToArray(),
-                    dlcAppIds = IntArray(0),
-                    isFreeApp = app.keyValues["common"]["extended"]["isfreeapp"].asBoolean(),
-                    dlcForAppId = app.keyValues["common"]["extended"]["dlcforappid"].asInteger(),
-                    mustOwnAppToPurchase = app.keyValues["common"]["extended"]["mustownapptopurchase"].asInteger(),
-                    dlcAvailableOnStore = app.keyValues["common"]["extended"]["dlcavailableonstore"].asBoolean(),
-                    optionalDlc = app.keyValues["common"]["extended"]["optionaldlc"].asBoolean(),
-                    gameDir = app.keyValues["common"]["extended"]["gamedir"].value.orEmpty(),
-                    installScript = app.keyValues["common"]["extended"]["installscript"].value.orEmpty(),
-                    noServers = app.keyValues["common"]["extended"]["noservers"].asBoolean(),
-                    order = app.keyValues["common"]["extended"]["order"].asBoolean(),
-                    primaryCache = app.keyValues["common"]["extended"]["primarycache"].asInteger(),
-                    // validOSList = app.keyValues["common"]["extended"]["validoslist"].value!.Split(",").Select(Enum.Parse<OS>).Aggregate((os1, os2) => os1 | os2),
-                    validOSList = EnumSet.of(OS.none),
-                    thirdPartyCdKey = app.keyValues["common"]["extended"]["thirdpartycdkey"].asBoolean(),
-                    visibleOnlyWhenInstalled = app.keyValues["common"]["extended"]["visibleonlywheninstalled"].asBoolean(),
-                    visibleOnlyWhenSubscribed = app.keyValues["common"]["extended"]["visibleonlywhensubscribed"].asBoolean(),
-                    launchEulaUrl = app.keyValues["common"]["extended"]["launcheula"].value.orEmpty(),
-                    requireDefaultInstallFolder = app.keyValues["common"]["config"]["requiredefaultinstallfolder"].asBoolean(),
-                    contentType = app.keyValues["common"]["config"]["contentType"].asInteger(),
-                    installDir = app.keyValues["common"]["config"]["installdir"].value.orEmpty(),
-                    useLaunchCmdLine = app.keyValues["common"]["config"]["uselaunchcommandline"].asBoolean(),
-                    launchWithoutWorkshopUpdates = app.keyValues["common"]["config"]["launchwithoutworkshopupdates"].asBoolean(),
-                    useMms = app.keyValues["common"]["config"]["usemms"].asBoolean(),
-                    installScriptSignature = app.keyValues["common"]["config"]["installscriptsignature"].value.orEmpty(),
-                    installScriptOverride = app.keyValues["common"]["config"]["installscriptoverride"].asBoolean(),
-                    config = ConfigInfo(
-                        installDir = app.keyValues["config"]["installdir"].value.orEmpty(),
-                        launch = launchConfigs.map {
-                            LaunchInfo(
-                                executable = it["executable"].value?.replace('\\', '/').orEmpty(),
-                                workingDir = it["workingdir"].value?.replace('\\', '/').orEmpty(),
-                                description = it["description"].value.orEmpty(),
-                                type = it["type"].value.orEmpty(),
-                                configOS = OS.from(it["config"]["oslist"].value),
-                                configArch = OSArch.from(it["config"]["osarch"].value),
-                            )
-                        }.toTypedArray(),
-                        steamControllerTemplateIndex = app.keyValues["config"]["steamcontrollertemplateindex"].asInteger(),
-                        steamControllerTouchTemplateIndex = app.keyValues["config"]["steamcontrollertouchtemplateindex"].asInteger(),
-                    ),
-                    ufs = UFS(
-                        quota = app.keyValues["ufs"]["quota"].asInteger(),
-                        maxNumFiles = app.keyValues["ufs"]["maxnumfiles"].asInteger(),
-                        saveFilePatterns = app.keyValues["ufs"]["savefiles"].children.map {
-                            SaveFilePattern(
-                                root = PathType.from(it["root"].value),
-                                path = it["path"].value.orEmpty(),
-                                pattern = it["pattern"].value.orEmpty(),
-                            )
-                        }.toTypedArray(),
-                    ),
-                )
+                    } else {
+                        null
+                    }
+                }.toTypedArray()
 
-                // // val isBaba = app.id == 736260
-                // // val isNoita = app.id == 881100
-                // // val isHades = app.id == 1145360
-                // // val isCS2 = app.id == 730
-                // // val isPsuedo = app.id == 2365810
-                // // val isPathway = app.id == 546430
-                // // val isSeaOfStars = app.id == 1244090
-                // // val isMessenger = app.id == 764790
-                // // val isWargroove = app.id == 607050
-                // // val isTetrisEffect = app.id == 1003590
-                // // val isLittleKitty = app.id == 1177980
-                // val isFactorio = app.id == 427520
-                // if (isFactorio) {
-                // 	logD("${app.id}: ${app.keyValues["common"]["name"].value}");
-                // 	printAllKeyValues(app.keyValues)
-                // 	// getPkgInfoOf(app.id)?.let {
-                // 	// 	printAllKeyValues(it.original)
-                //     // }
-                // }
+                db.withTransaction {
+                    appDao.insert(*filteredApps)
+                }
+
+                PluviaApp.events.emit(SteamEvent.AppInfoReceived)
             }
-
-            isRequestingAppInfo = false
-
-            PluviaApp.events.emit(SteamEvent.AppInfoReceived)
         }
     }
 }
