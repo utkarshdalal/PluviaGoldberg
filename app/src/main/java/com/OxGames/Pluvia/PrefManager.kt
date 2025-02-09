@@ -436,4 +436,12 @@ object PrefManager {
         set(value) {
             setPref(ACK_CHAT_PREVIEW, value)
         }
+
+    // Whether to open links internally with a webview or open externally with a user's browser.
+    private val OPEN_WEB_LINKS_EXTERNALLY = booleanPreferencesKey("open_web_links_externally")
+    var openWebLinksExternally: Boolean
+        get() = getPref(OPEN_WEB_LINKS_EXTERNALLY, true)
+        set(value) {
+            setPref(OPEN_WEB_LINKS_EXTERNALLY, value)
+        }
 }
