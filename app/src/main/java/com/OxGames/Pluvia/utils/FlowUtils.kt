@@ -34,7 +34,7 @@ fun <T> Flow<T>.timeChunked(
                         ticker?.cancel()
                         ticker = null
                     }
-                    else -> select<Unit> {
+                    else -> select {
                         upstream.onReceiveCatching { result ->
                             result.getOrNull()?.let { element ->
                                 buffer.add(element)

@@ -13,9 +13,7 @@ object OsEnumSetSerializer : KSerializer<EnumSet<OS>> {
 
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("EnumSet<OS>", PrimitiveKind.INT)
 
-    override fun serialize(encoder: Encoder, value: EnumSet<OS>) =
-        encoder.encodeInt(OS.code(value))
+    override fun serialize(encoder: Encoder, value: EnumSet<OS>) = encoder.encodeInt(OS.code(value))
 
-    override fun deserialize(decoder: Decoder): EnumSet<OS> =
-        OS.from(decoder.decodeInt())
+    override fun deserialize(decoder: Decoder): EnumSet<OS> = OS.from(decoder.decodeInt())
 }

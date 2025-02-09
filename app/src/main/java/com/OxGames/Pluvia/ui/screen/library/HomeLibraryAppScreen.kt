@@ -2,7 +2,6 @@ package com.OxGames.Pluvia.ui.screen.library
 
 import android.content.Intent
 import android.content.res.Configuration
-import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +50,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.window.core.layout.WindowWidthSizeClass
+import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.service.SteamService
@@ -135,7 +137,9 @@ fun AppScreen(
         }
     }
 
-    Timber.d("Selected app $appId")
+    LaunchedEffect(appId) {
+        Timber.d("Selected app $appId")
+    }
 
     val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
 
@@ -155,11 +159,13 @@ fun AppScreen(
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onDismissClick = { msgDialogState = MessageDialogState(false) }
         }
+
         DialogType.NOT_ENOUGH_SPACE -> {
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onConfirmClick = { msgDialogState = MessageDialogState(false) }
             onDismissClick = null
         }
+
         DialogType.INSTALL_APP -> {
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onConfirmClick = {
@@ -171,6 +177,7 @@ fun AppScreen(
             }
             onDismissClick = { msgDialogState = MessageDialogState(false) }
         }
+
         DialogType.DELETE_APP -> {
             onConfirmClick = {
                 SteamService.deleteApp(appId)
@@ -181,6 +188,7 @@ fun AppScreen(
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onDismissClick = { msgDialogState = MessageDialogState(false) }
         }
+
         DialogType.INSTALL_IMAGEFS -> {
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onDismissClick = { msgDialogState = MessageDialogState(false) }
@@ -206,6 +214,7 @@ fun AppScreen(
                 }
             }
         }
+
         else -> {
             onDismissRequest = null
             onDismissClick = null
@@ -311,17 +320,15 @@ fun AppScreen(
             },
             optionsMenu = arrayOf(
                 AppMenuOption(
-                    AppOptionMenuType.StorePage,
+                    optionType = AppOptionMenuType.StorePage,
                     onClick = {
-                        val browserIntent = Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://store.steampowered.com/app/$appId/"),
-                        )
+                        // TODO add option to view web page externally or internally
+                        val browserIntent = Intent(Intent.ACTION_VIEW, (Constants.Library.STORE_URL + appId).toUri())
                         context.startActivity(browserIntent)
                     },
                 ),
                 AppMenuOption(
-                    AppOptionMenuType.EditContainer,
+                    optionType = AppOptionMenuType.EditContainer,
                     onClick = {
                         if (!SteamService.isImageFsInstalled(context)) {
                             if (!SteamService.isImageFsInstallable(context)) {

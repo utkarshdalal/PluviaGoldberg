@@ -22,6 +22,7 @@ enum class ControllerSupport(val code: Int) {
                 }
             }
         }
+
         fun from(code: Int): ControllerSupport {
             ControllerSupport.entries.forEach { appType ->
                 if (code == appType.code) {

@@ -1,6 +1,5 @@
 package com.OxGames.Pluvia.service
 
-import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -184,6 +183,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     private var retryAttempt = 0
 
     data class AppRequest(val appId: Int, val addToDbIfUnowned: Boolean = false)
+
     private val appIdFlowSender: MutableSharedFlow<AppRequest> = MutableSharedFlow()
     private val appIdFlowReceiver = appIdFlowSender.asSharedFlow()
 
@@ -1010,11 +1010,13 @@ class SteamService : Service(), IChallengeUrlChanged {
             with(instance!!) {
                 dbScope.launch {
                     db.withTransaction {
+                        db.emoticonDao().deleteAll()
+                        db.friendMessagesDao().deleteAllMessages()
+                        appDao.deleteAll()
                         changeNumbersDao.deleteAll()
                         fileChangeListsDao.deleteAll()
                         friendDao.deleteAll()
                         licenseDao.deleteAll()
-                        appDao.deleteAll()
                     }
                 }
             }
@@ -1162,7 +1164,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                     add(subscribe(LoggedOffCallback::class.java, ::onLoggedOff))
                     add(subscribe(PersonaStatesCallback::class.java, ::onPersonaStateReceived))
                     add(subscribe(LicenseListCallback::class.java, ::onLicenseList))
-                    // add(subscribe(PICSProductInfoCallback::class.java, ::onPICSProductInfo))
                     add(subscribe(NicknameListCallback::class.java, ::onNicknameList))
                     add(subscribe(FriendsListCallback::class.java, ::onFriendsList))
                     add(subscribe(EmoticonListCallback::class.java, ::onEmoticonList))
@@ -1287,9 +1288,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         _unifiedFriends?.close()
         _unifiedFriends = null
 
-        // packageInfo.clear()
-        // appInfo.clear()
-
         isStopping = false
         retryAttempt = 0
 
@@ -1376,11 +1374,15 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // continuously check for pics changes
                 serviceScope.launch {
                     while (isLoggedIn) {
-                        val picsChangesCallback = _steamApps?.picsGetChangesSince(PrefManager.lastPICSChangeNumber, true, true)?.await()
+                        val picsChangesCallback = _steamApps?.picsGetChangesSince(
+                            lastChangeNumber = PrefManager.lastPICSChangeNumber,
+                            sendAppChangeList = true,
+                            sendPackageChangelist = true,
+                        )?.await()
+
                         if (picsChangesCallback != null &&
                             picsChangesCallback.currentChangeNumber != PrefManager.lastPICSChangeNumber
                         ) {
-                            @SuppressLint("BinaryOperationInTimber")
                             Timber.d(
                                 "lastChangeNumber: ${picsChangesCallback.lastChangeNumber}" +
                                     "\ncurrentChangeNumber: ${picsChangesCallback.currentChangeNumber}" +
@@ -1392,8 +1394,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                             )
 
                             PrefManager.lastPICSChangeNumber = picsChangesCallback.currentChangeNumber
+
                             dbScope.launch {
                                 // Timber.d("Adding ${appToAdd?.name} with appId of ${appToAdd?.id} and pkgId of ${appToAdd?.packageId}")
+
                                 val appIds = picsChangesCallback.appChanges.values
                                     .filter { it.changeNumber != appDao.findApp(it.id).first()?.lastChangeNumber }
                                     .map { AppRequest(it.id) }.toTypedArray()
@@ -1403,12 +1407,13 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     .filter { it.changeNumber != licenseDao.findLicense(it.id).first()?.lastChangeNumber }
                                 val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
                                 val accessTokens = _steamApps?.picsGetAccessTokens(
-                                    emptyList<Int>(),
+                                    emptyList(),
                                     pkgsForAccessTokens,
                                 )?.await()?.packageTokens ?: emptyMap()
                                 requestAndAddPkgsToDb(pkgsWithChanges.map { PICSRequest(it.id, accessTokens[it.id] ?: 0) })
                             }
                         }
+
                         delay(PICS_CHANGE_CHECK_DELAY)
                     }
                 }
@@ -1420,7 +1425,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                         .buffer(Channel.RENDEZVOUS)
                         .collect { appIds ->
                             Timber.d("Collected ${appIds.size} app(s) to PICS")
+
                             isRequestingAppInfo = true
+
                             val multiJob = _steamApps?.picsGetProductInfo(appIds.map { PICSRequest(it.appId) }, emptyList())?.await()
                             val appBoolMap = appIds.associate { it.appId to it.addToDbIfUnowned }
                             val appMap = multiJob?.results
@@ -1428,6 +1435,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 ?.flatMap { it.apps.toList() }
                                 ?.associate { it.first to Pair(it.second, appBoolMap[it.first] == true) }
                             addAppsToDb(appMap)
+
                             isRequestingAppInfo = false
                         }
                 }
@@ -1634,6 +1642,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             // Timber.d("${newLicense.packageID} -> ${newLicense.lastChangeNumber}")
                             oldLicense?.let { it.lastChangeNumber != newLicense.lastChangeNumber } != false
                         }
+
                         if (changedOrNewLicenses.isNotEmpty()) {
                             Timber.i("There are ${changedOrNewLicenses.size} license(s) that need to be inserted into the database")
                             db.withTransaction {
@@ -1656,8 +1665,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                                         masterPackageID = license.masterPackageID,
                                     )
                                 }.toTypedArray()
+
                                 licenseDao.insert(*licensesToAdd)
                             }
+
                             requestAndAddPkgsToDb(changedOrNewLicenses.map { PICSRequest(it.packageID, it.accessToken) })
                         }
                     }
@@ -1671,10 +1682,9 @@ class SteamService : Service(), IChallengeUrlChanged {
     private fun requestAndAddPkgsToDb(picsRequests: List<PICSRequest>) {
         serviceScope.launch {
             isRequestingPkgInfo = true
-            val packages = _steamApps!!.picsGetProductInfo(
-                apps = emptyList(),
-                packages = picsRequests,
-            ).await().results
+
+            val packages = _steamApps!!.picsGetProductInfo(apps = emptyList(), packages = picsRequests).await()
+                .results
                 .map { it as PICSProductInfoCallback }
                 .flatMap { it.packages.values }
 
@@ -1690,10 +1700,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                             val steamAppsToAdd = appIds.map { appId ->
                                 appDao.findApp(appId).first()?.copy(packageId = pkg.id)
-                                    ?: SteamApp(
-                                        id = appId,
-                                        packageId = pkg.id,
-                                    )
+                                    ?: SteamApp(id = appId, packageId = pkg.id)
                             }.toTypedArray()
                             appDao.insert(*steamAppsToAdd)
 
@@ -1710,7 +1717,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     private fun addAppsToDb(apps: Map<Int, Pair<PICSProductInfo, Boolean>>?) {
         if (!apps.isNullOrEmpty()) {
             dbScope.launch {
-                val apps = apps.values.map {
+                val filteredApps = apps.values.mapNotNull {
                     // // val isBaba = app.id == 736260
                     // // val isNoita = app.id == 881100
                     // // val isHades = app.id == 1145360
@@ -1740,21 +1747,21 @@ class SteamService : Service(), IChallengeUrlChanged {
                         app.changeNumber != appFromDb?.lastChangeNumber &&
                         (includeIfNotOwned || ownerAccountId == userSteamId?.accountID?.toInt())
                     ) {
-                        app.keyValues.generateSteamApp()
-                            .copy(
-                                packageId = packageId,
-                                ownerAccountId = ownerAccountId,
-                                receivedPICS = true,
-                                lastChangeNumber = app.changeNumber,
-                            )
+                        app.keyValues.generateSteamApp().copy(
+                            packageId = packageId,
+                            ownerAccountId = ownerAccountId,
+                            receivedPICS = true,
+                            lastChangeNumber = app.changeNumber,
+                        )
                     } else {
                         null
                     }
-                }.filterNotNull().toTypedArray()
+                }.toTypedArray()
 
                 db.withTransaction {
-                    appDao.insert(*apps)
+                    appDao.insert(*filteredApps)
                 }
+
                 PluviaApp.events.emit(SteamEvent.AppInfoReceived)
             }
         }
