@@ -18,6 +18,7 @@ import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.theme.settingsTileColors
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
+import com.alorma.compose.settings.ui.SettingsSwitch
 import com.materialkolor.PaletteStyle
 
 @Composable
@@ -28,6 +29,8 @@ fun SettingsGroupInterface(
     onPaletteStyle: (PaletteStyle) -> Unit,
 ) {
     val context = LocalContext.current
+
+    var openWebLinks by rememberSaveable { mutableStateOf(PrefManager.openWebLinksExternally) }
 
     var openAppThemeDialog by rememberSaveable { mutableStateOf(false) }
     var openAppPaletteDialog by rememberSaveable { mutableStateOf(false) }
@@ -104,6 +107,16 @@ fun SettingsGroupInterface(
             subtitle = { Text(text = "Change the Material Design 3 color palette") },
             onClick = {
                 openAppPaletteDialog = true
+            },
+        )
+        SettingsSwitch(
+            colors = settingsTileColors(),
+            title = { Text(text = "Open web links externally") },
+            subtitle = { Text(text = "Links open with your main web browser") },
+            state = openWebLinks,
+            onCheckedChange = {
+                openWebLinks = it
+                PrefManager.openWebLinksExternally = it
             },
         )
     }

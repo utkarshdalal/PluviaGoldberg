@@ -101,6 +101,7 @@ import com.OxGames.Pluvia.ui.component.BBCodeText
 import com.OxGames.Pluvia.ui.component.LoadingScreen
 import com.OxGames.Pluvia.ui.component.dialog.GamesListDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
+import com.OxGames.Pluvia.ui.component.dialog.WebViewDialog
 import com.OxGames.Pluvia.ui.component.dialog.state.MessageDialogState
 import com.OxGames.Pluvia.ui.component.topbar.AccountButton
 import com.OxGames.Pluvia.ui.component.topbar.BackButton
@@ -494,6 +495,15 @@ private fun ProfileDetailsScreen(
         )
     }
 
+    var showInternalBrowserDialog by rememberSaveable { mutableStateOf(false) }
+    WebViewDialog(
+        isVisible = showInternalBrowserDialog,
+        url = state.profileFriend!!.id.getProfileUrl(),
+        onDismissRequest = {
+            showInternalBrowserDialog = false
+        },
+    )
+
     Scaffold(
         topBar = {
             // Show Top App Bar when in Compact or Medium screen space.
@@ -533,7 +543,7 @@ private fun ProfileDetailsScreen(
                     .clip(CircleShape)
                     .background(Color.DarkGray)
                     .size(92.dp),
-                imageModel = { state.profileFriend!!.avatarHash.getAvatarURL() },
+                imageModel = { state.profileFriend.avatarHash.getAvatarURL() },
                 imageOptions = ImageOptions(
                     contentScale = ContentScale.Crop,
                     contentDescription = null,
@@ -546,7 +556,7 @@ private fun ProfileDetailsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = state.profileFriend!!.nameOrNickname,
+                text = state.profileFriend.nameOrNickname,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.headlineLarge,
@@ -577,7 +587,11 @@ private fun ProfileDetailsScreen(
                     icon = Icons.Outlined.Person,
                     text = "Profile",
                     onClick = {
-                        uriHandler.openUri(state.profileFriend.id.getProfileUrl())
+                        if (PrefManager.openWebLinksExternally) {
+                            uriHandler.openUri(state.profileFriend.id.getProfileUrl())
+                        } else {
+                            showInternalBrowserDialog = true
+                        }
                     },
                 )
                 Spacer(modifier = Modifier.width(16.dp))
@@ -714,16 +728,22 @@ private fun ProfileDetailsScreen(
                     } else {
                         // 'headline' doesn't seem to be used anymore
                         CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodyMedium) {
+                            // Meh...
                             with(state.profileFriendInfo) {
-                                // Meh...
-                                if (realName.isNotEmpty()) Text(text = "Name: $realName")
-                                if (cityName.isNotEmpty()) Text(text = "City: $cityName")
-                                if (stateName.isNotEmpty()) Text(text = "State: $stateName")
-                                if (stateName.isNotEmpty()) Text(text = "Country: $countryName")
-                                Text(text = "Created: $timeCreated")
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(text = "Summary:")
-                                BBCodeText(text = summary)
+                                // Steam launch: Sept 12, 2003
+                                val isValid = timeCreated.after(Date(1063267200000L))
+                                if (isValid) {
+                                    if (realName.isNotEmpty()) Text(text = "Name: $realName")
+                                    if (cityName.isNotEmpty()) Text(text = "City: $cityName")
+                                    if (stateName.isNotEmpty()) Text(text = "State: $stateName")
+                                    if (stateName.isNotEmpty()) Text(text = "Country: $countryName")
+                                    Text(text = "Created: $timeCreated")
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(text = "Summary:")
+                                    BBCodeText(text = summary)
+                                } else {
+                                    Text("Profile most likely private.\nUnable to retrieve info")
+                                }
                             }
                         }
                     }
