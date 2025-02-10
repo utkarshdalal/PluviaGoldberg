@@ -31,8 +31,11 @@ interface SteamAppDao {
         invalidPkgId: Int = INVALID_PKG_ID,
     ): Flow<List<SteamApp>>
 
-    @Query("SELECT * FROM steam_app WHERE received_pics = 0")
-    fun getAllAppsWithoutPICS(): Flow<List<SteamApp>>
+    @Query("SELECT * FROM steam_app WHERE received_pics = 0 AND package_id != :invalidPkgId AND owner_account_id = :ownerId")
+    fun getAllOwnedAppsWithoutPICS(
+        ownerId: Int,
+        invalidPkgId: Int = INVALID_PKG_ID,
+    ): Flow<List<SteamApp>>
 
     @Query("SELECT * FROM steam_app WHERE id = :appId")
     fun findApp(appId: Int): Flow<SteamApp?>
