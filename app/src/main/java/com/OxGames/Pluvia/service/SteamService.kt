@@ -1624,7 +1624,10 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (callback.result == EResult.OK) {
             dbScope.launch {
                 // check first if any apps already exist in the db that need PICS
-                val apps = appDao.getAllAppsWithoutPICS().firstOrNull()?.map { AppRequest(it.id) }?.toTypedArray()
+                val apps = appDao.getAllOwnedAppsWithoutPICS(userSteamId!!.accountID.toInt())
+                    .firstOrNull()
+                    ?.map { AppRequest(it.id) }
+                    ?.toTypedArray()
                 Timber.d("${apps?.size ?: 0} app(s) need PICS")
                 if (apps?.isNotEmpty() == true) {
                     queueAppPICSRequests(*apps)
