@@ -1399,12 +1399,22 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 // Timber.d("Adding ${appToAdd?.name} with appId of ${appToAdd?.id} and pkgId of ${appToAdd?.packageId}")
 
                                 val appIds = picsChangesCallback.appChanges.values
-                                    .filter { it.changeNumber != appDao.findApp(it.id).first()?.lastChangeNumber }
+                                    .filter { changeData ->
+                                        // only queue PICS requests for apps existing in the db that have changed
+                                        appDao.findApp(changeData.id).first()?.let {
+                                            changeData.changeNumber != it.lastChangeNumber
+                                        } == true
+                                    }
                                     .map { AppRequest(it.id) }.toTypedArray()
                                 queueAppPICSRequests(*appIds)
 
                                 val pkgsWithChanges = picsChangesCallback.packageChanges.values
-                                    .filter { it.changeNumber != licenseDao.findLicense(it.id).first()?.lastChangeNumber }
+                                    .filter { changeData ->
+                                        // only queue PICS requests for pkgs existing in the db that have changed
+                                        licenseDao.findLicense(changeData.id).first()?.let {
+                                            changeData.changeNumber != it.lastChangeNumber
+                                        } == true
+                                    }
                                 val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
                                 val accessTokens = _steamApps?.picsGetAccessTokens(
                                     emptyList(),
@@ -1701,13 +1711,17 @@ class SteamService : Service(), IChallengeUrlChanged {
                             licenseDao.updateApps(pkg.id, appIds)
                             licenseDao.updateDepots(pkg.id, depotIds)
 
-                            val steamAppsToAdd = appIds.map { appId ->
-                                appDao.findApp(appId).first()?.copy(packageId = pkg.id)
-                                    ?: SteamApp(id = appId, packageId = pkg.id)
-                            }.toTypedArray()
-                            appDao.insert(*steamAppsToAdd)
+                            val license = licenseDao.findLicense(pkg.id).first()
+                            // only add the apps belonging to the license if the user owns it
+                            if (license?.ownerAccountId == userSteamId?.accountID?.toInt()) {
+                                val steamAppsToAdd = appIds.map { appId ->
+                                    appDao.findApp(appId).first()?.copy(packageId = pkg.id)
+                                        ?: SteamApp(id = appId, packageId = pkg.id)
+                                }.toTypedArray()
 
-                            queueAppPICSRequests(*appIds.map { AppRequest(it) }.toTypedArray())
+                                appDao.insert(*steamAppsToAdd)
+                                queueAppPICSRequests(*appIds.map { AppRequest(it) }.toTypedArray())
+                            }
                         }
                     }
 
