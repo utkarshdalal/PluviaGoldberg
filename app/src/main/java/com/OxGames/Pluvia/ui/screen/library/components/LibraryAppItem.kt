@@ -1,4 +1,4 @@
-package com.OxGames.Pluvia.ui.screen.library
+package com.OxGames.Pluvia.ui.screen.library.components
 
 import android.content.res.Configuration
 import androidx.compose.foundation.clickable
@@ -20,7 +20,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.ui.util.ListItemImage
 
 @Composable
-fun AppItem(
+internal fun AppItem(
     modifier: Modifier = Modifier,
     appInfo: LibraryItem,
     onClick: () -> Unit,
@@ -37,7 +37,12 @@ fun AppItem(
     )
 }
 
+/***********
+ * PREVIEW *
+ ***********/
+
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
+@Preview
 @Composable
 private fun Preview_AppItem() {
     PluviaTheme {

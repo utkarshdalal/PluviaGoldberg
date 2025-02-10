@@ -64,6 +64,7 @@ import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.enums.DialogType
+import com.OxGames.Pluvia.ui.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.OxGames.Pluvia.utils.StorageUtils
@@ -523,6 +524,10 @@ private fun AppScreenContent(
     }
 }
 
+/***********
+ * PREVIEW *
+ ***********/
+
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(
     device = "spec:width=1920px,height=1080px,dpi=440",
@@ -536,7 +541,7 @@ private fun Preview_AppScreen() {
     PluviaTheme {
         Surface {
             AppScreenContent(
-                appInfo = null,
+                appInfo = fakeAppInfo(1),
                 isInstalled = false,
                 isDownloading = true,
                 downloadProgress = .50f,
