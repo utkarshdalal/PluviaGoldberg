@@ -179,11 +179,11 @@ data class SteamApp(
     fun getHeroUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryHero.image2x[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         } else {
             libraryAssets.libraryHero.image[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         }
     }
