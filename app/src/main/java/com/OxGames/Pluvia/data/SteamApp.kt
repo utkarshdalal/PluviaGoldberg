@@ -39,6 +39,8 @@ data class SteamApp(
     val osList: EnumSet<OS> = EnumSet.of(OS.none),
     @ColumnInfo("release_state")
     val releaseState: ReleaseState = ReleaseState.disabled,
+    @ColumnInfo("release_date")
+    val releaseDate: Long = 0L,
     @ColumnInfo("metacritic_score")
     val metacriticScore: Byte = 0,
     @ColumnInfo("metacritic_full_url")
