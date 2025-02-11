@@ -24,23 +24,28 @@ internal fun LibraryDetailPane(
 ) {
     Surface {
         if (appId == SteamService.INVALID_APP_ID) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shadowElevation = 8.dp,
-                ) {
-                    Text(
-                        modifier = Modifier.padding(24.dp),
-                        text = "Select an item in the list to view game info",
-                    )
-                }
-            }
+            LibraryEmptyDetailPane()
         } else {
             AppScreen(
                 appId = appId,
                 onClickPlay = onClickPlay,
                 onBack = onBack,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LibraryEmptyDetailPane() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shadowElevation = 8.dp,
+        ) {
+            Text(
+                modifier = Modifier.padding(24.dp),
+                text = "Select an item in the list to view game info",
             )
         }
     }
