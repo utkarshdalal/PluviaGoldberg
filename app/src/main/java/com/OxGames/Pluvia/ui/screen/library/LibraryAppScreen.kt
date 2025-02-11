@@ -3,7 +3,6 @@ package com.OxGames.Pluvia.ui.screen.library
 import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -70,6 +69,7 @@ import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.enums.DialogType
 import com.OxGames.Pluvia.ui.internal.fakeAppInfo
+import com.OxGames.Pluvia.ui.screen.library.components.GameInfoRow
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.OxGames.Pluvia.utils.StorageUtils
@@ -428,6 +428,10 @@ private fun AppScreenContent(
     val scrollState = rememberScrollState()
     var optionsMenuVisible by remember { mutableStateOf(false) }
 
+    LaunchedEffect(appInfo.id) {
+        scrollState.animateScrollTo(0)
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -554,45 +558,15 @@ private fun AppScreenContent(
         // Game info
         Card(modifier = Modifier.padding(16.dp)) {
             Column {
-                Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        text = "Author: ",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = appInfo.developer,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.End,
-                    )
+                val date = remember(appInfo.releaseDate) {
+                    val date = Date(appInfo.releaseDate.times(1000))
+                    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
                 }
-                Row(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    val date = remember(appInfo.releaseDate) {
-                        SimpleDateFormat(
-                            "MMM dd, yyyy",
-                            Locale.getDefault(),
-                        ).format(Date(appInfo.releaseDate.times(1000)))
-                    }
 
-                    Text(
-                        text = "Release date: ",
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
-                    Text(
-                        text = date,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.End,
-                    )
-                }
+                GameInfoRow(key = "Controller Support:", value = appInfo.controllerSupport.name)
+                GameInfoRow(key = "Developer:", value = appInfo.developer)
+                GameInfoRow(key = "Publisher:", value = appInfo.publisher)
+                GameInfoRow(key = "Release date:", value = date)
             }
         }
     }
