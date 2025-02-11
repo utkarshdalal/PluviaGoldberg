@@ -3,6 +3,7 @@ package com.OxGames.Pluvia.ui.screen.library
 import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -76,6 +78,9 @@ import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import com.winlator.container.ContainerData
 import com.winlator.xenvironment.ImageFsInstaller
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -543,6 +548,50 @@ private fun AppScreenContent(
                             },
                         )
                     }
+                }
+            }
+        }
+        // Game info
+        Card(modifier = Modifier.padding(16.dp)) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = "Author: ",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = appInfo.developer,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.End,
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    val date = remember(appInfo.releaseDate) {
+                        SimpleDateFormat(
+                            "MMM dd, yyyy",
+                            Locale.getDefault(),
+                        ).format(Date(appInfo.releaseDate.times(1000)))
+                    }
+
+                    Text(
+                        text = "Release date: ",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.End,
+                    )
                 }
             }
         }
