@@ -26,7 +26,6 @@ import coil.ImageLoader
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import coil.request.CachePolicy
-import coil.util.DebugLogger
 import com.OxGames.Pluvia.events.AndroidEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.PluviaMain
@@ -110,7 +109,7 @@ class MainActivity : ComponentActivity() {
                     .directory(context.cacheDir.resolve("image_cache").toOkioPath())
                     .build()
 
-                val logger = if (BuildConfig.DEBUG) DebugLogger() else null
+                // val logger = if (BuildConfig.DEBUG) DebugLogger() else null
 
                 ImageLoader.Builder(context)
                     .memoryCachePolicy(CachePolicy.ENABLED)
@@ -121,7 +120,7 @@ class MainActivity : ComponentActivity() {
                         add(IconDecoder.Factory())
                         add(AnimatedPngDecoder.Factory())
                     }
-                    .logger(logger)
+                    // .logger(logger)
                     .build()
             }
 
