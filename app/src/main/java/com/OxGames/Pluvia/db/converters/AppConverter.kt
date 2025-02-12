@@ -12,13 +12,12 @@ import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.ReleaseState
 import java.util.EnumSet
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class AppConverter {
 
     @TypeConverter
-    fun toAppType(appType: Int): AppType = AppType.from(appType).firstOrNull() ?: AppType.invalid
+    fun toAppType(appType: Int): AppType = AppType.fromCode(appType)
 
     @TypeConverter
     fun fromAppType(appType: AppType): Int = appType.code

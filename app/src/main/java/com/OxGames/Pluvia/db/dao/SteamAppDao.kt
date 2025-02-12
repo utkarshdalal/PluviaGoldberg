@@ -6,9 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.OxGames.Pluvia.data.SteamApp
-import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.service.SteamService.Companion.INVALID_PKG_ID
-import java.util.EnumSet
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -21,12 +19,15 @@ interface SteamAppDao {
     suspend fun update(app: SteamApp)
 
     @Query(
-        "SELECT * FROM steam_app WHERE package_id != :invalidPkgId " +
-            "AND owner_account_id = :ownerId AND type != 0 AND type & :filter = type",
+        "SELECT * FROM steam_app " +
+            "WHERE id != 480 " + // Actively filter out Spacewar
+            "AND owner_account_id = :ownerId " +
+            "AND package_id != :invalidPkgId " +
+            "AND type != 0 " +
+            "ORDER BY LOWER(name)",
     )
     fun getAllOwnedApps(
         ownerId: Int,
-        filter: Int = AppType.code(EnumSet.allOf(AppType::class.java)),
         invalidPkgId: Int = INVALID_PKG_ID,
     ): Flow<List<SteamApp>>
 

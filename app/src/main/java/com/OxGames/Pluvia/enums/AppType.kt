@@ -69,5 +69,9 @@ enum class AppType(val code: Int) {
         fun code(value: EnumSet<AppType>): Int {
             return value.map { it.code }.reduce { first, second -> first or second }
         }
+
+        fun fromCode(code: Int): AppType {
+            return entries.find { it.code == code } ?: invalid
+        }
     }
 }
