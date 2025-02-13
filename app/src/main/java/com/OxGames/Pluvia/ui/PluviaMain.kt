@@ -201,7 +201,7 @@ fun PluviaMain(
     when (msgDialogState.type) {
         DialogType.SUPPORT -> {
             onConfirmClick = {
-                uriHandler.openUri(Constants.Misc.TIP_JAR_LINK)
+                uriHandler.openUri(Constants.Misc.KO_FI_LINK)
                 PrefManager.tipped = true
                 msgDialogState = MessageDialogState(visible = false)
             }
