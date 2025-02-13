@@ -193,11 +193,11 @@ data class SteamApp(
     fun getLogoUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryLogo.image2x[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         } else {
             libraryAssets.libraryLogo.image[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         }
     }
