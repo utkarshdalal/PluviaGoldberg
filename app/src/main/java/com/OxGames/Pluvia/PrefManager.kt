@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.service.SteamService
+import com.OxGames.Pluvia.ui.enums.AppFilter
 import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.enums.Orientation
 import com.materialkolor.PaletteStyle
@@ -356,6 +357,16 @@ object PrefManager {
     /**
      * Get or Set the last known Persona State. See [EPersonaState]
      */
+    private val LIBRARY_FILTER = intPreferencesKey("library_filter")
+    var libraryFilter: EnumSet<AppFilter>
+        get() {
+            val value = getPref(LIBRARY_FILTER, AppFilter.toFlags(EnumSet.of(AppFilter.GAME)))
+            return AppFilter.fromFlags(value)
+        }
+        set(value) {
+            setPref(LIBRARY_FILTER, AppFilter.toFlags(value))
+        }
+
     private val PERSONA_STATE = intPreferencesKey("persona_state")
     var personaState: EPersonaState
         get() {

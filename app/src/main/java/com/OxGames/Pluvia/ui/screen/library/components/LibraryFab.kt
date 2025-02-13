@@ -14,13 +14,13 @@ import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenu
 import com.OxGames.Pluvia.ui.component.fabmenu.FloatingActionMenuItem
 import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuState
 import com.OxGames.Pluvia.ui.data.LibraryState
-import com.OxGames.Pluvia.ui.enums.FabFilter
+import com.OxGames.Pluvia.ui.enums.AppFilter
 
 @Composable
 internal fun LibraryFab(
     fabState: FloatingActionMenuState,
     state: LibraryState,
-    onFabFilter: (FabFilter) -> Unit,
+    onFabFilter: (AppFilter) -> Unit,
 ) {
     FloatingActionMenu(
         state = fabState,
@@ -29,45 +29,45 @@ internal fun LibraryFab(
     ) {
         FloatingActionMenuItem(
             labelText = "Installed",
-            isSelected = state.appInfoSortType.contains(FabFilter.INSTALLED),
+            isSelected = state.appInfoSortType.contains(AppFilter.INSTALLED),
             onClick = {
-                onFabFilter(FabFilter.INSTALLED)
+                onFabFilter(AppFilter.INSTALLED)
                 fabState.close()
             },
             content = { Icon(Icons.Filled.InstallMobile, "Installed") },
         )
         FloatingActionMenuItem(
             labelText = "Game",
-            isSelected = state.appInfoSortType.contains(FabFilter.GAME),
+            isSelected = state.appInfoSortType.contains(AppFilter.GAME),
             onClick = {
-                onFabFilter(FabFilter.GAME)
+                onFabFilter(AppFilter.GAME)
                 fabState.close()
             },
             content = { Icon(Icons.Filled.VideogameAsset, "Game") },
         )
         FloatingActionMenuItem(
             labelText = "Application",
-            isSelected = state.appInfoSortType.contains(FabFilter.APPLICATION),
+            isSelected = state.appInfoSortType.contains(AppFilter.APPLICATION),
             onClick = {
-                onFabFilter(FabFilter.APPLICATION)
+                onFabFilter(AppFilter.APPLICATION)
                 fabState.close()
             },
             content = { Icon(Icons.Filled.Computer, "Application") },
         )
         FloatingActionMenuItem(
             labelText = "Tool",
-            isSelected = state.appInfoSortType.contains(FabFilter.TOOL),
+            isSelected = state.appInfoSortType.contains(AppFilter.TOOL),
             onClick = {
-                onFabFilter(FabFilter.TOOL)
+                onFabFilter(AppFilter.TOOL)
                 fabState.close()
             },
             content = { Icon(Icons.Filled.Build, "Tool") },
         )
         FloatingActionMenuItem(
             labelText = "Demo",
-            isSelected = state.appInfoSortType.contains(FabFilter.DEMO),
+            isSelected = state.appInfoSortType.contains(AppFilter.DEMO),
             onClick = {
-                onFabFilter(FabFilter.DEMO)
+                onFabFilter(AppFilter.DEMO)
                 fabState.close()
             },
             content = { Icon(Icons.Filled.AvTimer, "Demo") },
