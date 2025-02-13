@@ -2,6 +2,7 @@ package com.OxGames.Pluvia.ui.screen.library.components
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import java.util.EnumSet
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun LibraryBottomSheet(
     selectedFilters: EnumSet<AppFilter>,
     onFilterChanged: (AppFilter) -> Unit,

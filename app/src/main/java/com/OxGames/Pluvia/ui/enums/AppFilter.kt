@@ -5,7 +5,6 @@ import androidx.compose.material.icons.filled.AvTimer
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.InstallMobile
-import androidx.compose.material.icons.filled.SortByAlpha
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.OxGames.Pluvia.enums.AppType
