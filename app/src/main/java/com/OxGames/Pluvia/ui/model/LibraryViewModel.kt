@@ -7,8 +7,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.OxGames.Pluvia.data.LibraryItem
+import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.db.dao.SteamAppDao
-import com.OxGames.Pluvia.enums.AppType
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.FabFilter
@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
@@ -32,24 +33,39 @@ class LibraryViewModel @Inject constructor(
     // Keep the library scroll state. This will last longer as the VM will stay alive.
     var listState: LazyListState by mutableStateOf(LazyListState(0, 0))
 
+    // Complete and unfiltered app list
+    private var appList: List<SteamApp> = emptyList()
+
+    private val account = SteamService.userSteamId?.accountID?.toInt()
+        ?: throw NullPointerException("Account id is null")
+
     init {
-        observeAppList()
+        require(account > 0) // Sanity check
+
+        viewModelScope.launch(Dispatchers.IO) {
+            steamAppDao.getAllOwnedApps(ownerId = account).collect { apps ->
+                Timber.d("Collecting ${apps.size} apps")
+
+                appList = apps
+
+                onFilterApps()
+            }
+        }
     }
 
     fun onIsSearching(value: Boolean) {
         _state.update { it.copy(isSearching = value) }
-
         if (!value) {
-            observeAppList()
+            onSearchQuery("")
         }
     }
 
     fun onSearchQuery(value: String) {
         _state.update { it.copy(searchQuery = value) }
-
-        observeAppList()
+        onFilterApps()
     }
 
+    // TODO: include other sort types
     fun onFabFilter(value: FabFilter) {
         _state.update { currentState ->
             val updatedFilter = currentState.appInfoSortType
@@ -61,44 +77,46 @@ class LibraryViewModel @Inject constructor(
             currentState.copy(appInfoSortType = updatedFilter)
         }
 
-        observeAppList()
+        onFilterApps()
     }
 
-    private fun observeAppList() {
-        viewModelScope.launch(Dispatchers.IO) {
-            // clears out the list to prepare to load the new one
-            _state.update { it.copy(appInfoList = emptyList()) }
-            SteamService.userSteamId?.accountID?.toInt()?.let { steamId ->
-                steamAppDao.getAllOwnedApps(
-                    ownerId = steamId,
-                    filter = AppType.code(FabFilter.getAppType(_state.value.appInfoSortType)),
-                ).collect { apps ->
-                    _state.update { currentState ->
-                        val sortedList = apps
-                            // filter out spacewar
-                            .asSequence()
-                            .filter { it.id != 480 }
-                            .filter {
-                                if (currentState.appInfoSortType.contains(FabFilter.INSTALLED)) SteamService.isAppInstalled(it.id) else true
-                            }
-                            .filter { it.name.contains(currentState.searchQuery, true) }
-                            // TODO: include other sort types
-                            .sortedBy { appInfo -> appInfo.name.lowercase() }
-                            .mapIndexed { idx, item ->
-                                // Slim down the list with only the necessary values.
-                                LibraryItem(
-                                    index = idx,
-                                    appId = item.id,
-                                    name = item.name,
-                                    iconHash = item.clientIconHash,
-                                )
-                            }
-                            .toList()
+    private fun onFilterApps() {
+        Timber.d("onFilterApps")
+        viewModelScope.launch {
+            val currentState = _state.value
+            val currentFilter = FabFilter.getAppType(currentState.appInfoSortType)
 
-                        currentState.copy(appInfoList = sortedList)
+            val filteredList = appList
+                .asSequence()
+                .filter { item ->
+                    currentFilter.any { item.type == it }
+                }
+                .filter { item ->
+                    if (currentState.searchQuery.isNotEmpty()) {
+                        item.name.contains(currentState.searchQuery, ignoreCase = true)
+                    } else {
+                        true
                     }
                 }
-            }
+                .filter { item ->
+                    if (currentState.appInfoSortType.contains(FabFilter.INSTALLED)) {
+                        SteamService.isAppInstalled(item.id)
+                    } else {
+                        true
+                    }
+                }
+                .mapIndexed { idx, item ->
+                    LibraryItem(
+                        index = idx,
+                        appId = item.id,
+                        name = item.name,
+                        iconHash = item.clientIconHash,
+                    )
+                }
+                .toList()
+
+            Timber.d("Filtered list size: ${filteredList.size}")
+            _state.update { it.copy(appInfoList = filteredList) }
         }
     }
 }
