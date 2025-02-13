@@ -4,6 +4,7 @@ import com.OxGames.Pluvia.enums.AppType
 import java.util.EnumSet
 
 enum class AppFilter(val code: Int) {
+    NONE(0),
     INSTALLED(0x01),
     ALPHABETIC(0x02),
     GAME(0x04),
@@ -28,6 +29,20 @@ enum class AppFilter(val code: Int) {
                 output.add(AppType.demo)
             }
             return output
+        }
+
+        fun fromFlags(flags: Int): EnumSet<AppFilter> {
+            val result = EnumSet.noneOf(AppFilter::class.java)
+            AppFilter.entries.forEach { appFilter ->
+                if (flags and appFilter.code == appFilter.code) {
+                    result.add(appFilter)
+                }
+            }
+            return result
+        }
+
+        fun toFlags(value: EnumSet<AppFilter>): Int {
+            return value.map { it.code }.reduceOrNull { first, second -> first or second } ?: NONE.code
         }
     }
 }

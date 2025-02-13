@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.db.dao.SteamAppDao
@@ -79,6 +80,8 @@ class LibraryViewModel @Inject constructor(
             } else {
                 updatedFilter.add(value)
             }
+
+            PrefManager.libraryFilter = updatedFilter
 
             currentState.copy(appInfoSortType = updatedFilter)
         }

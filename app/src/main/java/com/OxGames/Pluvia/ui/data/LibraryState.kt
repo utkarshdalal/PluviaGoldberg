@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia.ui.data
 
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.ui.enums.AppFilter
 import java.util.EnumSet
@@ -10,7 +11,7 @@ import java.util.EnumSet
 //  3. Close button on sheet or not? Tapping outside or swipe down dismisses it.
 
 data class LibraryState(
-    val appInfoSortType: EnumSet<AppFilter> = EnumSet.of(AppFilter.ALPHABETIC, AppFilter.GAME), // TODO save as pref
+    val appInfoSortType: EnumSet<AppFilter> = PrefManager.libraryFilter,
     val appInfoList: List<LibraryItem> = emptyList(),
     val modalBottomSheet: Boolean = false,
 
