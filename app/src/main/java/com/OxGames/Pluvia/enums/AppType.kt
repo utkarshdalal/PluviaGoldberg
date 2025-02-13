@@ -66,8 +66,8 @@ enum class AppType(val code: Int) {
             return result
         }
 
-        fun code(value: EnumSet<AppType>): Int {
-            return value.map { it.code }.reduce { first, second -> first or second }
+        fun toFlags(value: EnumSet<AppType>): Int {
+            return value.map { it.code }.reduceOrNull { first, second -> first or second } ?: invalid.code
         }
 
         fun fromCode(code: Int): AppType {
