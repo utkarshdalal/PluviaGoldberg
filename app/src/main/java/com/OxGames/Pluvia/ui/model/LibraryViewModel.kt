@@ -14,6 +14,7 @@ import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.AppFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.EnumSet
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import java.util.EnumSet
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
