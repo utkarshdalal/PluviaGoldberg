@@ -56,17 +56,17 @@ enum class AppType(val code: Int) {
             }
         }
 
-        fun from(code: Int): EnumSet<AppType> {
+        fun fromFlags(flags: Int): EnumSet<AppType> {
             val result = EnumSet.noneOf(AppType::class.java)
             AppType.entries.forEach { appType ->
-                if (code and appType.code == appType.code) {
+                if (flags and appType.code == appType.code) {
                     result.add(appType)
                 }
             }
             return result
         }
 
-        fun code(value: EnumSet<AppType>): Int {
+        fun toFlags(value: EnumSet<AppType>): Int {
             return value.map { it.code }.reduce { first, second -> first or second }
         }
 
