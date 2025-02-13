@@ -3,7 +3,7 @@ package com.OxGames.Pluvia.ui.enums
 import com.OxGames.Pluvia.enums.AppType
 import java.util.EnumSet
 
-enum class FabFilter(val code: Int) {
+enum class AppFilter(val code: Int) {
     INSTALLED(0x01),
     ALPHABETIC(0x02),
     GAME(0x04),
@@ -13,18 +13,18 @@ enum class FabFilter(val code: Int) {
     ;
 
     companion object {
-        fun getAppType(fabFilter: EnumSet<FabFilter>): EnumSet<AppType> {
+        fun getAppType(appFilter: EnumSet<AppFilter>): EnumSet<AppType> {
             val output: EnumSet<AppType> = EnumSet.noneOf(AppType::class.java)
-            if (fabFilter.contains(GAME)) {
+            if (appFilter.contains(GAME)) {
                 output.add(AppType.game)
             }
-            if (fabFilter.contains(APPLICATION)) {
+            if (appFilter.contains(APPLICATION)) {
                 output.add(AppType.application)
             }
-            if (fabFilter.contains(TOOL)) {
+            if (appFilter.contains(TOOL)) {
                 output.add(AppType.tool)
             }
-            if (fabFilter.contains(DEMO)) {
+            if (appFilter.contains(DEMO)) {
                 output.add(AppType.demo)
             }
             return output
