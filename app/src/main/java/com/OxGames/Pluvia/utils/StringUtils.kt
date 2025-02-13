@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia.utils
 
+import android.text.Html
 import com.OxGames.Pluvia.Constants
 
 /**
@@ -11,6 +12,8 @@ fun String.getAvatarURL(): String =
         ?.takeIf { str -> str.isNotEmpty() && !str.all { it == '0' } }
         ?.let { "${Constants.Persona.AVATAR_BASE_URL}${it.substring(0, 2)}/${it}_full.jpg" }
         ?: Constants.Persona.MISSING_AVATAR_URL
+
+fun String.fromHtml(): String = Html.fromHtml(this, Html.FROM_HTML_MODE_LEGACY).toString()
 
 // This doesn't belong here, but i'm tired.
 fun Long.getProfileUrl(): String = "${Constants.Persona.PROFILE_URL}$this/"

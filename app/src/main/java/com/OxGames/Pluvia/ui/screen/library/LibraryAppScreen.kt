@@ -2,30 +2,32 @@ package com.OxGames.Pluvia.ui.screen.library
 
 import android.content.Intent
 import android.content.res.Configuration
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.QuestionMark
-import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -42,13 +44,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.FixedScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.window.core.layout.WindowWidthSizeClass
@@ -56,6 +58,7 @@ import com.OxGames.Pluvia.Constants
 import com.OxGames.Pluvia.R
 import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.service.SteamService
+import com.OxGames.Pluvia.ui.component.LoadingScreen
 import com.OxGames.Pluvia.ui.component.dialog.ContainerConfigDialog
 import com.OxGames.Pluvia.ui.component.dialog.LoadingDialog
 import com.OxGames.Pluvia.ui.component.dialog.MessageDialog
@@ -64,6 +67,8 @@ import com.OxGames.Pluvia.ui.component.topbar.BackButton
 import com.OxGames.Pluvia.ui.data.AppMenuOption
 import com.OxGames.Pluvia.ui.enums.AppOptionMenuType
 import com.OxGames.Pluvia.ui.enums.DialogType
+import com.OxGames.Pluvia.ui.internal.fakeAppInfo
+import com.OxGames.Pluvia.ui.screen.library.components.GameInfoRow
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import com.OxGames.Pluvia.utils.ContainerUtils
 import com.OxGames.Pluvia.utils.StorageUtils
@@ -72,6 +77,9 @@ import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 import com.winlator.container.ContainerData
 import com.winlator.xenvironment.ImageFsInstaller
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -103,7 +111,7 @@ fun AppScreen(
     var loadingProgress by rememberSaveable { mutableFloatStateOf(0f) }
 
     val appInfo by remember(appId) {
-        mutableStateOf(SteamService.getAppInfoOf(appId))
+        mutableStateOf(SteamService.getAppInfoOf(appId)!!)
     }
 
     var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
@@ -222,6 +230,34 @@ fun AppScreen(
         }
     }
 
+    MessageDialog(
+        visible = msgDialogState.visible,
+        onDismissRequest = onDismissRequest,
+        onConfirmClick = onConfirmClick,
+        confirmBtnText = msgDialogState.confirmBtnText,
+        onDismissClick = onDismissClick,
+        dismissBtnText = msgDialogState.dismissBtnText,
+        icon = msgDialogState.type.icon,
+        title = msgDialogState.title,
+        message = msgDialogState.message,
+    )
+
+    ContainerConfigDialog(
+        visible = showConfigDialog,
+        title = "${appInfo.name} Config",
+        initialConfig = containerData,
+        onDismissRequest = { showConfigDialog = false },
+        onSave = {
+            showConfigDialog = false
+            ContainerUtils.applyToContainer(context, appId, it)
+        },
+    )
+
+    LoadingDialog(
+        visible = loadingDialogVisible,
+        progress = loadingProgress,
+    )
+
     Scaffold(
         topBar = {
             // Show Top App Bar when in Compact or Medium screen space.
@@ -229,7 +265,7 @@ fun AppScreen(
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
-                            text = appInfo?.name.orEmpty(),
+                            text = appInfo.name,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -241,31 +277,6 @@ fun AppScreen(
             }
         },
     ) { paddingValues ->
-        MessageDialog(
-            visible = msgDialogState.visible,
-            onDismissRequest = onDismissRequest,
-            onConfirmClick = onConfirmClick,
-            confirmBtnText = msgDialogState.confirmBtnText,
-            onDismissClick = onDismissClick,
-            dismissBtnText = msgDialogState.dismissBtnText,
-            icon = msgDialogState.type.icon,
-            title = msgDialogState.title,
-            message = msgDialogState.message,
-        )
-        ContainerConfigDialog(
-            visible = showConfigDialog,
-            title = "${appInfo?.name} Config",
-            initialConfig = containerData,
-            onDismissRequest = { showConfigDialog = false },
-            onSave = {
-                showConfigDialog = false
-                ContainerUtils.applyToContainer(context, appId, it)
-            },
-        )
-        LoadingDialog(
-            visible = loadingDialogVisible,
-            progress = loadingProgress,
-        )
         AppScreenContent(
             modifier = Modifier.padding(paddingValues),
             appInfo = appInfo,
@@ -286,11 +297,16 @@ fun AppScreen(
                     val depots = SteamService.getDownloadableDepots(appId)
                     Timber.d("There are ${depots.size} depots belonging to $appId")
                     // TODO: get space available based on where user wants to install
-                    val availableBytes = StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
+                    val availableBytes =
+                        StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
                     val availableSpace = StorageUtils.formatBinarySize(availableBytes)
                     // TODO: un-hardcode "public" branch
-                    val downloadSize = StorageUtils.formatBinarySize(depots.values.map { it.manifests["public"]?.download ?: 0 }.sum())
-                    val installBytes = depots.values.map { it.manifests["public"]?.size ?: 0 }.sum()
+                    val downloadSize = StorageUtils.formatBinarySize(
+                        depots.values.sumOf {
+                            it.manifests["public"]?.download ?: 0
+                        },
+                    )
+                    val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0 }
                     val installSize = StorageUtils.formatBinarySize(installBytes)
                     if (availableBytes < installBytes) {
                         msgDialogState = MessageDialogState(
@@ -323,7 +339,10 @@ fun AppScreen(
                     optionType = AppOptionMenuType.StorePage,
                     onClick = {
                         // TODO add option to view web page externally or internally
-                        val browserIntent = Intent(Intent.ACTION_VIEW, (Constants.Library.STORE_URL + appId).toUri())
+                        val browserIntent = Intent(
+                            Intent.ACTION_VIEW,
+                            (Constants.Library.STORE_URL + appId).toUri(),
+                        )
                         context.startActivity(browserIntent)
                     },
                 ),
@@ -398,7 +417,7 @@ fun AppScreen(
 @Composable
 private fun AppScreenContent(
     modifier: Modifier = Modifier,
-    appInfo: SteamApp?,
+    appInfo: SteamApp,
     isInstalled: Boolean,
     isDownloading: Boolean,
     downloadProgress: Float,
@@ -406,81 +425,101 @@ private fun AppScreenContent(
     vararg optionsMenu: AppMenuOption,
 ) {
     val scrollState = rememberScrollState()
-
     var optionsMenuVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(appInfo.id) {
+        scrollState.animateScrollTo(0)
+    }
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(scrollState),
+        horizontalAlignment = Alignment.Start,
     ) {
+        // Images
         Box {
-            // Hero Logo
+            // (Hero Logo) Steam Partner:
+            //  Size: 3840px x 1240px
+            //  (an additional half-size 1920px x 620px PNG will be auto-generated from larger file)
             CoilImage(
-                modifier = Modifier.fillMaxWidth(),
-                imageModel = { appInfo?.getHeroUrl() },
-                imageOptions = ImageOptions(
-                    contentScale = ContentScale.Crop,
-                ),
-                loading = {
-                    CircularProgressIndicator()
-                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(with(LocalDensity.current) { 620.toDp() }),
+                imageModel = { appInfo.getHeroUrl() },
+                imageOptions = ImageOptions(contentScale = ContentScale.None),
+                loading = { LoadingScreen() },
                 failure = {
-                    Icon(Icons.Filled.QuestionMark, null)
+                    Box(
+                        modifier = Modifier.padding(16.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            modifier = Modifier.align(Alignment.TopCenter),
+                            text = appInfo.name,
+                            style = MaterialTheme.typography.displayLarge,
+                            textAlign = TextAlign.Center,
+                        )
+                        Text(
+                            modifier = Modifier.align(Alignment.BottomEnd),
+                            text = "[Image not found]",
+                        )
+                    }
                 },
                 previewPlaceholder = painterResource(R.drawable.testhero),
             )
 
-            // Library Logo
+            // (Library Logo) Steam Partner:
+            //  Size: 1280px x 720px
+            //  (an additional 640px x 360px PNG will be auto-generated from larger file)
             CoilImage(
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 8.dp, bottom = 8.dp),
-                imageModel = { appInfo?.getLogoUrl() },
-                imageOptions = ImageOptions(
-                    contentScale = FixedScale(1f),
-                    requestSize = IntSize(640, 360),
-                ),
-                loading = {
-                    CircularProgressIndicator()
-                },
-                failure = {
-                    Icon(Icons.Filled.QuestionMark, null)
-                },
+                    .fillMaxWidth(.45f)
+                    .padding(start = 16.dp)
+                    .height(with(LocalDensity.current) { 360.toDp() })
+                    .align(Alignment.BottomStart),
+                imageModel = { appInfo.getLogoUrl() },
+                imageOptions = ImageOptions(contentScale = ContentScale.Fit),
+                loading = { LoadingScreen() },
                 previewPlaceholder = painterResource(R.drawable.testliblogo),
             )
         }
+
+        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Controls Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 4.dp)
+                .padding(horizontal = 16.dp)
                 .wrapContentHeight(),
         ) {
-            Button(
-                shape = RoundedCornerShape(8.dp),
+            FilledTonalButton(
+                modifier = Modifier.width(96.dp), // Fixed width to stop button jumping.
                 onClick = onDownloadBtnClick,
-            ) {
-                Text(
-                    if (isInstalled) {
+                content = {
+                    val text = if (isInstalled) {
                         stringResource(R.string.run_app)
                     } else if (isDownloading) {
                         stringResource(R.string.cancel)
                     } else {
                         stringResource(R.string.install_app)
-                    },
-                )
-            }
+                    }
+                    Text(text = text)
+                },
+            )
 
-            if (isDownloading) {
-                AnimatedVisibility(visible = true) {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .weight(1f)
-                            .padding(4.dp),
-                    ) {
+            Crossfade(
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                targetState = isDownloading,
+            ) { state ->
+                if (state) {
+                    Column {
                         Text(
                             modifier = Modifier.align(Alignment.End),
                             text = "${(downloadProgress * 100f).toInt()}%",
@@ -491,18 +530,12 @@ private fun AppScreenContent(
                         )
                     }
                 }
-            } else {
-                Spacer(Modifier.weight(1f))
             }
 
             Box {
                 IconButton(
-                    onClick = {
-                        optionsMenuVisible = !optionsMenuVisible
-                    },
-                    content = {
-                        Icon(Icons.Filled.MoreVert, "Options")
-                    },
+                    onClick = { optionsMenuVisible = !optionsMenuVisible },
+                    content = { Icon(Icons.Filled.MoreVert, "Options") },
                 )
                 DropdownMenu(
                     expanded = optionsMenuVisible,
@@ -520,8 +553,26 @@ private fun AppScreenContent(
                 }
             }
         }
+        // Game info
+        Card(modifier = Modifier.padding(16.dp)) {
+            Column {
+                val date = remember(appInfo.releaseDate) {
+                    val date = Date(appInfo.releaseDate.times(1000))
+                    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
+                }
+
+                GameInfoRow(key = "Controller Support:", value = appInfo.controllerSupport.name)
+                GameInfoRow(key = "Developer:", value = appInfo.developer)
+                GameInfoRow(key = "Publisher:", value = appInfo.publisher)
+                GameInfoRow(key = "Release date:", value = date)
+            }
+        }
     }
 }
+
+/***********
+ * PREVIEW *
+ ***********/
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(
@@ -533,14 +584,21 @@ private fun Preview_AppScreen() {
     val context = LocalContext.current
     val intent = Intent(context, SteamService::class.java)
     context.startForegroundService(intent)
+    var isDownloading by remember { mutableStateOf(false) }
     PluviaTheme {
         Surface {
             AppScreenContent(
-                appInfo = null,
+                appInfo = fakeAppInfo(1),
                 isInstalled = false,
-                isDownloading = true,
+                isDownloading = isDownloading,
                 downloadProgress = .50f,
-                onDownloadBtnClick = { },
+                onDownloadBtnClick = { isDownloading = !isDownloading },
+                optionsMenu = AppOptionMenuType.entries.map {
+                    AppMenuOption(
+                        optionType = it,
+                        onClick = { },
+                    )
+                }.toTypedArray(),
             )
         }
     }

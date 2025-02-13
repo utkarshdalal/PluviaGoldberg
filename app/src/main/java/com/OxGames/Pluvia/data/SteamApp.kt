@@ -39,6 +39,8 @@ data class SteamApp(
     val osList: EnumSet<OS> = EnumSet.of(OS.none),
     @ColumnInfo("release_state")
     val releaseState: ReleaseState = ReleaseState.disabled,
+    @ColumnInfo("release_date")
+    val releaseDate: Long = 0L,
     @ColumnInfo("metacritic_score")
     val metacriticScore: Byte = 0,
     @ColumnInfo("metacritic_full_url")
@@ -179,11 +181,11 @@ data class SteamApp(
     fun getHeroUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryHero.image2x[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         } else {
             libraryAssets.libraryHero.image[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         }
     }
@@ -191,11 +193,11 @@ data class SteamApp(
     fun getLogoUrl(language: Language = Language.english, large: Boolean = false): String? {
         return if (large) {
             libraryAssets.libraryLogo.image2x[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         } else {
             libraryAssets.libraryLogo.image[language]?.let {
-                "https://cdn.akamai.steamstatic.com/steam/apps/$id/$it"
+                "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/$id/$it"
             }
         }
     }
