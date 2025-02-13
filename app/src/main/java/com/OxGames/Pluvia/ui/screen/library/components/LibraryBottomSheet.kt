@@ -38,7 +38,7 @@ fun LibraryBottomSheet(
 
         FlowRow {
             AppFilter.entries.forEach { appFilter ->
-                FlowFilterChip (
+                FlowFilterChip(
                     onClick = { onFilterChanged(appFilter) },
                     label = { Text(text = appFilter.displayText) },
                     selected = selectedFilters.contains(appFilter),
