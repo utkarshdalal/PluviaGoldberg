@@ -108,7 +108,8 @@ internal fun LibraryListPane(
                 list = state.appInfoList,
                 listState = listState,
                 contentPaddingValues = PaddingValues(
-                    top = paddingValues.calculateTopPadding().minus(statusBarPadding),
+                    // TODO this fixes a `Top padding must be non-negative` crash on P9PXL, but I don't fully know why.
+                    top = maxOf(0.dp, paddingValues.calculateTopPadding().minus(statusBarPadding)),
                     bottom = 72.dp,
                 ),
                 onItemClick = onNavigate,
