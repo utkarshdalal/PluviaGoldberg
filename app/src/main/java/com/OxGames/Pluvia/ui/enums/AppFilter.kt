@@ -1,16 +1,51 @@
 package com.OxGames.Pluvia.ui.enums
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AvTimer
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.InstallMobile
+import androidx.compose.material.icons.filled.SortByAlpha
+import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.OxGames.Pluvia.enums.AppType
 import java.util.EnumSet
 
-enum class AppFilter(val code: Int) {
-    NONE(0),
-    INSTALLED(0x01),
-    ALPHABETIC(0x02),
-    GAME(0x04),
-    APPLICATION(0x08),
-    TOOL(0x10),
-    DEMO(0x20),
+enum class AppFilter(
+    val code: Int,
+    val displayText: String,
+    val icon: ImageVector,
+) {
+    INSTALLED(
+        code = 0x01,
+        displayText = "Installed",
+        icon = Icons.Default.InstallMobile,
+    ),
+    GAME(
+        code = 0x02,
+        displayText = "Game",
+        icon = Icons.Default.VideogameAsset,
+    ),
+    APPLICATION(
+        code = 0x04,
+        displayText = "Application",
+        icon = Icons.Default.Computer,
+    ),
+    TOOL(
+        code = 0x08,
+        displayText = "Tool",
+        icon = Icons.Default.Build,
+    ),
+    DEMO(
+        code = 0x10,
+        displayText = "Demo",
+        icon = Icons.Default.AvTimer,
+    ),
+    // ALPHABETIC(
+    //     code = 0x20,
+    //     displayText = "Alphabetic",
+    //     icon = Icons.Default.SortByAlpha,
+    // ),
     ;
 
     companion object {
@@ -42,7 +77,7 @@ enum class AppFilter(val code: Int) {
         }
 
         fun toFlags(value: EnumSet<AppFilter>): Int {
-            return value.map { it.code }.reduceOrNull { first, second -> first or second } ?: NONE.code
+            return value.map { it.code }.reduceOrNull { first, second -> first or second } ?: 0
         }
     }
 }
