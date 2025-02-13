@@ -107,7 +107,6 @@ internal fun LibrarySearchBar(
             content = {
                 if (state.isSearching) {
                     LibraryList(
-                        paddingValues = PaddingValues(),
                         contentPaddingValues = PaddingValues(bottom = 72.dp),
                         listState = listState,
                         list = state.appInfoList,

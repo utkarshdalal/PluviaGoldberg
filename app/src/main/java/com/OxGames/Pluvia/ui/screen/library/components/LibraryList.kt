@@ -20,7 +20,6 @@ import com.OxGames.Pluvia.data.LibraryItem
 
 @Composable
 internal fun LibraryList(
-    paddingValues: PaddingValues,
     contentPaddingValues: PaddingValues,
     listState: LazyListState,
     list: List<LibraryItem>,
@@ -28,9 +27,7 @@ internal fun LibraryList(
 ) {
     if (list.isEmpty()) {
         Box(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
             Surface(
@@ -47,9 +44,7 @@ internal fun LibraryList(
         }
     } else {
         LazyColumn(
-            modifier = Modifier
-                .padding(paddingValues)
-                .fillMaxSize(),
+            modifier = Modifier.fillMaxSize(),
             state = listState,
             contentPadding = contentPaddingValues,
         ) {
