@@ -7,13 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AvTimer
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.InstallMobile
-import androidx.compose.material.icons.filled.VideogameAsset
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -22,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.OxGames.Pluvia.ui.component.FlowFilterChip
 import com.OxGames.Pluvia.ui.enums.AppFilter
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import java.util.EnumSet
@@ -41,41 +35,14 @@ fun LibraryBottomSheet(
         Spacer(modifier = Modifier.height(18.dp))
 
         FlowRow {
-            FilterChip(
-                modifier = Modifier.padding(end = 8.dp),
-                onClick = { onFilterChanged(AppFilter.INSTALLED) },
-                label = { Text(text = "Installed") },
-                selected = selectedFilters.contains(AppFilter.INSTALLED),
-                leadingIcon = { Icon(imageVector = Icons.Default.InstallMobile, contentDescription = null) },
-            )
-            FilterChip(
-                modifier = Modifier.padding(end = 8.dp),
-                onClick = { onFilterChanged(AppFilter.GAME) },
-                label = { Text(text = "Game") },
-                selected = selectedFilters.contains(AppFilter.GAME),
-                leadingIcon = { Icon(imageVector = Icons.Default.VideogameAsset, contentDescription = null) },
-            )
-            FilterChip(
-                modifier = Modifier.padding(end = 8.dp),
-                onClick = { onFilterChanged(AppFilter.APPLICATION) },
-                label = { Text(text = "Application") },
-                selected = selectedFilters.contains(AppFilter.APPLICATION),
-                leadingIcon = { Icon(imageVector = Icons.Default.Computer, contentDescription = null) },
-            )
-            FilterChip(
-                modifier = Modifier.padding(end = 8.dp),
-                onClick = { onFilterChanged(AppFilter.TOOL) },
-                label = { Text(text = "Tool") },
-                selected = selectedFilters.contains(AppFilter.TOOL),
-                leadingIcon = { Icon(imageVector = Icons.Default.Build, contentDescription = null) },
-            )
-            FilterChip(
-                modifier = Modifier.padding(end = 8.dp),
-                onClick = { onFilterChanged(AppFilter.DEMO) },
-                label = { Text(text = "Demo") },
-                selected = selectedFilters.contains(AppFilter.DEMO),
-                leadingIcon = { Icon(imageVector = Icons.Default.AvTimer, contentDescription = null) },
-            )
+            AppFilter.entries.forEach { appFilter ->
+                FlowFilterChip (
+                    onClick = { onFilterChanged(appFilter) },
+                    label = { Text(text = appFilter.displayText) },
+                    selected = selectedFilters.contains(appFilter),
+                    leadingIcon = { Icon(imageVector = appFilter.icon, contentDescription = null) },
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(32.dp)) // A little extra padding.
