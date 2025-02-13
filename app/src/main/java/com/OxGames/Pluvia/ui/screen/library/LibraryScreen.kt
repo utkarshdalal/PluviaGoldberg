@@ -5,31 +5,35 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffold
 import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.service.SteamService
-import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuState
-import com.OxGames.Pluvia.ui.component.fabmenu.state.FloatingActionMenuValue
-import com.OxGames.Pluvia.ui.component.fabmenu.state.rememberFloatingActionMenuState
 import com.OxGames.Pluvia.ui.data.LibraryState
-import com.OxGames.Pluvia.ui.enums.FabFilter
+import com.OxGames.Pluvia.ui.enums.AppFilter
 import com.OxGames.Pluvia.ui.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.model.LibraryViewModel
 import com.OxGames.Pluvia.ui.screen.library.components.LibraryDetailPane
 import com.OxGames.Pluvia.ui.screen.library.components.LibraryListPane
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeLibraryScreen(
     viewModel: LibraryViewModel = hiltViewModel(),
@@ -38,13 +42,14 @@ fun HomeLibraryScreen(
     onLogout: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val fabState = rememberFloatingActionMenuState()
+    val sheetState = rememberModalBottomSheetState()
 
     LibraryScreenContent(
         state = state,
         listState = viewModel.listState,
-        fabState = fabState,
-        onFabFilter = viewModel::onFabFilter,
+        sheetState = sheetState,
+        onFilterChanged = viewModel::onFilterChanged,
+        onModalBottomSheet = viewModel::onModalBottomSheet,
         onIsSearching = viewModel::onIsSearching,
         onSearchQuery = viewModel::onSearchQuery,
         onClickPlay = onClickPlay,
@@ -53,15 +58,16 @@ fun HomeLibraryScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalMaterial3Api::class)
 @Composable
 private fun LibraryScreenContent(
     state: LibraryState,
     listState: LazyListState,
-    fabState: FloatingActionMenuState,
+    sheetState: SheetState,
+    onFilterChanged: (AppFilter) -> Unit,
+    onModalBottomSheet: (Boolean) -> Unit,
     onIsSearching: (Boolean) -> Unit,
     onSearchQuery: (String) -> Unit,
-    onFabFilter: (FabFilter) -> Unit,
     onClickPlay: (Int, Boolean) -> Unit,
     onSettings: () -> Unit,
     onLogout: () -> Unit,
@@ -82,12 +88,13 @@ private fun LibraryScreenContent(
                 LibraryListPane(
                     state = state,
                     listState = listState,
-                    fabState = fabState,
+                    sheetState = sheetState,
+                    onFilterChanged = onFilterChanged,
+                    onModalBottomSheet = onModalBottomSheet,
                     onIsSearching = onIsSearching,
                     onSearchQuery = onSearchQuery,
                     onSettings = onSettings,
                     onLogout = onLogout,
-                    onFabFilter = onFabFilter,
                     onNavigate = { item ->
                         navigator.navigateTo(
                             pane = ListDetailPaneScaffoldRole.Detail,
@@ -117,6 +124,7 @@ private fun LibraryScreenContent(
  * PREVIEW *
  ***********/
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview(
     uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL,
@@ -128,11 +136,11 @@ private fun LibraryScreenContent(
 )
 @Composable
 private fun Preview_LibraryScreenContent() {
-    PluviaTheme {
-        LibraryScreenContent(
-            listState = rememberLazyListState(),
-            state = LibraryState(
-                appInfoList = List(14) { idx ->
+    val sheetState = rememberModalBottomSheetState()
+    var state by remember {
+        mutableStateOf(
+            LibraryState(
+                appInfoList = List(15) { idx ->
                     val item = fakeAppInfo(idx)
                     LibraryItem(
                         index = idx,
@@ -142,13 +150,24 @@ private fun Preview_LibraryScreenContent() {
                     )
                 },
             ),
-            fabState = rememberFloatingActionMenuState(FloatingActionMenuValue.Open),
-            onIsSearching = { },
-            onSearchQuery = { },
-            onFabFilter = { },
+        )
+    }
+    PluviaTheme {
+        LibraryScreenContent(
+            listState = rememberLazyListState(),
+            state = state,
+            sheetState = sheetState,
+            onIsSearching = {},
+            onSearchQuery = {},
+            onFilterChanged = { },
+            onModalBottomSheet = {
+                val currentState = state.modalBottomSheet
+                println("State: $currentState")
+                state = state.copy(modalBottomSheet = !currentState)
+            },
             onClickPlay = { _, _ -> },
-            onSettings = { },
-            onLogout = { },
+            onSettings = {},
+            onLogout = {},
         )
     }
 }

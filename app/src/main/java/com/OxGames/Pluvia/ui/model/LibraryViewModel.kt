@@ -11,7 +11,7 @@ import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.db.dao.SteamAppDao
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
-import com.OxGames.Pluvia.ui.enums.FabFilter
+import com.OxGames.Pluvia.ui.enums.AppFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +53,10 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    fun onModalBottomSheet(value: Boolean) {
+        _state.update { it.copy(modalBottomSheet = value) }
+    }
+
     fun onIsSearching(value: Boolean) {
         _state.update { it.copy(isSearching = value) }
         if (!value) {
@@ -66,14 +70,16 @@ class LibraryViewModel @Inject constructor(
     }
 
     // TODO: include other sort types
-    fun onFabFilter(value: FabFilter) {
+    fun onFilterChanged(value: AppFilter) {
         _state.update { currentState ->
             val updatedFilter = currentState.appInfoSortType
+
             if (updatedFilter.contains(value)) {
                 updatedFilter.remove(value)
             } else {
                 updatedFilter.add(value)
             }
+
             currentState.copy(appInfoSortType = updatedFilter)
         }
 
@@ -84,7 +90,7 @@ class LibraryViewModel @Inject constructor(
         Timber.d("onFilterApps")
         viewModelScope.launch {
             val currentState = _state.value
-            val currentFilter = FabFilter.getAppType(currentState.appInfoSortType)
+            val currentFilter = AppFilter.getAppType(currentState.appInfoSortType)
 
             val filteredList = appList
                 .asSequence()
@@ -99,7 +105,7 @@ class LibraryViewModel @Inject constructor(
                     }
                 }
                 .filter { item ->
-                    if (currentState.appInfoSortType.contains(FabFilter.INSTALLED)) {
+                    if (currentState.appInfoSortType.contains(AppFilter.INSTALLED)) {
                         SteamService.isAppInstalled(item.id)
                     } else {
                         true
