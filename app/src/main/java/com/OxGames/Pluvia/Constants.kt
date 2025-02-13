@@ -34,7 +34,7 @@ object Constants {
     }
 
     object Misc {
-        const val TIP_JAR_LINK = "https://buy.stripe.com/5kAaFU1bx2RFeLmbII"
+        const val KO_FI_LINK = "https://ko-fi.com/pluvia_client"
         const val GITHUB_LINK = "https://github.com/oxters168/Pluvia"
         const val PRIVACY_LINK = "https://github.com/oxters168/Pluvia/tree/master/PrivacyPolicy"
     }

@@ -37,7 +37,7 @@ fun SettingsGroupInfo() {
             subtitle = { Text(text = "Contribute to ongoing development") },
             icon = { Icon(imageVector = Icons.Filled.MonetizationOn, contentDescription = "Tip") },
             onClick = {
-                uriHandler.openUri(Constants.Misc.TIP_JAR_LINK)
+                uriHandler.openUri(Constants.Misc.KO_FI_LINK)
                 askForTip = false
                 PrefManager.tipped = !askForTip
             },
