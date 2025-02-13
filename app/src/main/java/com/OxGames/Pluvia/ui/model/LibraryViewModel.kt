@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import java.util.EnumSet
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
@@ -73,7 +74,7 @@ class LibraryViewModel @Inject constructor(
     // TODO: include other sort types
     fun onFilterChanged(value: AppFilter) {
         _state.update { currentState ->
-            val updatedFilter = currentState.appInfoSortType
+            val updatedFilter = EnumSet.copyOf(currentState.appInfoSortType)
 
             if (updatedFilter.contains(value)) {
                 updatedFilter.remove(value)
