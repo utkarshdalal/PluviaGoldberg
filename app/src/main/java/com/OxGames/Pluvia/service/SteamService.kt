@@ -58,6 +58,7 @@ import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientObjects.ECloudPendingRemoteOperation
+import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesFamilygroupsSteamclient
 import `in`.dragonbra.javasteam.rpc.service.FamilyGroups
 import `in`.dragonbra.javasteam.steam.authentication.AuthPollResult
 import `in`.dragonbra.javasteam.steam.authentication.AuthSessionDetails
@@ -74,7 +75,6 @@ import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSProductInfo
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.PICSRequest
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.SteamApps
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.LicenseListCallback
-import `in`.dragonbra.javasteam.steam.handlers.steamapps.callback.PICSProductInfoCallback
 import `in`.dragonbra.javasteam.steam.handlers.steamcloud.SteamCloud
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.SteamFriends
 import `in`.dragonbra.javasteam.steam.handlers.steamfriends.callback.AliasHistoryCallback
@@ -102,10 +102,8 @@ import `in`.dragonbra.javasteam.types.SteamID
 import `in`.dragonbra.javasteam.util.NetHelpers
 import `in`.dragonbra.javasteam.util.log.LogListener
 import `in`.dragonbra.javasteam.util.log.LogManager
-import java.io.BufferedReader
 import java.io.Closeable
 import java.io.File
-import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.EnumSet
@@ -198,18 +196,18 @@ class SteamService : Service(), IChallengeUrlChanged {
     }
 
     // The current shared family group the logged in user is joined to.
-    private var familyGroupId: Long = Long.MAX_VALUE
+    private var familyGroupMembers: ArrayList<SteamID> = arrayListOf()
 
     companion object {
         const val MAX_SIMULTANEOUS_PICS_REQUESTS = 50
         const val PICS_CHANGE_CHECK_DELAY = 60000L
         const val MAX_RETRY_ATTEMPTS = 20
-        const val MAX_USER_FILE_RETRIES = 3
+        // const val MAX_USER_FILE_RETRIES = 3
 
         const val INVALID_APP_ID: Int = Int.MAX_VALUE
         const val INVALID_PKG_ID: Int = Int.MAX_VALUE
-        const val INVALID_DEPOT_ID: Int = Int.MAX_VALUE
-        const val INVALID_MANIFEST_ID: Long = Long.MAX_VALUE
+        // const val INVALID_DEPOT_ID: Int = Int.MAX_VALUE
+        // const val INVALID_MANIFEST_ID: Long = Long.MAX_VALUE
 
         /**
          * Default timeout to use when making requests
@@ -304,10 +302,11 @@ class SteamService : Service(), IChallengeUrlChanged {
             return runBlocking { instance?.appDao?.findApp(appId)?.first() }
         }
 
-        fun queueAppPICSRequests(vararg apps: AppRequest) {
+        fun queueAppPICSRequests(apps: List<AppRequest>) {
             instance?.let { steamInstance ->
                 steamInstance.serviceScope.launch {
-                    steamInstance.appIdFlowSender.emitAll(flowOf(*apps))
+                    val flow = flowOf(*apps.toTypedArray())
+                    steamInstance.appIdFlowSender.emitAll(flow)
                 }
             }
         }
@@ -330,7 +329,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun getAppDlc(appId: Int): Map<Int, DepotInfo> {
             return getAppInfoOf(appId)?.let {
                 it.depots.filter { it.value.dlcAppId != INVALID_APP_ID }
-            } ?: emptyMap()
+            }.orEmpty()
         }
 
         fun getOwnedAppDlc(appId: Int): Map<Int, DepotInfo> = getAppDlc(appId).filter {
@@ -348,7 +347,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 (depot.osList.contains(OS.windows) || (!depot.osList.contains(OS.linux) && !depot.osList.contains(OS.macos))) &&
                 (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
                 (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(depot.depotId))
-        } ?: emptyMap()
+        }.orEmpty()
 
         fun getAppDirPath(appId: Int): String {
             var appName = getAppInfoOf(appId)?.config?.installDir.orEmpty()
@@ -473,11 +472,10 @@ class SteamService : Service(), IChallengeUrlChanged {
                         // TODO: change downloads to be one item/depot per job and connect them to the game requesting to download them
                         try {
                             downloadImageFs(
-                                onDownloadProgress = {
-                                    downloadInfo.setProgress(it, 0)
-                                },
-                                this,
+                                onDownloadProgress = { downloadInfo.setProgress(it, 0) },
+                                parentScope = this,
                             ).await()
+
                             depotIds.forEachIndexed { jobIndex, depotId ->
                                 // TODO: download shared install depots to a common location
                                 ContentDownloader(instance!!.steamClient!!).downloadApp(
@@ -511,7 +509,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // since configOS was unreliable and configArch was even more unreliable
                     launchInfo.executable.endsWith(".exe")
                 }
-            } ?: emptyList()
+            }.orEmpty()
         }
 
         suspend fun notifyRunningProcesses(vararg gameProcesses: GameProcessInfo) = withContext(Dispatchers.IO) {
@@ -541,18 +539,22 @@ class SteamService : Service(), IChallengeUrlChanged {
                 }
 
                 Timber.i(
-                    "GameProcessInfo:" +
-                        gamesPlayed.joinToString("\n") {
-                            "\n\tprocessId: ${it.processId}" +
-                                "\n\tgameId: ${it.gameId}" +
-                                "\n\tprocesses: ${
-                                    it.processIdList.joinToString("\n") {
-                                        "\n\t\tprocessId: ${it.processId}" +
-                                            "\n\t\tprocessIdParent: ${it.processIdParent}" +
-                                            "\n\t\tparentIsSteam: ${it.parentIsSteam}"
-                                    }
-                                }"
-                        },
+                    "GameProcessInfo:%s",
+                    gamesPlayed.joinToString("\n") { game ->
+                        """
+                        |   processId: ${game.processId}
+                        |   gameId: ${game.gameId}
+                        |   processes: ${
+                            game.processIdList.joinToString("\n") { process ->
+                                """
+                                |   processId: ${process.processId}
+                                |   processIdParent: ${process.processIdParent}
+                                |   parentIsSteam: ${process.parentIsSteam}
+                                """.trimMargin()
+                            }
+                        }
+                        """.trimMargin()
+                    },
                 )
 
                 steamInstance._steamApps?.notifyGamesPlayed(
@@ -636,7 +638,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
                                     if (pendingRemoteOperations.isNotEmpty() && !ignorePendingOperations) {
                                         syncResult = PostSyncInfo(
-                                            SyncResult.PendingOperations,
+                                            syncResult = SyncResult.PendingOperations,
                                             pendingRemoteOperations = pendingRemoteOperations,
                                         )
                                     } else if (ignorePendingOperations &&
@@ -731,58 +733,58 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
 
-        fun getProotTime(context: Context): Long {
-            val imageFs = ImageFs.find(context)
-
-            if (!imageFs.rootDir.exists()) {
-                return 0
-            }
-
-            val nativeLibraryDir = context.applicationInfo.nativeLibraryDir
-
-            val command = arrayOf(
-                "$nativeLibraryDir/libproot.so",
-                "--kill-on-exit",
-                "--rootfs=${imageFs.rootDir}",
-                "--cwd=${ImageFs.USER}",
-                "--bind=/dev",
-                "--bind=${imageFs.rootDir}/tmp/shm:/dev/shm",
-                "--bind=/proc",
-                "--bind=/sys",
-                "/usr/bin/env",
-                "HOME=/home/${ImageFs.USER}",
-                "USER=${ImageFs.USER}",
-                "TMPDIR=/tmp",
-                "LC_ALL=en_US.utf8",
-                // Set PATH environment variable
-                "PATH=${imageFs.winePath}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-                "LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib/arm-linux-gnueabihf",
-                "date",
-                "+%s%3N",
-            )
-
-            val envVars = arrayOf(
-                "PROOT_TMP_DIR=${Paths.get(context.filesDir.absolutePath, "tmp")}",
-                "PROOT_LOADER=$nativeLibraryDir/libproot-loader.so",
-            )
-
-            val process = Runtime.getRuntime().exec(command, envVars, imageFs.rootDir)
-
-            val errorReader = BufferedReader(InputStreamReader(process.errorStream))
-            val error = errorReader.readLine()
-
-            if (error != null) {
-                Timber.e("ProotTime: Error: $error")
-            }
-
-            val reader = BufferedReader(InputStreamReader(process.inputStream))
-            val output = reader.readLine().orEmpty()
-            process.waitFor()
-
-            Timber.i("ProotTime: Output: $output")
-
-            return output.toLongOrNull() ?: 0
-        }
+//        fun getProotTime(context: Context): Long {
+//            val imageFs = ImageFs.find(context)
+//
+//            if (!imageFs.rootDir.exists()) {
+//                return 0
+//            }
+//
+//            val nativeLibraryDir = context.applicationInfo.nativeLibraryDir
+//
+//            val command = arrayOf(
+//                "$nativeLibraryDir/libproot.so",
+//                "--kill-on-exit",
+//                "--rootfs=${imageFs.rootDir}",
+//                "--cwd=${ImageFs.USER}",
+//                "--bind=/dev",
+//                "--bind=${imageFs.rootDir}/tmp/shm:/dev/shm",
+//                "--bind=/proc",
+//                "--bind=/sys",
+//                "/usr/bin/env",
+//                "HOME=/home/${ImageFs.USER}",
+//                "USER=${ImageFs.USER}",
+//                "TMPDIR=/tmp",
+//                "LC_ALL=en_US.utf8",
+//                // Set PATH environment variable
+//                "PATH=${imageFs.winePath}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+//                "LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib/arm-linux-gnueabihf",
+//                "date",
+//                "+%s%3N",
+//            )
+//
+//            val envVars = arrayOf(
+//                "PROOT_TMP_DIR=${Paths.get(context.filesDir.absolutePath, "tmp")}",
+//                "PROOT_LOADER=$nativeLibraryDir/libproot-loader.so",
+//            )
+//
+//            val process = Runtime.getRuntime().exec(command, envVars, imageFs.rootDir)
+//
+//            val errorReader = BufferedReader(InputStreamReader(process.errorStream))
+//            val error = errorReader.readLine()
+//
+//            if (error != null) {
+//                Timber.e("ProotTime: Error: $error")
+//            }
+//
+//            val reader = BufferedReader(InputStreamReader(process.inputStream))
+//            val output = reader.readLine().orEmpty()
+//            process.waitFor()
+//
+//            Timber.i("ProotTime: Output: $output")
+//
+//            return output.toLongOrNull() ?: 0
+//        }
 
         data class FileChanges(
             val filesDeleted: List<UserFileInfo>,
@@ -805,14 +807,16 @@ class SteamService : Service(), IChallengeUrlChanged {
             // Sensitive info, only print in DEBUG build.
             if (BuildConfig.DEBUG) {
                 Timber.d(
-                    "Login Information\n\t" +
-                        "Username: $username\n\t" +
-                        "AccessToken: $accessToken\n\t" +
-                        "RefreshToken:$refreshToken\n\t" +
-                        "Password: $password\n\t" +
-                        "Remember Session: $rememberSession\n\t" +
-                        "TwoFactorAuth: $twoFactorAuth\n\t" +
-                        "EmailAuth: $emailAuth",
+                    """
+                    Login Information:
+                     Username: $username
+                     AccessToken: $accessToken
+                     RefreshToken: $refreshToken
+                     Password: $password
+                     Remember Session: $rememberSession
+                     TwoFactorAuth: $twoFactorAuth
+                     EmailAuth: $emailAuth
+                    """.trimIndent(),
                 )
             }
 
@@ -834,7 +838,8 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             isLoggingIn = true
 
-            PluviaApp.events.emit(SteamEvent.LogonStarted(username))
+            val event = SteamEvent.LogonStarted(username)
+            PluviaApp.events.emit(event)
 
             steamUser.logOn(
                 LogOnDetails(
@@ -842,12 +847,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
                     // more: https://github.com/winauth/winauth/issues/368#issuecomment-224631002
                     username = SteamUtils.removeSpecialChars(username).trim(),
-                    password = if (password != null) {
-                        SteamUtils.removeSpecialChars(password)
-                            .trim()
-                    } else {
-                        null
-                    },
+                    password = password?.let { SteamUtils.removeSpecialChars(it).trim() },
                     shouldRememberPassword = rememberSession,
                     twoFactorCode = twoFactorAuth,
                     authCode = emailAuth,
@@ -899,7 +899,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                     )
                 } ?: run {
                     Timber.e("Could not logon: Failed to connect to Steam")
-                    PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed, "No connection to Steam"))
+                    val event = SteamEvent.LogonEnded(username, LoginResult.Failed, "No connection to Steam")
+                    PluviaApp.events.emit(event)
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Login failed")
@@ -908,7 +909,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                     is AuthenticationException -> e.result?.name ?: e.message
                     else -> e.message ?: e.javaClass.name
                 }
-                PluviaApp.events.emit(SteamEvent.LogonEnded(username, LoginResult.Failed, message))
+                val event = SteamEvent.LogonEnded(username, LoginResult.Failed, message)
+                PluviaApp.events.emit(event)
             }
         }
 
@@ -1225,9 +1227,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationHelper.cancel()
 
-        serviceScope.launch {
-            stop()
-        }
+        serviceScope.launch { stop() }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -1298,10 +1298,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         _steamFriends = null
         _steamCloud = null
 
-        for (subscription in callbackSubscriptions) {
-            subscription.close()
-        }
-
+        callbackSubscriptions.forEach { it.close() }
         callbackSubscriptions.clear()
         callbackManager = null
 
@@ -1335,7 +1332,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             )
         }
 
-        PluviaApp.events.emit(SteamEvent.Connected(isAutoLoggingIn))
+        val event = SteamEvent.Connected(isAutoLoggingIn)
+        PluviaApp.events.emit(event)
     }
 
     private fun onDisconnected(callback: DisconnectedCallback) {
@@ -1349,11 +1347,13 @@ class SteamService : Service(), IChallengeUrlChanged {
             Timber.w("Attempting to reconnect (retry $retryAttempt)")
 
             // isLoggingOut = false
-            PluviaApp.events.emit(SteamEvent.RemotelyDisconnected)
+            val event = SteamEvent.RemotelyDisconnected
+            PluviaApp.events.emit(event)
 
             connectToSteam()
         } else {
-            PluviaApp.events.emit(SteamEvent.Disconnected)
+            val event = SteamEvent.Disconnected
+            PluviaApp.events.emit(event)
 
             clearValues()
 
@@ -1367,7 +1367,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         isConnected = false
         isConnecting = true
 
-        PluviaApp.events.emit(SteamEvent.Disconnected)
+        val event = SteamEvent.Disconnected
+        PluviaApp.events.emit(event)
 
         steamClient!!.disconnect()
     }
@@ -1388,118 +1389,33 @@ class SteamService : Service(), IChallengeUrlChanged {
                 PrefManager.cellId = callback.cellID
 
                 // retrieve persona data of logged in user
+                serviceScope.launch { requestUserPersona() }
+
+                val request = SteammessagesFamilygroupsSteamclient.CFamilyGroups_GetFamilyGroup_Request.newBuilder().apply {
+                    familyGroupid = callback.familyGroupId
+                }.build()
+
                 serviceScope.launch {
-                    requestUserPersona()
-                }
-
-                familyGroupId = callback.familyGroupId
-                Timber.d("Family ID: $familyGroupId")
-
-                // TODO remove when done testing.
-                // serviceScope.launch {
-                //     _steamFamilyGroups!!.getFamilyGroup(
-                //         SteammessagesFamilygroupsSteamclient.CFamilyGroups_GetFamilyGroup_Request.newBuilder().apply {
-                //             familyGroupid = callback.familyGroupId
-                //         }.build(),
-                //     ).await().let {
-                //         val resp = it.body
-                //         Timber.d("Name: ${resp.name}")
-                //         resp.membersList.forEach { member ->
-                //             Timber.d("-- Member -- ")
-                //             Timber.d("id: ${member.steamid}")
-                //             Timber.d("role: ${member.role}")
-                //             Timber.d("joined: ${member.timeJoined}")
-                //             Timber.d("cooldown: ${member.cooldownSecondsRemaining}")
-                //         }
-                //         Timber.d("Pending invites ${resp.pendingInvitesCount}")
-                //         Timber.d("Free Spots: ${resp.freeSpots}")
-                //         Timber.d("Country: ${resp.country}")
-                //         Timber.d("Slots cooldown remaining seconds: ${resp.slotCooldownRemainingSeconds}")
-                //         Timber.d("Former Members: ${resp.formerMembersCount}")
-                //         Timber.d("Slot cooldown overrides: ${resp.slotCooldownOverrides}")
-                //     }
-                // }
-
-                // TODO: Can this be moved to its own function?
-                // continuously check for pics changes
-                serviceScope.launch {
-                    while (isLoggedIn) {
-                        val picsChangesCallback = _steamApps?.picsGetChangesSince(
-                            lastChangeNumber = PrefManager.lastPICSChangeNumber,
-                            sendAppChangeList = true,
-                            sendPackageChangelist = true,
-                        )?.await()
-
-                        if (picsChangesCallback != null &&
-                            picsChangesCallback.currentChangeNumber != PrefManager.lastPICSChangeNumber
-                        ) {
-                            Timber.d(
-                                "lastChangeNumber: ${picsChangesCallback.lastChangeNumber}" +
-                                    "\ncurrentChangeNumber: ${picsChangesCallback.currentChangeNumber}" +
-                                    "\nisRequiresFullUpdate: ${picsChangesCallback.isRequiresFullUpdate}" +
-                                    "\nisRequiresFullAppUpdate: ${picsChangesCallback.isRequiresFullAppUpdate}" +
-                                    "\nisRequiresFullPackageUpdate: ${picsChangesCallback.isRequiresFullPackageUpdate}" +
-                                    "\nappChangesCount: ${picsChangesCallback.appChanges.size}" +
-                                    "\npkgChangesCount: ${picsChangesCallback.packageChanges.size}",
-                            )
-
-                            PrefManager.lastPICSChangeNumber = picsChangesCallback.currentChangeNumber
-
-                            dbScope.launch {
-                                // Timber.d("Adding ${appToAdd?.name} with appId of ${appToAdd?.id} and pkgId of ${appToAdd?.packageId}")
-
-                                val appIds = picsChangesCallback.appChanges.values
-                                    .filter { changeData ->
-                                        // only queue PICS requests for apps existing in the db that have changed
-                                        appDao.findApp(changeData.id).first()?.let {
-                                            changeData.changeNumber != it.lastChangeNumber
-                                        } == true
-                                    }
-                                    .map { AppRequest(it.id) }.toTypedArray()
-                                queueAppPICSRequests(*appIds)
-
-                                val pkgsWithChanges = picsChangesCallback.packageChanges.values
-                                    .filter { changeData ->
-                                        // only queue PICS requests for pkgs existing in the db that have changed
-                                        licenseDao.findLicense(changeData.id).first()?.let {
-                                            changeData.changeNumber != it.lastChangeNumber
-                                        } == true
-                                    }
-                                val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
-                                val accessTokens = _steamApps?.picsGetAccessTokens(
-                                    emptyList(),
-                                    pkgsForAccessTokens,
-                                )?.await()?.packageTokens ?: emptyMap()
-                                requestAndAddPkgsToDb(pkgsWithChanges.map { PICSRequest(it.id, accessTokens[it.id] ?: 0) })
-                            }
+                    _steamFamilyGroups!!.getFamilyGroup(request).await().let {
+                        if (it.result != EResult.OK) {
+                            Timber.w("An error occurred loading family group info.")
+                            return@launch
                         }
 
-                        delay(PICS_CHANGE_CHECK_DELAY)
+                        val response = it.body
+
+                        response.membersList.forEach {
+                            val sid = SteamID(it.steamid)
+                            familyGroupMembers.add(sid)
+                        }
                     }
                 }
 
-                // TODO: Can this be moved to its own function?
+                // continuously check for pics changes
+                continuousPicsChecker()
+
                 // request app pics data when needed
-                serviceScope.launch {
-                    appIdFlowReceiver
-                        .timeChunked(MAX_SIMULTANEOUS_PICS_REQUESTS)
-                        .buffer(Channel.RENDEZVOUS)
-                        .collect { appIds ->
-                            Timber.d("Collected ${appIds.size} app(s) to PICS")
-
-                            isRequestingAppInfo = true
-
-                            val multiJob = _steamApps?.picsGetProductInfo(appIds.map { PICSRequest(it.appId) }, emptyList())?.await()
-                            val appBoolMap = appIds.associate { it.appId to it.addToDbIfUnowned }
-                            val appMap = multiJob?.results
-                                ?.map { it as PICSProductInfoCallback }
-                                ?.flatMap { it.apps.toList() }
-                                ?.associate { it.first to Pair(it.second, appBoolMap[it.first] == true) }
-                            addAppsToDb(appMap)
-
-                            isRequestingAppInfo = false
-                        }
-                }
+                continuousPicsDataChecker()
 
                 // since we automatically receive the license list from steam on log on
                 isReceivingLicenseList = true
@@ -1521,7 +1437,8 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
 
-        PluviaApp.events.emit(SteamEvent.LogonEnded(PrefManager.username, _loginResult))
+        val event = SteamEvent.LogonEnded(PrefManager.username, _loginResult)
+        PluviaApp.events.emit(event)
 
         isLoggingIn = false
     }
@@ -1534,13 +1451,12 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (isLoggingOut || callback.result == EResult.LogonSessionReplaced) {
             performLogOffDuties()
 
-            serviceScope.launch {
-                stop()
-            }
+            serviceScope.launch { stop() }
         } else if (callback.result == EResult.LoggedInElsewhere) {
             // received when a client runs an app and wants to forcibly close another
             // client running an app
-            PluviaApp.events.emit(SteamEvent.ForceCloseApp)
+            val event = SteamEvent.ForceCloseApp
+            PluviaApp.events.emit(event)
 
             reconnect()
         } else {
@@ -1549,10 +1465,13 @@ class SteamService : Service(), IChallengeUrlChanged {
     }
 
     override fun onChanged(qrAuthSession: QrAuthSession?) {
-        Timber.i("QR code changed -> ${if (BuildConfig.DEBUG) qrAuthSession?.challengeUrl else "[redacted]"}")
+        if (!BuildConfig.DEBUG) {
+            Timber.d("QR code changed -> ${qrAuthSession?.challengeUrl}")
+        }
 
         if (qrAuthSession != null) {
-            PluviaApp.events.emit(SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl))
+            val event = SteamEvent.QrChallengeReceived(qrAuthSession.challengeUrl)
+            PluviaApp.events.emit(event)
         }
     }
 
@@ -1571,9 +1490,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         dbScope.launch {
             db.withTransaction {
                 callback.friendList
-                    .filter { friend ->
-                        friend.steamID.isIndividualAccount
-                    }
+                    .filter { it.steamID.isIndividualAccount }
                     .forEach { filteredFriend ->
                         val friendId = filteredFriend.steamID.convertToUInt64()
                         val friend = friendDao.findFriend(friendId)
@@ -1588,9 +1505,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                             friendDao.insert(friendToAdd)
                         } else {
                             // In the DB, update them.
-                            friendDao.update(
-                                friend.copy(relation = filteredFriend.relationship),
-                            )
+                            val friend = friend.copy(relation = filteredFriend.relationship)
+                            friendDao.update(friend)
                         }
                     }
 
@@ -1599,7 +1515,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val self = friendDao.findFriend(selfId)
 
                 if (self == null) {
-                    friendDao.insert(SteamFriend(id = selfId))
+                    val self = SteamFriend(id = selfId)
+                    friendDao.insert(self)
                 }
             }
 
@@ -1620,13 +1537,14 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     private fun onAliasHistory(callback: AliasHistoryCallback) {
         val names = callback.responses.flatMap { map -> map.names }.map { map -> map.name }
-        PluviaApp.events.emit(SteamEvent.OnAliasHistory(names))
+        val event = SteamEvent.OnAliasHistory(names)
+        PluviaApp.events.emit(event)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
     private fun onPersonaStateReceived(callback: PersonaStateCallback) {
         // Ignore accounts that arent individuals
-        if (callback.friendID.isIndividualAccount.not()) {
+        if (!callback.friendID.isIndividualAccount) {
             return
         }
 
@@ -1673,7 +1591,8 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // Send off an event if we change states.
                 if (callback.friendID == steamClient!!.steamID) {
                     val loggedInAccount = friendDao.findFriend(id) ?: return@withTransaction
-                    PluviaApp.events.emit(SteamEvent.PersonaStateReceived(loggedInAccount))
+                    val event = SteamEvent.PersonaStateReceived(loggedInAccount)
+                    PluviaApp.events.emit(event)
                 }
             }
         }
@@ -1688,10 +1607,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val apps = appDao.getAllOwnedAppsWithoutPICS(userSteamId!!.accountID.toInt())
                     .firstOrNull()
                     ?.map { AppRequest(it.id) }
-                    ?.toTypedArray()
+
                 Timber.d("${apps?.size ?: 0} app(s) need PICS")
-                if (apps?.isNotEmpty() == true) {
-                    queueAppPICSRequests(*apps)
+
+                if (apps != null && apps.isNotEmpty()) {
+                    queueAppPICSRequests(apps)
                 }
             }
             dbScope.launch {
@@ -1728,12 +1648,13 @@ class SteamService : Service(), IChallengeUrlChanged {
                                         purchaseCode = license.purchaseCode,
                                         masterPackageID = license.masterPackageID,
                                     )
-                                }.toTypedArray()
+                                }
 
-                                licenseDao.insert(*licensesToAdd)
+                                licenseDao.insert(licensesToAdd)
                             }
 
-                            requestAndAddPkgsToDb(changedOrNewLicenses.map { PICSRequest(it.packageID, it.accessToken) })
+                            val picsRequests = changedOrNewLicenses.map { PICSRequest(it.packageID, it.accessToken) }
+                            requestAndAddPkgsToDb(picsRequests)
                         }
                     }
                 }
@@ -1749,7 +1670,6 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             val packages = _steamApps!!.picsGetProductInfo(apps = emptyList(), packages = picsRequests).await()
                 .results
-                .map { it as PICSProductInfoCallback }
                 .flatMap { it.packages.values }
 
             if (packages.isNotEmpty()) {
@@ -1768,10 +1688,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 val steamAppsToAdd = appIds.map { appId ->
                                     appDao.findApp(appId).first()?.copy(packageId = pkg.id)
                                         ?: SteamApp(id = appId, packageId = pkg.id)
-                                }.toTypedArray()
+                                }
 
-                                appDao.insert(*steamAppsToAdd)
-                                queueAppPICSRequests(*appIds.map { AppRequest(it) }.toTypedArray())
+                                appDao.insert(steamAppsToAdd)
+
+                                queueAppPICSRequests(appIds.map(::AppRequest))
                             }
                         }
                     }
@@ -1786,25 +1707,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         if (!apps.isNullOrEmpty()) {
             dbScope.launch {
                 val filteredApps = apps.values.mapNotNull {
-                    // // val isBaba = app.id == 736260
-                    // // val isNoita = app.id == 881100
-                    // // val isHades = app.id == 1145360
-                    // // val isCS2 = app.id == 730
-                    // // val isPsuedo = app.id == 2365810
-                    // // val isPathway = app.id == 546430
-                    // // val isSeaOfStars = app.id == 1244090
-                    // // val isMessenger = app.id == 764790
-                    // // val isWargroove = app.id == 607050
-                    // // val isTetrisEffect = app.id == 1003590
-                    // // val isLittleKitty = app.id == 1177980
-                    // val isFactorio = app.id == 427520
-                    // if (isFactorio) {
-                    // 	logD("${app.id}: ${app.keyValues["common"]["name"].value}");
-                    // 	printAllKeyValues(app.keyValues)
-                    // 	// getPkgInfoOf(app.id)?.let {
-                    // 	// 	printAllKeyValues(it.original)
-                    //     // }
-                    // }
                     val app = it.first
                     val includeIfNotOwned = it.second
                     val appFromDb = appDao.findApp(app.id).first()
@@ -1824,14 +1726,93 @@ class SteamService : Service(), IChallengeUrlChanged {
                     } else {
                         null
                     }
-                }.toTypedArray()
-
-                db.withTransaction {
-                    appDao.insert(*filteredApps)
                 }
 
-                // PluviaApp.events.emit(SteamEvent.AppInfoReceived)
+                db.withTransaction {
+                    appDao.insert(filteredApps)
+                }
             }
+        }
+    }
+
+    private fun continuousPicsChecker() {
+        serviceScope.launch {
+            while (isLoggedIn) {
+                val picsChangesCallback = _steamApps?.picsGetChangesSince(
+                    lastChangeNumber = PrefManager.lastPICSChangeNumber,
+                    sendAppChangeList = true,
+                    sendPackageChangelist = true,
+                )?.await()
+
+                val currentChangeNumber = picsChangesCallback?.currentChangeNumber ?: 0
+
+                if (picsChangesCallback != null && currentChangeNumber != PrefManager.lastPICSChangeNumber) {
+                    Timber.d(
+                        """
+                         lastChangeNumber: ${picsChangesCallback.lastChangeNumber}
+                         currentChangeNumber: ${picsChangesCallback.currentChangeNumber}
+                         isRequiresFullUpdate: ${picsChangesCallback.isRequiresFullUpdate}
+                         isRequiresFullAppUpdate: ${picsChangesCallback.isRequiresFullAppUpdate}
+                         isRequiresFullPackageUpdate: ${picsChangesCallback.isRequiresFullPackageUpdate}
+                         appChangesCount: ${picsChangesCallback.appChanges.size}
+                         pkgChangesCount: ${picsChangesCallback.packageChanges.size}
+                        """.trimIndent(),
+                    )
+
+                    PrefManager.lastPICSChangeNumber = currentChangeNumber
+
+                    dbScope.launch {
+                        // Timber.d("Adding ${appToAdd?.name} with appId of ${appToAdd?.id} and pkgId of ${appToAdd?.packageId}")
+
+                        val appIds = picsChangesCallback.appChanges.values.filter { changeData ->
+                            // only queue PICS requests for apps existing in the db that have changed
+                            appDao.findApp(changeData.id).first()?.let {
+                                changeData.changeNumber != it.lastChangeNumber
+                            } == true
+                        }.map { AppRequest(it.id) }
+
+                        queueAppPICSRequests(appIds)
+
+                        val pkgsWithChanges = picsChangesCallback.packageChanges.values.filter { changeData ->
+                            // only queue PICS requests for pkgs existing in the db that have changed
+                            licenseDao.findLicense(changeData.id).first()?.let {
+                                changeData.changeNumber != it.lastChangeNumber
+                            } == true
+                        }
+                        val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
+                        val accessTokens = _steamApps?.picsGetAccessTokens(emptyList(), pkgsForAccessTokens)?.await()
+                            ?.packageTokens
+                            ?: emptyMap()
+
+                        requestAndAddPkgsToDb(pkgsWithChanges.map { PICSRequest(it.id, accessTokens[it.id] ?: 0) })
+                    }
+                }
+
+                delay(PICS_CHANGE_CHECK_DELAY)
+            }
+        }
+    }
+
+    private fun continuousPicsDataChecker() {
+        serviceScope.launch {
+            appIdFlowReceiver
+                .timeChunked(MAX_SIMULTANEOUS_PICS_REQUESTS)
+                .buffer(Channel.RENDEZVOUS)
+                .collect { appIds ->
+                    Timber.d("Collected ${appIds.size} app(s) to PICS")
+
+                    // isRequestingAppInfo = true
+
+                    val multiJob = _steamApps?.picsGetProductInfo(appIds.map { PICSRequest(it.appId) }, emptyList())?.await()
+                    val appBoolMap = appIds.associate { it.appId to it.addToDbIfUnowned }
+                    val appMap = multiJob?.results
+                        ?.flatMap { it.apps.toList() }
+                        ?.associate { it.first to Pair(it.second, appBoolMap[it.first] == true) }
+
+                    addAppsToDb(appMap)
+
+                    // isRequestingAppInfo = false
+                }
         }
     }
 }

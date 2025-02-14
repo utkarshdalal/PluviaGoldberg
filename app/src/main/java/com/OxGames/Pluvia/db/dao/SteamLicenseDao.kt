@@ -14,6 +14,9 @@ interface SteamLicenseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(vararg license: SteamLicense)
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(license: List<SteamLicense>)
+
     @Update
     suspend fun update(license: SteamLicense)
 
