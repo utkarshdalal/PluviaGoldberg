@@ -4,31 +4,30 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import coil.annotation.ExperimentalCoilApi
 import coil.imageLoader
-import com.OxGames.Pluvia.BuildConfig
-import com.OxGames.Pluvia.PrefManager
+import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.component.dialog.CrashLogDialog
 import com.OxGames.Pluvia.ui.theme.settingsTileColors
+import com.OxGames.Pluvia.ui.theme.settingsTileColorsDebug
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import java.io.File
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoilApi::class)
 @Composable
 fun SettingsGroupDebug() {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
 
     /* Crash Log stuff */
     var showLogcatDialog by rememberSaveable { mutableStateOf(false) }
@@ -81,26 +80,53 @@ fun SettingsGroupDebug() {
             onClick = { showLogcatDialog = true },
         )
 
-        if (BuildConfig.DEBUG) {
-            SettingsMenuLink(
-                colors = settingsTileColors(),
-                title = { Text(text = "Clear Preferences") },
-                onClick = {
-                    scope.launch {
-                        PrefManager.clearPreferences()
-                        (context as ComponentActivity).finishAffinity()
-                    }
+        SettingsMenuLink(
+            modifier = Modifier.combinedClickable(
+                onLongClick = {
+                    SteamService.logOut()
+                    (context as ComponentActivity).finishAffinity()
                 },
-            )
-
-            SettingsMenuLink(
-                colors = settingsTileColors(),
-                title = { Text(text = "Clear Image Cache") },
                 onClick = {
+                    Toast.makeText(context, "Long click to activate", Toast.LENGTH_SHORT).show()
+                },
+            ),
+            colors = settingsTileColorsDebug(),
+            title = { Text(text = "Clear Preferences") },
+            subtitle = { Text("[Closes App] Logs out the client and wipes local preference data.") },
+            onClick = {},
+        )
+
+        SettingsMenuLink(
+            modifier = Modifier.combinedClickable(
+                onLongClick = {
+                    SteamService.stop()
+                    SteamService.clearDatabase()
+                    (context as ComponentActivity).finishAffinity()
+                },
+                onClick = {
+                    Toast.makeText(context, "Long click to activate", Toast.LENGTH_SHORT).show()
+                },
+            ),
+            colors = settingsTileColorsDebug(),
+            title = { Text(text = "Clear Local Database") },
+            subtitle = { Text("[Closes app] May help fix issues with library items or messages.") },
+            onClick = {},
+        )
+
+        SettingsMenuLink(
+            modifier = Modifier.combinedClickable(
+                onLongClick = {
                     context.imageLoader.diskCache?.clear()
                     context.imageLoader.memoryCache?.clear()
                 },
-            )
-        }
+                onClick = {
+                    Toast.makeText(context, "Long click to activate", Toast.LENGTH_SHORT).show()
+                },
+            ),
+            colors = settingsTileColorsDebug(),
+            title = { Text(text = "Clear Image Cache") },
+            subtitle = { Text(text = "Remove all images that were loaded.") },
+            onClick = {},
+        )
     }
 }
