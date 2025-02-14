@@ -159,7 +159,7 @@ dependencies {
     // JavaSteam
     val localBuild = false // Change to 'true' needed when building JavaSteam manually
     if (localBuild) {
-        implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.0-SNAPSHOT.jar"))
+        implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.1-SNAPSHOT.jar"))
         implementation(libs.bundles.steamkit.dev)
     } else {
         implementation(libs.steamkit) {
