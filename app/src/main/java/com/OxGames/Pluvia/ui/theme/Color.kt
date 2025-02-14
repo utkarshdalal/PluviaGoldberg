@@ -31,3 +31,10 @@ fun settingsTileColorsAlt(): SettingsTileColors = SettingsTileDefaults.colors(
     titleColor = MaterialTheme.colorScheme.onSurface,
     subtitleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .75f),
 )
+
+@Composable
+fun settingsTileColorsDebug(): SettingsTileColors = SettingsTileDefaults.colors(
+    titleColor = Color(0xFFBC2739),
+    subtitleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = .75f),
+    actionColor = MaterialTheme.colorScheme.onSurface,
+)
