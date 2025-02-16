@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AvTimer
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Diversity3
 import androidx.compose.material.icons.filled.InstallMobile
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -39,6 +40,11 @@ enum class AppFilter(
         code = 0x10,
         displayText = "Demo",
         icon = Icons.Default.AvTimer,
+    ),
+    SHARED(
+        code = 0x20,
+        displayText = "Shared",
+        icon = Icons.Default.Diversity3,
     ),
     // ALPHABETIC(
     //     code = 0x20,

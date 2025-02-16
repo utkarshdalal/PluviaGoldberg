@@ -8,18 +8,19 @@ import com.OxGames.Pluvia.enums.ControllerSupport
 import com.OxGames.Pluvia.enums.Language
 import com.OxGames.Pluvia.enums.OS
 import com.OxGames.Pluvia.enums.ReleaseState
-import com.OxGames.Pluvia.service.SteamService.Companion.INVALID_APP_ID
-import com.OxGames.Pluvia.service.SteamService.Companion.INVALID_PKG_ID
+import com.OxGames.Pluvia.service.SteamService
+import `in`.dragonbra.javasteam.enums.ELicenseFlags
 import java.util.EnumSet
 
 @Entity("steam_app")
 data class SteamApp(
     @PrimaryKey val id: Int,
-    // val receiveIndex: Int,
     @ColumnInfo("package_id")
-    val packageId: Int = INVALID_PKG_ID,
+    val packageId: Int = SteamService.INVALID_PKG_ID,
     @ColumnInfo("owner_account_id")
     val ownerAccountId: Int = -1,
+    @ColumnInfo("license_flags")
+    val licenseFlags: EnumSet<ELicenseFlags> = EnumSet.noneOf(ELicenseFlags::class.java),
     @ColumnInfo("received_pics")
     val receivedPICS: Boolean = false,
     @ColumnInfo("last_change_number")
@@ -73,7 +74,7 @@ data class SteamApp(
 
     // Extended
     @ColumnInfo("demo_of_app_id")
-    val demoOfAppId: Int = INVALID_APP_ID,
+    val demoOfAppId: Int = SteamService.INVALID_APP_ID,
     @ColumnInfo("developer")
     val developer: String = "",
     @ColumnInfo("publisher")
@@ -89,9 +90,9 @@ data class SteamApp(
     @ColumnInfo("is_free_app")
     val isFreeApp: Boolean = false,
     @ColumnInfo("dlc_for_app_id")
-    val dlcForAppId: Int = INVALID_APP_ID,
+    val dlcForAppId: Int = SteamService.INVALID_APP_ID,
     @ColumnInfo("must_own_app_to_purchase")
-    val mustOwnAppToPurchase: Int = INVALID_APP_ID,
+    val mustOwnAppToPurchase: Int = SteamService.INVALID_APP_ID,
     @ColumnInfo("dlc_available_on_store")
     val dlcAvailableOnStore: Boolean = false,
     @ColumnInfo("optional_dlc")

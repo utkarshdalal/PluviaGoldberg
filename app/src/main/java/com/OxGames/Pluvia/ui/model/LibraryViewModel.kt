@@ -38,14 +38,11 @@ class LibraryViewModel @Inject constructor(
     // Complete and unfiltered app list
     private var appList: List<SteamApp> = emptyList()
 
-    private val account = SteamService.userSteamId?.accountID?.toInt()
-        ?: throw NullPointerException("Account id is null")
-
     init {
-        require(account > 0) // Sanity check
-
         viewModelScope.launch(Dispatchers.IO) {
-            steamAppDao.getAllOwnedApps(ownerId = account).collect { apps ->
+            steamAppDao.getAllOwnedApps(
+                ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
+            ).collect { apps ->
                 Timber.d("Collecting ${apps.size} apps")
 
                 appList = apps
@@ -115,12 +112,20 @@ class LibraryViewModel @Inject constructor(
                         true
                     }
                 }
+                .filter { item ->
+                    if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
+                        true
+                    } else {
+                        item.ownerAccountId == SteamService.userSteamId!!.accountID.toInt()
+                    }
+                }
                 .mapIndexed { idx, item ->
                     LibraryItem(
                         index = idx,
                         appId = item.id,
                         name = item.name,
                         iconHash = item.clientIconHash,
+                        isShared = item.ownerAccountId != SteamService.userSteamId!!.accountID.toInt(),
                     )
                 }
                 .toList()

@@ -16,6 +16,7 @@ import com.OxGames.Pluvia.enums.AppTheme
 import com.OxGames.Pluvia.ui.component.dialog.SingleChoiceDialog
 import com.OxGames.Pluvia.ui.enums.HomeDestination
 import com.OxGames.Pluvia.ui.theme.settingsTileColors
+import com.OxGames.Pluvia.ui.theme.settingsTileColorsAlt
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSwitch
@@ -110,7 +111,7 @@ fun SettingsGroupInterface(
             },
         )
         SettingsSwitch(
-            colors = settingsTileColors(),
+            colors = settingsTileColorsAlt(),
             title = { Text(text = "Open web links externally") },
             subtitle = { Text(text = "Links open with your main web browser") },
             state = openWebLinks,
