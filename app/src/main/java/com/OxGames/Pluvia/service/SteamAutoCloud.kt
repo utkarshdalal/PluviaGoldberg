@@ -301,7 +301,7 @@ object SteamAutoCloud {
                             }
                         }
 
-                        withTimeout(SteamService.responseBodyTimeout) {
+                        withTimeout(SteamService.responseTimeout) {
                             if (fileDownloadInfo.fileSize != fileDownloadInfo.rawFileSize) {
                                 response.body?.byteStream()?.use { inputStream ->
                                     ZipInputStream(inputStream).use { zipInput ->
