@@ -13,7 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.ui.internal.fakeAppInfo
 import com.OxGames.Pluvia.ui.theme.PluviaTheme
@@ -31,6 +33,11 @@ internal fun AppItem(
             containerColor = Color.Transparent,
         ),
         headlineContent = { Text(text = appInfo.name) },
+        supportingContent = if (appInfo.isShared) {
+            { Text(text = "Family Shared Game", fontStyle = FontStyle.Italic, fontSize = 12.sp) }
+        } else {
+            null
+        },
         leadingContent = {
             ListItemImage { appInfo.clientIconUrl }
         },
@@ -56,6 +63,7 @@ private fun Preview_AppItem() {
                             appId = item.id,
                             name = item.name,
                             iconHash = item.iconHash,
+                            isShared = idx % 2 == 0,
                         )
                     },
                     itemContent = {
