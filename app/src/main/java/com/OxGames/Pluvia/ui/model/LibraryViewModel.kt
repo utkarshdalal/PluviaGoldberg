@@ -99,6 +99,13 @@ class LibraryViewModel @Inject constructor(
                     currentFilter.any { item.type == it }
                 }
                 .filter { item ->
+                    if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
+                        true
+                    } else {
+                        item.ownerAccountId == SteamService.userSteamId!!.accountID.toInt()
+                    }
+                }
+                .filter { item ->
                     if (currentState.searchQuery.isNotEmpty()) {
                         item.name.contains(currentState.searchQuery, ignoreCase = true)
                     } else {
@@ -110,13 +117,6 @@ class LibraryViewModel @Inject constructor(
                         SteamService.isAppInstalled(item.id)
                     } else {
                         true
-                    }
-                }
-                .filter { item ->
-                    if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
-                        true
-                    } else {
-                        item.ownerAccountId == SteamService.userSteamId!!.accountID.toInt()
                     }
                 }
                 .mapIndexed { idx, item ->
