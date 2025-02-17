@@ -1523,8 +1523,28 @@ class SteamService : Service(), IChallengeUrlChanged {
             """.trimIndent(),
         )
 
-        // TODO update any items currently in our database and skip everything else.
         scope.launch {
+            callback.appChanges.values
+                .filter { changeData ->
+                    // only queue PICS requests for apps existing in the db that have changed
+                    val app = appDao.findApp(changeData.id) ?: return@filter false
+                    changeData.changeNumber != app.lastChangeNumber
+                }
+                .map { it.id }
+                .also { Timber.d("onPicsChanges: Queueing ${it.size} app requests") }
+                .also(::queueAppPICSRequests)
+
+            val pkgsWithChanges = callback.packageChanges.values
+                .filter { changeData ->
+                    // only queue PICS requests for pkgs existing in the db that have changed
+                    val pkg = licenseDao.findLicense(changeData.id) ?: return@filter false
+                    changeData.changeNumber != pkg.lastChangeNumber
+                }
+            val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
+            val accessTokens = _steamApps?.picsGetAccessTokens(emptyList(), pkgsForAccessTokens)?.await()?.packageTokens ?: emptyMap()
+            val picsRequest = pkgsWithChanges.map { PICSRequest(it.id, accessTokens[it.id] ?: 0) }
+            Timber.d("onPicsChanges: Queueing ${picsRequest.size} package requests")
+            _steamApps!!.picsGetProductInfo(apps = emptyList(), packages = picsRequest)
         }
     }
 
