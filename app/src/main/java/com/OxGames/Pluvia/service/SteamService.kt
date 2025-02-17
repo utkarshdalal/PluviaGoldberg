@@ -1285,6 +1285,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                 // request app pics data when needed
                 bufferedPICSGetProductInfo()
 
+                // continuously check for game names that friends are playing.
+                continuousFriendChecker()
+
                 // Tell steam we're online, this allows friends to update.
                 _steamFriends?.setPersonaState(PrefManager.personaState)
 
@@ -1424,7 +1427,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         stateFlags = callback.stateFlags,
                         gameAppID = callback.gameAppID,
                         gameID = callback.gameID,
-                        gameName = callback.gameName,
+                        gameName = appDao.findApp(callback.gameAppID)?.name ?: callback.gameName,
                         gameServerIP = NetHelpers.getIPAddress(callback.gameServerIP),
                         gameServerPort = callback.gameServerPort,
                         queryPort = callback.queryPort,
@@ -1633,35 +1636,52 @@ class SteamService : Service(), IChallengeUrlChanged {
      * Checks every [PICS_CHANGE_CHECK_DELAY] seconds.
      * Results are returned in a [PICSChangesCallback]
      */
-    private fun continuousPICSChangesChecker() {
-        scope.launch {
-            while (isLoggedIn) {
-                _steamApps?.picsGetChangesSince(
-                    lastChangeNumber = PrefManager.lastPICSChangeNumber,
-                    sendAppChangeList = true,
-                    sendPackageChangelist = true,
-                )
+    private fun continuousPICSChangesChecker() = scope.launch {
+        while (isActive && isLoggedIn) {
+            _steamApps?.picsGetChangesSince(
+                lastChangeNumber = PrefManager.lastPICSChangeNumber,
+                sendAppChangeList = true,
+                sendPackageChangelist = true,
+            )
 
-                delay(PICS_CHANGE_CHECK_DELAY)
-            }
+            delay(PICS_CHANGE_CHECK_DELAY)
+        }
+    }
+
+    /**
+     * Continuously check for friends playing games and query for pics if its a game we don't have in the database.
+     */
+    private fun continuousFriendChecker() = scope.launch {
+        while (isActive && isLoggedIn) {
+            // Initial delay before each check
+            delay(20.seconds)
+
+            friendDao.findFriendsInGame()
+                .also { friends -> Timber.d("Found ${friends.size} friends in game") }
+                .forEach { friend ->
+                    appDao.findApp(friend.gameAppID)?.let { app ->
+                        if (friend.gameName != app.name) {
+                            Timber.d("Updating ${friend.name} with game ${app.name}")
+                            friendDao.update(friend.copy(gameName = app.name))
+                        }
+                    } ?: queueAppPICSRequests(listOf(friend.gameAppID)) // Didn't find the app, we'll get it next time.
+                }
         }
     }
 
     /**
      * A buffered flow to parse so many PICS requests in a given moment.
      */
-    private fun bufferedPICSGetProductInfo() {
-        scope.launch {
-            appIdFlowReceiver
-                .timeChunked(MAX_SIMULTANEOUS_PICS_REQUESTS)
-                .buffer(Channel.RENDEZVOUS)
-                .collect { appIds ->
-                    Timber.d("Collected ${appIds.size} app(s) to query PICS")
-                    _steamApps?.picsGetProductInfo(
-                        apps = appIds.map { PICSRequest(id = it) },
-                        packages = emptyList(),
-                    )
-                }
-        }
+    private fun bufferedPICSGetProductInfo() = scope.launch {
+        appIdFlowReceiver
+            .timeChunked(MAX_SIMULTANEOUS_PICS_REQUESTS)
+            .buffer(Channel.RENDEZVOUS)
+            .collect { appIds ->
+                Timber.d("Collected ${appIds.size} app(s) to query PICS")
+                _steamApps?.picsGetProductInfo(
+                    apps = appIds.map { PICSRequest(id = it) },
+                    packages = emptyList(),
+                )
+            }
     }
 }
