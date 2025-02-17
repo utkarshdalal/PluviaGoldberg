@@ -38,11 +38,14 @@ interface SteamFriendDao {
     @Query("SELECT * FROM steam_friend ORDER BY name ASC")
     fun getAllFriendsFlow(): Flow<List<SteamFriend>>
 
+    @Query("SELECT * FROM steam_friend WHERE game_app_id > 0")
+    suspend fun findFriendsInGame(): List<SteamFriend>
+
     @Query("SELECT * FROM steam_friend WHERE id = :id")
     fun findFriendFlow(id: Long): Flow<SteamFriend?>
 
     @Query("SELECT * FROM steam_friend WHERE id = :id")
-    fun findFriend(id: Long): SteamFriend?
+    suspend fun findFriend(id: Long): SteamFriend?
 
     @Query("SELECT * FROM steam_friend WHERE name LIKE '%' || :name || '%' OR nickname LIKE '%' || :name || '%'")
     fun findFriendFlow(name: String): Flow<List<SteamFriend>>
