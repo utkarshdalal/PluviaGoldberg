@@ -20,9 +20,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.LibraryState
@@ -137,6 +139,8 @@ private fun LibraryScreenContent(
 @Composable
 private fun Preview_LibraryScreenContent() {
     val sheetState = rememberModalBottomSheetState()
+    val context = LocalContext.current
+    PrefManager.init(context)
     var state by remember {
         mutableStateOf(
             LibraryState(

@@ -1,5 +1,6 @@
 package com.OxGames.Pluvia.ui.screen.library.components
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -7,13 +8,8 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -36,9 +32,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.OxGames.Pluvia.PrefManager
 import com.OxGames.Pluvia.data.LibraryItem
 import com.OxGames.Pluvia.ui.data.LibraryState
 import com.OxGames.Pluvia.ui.enums.AppFilter
@@ -62,7 +60,14 @@ internal fun LibraryListPane(
     val expandedFab by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     val snackBarHost = remember { SnackbarHostState() }
 
+    // Determine the orientation to add additional scaffold padding.
+    val configuration = LocalConfiguration.current
+    val isPortrait = remember(configuration) {
+        configuration.orientation == Configuration.ORIENTATION_PORTRAIT
+    }
+
     Scaffold(
+        modifier = if (isPortrait) Modifier else Modifier.statusBarsPadding(),
         snackbarHost = { SnackbarHost(snackBarHost) },
         topBar = {
             val searchListState = rememberLazyListState()
@@ -91,25 +96,14 @@ internal fun LibraryListPane(
             }
         },
     ) { paddingValues ->
-        val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    PaddingValues(
-                        start = paddingValues.calculateStartPadding(LayoutDirection.Ltr),
-                        end = paddingValues.calculateEndPadding(LayoutDirection.Ltr),
-                        top = statusBarPadding,
-                        bottom = paddingValues.calculateBottomPadding(),
-                    ),
-                ),
+            modifier = Modifier.fillMaxSize(),
         ) {
             LibraryList(
                 list = state.appInfoList,
                 listState = listState,
                 contentPaddingValues = PaddingValues(
-                    // TODO this fixes a `Top padding must be non-negative` crash on P9PXL, but I don't fully know why.
-                    top = maxOf(0.dp, paddingValues.calculateTopPadding().minus(statusBarPadding)),
+                    top = paddingValues.calculateTopPadding(),
                     bottom = 72.dp,
                 ),
                 onItemClick = onNavigate,
@@ -135,15 +129,17 @@ internal fun LibraryListPane(
  ***********/
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES or android.content.res.Configuration.UI_MODE_TYPE_NORMAL)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES or Configuration.UI_MODE_TYPE_NORMAL)
 @Preview
 @Composable
 private fun Preview_LibraryListPane() {
+    val context = LocalContext.current
+    PrefManager.init(context)
     val sheetState = rememberModalBottomSheetState()
     var state by remember {
         mutableStateOf(
             LibraryState(
-                appInfoList = List(15) { idx ->
+                appInfoList = List(20) { idx ->
                     val item = fakeAppInfo(idx)
                     LibraryItem(
                         index = idx,
@@ -158,7 +154,7 @@ private fun Preview_LibraryListPane() {
     PluviaTheme {
         Surface {
             LibraryListPane(
-                listState = rememberLazyListState(),
+                listState = LazyListState(2, 64),
                 state = state,
                 sheetState = sheetState,
                 onFilterChanged = { },
