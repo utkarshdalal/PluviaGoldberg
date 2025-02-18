@@ -6,6 +6,8 @@ on:
     paths-ignore:
       - '**.md'
       - '.gitignore'
+      - 'keyvalues/**'
+      - 'media/**'
 
 jobs:
   build:
