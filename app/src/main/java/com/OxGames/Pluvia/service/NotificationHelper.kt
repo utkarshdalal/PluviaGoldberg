@@ -81,7 +81,7 @@ class NotificationHelper(private val context: Context) {
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setContentTitle(context.getString(R.string.app_name))
             .setContentText(content)
-            .setSmallIcon(R.drawable.ic_notification_fg)
+            .setSmallIcon(R.drawable.ic_mono_foreground)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setAutoCancel(false)
             .setOngoing(true)
