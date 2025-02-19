@@ -310,7 +310,7 @@ fun BBCodeText(
                                         failure = {
                                             Icon(Icons.Filled.QuestionMark, null)
                                         },
-                                        previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
+                                        previewPlaceholder = painterResource(R.drawable.ic_logo_color),
                                     )
                                 },
                             ),
@@ -343,7 +343,7 @@ fun BBCodeText(
                                     failure = {
                                         Icon(Icons.Filled.QuestionMark, null)
                                     },
-                                    previewPlaceholder = painterResource(R.drawable.icon_mono_foreground),
+                                    previewPlaceholder = painterResource(R.drawable.ic_logo_color),
                                 )
                             },
                         ),
