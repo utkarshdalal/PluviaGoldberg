@@ -1099,7 +1099,7 @@ class SteamService : Service(), IChallengeUrlChanged {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        
+
         PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
         notificationHelper = NotificationHelper(applicationContext)
