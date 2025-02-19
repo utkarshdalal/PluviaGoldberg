@@ -18,9 +18,15 @@ import com.OxGames.Pluvia.ui.theme.PluviaTheme
 import `in`.dragonbra.javasteam.enums.EPersonaState
 
 @Composable
-fun StickyHeaderItem(isCollapsed: Boolean, header: String, count: Int, onHeaderAction: () -> Unit) {
+fun StickyHeaderItem(
+    modifier: Modifier = Modifier,
+    isCollapsed: Boolean,
+    header: String,
+    count: Int,
+    onHeaderAction: () -> Unit,
+) {
     ListItem(
-        modifier = Modifier.clickable(onClick = onHeaderAction),
+        modifier = modifier.clickable(onClick = onHeaderAction),
         headlineContent = { Text(text = "$header ($count)") },
         trailingContent = {
             val button = when (isCollapsed) {

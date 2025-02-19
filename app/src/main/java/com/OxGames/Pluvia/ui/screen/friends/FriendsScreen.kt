@@ -256,10 +256,13 @@ private fun FriendsListPane(
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
-                .padding(paddingValues)
+                .padding(
+                    top = paddingValues.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding(),
+                )
                 .fillMaxSize(),
             state = listState,
-            contentPadding = PaddingValues(bottom = 72.dp), // Extra space for fab
+            contentPadding = PaddingValues(bottom = 72.dp),
         ) {
             state.friendsList.forEach { (key, value) ->
                 stickyHeader {
