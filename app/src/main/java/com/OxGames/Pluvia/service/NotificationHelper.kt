@@ -71,7 +71,7 @@ class NotificationHelper(private val context: Context) {
         val stopIntent = Intent(context, SteamService::class.java).apply {
             action = ACTION_EXIT
         }
-        val stopPendingIntent = PendingIntent.getService(
+        val stopPendingIntent = PendingIntent.getForegroundService(
             context,
             0,
             stopIntent,

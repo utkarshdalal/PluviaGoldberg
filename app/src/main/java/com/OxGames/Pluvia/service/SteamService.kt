@@ -190,6 +190,10 @@ class SteamService : Service(), IChallengeUrlChanged {
     private val dbScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    private val onEndProcess: (AndroidEvent.EndProcess) -> Unit = {
+        SteamService.stop()
+    }
+
     companion object {
         const val MAX_SIMULTANEOUS_PICS_REQUESTS = 50
         const val PICS_CHANGE_CHECK_DELAY = 60000L
@@ -1096,6 +1100,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         super.onCreate()
         instance = this
 
+        PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
+
         notificationHelper = NotificationHelper(applicationContext)
 
         // To view log messages in android logcat properly
@@ -1117,6 +1123,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         // Notification intents
         when (intent?.action) {
             NotificationHelper.ACTION_EXIT -> {
+                Timber.d("Exiting app via notification intent")
                 PluviaApp.events.emit(AndroidEvent.EndProcess)
                 return START_NOT_STICKY
             }
@@ -1291,6 +1298,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         isStopping = false
         retryAttempt = 0
 
+        PluviaApp.events.off<AndroidEvent.EndProcess, Unit>(onEndProcess)
         PluviaApp.events.clearAllListenersOf<SteamEvent<Any>>()
     }
 
