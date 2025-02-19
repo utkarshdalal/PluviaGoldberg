@@ -67,7 +67,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private val onEndProcess: (AndroidEvent.EndProcess) -> Unit = {
-        SteamService.stop()
         finishAndRemoveTask()
     }
 
