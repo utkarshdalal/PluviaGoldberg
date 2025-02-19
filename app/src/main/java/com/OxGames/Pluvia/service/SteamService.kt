@@ -1099,6 +1099,8 @@ class SteamService : Service(), IChallengeUrlChanged {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        
+        PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
         notificationHelper = NotificationHelper(applicationContext)
 
@@ -1118,8 +1120,6 @@ class SteamService : Service(), IChallengeUrlChanged {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
-
         // Notification intents
         when (intent?.action) {
             NotificationHelper.ACTION_EXIT -> {
