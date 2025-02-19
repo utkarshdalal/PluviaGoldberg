@@ -1,5 +1,5 @@
 <h1>
-  <img src="https://github.com/user-attachments/assets/4b872272-9391-488f-afe3-a4ac898d32ac">
+  <img src="https://github.com/user-attachments/assets/dd0419dc-476e-448f-ab9c-2e26928dcf69">
   Pluvia
   <a href="https://discord.gg/3tcEdhMG3e" target="_blank">
       <img src="https://img.shields.io/discord/1334544589419188274.svg?label=&logo=discord&logoColor=ffffff&color=5865F2&labelColor=404EED">
@@ -30,6 +30,7 @@ Pluvia currently provides these features:
 &ast; Existing issues or limitations that occur with the actual Winlator app will mostly apply here when running a game.
 
 See the [Wiki](https://github.com/oxters168/Pluvia/wiki) for more information.
+
 
 See the [compatibility repo](https://github.com/oxters168/PluviaCompat) to check if your game runs.
 
