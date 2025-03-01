@@ -43,7 +43,7 @@ enum class AppFilter(
     ),
     SHARED(
         code = 0x20,
-        displayText = "Shared",
+        displayText = "Family",
         icon = Icons.Default.Diversity3,
     ),
     // ALPHABETIC(

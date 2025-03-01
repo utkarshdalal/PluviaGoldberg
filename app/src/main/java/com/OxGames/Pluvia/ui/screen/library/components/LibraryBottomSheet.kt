@@ -32,18 +32,34 @@ fun LibraryBottomSheet(
             .fillMaxWidth()
             .padding(horizontal = 32.dp),
     ) {
-        Text(text = "Filters", style = MaterialTheme.typography.titleLarge)
-
-        Spacer(modifier = Modifier.height(18.dp))
-
+        Text(text = "App Type", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
         FlowRow {
             AppFilter.entries.forEach { appFilter ->
-                FlowFilterChip(
-                    onClick = { onFilterChanged(appFilter) },
-                    label = { Text(text = appFilter.displayText) },
-                    selected = selectedFilters.contains(appFilter),
-                    leadingIcon = { Icon(imageVector = appFilter.icon, contentDescription = null) },
-                )
+                // TODO properly fix this (and the one below)
+                if (appFilter.code !in listOf(0x01, 0x20)) {
+                    FlowFilterChip(
+                        onClick = { onFilterChanged(appFilter) },
+                        label = { Text(text = appFilter.displayText) },
+                        selected = selectedFilters.contains(appFilter),
+                        leadingIcon = { Icon(imageVector = appFilter.icon, contentDescription = null) },
+                    )
+                }
+            }
+        }
+
+        Text(text = "App Status", style = MaterialTheme.typography.titleLarge)
+        Spacer(modifier = Modifier.height(8.dp))
+        FlowRow {
+            AppFilter.entries.forEach { appFilter ->
+                if (appFilter.code in listOf(0x01, 0x20)) {
+                    FlowFilterChip(
+                        onClick = { onFilterChanged(appFilter) },
+                        label = { Text(text = appFilter.displayText) },
+                        selected = selectedFilters.contains(appFilter),
+                        leadingIcon = { Icon(imageVector = appFilter.icon, contentDescription = null) },
+                    )
+                }
             }
         }
 
