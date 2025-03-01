@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.tooling.preview.Preview
@@ -46,6 +47,7 @@ internal fun LibrarySearchBar(
     onLogout: () -> Unit,
     onItemClick: (Int) -> Unit,
 ) {
+    val keyboardController = LocalSoftwareKeyboardController.current
     // Debouncer: Scroll to the top after a short amount of time after typing quickly
     val internalSearchText = remember { MutableStateFlow(state.searchQuery) }
     LaunchedEffect(Unit) {
@@ -70,10 +72,7 @@ internal fun LibrarySearchBar(
             inputField = {
                 SearchBarDefaults.InputField(
                     query = state.searchQuery,
-                    onSearch = {
-                        // This is invoked when IME search is pressed.
-                        // But we have nothing to utilize this for.
-                    },
+                    onSearch = { keyboardController?.hide() },
                     expanded = state.isSearching,
                     onExpandedChange = onIsSearching,
                     placeholder = { Text(text = "Search for games") },
