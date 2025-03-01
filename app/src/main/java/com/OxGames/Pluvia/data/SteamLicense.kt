@@ -40,7 +40,7 @@ data class SteamLicense(
     @ColumnInfo("access_token")
     val accessToken: Long,
     @ColumnInfo("owner_account_id")
-    val ownerAccountId: Int,
+    val ownerAccountId: List<Int>,
     @ColumnInfo("master_package_id")
     val masterPackageID: Int,
 

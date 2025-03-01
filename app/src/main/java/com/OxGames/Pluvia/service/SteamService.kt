@@ -314,7 +314,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun getOwnedAppDlc(appId: Int): Map<Int, DepotInfo> = getAppDlc(appId).filter {
             getPkgInfoOf(it.value.dlcAppId)?.let { pkg ->
                 instance?.steamClient?.let { steamClient ->
-                    pkg.ownerAccountId == steamClient.steamID.accountID.toInt()
+                    pkg.ownerAccountId.contains(steamClient.steamID.accountID.toInt())
                 }
             } == true
         }
@@ -503,10 +503,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     ?: gameProcess.processes.firstOrNull()?.processId
                                     ?: 0
 
+                                val userAccountId = userSteamId!!.accountID.toInt()
                                 GamePlayedInfo(
                                     gameId = gameProcess.appId.toLong(),
                                     processId = processId,
-                                    ownerId = pkgInfo.ownerAccountId,
+                                    ownerId = if (pkgInfo.ownerAccountId.contains(userAccountId))
+                                        userAccountId
+                                    else
+                                        pkgInfo.ownerAccountId.first(),
                                     // TODO: figure out what this is and un-hardcode
                                     launchSource = 100,
                                     gameBuildId = branch.buildId.toInt(),
@@ -1467,24 +1471,35 @@ class SteamService : Service(), IChallengeUrlChanged {
             // Note: I assume with every launch we do, in fact, update the licenses for app the apps if we join or get removed
             //      from family sharing... We really can't test this as there is a 1-year cooldown.
             //      Then 'findStaleLicences' will find these now invalid items to remove.
-            val licensesToAdd = callback.licenseList.map { license ->
-                SteamLicense(
-                    packageId = license.packageID,
-                    lastChangeNumber = license.lastChangeNumber,
-                    timeCreated = license.timeCreated,
-                    timeNextProcess = license.timeNextProcess,
-                    minuteLimit = license.minuteLimit,
-                    minutesUsed = license.minutesUsed,
-                    paymentMethod = license.paymentMethod ?: EPaymentMethod.None,
-                    licenseFlags = license.licenseFlags,
-                    purchaseCode = license.purchaseCode,
-                    licenseType = license.licenseType ?: ELicenseType.NoLicense,
-                    territoryCode = license.territoryCode,
-                    accessToken = license.accessToken,
-                    ownerAccountId = license.ownerAccountID, // Read note above
-                    masterPackageID = license.masterPackageID,
-                )
-            }
+            val licensesToAdd = callback.licenseList
+                .groupBy { it.packageID }
+                .map { licensesEntry ->
+                    val preferred = licensesEntry.value.firstOrNull {
+                        it.ownerAccountID == userSteamId?.accountID?.toInt()
+                    } ?: licensesEntry.value.first()
+                    SteamLicense(
+                        packageId = licensesEntry.key,
+                        lastChangeNumber = preferred.lastChangeNumber,
+                        timeCreated = preferred.timeCreated,
+                        timeNextProcess = preferred.timeNextProcess,
+                        minuteLimit = preferred.minuteLimit,
+                        minutesUsed = preferred.minutesUsed,
+                        paymentMethod = preferred.paymentMethod ?: EPaymentMethod.None,
+                        licenseFlags = licensesEntry.value
+                            .map { it.licenseFlags }
+                            .reduceOrNull { first, second ->
+                                val combined = EnumSet.copyOf(first)
+                                combined.addAll(second)
+                                combined
+                            } ?: EnumSet.noneOf(ELicenseFlags::class.java),
+                        purchaseCode = preferred.purchaseCode,
+                        licenseType = preferred.licenseType ?: ELicenseType.NoLicense,
+                        territoryCode = preferred.territoryCode,
+                        accessToken = preferred.accessToken,
+                        ownerAccountId = licensesEntry.value.map { it.ownerAccountID }, // Read note above
+                        masterPackageID = preferred.masterPackageID,
+                    )
+                }
             if (licensesToAdd.isNotEmpty()) {
                 Timber.i("Adding ${licensesToAdd.size} licenses")
                 db.withTransaction {
@@ -1591,7 +1606,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     val appFromDb = appDao.findApp(app.id)
                     val packageId = appFromDb?.packageId ?: INVALID_PKG_ID
                     val packageFromDb = if (packageId != INVALID_PKG_ID) licenseDao.findLicense(packageId) else null
-                    val ownerAccountId = packageFromDb?.ownerAccountId ?: -1
+                    val ownerAccountId = packageFromDb?.ownerAccountId ?: emptyList()
 
                     // Apps with -1 for the ownerAccountId should be added.
                     //  This can help with friend game names.

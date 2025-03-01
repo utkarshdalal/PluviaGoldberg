@@ -18,7 +18,7 @@ data class SteamApp(
     @ColumnInfo("package_id")
     val packageId: Int = SteamService.INVALID_PKG_ID,
     @ColumnInfo("owner_account_id")
-    val ownerAccountId: Int = -1,
+    val ownerAccountId: List<Int> = emptyList(),
     @ColumnInfo("license_flags")
     val licenseFlags: EnumSet<ELicenseFlags> = EnumSet.noneOf(ELicenseFlags::class.java),
     @ColumnInfo("received_pics")
