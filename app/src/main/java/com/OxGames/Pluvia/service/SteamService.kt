@@ -1428,7 +1428,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 friendDao.update(
                     friend.copy(
                         statusFlags = callback.statusFlags,
-                        state = callback.state ?: EPersonaState.Offline,
+                        state = callback.state,
                         stateFlags = callback.stateFlags,
                         gameAppID = callback.gameAppID,
                         gameID = callback.gameID,
@@ -1484,7 +1484,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                         timeNextProcess = preferred.timeNextProcess,
                         minuteLimit = preferred.minuteLimit,
                         minutesUsed = preferred.minutesUsed,
-                        paymentMethod = preferred.paymentMethod ?: EPaymentMethod.None,
+                        paymentMethod = preferred.paymentMethod,
                         licenseFlags = licensesEntry.value
                             .map { it.licenseFlags }
                             .reduceOrNull { first, second ->
@@ -1493,7 +1493,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 combined
                             } ?: EnumSet.noneOf(ELicenseFlags::class.java),
                         purchaseCode = preferred.purchaseCode,
-                        licenseType = preferred.licenseType ?: ELicenseType.NoLicense,
+                        licenseType = preferred.licenseType,
                         territoryCode = preferred.territoryCode,
                         accessToken = preferred.accessToken,
                         ownerAccountId = licensesEntry.value.map { it.ownerAccountID }, // Read note above
