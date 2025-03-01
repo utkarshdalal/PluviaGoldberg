@@ -43,7 +43,7 @@ class LibraryViewModel @Inject constructor(
             steamAppDao.getAllOwnedApps(
                 ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
             ).collect { apps ->
-                Timber.d("Collecting ${apps.size} apps")
+                Timber.tag("LibraryViewModel").d("Collecting ${apps.size} apps")
 
                 appList = apps
 
@@ -88,7 +88,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     private fun onFilterApps() {
-        Timber.d("onFilterApps")
+        Timber.tag("LibraryViewModel").d("onFilterApps")
         viewModelScope.launch {
             val currentState = _state.value
             val currentFilter = AppFilter.getAppType(currentState.appInfoSortType)
@@ -130,7 +130,7 @@ class LibraryViewModel @Inject constructor(
                 }
                 .toList()
 
-            Timber.d("Filtered list size: ${filteredList.size}")
+            Timber.tag("LibraryViewModel").d("Filtered list size: ${filteredList.size}")
             _state.update { it.copy(appInfoList = filteredList) }
         }
     }
