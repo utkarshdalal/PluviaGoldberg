@@ -25,15 +25,15 @@ interface SteamAppDao {
     @Query(
         "SELECT * FROM steam_app " +
             "WHERE id != 480 " + // Actively filter out Spacewar
-            "AND (owner_account_id IN (:ownerIds) OR license_flags & :borrowedCode = :borrowedCode) " +
+            // "AND (owner_account_id IN (:ownerIds) OR license_flags & :borrowedCode = :borrowedCode) " +
             "AND package_id != :invalidPkgId " +
             "AND type != 0 " +
             "ORDER BY LOWER(name)",
     )
     fun getAllOwnedApps(
-        ownerIds: List<Int>,
+        // ownerIds: List<Int>,
         invalidPkgId: Int = INVALID_PKG_ID,
-        borrowedCode: Int = ELicenseFlags.Borrowed.code(),
+        // borrowedCode: Int = ELicenseFlags.Borrowed.code(),
     ): Flow<List<SteamApp>>
 
     @Query("SELECT * FROM steam_app WHERE received_pics = 0 AND package_id != :invalidPkgId AND owner_account_id = :ownerId")

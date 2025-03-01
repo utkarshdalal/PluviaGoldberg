@@ -41,7 +41,7 @@ class LibraryViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             steamAppDao.getAllOwnedApps(
-                ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
+                // ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
             ).collect { apps ->
                 Timber.tag("LibraryViewModel").d("Collecting ${apps.size} apps")
 
@@ -96,13 +96,20 @@ class LibraryViewModel @Inject constructor(
             val filteredList = appList
                 .asSequence()
                 .filter { item ->
+                    SteamService.familyMembers.ifEmpty {
+                        listOf(SteamService.userSteamId!!.accountID.toInt())
+                    }.map {
+                        item.ownerAccountId.contains(it)
+                    }.any()
+                }
+                .filter { item ->
                     currentFilter.any { item.type == it }
                 }
                 .filter { item ->
                     if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
                         true
                     } else {
-                        item.ownerAccountId == SteamService.userSteamId!!.accountID.toInt()
+                        item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt())
                     }
                 }
                 .filter { item ->
@@ -125,7 +132,7 @@ class LibraryViewModel @Inject constructor(
                         appId = item.id,
                         name = item.name,
                         iconHash = item.clientIconHash,
-                        isShared = item.ownerAccountId != SteamService.userSteamId!!.accountID.toInt(),
+                        isShared = !item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt()),
                     )
                 }
                 .toList()
