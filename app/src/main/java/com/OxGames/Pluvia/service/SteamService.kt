@@ -51,6 +51,7 @@ import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import com.winlator.xenvironment.ImageFs
 import dagger.hilt.android.AndroidEntryPoint
 import `in`.dragonbra.javasteam.enums.EFriendRelationship
+import `in`.dragonbra.javasteam.enums.ELicenseFlags
 import `in`.dragonbra.javasteam.enums.ELicenseType
 import `in`.dragonbra.javasteam.enums.EOSType
 import `in`.dragonbra.javasteam.enums.EPaymentMethod
@@ -1603,6 +1604,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                             ownerAccountId = ownerAccountId,
                             receivedPICS = true,
                             lastChangeNumber = app.changeNumber,
+                            licenseFlags = packageFromDb?.licenseFlags ?: EnumSet.noneOf(ELicenseFlags::class.java),
                         )
                     } else {
                         null
