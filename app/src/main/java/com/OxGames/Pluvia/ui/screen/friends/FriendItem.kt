@@ -97,7 +97,7 @@ fun FriendItem(
         supportingContent = {
             if (friend.isPlayingGame) {
                 // TODO get game names
-                Text(text = friend.gameName.ifEmpty { "Playing game id: ${friend.gameAppID}" })
+                Text(text = "Playing: " + friend.gameName.ifEmpty { "${friend.gameAppID}" })
             } else {
                 Text(text = friend.state.name)
             }

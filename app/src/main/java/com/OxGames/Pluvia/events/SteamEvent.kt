@@ -12,7 +12,8 @@ sealed interface SteamEvent<T> : Event<T> {
     data class PersonaStateReceived(val persona: SteamFriend) : SteamEvent<Unit>
     data class QrAuthEnded(val success: Boolean, val message: String? = null) : SteamEvent<Unit>
     data class QrChallengeReceived(val challengeUrl: String) : SteamEvent<Unit>
-    data object AppInfoReceived : SteamEvent<Unit>
+
+    // data object AppInfoReceived : SteamEvent<Unit>
     data object ForceCloseApp : SteamEvent<Unit>
     data object Disconnected : SteamEvent<Unit>
     data object RemotelyDisconnected : SteamEvent<Unit>

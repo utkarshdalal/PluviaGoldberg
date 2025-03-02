@@ -13,7 +13,10 @@ import kotlinx.coroutines.flow.Flow
 interface SteamAppDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(vararg app: SteamApp)
+    suspend fun insert(apps: SteamApp)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(apps: List<SteamApp>)
 
     @Update
     suspend fun update(app: SteamApp)
@@ -21,24 +24,25 @@ interface SteamAppDao {
     @Query(
         "SELECT * FROM steam_app " +
             "WHERE id != 480 " + // Actively filter out Spacewar
-            "AND owner_account_id = :ownerId " +
+            // "AND (owner_account_id IN (:ownerIds) OR license_flags & :borrowedCode = :borrowedCode) " +
             "AND package_id != :invalidPkgId " +
             "AND type != 0 " +
             "ORDER BY LOWER(name)",
     )
     fun getAllOwnedApps(
-        ownerId: Int,
+        // ownerIds: List<Int>,
         invalidPkgId: Int = INVALID_PKG_ID,
+        // borrowedCode: Int = ELicenseFlags.Borrowed.code(),
     ): Flow<List<SteamApp>>
 
     @Query("SELECT * FROM steam_app WHERE received_pics = 0 AND package_id != :invalidPkgId AND owner_account_id = :ownerId")
     fun getAllOwnedAppsWithoutPICS(
         ownerId: Int,
         invalidPkgId: Int = INVALID_PKG_ID,
-    ): Flow<List<SteamApp>>
+    ): List<SteamApp>
 
     @Query("SELECT * FROM steam_app WHERE id = :appId")
-    fun findApp(appId: Int): Flow<SteamApp?>
+    suspend fun findApp(appId: Int): SteamApp?
 
     @Query("DELETE from steam_app")
     suspend fun deleteAll()

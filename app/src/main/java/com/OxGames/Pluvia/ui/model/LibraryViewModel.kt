@@ -38,15 +38,12 @@ class LibraryViewModel @Inject constructor(
     // Complete and unfiltered app list
     private var appList: List<SteamApp> = emptyList()
 
-    private val account = SteamService.userSteamId?.accountID?.toInt()
-        ?: throw NullPointerException("Account id is null")
-
     init {
-        require(account > 0) // Sanity check
-
         viewModelScope.launch(Dispatchers.IO) {
-            steamAppDao.getAllOwnedApps(ownerId = account).collect { apps ->
-                Timber.d("Collecting ${apps.size} apps")
+            steamAppDao.getAllOwnedApps(
+                // ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
+            ).collect { apps ->
+                Timber.tag("LibraryViewModel").d("Collecting ${apps.size} apps")
 
                 appList = apps
 
@@ -91,7 +88,7 @@ class LibraryViewModel @Inject constructor(
     }
 
     private fun onFilterApps() {
-        Timber.d("onFilterApps")
+        Timber.tag("LibraryViewModel").d("onFilterApps")
         viewModelScope.launch {
             val currentState = _state.value
             val currentFilter = AppFilter.getAppType(currentState.appInfoSortType)
@@ -99,7 +96,21 @@ class LibraryViewModel @Inject constructor(
             val filteredList = appList
                 .asSequence()
                 .filter { item ->
+                    SteamService.familyMembers.ifEmpty {
+                        listOf(SteamService.userSteamId!!.accountID.toInt())
+                    }.map {
+                        item.ownerAccountId.contains(it)
+                    }.any()
+                }
+                .filter { item ->
                     currentFilter.any { item.type == it }
+                }
+                .filter { item ->
+                    if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
+                        true
+                    } else {
+                        item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt())
+                    }
                 }
                 .filter { item ->
                     if (currentState.searchQuery.isNotEmpty()) {
@@ -121,11 +132,12 @@ class LibraryViewModel @Inject constructor(
                         appId = item.id,
                         name = item.name,
                         iconHash = item.clientIconHash,
+                        isShared = !item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt()),
                     )
                 }
                 .toList()
 
-            Timber.d("Filtered list size: ${filteredList.size}")
+            Timber.tag("LibraryViewModel").d("Filtered list size: ${filteredList.size}")
             _state.update { it.copy(appInfoList = filteredList) }
         }
     }

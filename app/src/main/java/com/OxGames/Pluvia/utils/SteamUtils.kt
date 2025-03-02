@@ -43,6 +43,9 @@ object SteamUtils {
         }
     }
 
+    // Steam strips all non-ASCII characters from usernames and passwords
+    // source: https://github.com/steevp/UpdogFarmer/blob/8f2d185c7260bc2d2c92d66b81f565188f2c1a0e/app/src/main/java/com/steevsapps/idledaddy/LoginActivity.java#L166C9-L168C104
+    // more: https://github.com/winauth/winauth/issues/368#issuecomment-224631002
     /**
      * Strips non-ASCII characters from String
      */
@@ -92,6 +95,9 @@ object SteamUtils {
         }
     }
 
+    // Set LoginID to a non-zero value if you have another client connected using the same account,
+    // the same private ip, and same public ip.
+    // source: https://github.com/Longi94/JavaSteam/blob/08690d0aab254b44b0072ed8a4db2f86d757109b/javasteam-samples/src/main/java/in/dragonbra/javasteamsamples/_000_authentication/SampleLogonAuthentication.java#L146C13-L147C56
     /**
      * This ID is unique to the device and app combination
      */

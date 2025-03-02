@@ -1,5 +1,7 @@
 package com.OxGames.Pluvia.data
 
+import com.OxGames.Pluvia.Constants
+
 /**
  * Data class for the Library list
  */
@@ -8,7 +10,8 @@ data class LibraryItem(
     val appId: Int = 0,
     val name: String = "",
     val iconHash: String = "",
+    val isShared: Boolean = false,
 ) {
     val clientIconUrl: String
-        get() = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/apps/$appId/$iconHash.ico"
+        get() = Constants.Library.ICON_URL + "$appId/$iconHash.ico"
 }

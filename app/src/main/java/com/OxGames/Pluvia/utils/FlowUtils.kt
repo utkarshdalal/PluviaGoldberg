@@ -39,7 +39,6 @@ fun <T> Flow<T>.timeChunked(
                             result.getOrNull()?.let { element ->
                                 buffer.add(element)
                                 if (buffer.size == 1) { // Start timer on first element
-                                    // ticker = ticker(duration)
                                     ticker = customTicker(delayMillis)
                                 }
                             } ?: run {
@@ -69,7 +68,7 @@ fun <T> Flow<T>.timeChunked(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-fun CoroutineScope.customTicker(periodMillis: Long): ReceiveChannel<Unit> =
+private fun CoroutineScope.customTicker(periodMillis: Long): ReceiveChannel<Unit> =
     produce(capacity = Channel.CONFLATED) {
         while (isActive) {
             delay(periodMillis)
