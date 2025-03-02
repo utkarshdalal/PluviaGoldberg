@@ -52,9 +52,7 @@ import com.winlator.xenvironment.ImageFs
 import dagger.hilt.android.AndroidEntryPoint
 import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.ELicenseFlags
-import `in`.dragonbra.javasteam.enums.ELicenseType
 import `in`.dragonbra.javasteam.enums.EOSType
-import `in`.dragonbra.javasteam.enums.EPaymentMethod
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import `in`.dragonbra.javasteam.enums.EResult
 import `in`.dragonbra.javasteam.networking.steam3.ProtocolTypes
@@ -108,6 +106,7 @@ import java.io.Closeable
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.Collections
 import java.util.EnumSet
 import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
@@ -507,10 +506,11 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 GamePlayedInfo(
                                     gameId = gameProcess.appId.toLong(),
                                     processId = processId,
-                                    ownerId = if (pkgInfo.ownerAccountId.contains(userAccountId))
+                                    ownerId = if (pkgInfo.ownerAccountId.contains(userAccountId)) {
                                         userAccountId
-                                    else
-                                        pkgInfo.ownerAccountId.first(),
+                                    } else {
+                                        pkgInfo.ownerAccountId.first()
+                                    },
                                     // TODO: figure out what this is and un-hardcode
                                     launchSource = 100,
                                     gameBuildId = branch.buildId.toInt(),
@@ -1572,6 +1572,9 @@ class SteamService : Service(), IChallengeUrlChanged {
             Timber.i("onPicsProduct: Received PICS of ${callback.packages.size} package(s)")
 
             scope.launch {
+                // Don't race the queue.
+                val queue = Collections.synchronizedList(mutableListOf<Int>())
+
                 db.withTransaction {
                     callback.packages.values.forEach { pkg ->
                         val appIds = pkg.keyValues["appids"].children.map { it.asInteger() }
@@ -1591,10 +1594,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                             }
                         }
 
-                        // Get PICS information with the app ids.
-                        queueAppPICSRequests(appIds)
+                        queue.addAll(appIds)
                     }
                 }
+
+                // Get PICS information with the app ids.
+                queueAppPICSRequests(queue)
             }
         }
 
