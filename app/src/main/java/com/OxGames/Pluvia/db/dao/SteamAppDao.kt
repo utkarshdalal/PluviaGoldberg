@@ -7,7 +7,6 @@ import androidx.room.Query
 import androidx.room.Update
 import com.OxGames.Pluvia.data.SteamApp
 import com.OxGames.Pluvia.service.SteamService.Companion.INVALID_PKG_ID
-import `in`.dragonbra.javasteam.enums.ELicenseFlags
 import kotlinx.coroutines.flow.Flow
 
 @Dao
