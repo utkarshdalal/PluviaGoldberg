@@ -63,7 +63,7 @@ fun LibraryBottomSheet(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp)) // A little extra padding.
+        Spacer(modifier = Modifier.height(16.dp)) // A little extra padding.
     }
 }
 
