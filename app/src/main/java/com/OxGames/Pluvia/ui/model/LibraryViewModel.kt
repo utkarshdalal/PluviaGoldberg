@@ -35,31 +35,37 @@ class LibraryViewModel @Inject constructor(
     private val _state = MutableStateFlow(LibraryState())
     val state: StateFlow<LibraryState> = _state.asStateFlow()
 
+    // Keep the library scroll state. This will last longer as the VM will stay alive.
     var listState: LazyListState by mutableStateOf(LazyListState(0, 0))
+    
+    // Complete and unfiltered app list
     private var appList: List<SteamApp> = emptyList()
     private val drmCacheDurationMs = 7 * 24 * 60 * 60 * 1000L
     private val activeDrmChecks = ConcurrentHashMap<Int, Boolean>()
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
-            steamAppDao.getAllOwnedApps().collect { apps ->
+            steamAppDao.getAllOwnedApps(
+                // ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
+            ).collect { apps ->
                 Timber.tag("LibraryViewModel").d("Collecting ${apps.size} apps")
+
                 appList = apps
-                // Initial filter pass
-                onFilterApps()
+                // Initial filter pass, explicitly trigger DRM check
+                onFilterApps(performDrmCheck = true) 
             }
         }
     }
 
-    // Helper to map SteamApp to LibraryItem
+    // Helper to map SteamApp to LibraryItem, incorporating DRM status and timestamp
     private fun mapToLibraryItem(steamApp: SteamApp): LibraryItem {
         return LibraryItem(
             appId = steamApp.id,
             name = steamApp.name,
             iconHash = steamApp.clientIconHash, 
             isShared = !steamApp.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt()),
-            isDrmFree = steamApp.isDrmFree, // These fields are now populated from DB
-            drmCheckTimestamp = steamApp.drmCheckTimestamp
+            isDrmFree = steamApp.isDrmFree,
+            drmCheckTimestamp = steamApp.drmCheckTimestamp // Map the timestamp
         )
     }
 
@@ -67,27 +73,26 @@ class LibraryViewModel @Inject constructor(
     private fun checkAndFetchDrmStatuses(appsToCheck: List<SteamApp>) {
         viewModelScope.launch(Dispatchers.IO) { 
             appsToCheck.forEach { app ->
+                // Only proceed if a check for this app is not already active
                 if (!activeDrmChecks.containsKey(app.id)) {
-                    val currentDbApp = steamAppDao.getAppById(app.id)
-                    if (currentDbApp == null) {
-                        Timber.e("DRM Check: Could not find app ${app.id} in DB for timestamp check.")
-                        continue 
-                    }
-
-                    val needsCheck = (currentDbApp.drmCheckTimestamp ?: 0L) < (System.currentTimeMillis() - drmCacheDurationMs)
+                    // Check only based on timestamp staleness
+                    val needsCheck = (app.drmCheckTimestamp ?: 0L) < (System.currentTimeMillis() - drmCacheDurationMs)
                     
                     if (needsCheck) {
+                        // Mark as active *before* starting the blocking call
                         activeDrmChecks[app.id] = true
                         try {
                             val checkAttemptTimestamp = System.currentTimeMillis() 
-                            val drmStatus = PcgwHelper.getDrmStatusBlocking(app.id) 
+                            val drmStatus = PcgwHelper.getDrmStatusBlocking(app.id)
 
                             if (drmStatus != null) {
-                                // Success
+                                // Success: Update status and timestamp in DAO
                                 if (drmStatus == true) {
                                     Timber.i("Detected ${app.name} (${app.id}) as DRM-free.")
                                 }
                                 steamAppDao.updateDrmStatus(app.id, drmStatus, checkAttemptTimestamp)
+                                
+                                // Update UI state with new status AND timestamp
                                 _state.update { currentState ->
                                     val updatedList = currentState.appInfoList.map {
                                         if (it.appId == app.id) {
@@ -99,9 +104,11 @@ class LibraryViewModel @Inject constructor(
                                     currentState.copy(appInfoList = updatedList)
                                 }
                             } else {
-                                // Failure
+                                // Failure: Update only the timestamp in DAO
                                 Timber.w("DRM check failed or returned null for ${app.id} (${app.name})")
                                 steamAppDao.updateDrmTimestamp(app.id, checkAttemptTimestamp) 
+                                
+                                // Update UI state with new timestamp ONLY (status remains null)
                                  _state.update { currentState ->
                                     val updatedList = currentState.appInfoList.map {
                                         if (it.appId == app.id) {
@@ -114,6 +121,7 @@ class LibraryViewModel @Inject constructor(
                                 }
                             }
                         } finally {
+                             // Always remove from active checks when done (success, failure, or exception)
                              activeDrmChecks.remove(app.id)
                         }
                         delay(300) 
@@ -138,9 +146,10 @@ class LibraryViewModel @Inject constructor(
 
     fun onSearchQuery(value: String) {
         _state.update { it.copy(searchQuery = value) }
-        onFilterApps()
+        onFilterApps() // Uses default performDrmCheck = false
     }
 
+    // TODO: include other sort types
     fun onFilterChanged(value: AppFilter) {
         _state.update { currentState ->
             val updatedFilter = EnumSet.copyOf(currentState.appInfoSortType)
@@ -148,28 +157,33 @@ class LibraryViewModel @Inject constructor(
             PrefManager.libraryFilter = updatedFilter
             currentState.copy(appInfoSortType = updatedFilter)
         }
-        onFilterApps()
+        onFilterApps() // Uses default performDrmCheck = false
     }
 
-    // Applies filters and maps to UI items
-    private fun onFilterApps() {
-        Timber.tag("LibraryViewModel").d("onFilterApps called")
-        viewModelScope.launch {
-            val currentState = _state.value
+    // Applies filters, triggers DRM check for filtered list conditionally, and maps to UI items
+    private fun onFilterApps(performDrmCheck: Boolean = false) { // Added parameter
+        Timber.tag("LibraryViewModel").d("onFilterApps called (performDrmCheck=$performDrmCheck)")
+        // Keep original dispatcher
+        viewModelScope.launch { 
+             val currentState = _state.value
             val currentFilter = AppFilter.getAppType(currentState.appInfoSortType)
 
-            val filteredSteamApps = appList
+            // Apply all filters first to get the list of SteamApps relevant for display
+            val filteredList = appList
                 .asSequence()
+                 // Reverted to original owner/sharing filter logic from master
                 .filter { item ->
                     SteamService.familyMembers.ifEmpty {
                         listOf(SteamService.userSteamId!!.accountID.toInt())
                     }.map {
-                        item.ownerAccountId.contains(it)
+                        // Corrected variable name inside lambda
+                        item.ownerAccountId.contains(it) 
                     }.any()
                 }
                 .filter { item ->
                     currentFilter.any { item.type == it }
                 }
+                 // Reverted to original separate shared filter logic
                 .filter { item ->
                     if (currentState.appInfoSortType.contains(AppFilter.SHARED)) {
                         true
@@ -177,6 +191,7 @@ class LibraryViewModel @Inject constructor(
                         item.ownerAccountId.contains(SteamService.userSteamId!!.accountID.toInt())
                     }
                 }
+                 // Reverted to original search filter logic
                 .filter { item ->
                     if (currentState.searchQuery.isNotEmpty()) {
                         item.name.contains(currentState.searchQuery, ignoreCase = true)
@@ -184,6 +199,7 @@ class LibraryViewModel @Inject constructor(
                         true
                     }
                 }
+                 // Reverted to original installed filter logic
                 .filter { item ->
                     if (currentState.appInfoSortType.contains(AppFilter.INSTALLED)) {
                         SteamService.isAppInstalled(item.id)
@@ -191,16 +207,22 @@ class LibraryViewModel @Inject constructor(
                         true
                     }
                 }
-                .toList() 
+                .toList() // Collect the filtered SteamApp list
 
-            Timber.tag("LibraryViewModel").v("onFilterApps - Filtered to ${filteredSteamApps.size} apps for display/DRM check")
+            // Change log level to Verbose
+            Timber.tag("LibraryViewModel").v("onFilterApps - Filtered to ${filteredList.size} apps for display/DRM check")
 
-            checkAndFetchDrmStatuses(filteredSteamApps)
+            // Trigger DRM check for the filtered list ONLY if requested
+            if (performDrmCheck) {
+                checkAndFetchDrmStatuses(filteredList)
+            }
 
-            val finalLibraryItemList = filteredSteamApps
-                .mapIndexed { idx, item -> mapToLibraryItem(item).copy(index = idx) }
+            // Map the filtered list to LibraryItems for the UI state
+            val finalLibraryItemList = filteredList
+                .mapIndexed { idx, item -> mapToLibraryItem(item).copy(index = idx) } 
                 .toList()
 
+            // Change log level to Verbose
             Timber.tag("LibraryViewModel").v("Updating UI with ${finalLibraryItemList.size} items")
             _state.update { it.copy(appInfoList = finalLibraryItemList) }
         }
