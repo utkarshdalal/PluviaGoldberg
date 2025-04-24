@@ -33,10 +33,19 @@ internal fun AppItem(
             containerColor = Color.Transparent,
         ),
         headlineContent = { Text(text = appInfo.name) },
-        supportingContent = if (appInfo.isShared) {
-            { Text(text = "Family Shared Game", fontStyle = FontStyle.Italic, fontSize = 12.sp) }
-        } else {
-            null
+        supportingContent = {
+            val tags = mutableListOf<String>()
+            if (appInfo.isShared) tags.add("Family Shared")
+            // Check DRM status explicitly
+            when (appInfo.isDrmFree) {
+                true -> tags.add("DRM-Free")
+                false -> { /* Optionally add a "Steam DRM" tag or nothing */ }
+                null -> { /* Optionally add a "Checking DRM..." or nothing */ }
+            }
+            // Only display the Text composable if there are tags
+            if (tags.isNotEmpty()) {
+                Text(text = tags.joinToString(" • "), fontStyle = FontStyle.Italic, fontSize = 12.sp)
+            }
         },
         leadingContent = {
             ListItemImage { appInfo.clientIconUrl }

@@ -214,4 +214,13 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.test.manifest)
     testImplementation(libs.junit)
+
+    // Ktor Client - Core
+    implementation(libs.ktor.client.core)
+    // Ktor Client - Android Engine
+    implementation(libs.ktor.client.android)
+    // Ktor Client - Content Negotiation (for JSON)
+    implementation(libs.ktor.client.content.negotiation)
+    // Ktor JSON Serialization
+    implementation(libs.ktor.serialization.kotlinx.json)
 }

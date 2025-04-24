@@ -30,6 +30,10 @@
 # From Winlator
 -dontobfuscate
 
+# Keep Ktor classes (Needed for HttpTimeout and potentially others)
+-keep class io.ktor.** { *; }
+-dontwarn io.ktor.**
+
 # Timber Logging
 -keep class timber.log.Timber { *; }
 -keep class com.OxGames.Pluvia.ReleaseTree { *; }

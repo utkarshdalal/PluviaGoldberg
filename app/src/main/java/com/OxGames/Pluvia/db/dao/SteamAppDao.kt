@@ -46,4 +46,10 @@ interface SteamAppDao {
 
     @Query("DELETE from steam_app")
     suspend fun deleteAll()
+
+    @Query("UPDATE steam_app SET is_drm_free = :isDrmFree, drm_check_timestamp = :timestamp WHERE id = :appId")
+    suspend fun updateDrmStatus(appId: Int, isDrmFree: Boolean?, timestamp: Long)
+
+    @Query("SELECT * FROM steam_app WHERE id = :appId")
+    suspend fun getAppById(appId: Int): SteamApp?
 }

@@ -11,6 +11,7 @@ data class LibraryItem(
     val name: String = "",
     val iconHash: String = "",
     val isShared: Boolean = false,
+    val isDrmFree: Boolean? = null,
 ) {
     val clientIconUrl: String
         get() = Constants.Library.ICON_URL + "$appId/$iconHash.ico"
