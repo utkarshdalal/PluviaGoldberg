@@ -141,6 +141,12 @@ data class SteamApp(
 
     @ColumnInfo("ufs")
     val ufs: UFS = UFS(),
+
+    // Added for PCGW DRM Check Caching
+    @ColumnInfo("is_drm_free")
+    val isDrmFree: Boolean? = null, // Status from PCGW (null if unknown/unchecked)
+    @ColumnInfo("drm_check_timestamp")
+    val drmCheckTimestamp: Long? = null, // When the status was last checked
 ) {
 
     val logoUrl: String
