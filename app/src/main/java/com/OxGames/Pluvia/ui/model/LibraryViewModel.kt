@@ -40,6 +40,7 @@ class LibraryViewModel @Inject constructor(
     
     // Complete and unfiltered app list
     private var appList: List<SteamApp> = emptyList()
+    private var previousFilteredList: List<SteamApp> = emptyList()
     private val drmCacheDurationMs = 7 * 24 * 60 * 60 * 1000L
     private val activeDrmChecks = ConcurrentHashMap<Int, Boolean>()
 
@@ -48,11 +49,9 @@ class LibraryViewModel @Inject constructor(
             steamAppDao.getAllOwnedApps(
                 // ownerIds = SteamService.familyMembers.ifEmpty { listOf(SteamService.userSteamId!!.accountID.toInt()) },
             ).collect { apps ->
-                Timber.tag("LibraryViewModel").d("Collecting ${apps.size} apps")
-
                 appList = apps
-                // Initial filter pass, explicitly trigger DRM check
-                onFilterApps(performDrmCheck = true) 
+                Timber.tag("LibraryViewModel").d("Collecting ${apps.size} apps")
+                onFilterApps(performDrmCheck = true)
             }
         }
     }
@@ -213,7 +212,7 @@ class LibraryViewModel @Inject constructor(
             Timber.tag("LibraryViewModel").v("onFilterApps - Filtered to ${filteredList.size} apps for display/DRM check")
 
             // Trigger DRM check for the filtered list ONLY if requested
-            if (performDrmCheck) {
+            if (performDrmCheck && previousFilteredList.size != filteredList.size) {
                 checkAndFetchDrmStatuses(filteredList)
             }
 
@@ -225,6 +224,7 @@ class LibraryViewModel @Inject constructor(
             // Change log level to Verbose
             Timber.tag("LibraryViewModel").v("Updating UI with ${finalLibraryItemList.size} items")
             _state.update { it.copy(appInfoList = finalLibraryItemList) }
+            previousFilteredList = filteredList;
         }
     }
 
