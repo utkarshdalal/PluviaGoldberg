@@ -19,7 +19,7 @@ val keystoreProperties: Properties? = if (keystorePropertiesFile.exists()) {
 } else null
 
 android {
-    namespace = "com.OxGames.Pluvia"
+    namespace = "com.utkarshdalal.PluviaGoldberg"
     compileSdk = 35
 
     // https://developer.android.com/ndk/downloads

@@ -5,7 +5,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.SpinnerAdapter;
 
-import com.OxGames.Pluvia.R;
+import com.utkarshdalal.PluviaGoldberg.R;
 import com.winlator.PrefManager;
 import com.winlator.core.envvars.EnvVars;
 

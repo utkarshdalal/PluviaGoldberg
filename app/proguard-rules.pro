@@ -32,5 +32,5 @@
 
 # Timber Logging
 -keep class timber.log.Timber { *; }
--keep class com.OxGames.Pluvia.ReleaseTree { *; }
+-keep class com.utkarshdalal.PluviaGoldberg.ReleaseTree { *; }
 

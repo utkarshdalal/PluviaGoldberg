@@ -1,5 +1,5 @@
 name: Feature Request
-description: Something you'd like to see in Pluvia
+description: Something you'd like to see in PluviaGoldberg
 title: "[Request]: "
 labels: enhancement
 assignees: []
@@ -7,8 +7,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        This template should only be used for feature requests you would like to see implemented in Pluvia. 
-        
+        This template should only be used for feature requests you would like to see implemented in Pluvia.
+
   - type: textarea
     id: describe-the-request
     attributes:
@@ -21,7 +21,7 @@ body:
     id: request-already-searched
     attributes:
       label: New Feature
-      description: Is the request not already posted as an [Issue](https://github.com/oxters168/Pluvia/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement) or in the [Project Board](https://github.com/users/oxters168/projects/1)
+      description: Is the request not already posted as an [Issue](https://github.com/oxters168/PluviaGoldberg/issues?q=is%3Aissue%20state%3Aopen%20label%3Aenhancement) or in the [Project Board](https://github.com/users/oxters168/projects/1)
       options:
         - label: I have searched and did not find my request already listed.
           required: true

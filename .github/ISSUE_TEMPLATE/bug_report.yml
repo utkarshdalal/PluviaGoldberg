@@ -8,17 +8,17 @@ body:
   - type: markdown
     attributes:
       value: |
-        
+
         - Please be aware that some devices are not compatible. Snapdragon chipsets tend to be more compatible than most.
-        (Examples: Exynos, Tensor, or other chipsets with a Mali GPU). 
-        
-        - Games with DRM are currently unsupported and the issue may be closed. 
+        (Examples: Exynos, Tensor, or other chipsets with a Mali GPU).
+
+        - Games with DRM are currently unsupported and the issue may be closed.
 
         - If the bug was due to a hard crash, please attatch logs if possible.
 
         - If a game shows a soft error about `Failed to initialize graphics...` or anything inside the emulation environment, try editing the container settings.
           Note: Forums and subreddits will provide great help to configure certain games.
-        
+
   - type: textarea
     id: describe-the-bug
     attributes:
@@ -46,8 +46,8 @@ body:
   - type: input
     id: pluvia-version
     attributes:
-      label: Pluvia Version
-      description: "What version of Pluvia are you using? (ie: 1.3.0)"
+      label: PluviaGoldberg Version
+      description: "What version of PluviaGoldberg are you using? (ie: 1.3.0)"
     validations:
       required: true
 
@@ -78,7 +78,7 @@ body:
     id: issue-already-searched
     attributes:
       label: New Issue
-      description: Is the issue not already posted as an [Issue](https://github.com/oxters168/Pluvia/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) or in the [Project Board](https://github.com/users/oxters168/projects/1)
+      description: Is the issue not already posted as an [Issue](https://github.com/oxters168/PluviaGoldberg/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) or in the [Project Board](https://github.com/users/oxters168/projects/1)
       options:
         - label: I have searched and did not find a similar issue to mine already listed.
           required: true

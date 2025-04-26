@@ -1,6 +1,6 @@
 # Pluvia Goldberg Fork
 
-**Disclaimer: This software is intended for playing games that you legally own. Do not use this software for piracy or any other illegal purposes. The maintainer of this fork assumes no responsibility for misuse.**
+**Disclaimer: This software is intended for playing games that you legally own. Do not use this software for piracy or any other illegal purposes. The maintainer of this fork assumes no responsibility for misuse or for any action taken against your Steam account (e.g., account blocking) as a result of using this software.**
 
 This is a fork of the Pluvia Steam emulator for Android. This version specifically utilizes Goldberg Emulator's `steam_api.dll` and `steam_api64.dll` to potentially bypass certain DRM checks, enabling offline play for some games.
 
@@ -21,7 +21,7 @@ This is a fork of the Pluvia Steam emulator for Android. This version specifical
 
 Pluvia is a lightweight unofficial Steam client for Android with the ability to play DRM-Free games from your account and chat with friends.
 
-![ezgif-1-e771b00daa](https://github.com/user-attachments/assets/e57b9f41-0222-4500-8a0d-4dd00f999a48)
+[Playing Balatro (DRM protected game)](https://github.com/user-attachments/assets/cbeab580-f537-4c88-b908-9510f1c27053)
 
 > NOTE: This project is **NOT** affilated, endorsed, sponsored, or developed by __Valve Corporation__. Do not report any bugs found in this project to them. 
 > Steam is a trademark of the Valve Corporation
@@ -32,7 +32,7 @@ Pluvia is still in active early development, so some features may be lacking or 
 Pluvia currently provides these features:
 
 - View and download games through the app.
-- *Play (DRM free) games using [Winlator](https://github.com/brunodev85/winlator) built into the app.
+- Play games using [Winlator](https://github.com/brunodev85/winlator) built into the app. (Compatibility with some DRM-protected games is improved via Goldberg Emulator integration).
 - Configure the game containers to use different options to improve the performance of each game.
 - Steam Cloud integration for your cloud saves, allowing you to resume where you left off. 
 - View your friends list. (Note: chat and friend management in the works too)
