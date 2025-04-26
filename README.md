@@ -1,3 +1,13 @@
+# Pluvia Goldberg Fork
+
+**Disclaimer: This software is intended for playing games that you legally own. Do not use this software for piracy or any other illegal purposes. The maintainer of this fork assumes no responsibility for misuse.**
+
+This is a fork of the Pluvia Steam emulator for Android. This version specifically utilizes Goldberg Emulator's `steam_api.dll` and `steam_api64.dll` to potentially bypass certain DRM checks, enabling offline play for some games.
+
+---
+*(Original Pluvia README content below)*
+---
+
 <h1>
   <img src="https://github.com/user-attachments/assets/dd0419dc-476e-448f-ab9c-2e26928dcf69">
   Pluvia
