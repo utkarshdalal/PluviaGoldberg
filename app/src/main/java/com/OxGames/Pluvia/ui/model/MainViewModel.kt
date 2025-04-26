@@ -16,6 +16,7 @@ import com.OxGames.Pluvia.events.SteamEvent
 import com.OxGames.Pluvia.service.SteamService
 import com.OxGames.Pluvia.ui.data.MainState
 import com.OxGames.Pluvia.ui.screen.PluviaScreen
+import com.OxGames.Pluvia.utils.SteamUtils
 import com.materialkolor.PaletteStyle
 import com.winlator.xserver.Window
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -183,8 +184,8 @@ class MainViewModel @Inject constructor(
         _state.update { it.copy(bootToContainer = value) }
     }
 
-    fun launchApp() {
-        // SteamUtils.replaceSteamApi(context, appId)
+    fun launchApp(context: Context, appId: Int) {
+        SteamUtils.replaceSteamApi(context, appId)
         // TODO: fix XServerScreen change orientation issue rather than setting the orientation
         //  before entering XServerScreen
         viewModelScope.launch {
