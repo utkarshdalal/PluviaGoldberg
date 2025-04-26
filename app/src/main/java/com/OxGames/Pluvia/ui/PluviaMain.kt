@@ -58,6 +58,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import kotlin.reflect.KFunction2
 
 @Composable
 fun PluviaMain(
@@ -483,7 +484,7 @@ fun preLaunchApp(
     setLoadingDialogVisible: (Boolean) -> Unit,
     setLoadingProgress: (Float) -> Unit,
     setMessageDialogState: (MessageDialogState) -> Unit,
-    onSuccess: () -> Unit,
+    onSuccess: KFunction2<Context, Int, Unit>,
 ) {
     setLoadingDialogVisible(true)
     // TODO: add a way to cancel
@@ -663,7 +664,7 @@ fun preLaunchApp(
 
             SyncResult.UpToDate,
             SyncResult.Success,
-            -> onSuccess()
+            -> onSuccess(context, appId)
         }
     }
 }
