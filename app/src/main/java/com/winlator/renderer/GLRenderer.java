@@ -8,7 +8,7 @@ import android.opengl.GLSurfaceView;
 
 // import com.winlator.R;
 // import com.winlator.XrActivity;
-import com.OxGames.Pluvia.R;
+import com.utkarshdalal.PluviaGoldberg.R;
 import com.winlator.math.Mathf;
 import com.winlator.math.XForm;
 import com.winlator.renderer.material.CursorMaterial;

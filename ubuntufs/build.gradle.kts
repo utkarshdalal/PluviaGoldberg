@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 android {
-    namespace = "com.OxGames.ubuntufs"
+    namespace = "com.utkarshdalal.ubuntufs"
     compileSdk = 35
 
     defaultConfig {

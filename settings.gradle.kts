@@ -20,6 +20,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Pluvia"
+rootProject.name = "PluviaGoldberg"
 include(":app")
 include(":ubuntufs")
