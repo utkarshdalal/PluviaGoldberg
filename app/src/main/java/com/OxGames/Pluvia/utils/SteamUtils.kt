@@ -14,6 +14,7 @@ import java.util.TimeZone
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.name
+import timber.log.Timber
 
 object SteamUtils {
 
@@ -56,9 +57,14 @@ object SteamUtils {
      * with our pipe dll stored in assets
      */
     fun replaceSteamApi(context: Context, appId: Int) {
+        Timber.i("Starting replaceSteamApi for appId: $appId")
         val appDirPath = SteamService.getAppDirPath(appId)
+        Timber.i("Checking directory: $appDirPath")
+        var replaced32 = false
+        var replaced64 = false
         FileUtils.walkThroughPath(Paths.get(appDirPath), -1) {
             if (it.name == "steam_api.dll" && it.exists()) {
+                Timber.i("Found steam_api.dll at ${it.absolutePathString()}, replacing...")
                 Files.delete(it)
                 Files.createFile(it)
                 FileOutputStream(it.absolutePathString()).use { fos ->
@@ -66,8 +72,11 @@ object SteamUtils {
                         fs.copyTo(fos)
                     }
                 }
+                Timber.i("Replaced steam_api.dll")
+                replaced32 = true
             }
             if (it.name == "steam_api64.dll" && it.exists()) {
+                Timber.i("Found steam_api64.dll at ${it.absolutePathString()}, replacing...")
                 Files.delete(it)
                 Files.createFile(it)
                 FileOutputStream(it.absolutePathString()).use { fos ->
@@ -75,8 +84,11 @@ object SteamUtils {
                         fs.copyTo(fos)
                     }
                 }
+                Timber.i("Replaced steam_api64.dll")
+                replaced64 = true
             }
         }
+        Timber.i("Finished replaceSteamApi for appId: $appId. Replaced 32bit: $replaced32, Replaced 64bit: $replaced64")
     }
 
     /**
