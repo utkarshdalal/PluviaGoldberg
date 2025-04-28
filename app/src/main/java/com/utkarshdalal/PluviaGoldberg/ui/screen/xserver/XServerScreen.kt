@@ -614,6 +614,28 @@ private fun setupXEnvironment(
     }
     environment.addComponent(guestProgramLauncherComponent)
 
+    // Log container settings before starting
+    if (container != null) {
+        Timber.i("---- Launching Container ----")
+        Timber.i("ID: ${container.id}")
+        Timber.i("Name: ${container.name}")
+        Timber.i("Screen Size: ${container.screenSize}")
+        Timber.i("Graphics Driver: ${container.graphicsDriver}")
+        Timber.i("DX Wrapper: ${container.dxWrapper} (Config: '${container.dxWrapperConfig}')")
+        Timber.i("Audio Driver: ${container.audioDriver}")
+        Timber.i("WoW64 Mode: ${container.isWoW64Mode}")
+        Timber.i("Box64 Version: ${container.box64Version}")
+        Timber.i("Box64 Preset: ${container.box64Preset}")
+        Timber.i("Box86 Version: ${container.box86Version}")
+        Timber.i("Box86 Preset: ${container.box86Preset}")
+        Timber.i("CPU List: ${container.cpuList}")
+        Timber.i("CPU List WoW64: ${container.cpuListWoW64}")
+        Timber.i("Env Vars (Container Base): ${container.envVars}") // Log base container vars
+        Timber.i("Env Vars (Final Guest): ${envVars.toString()}")   // Log the actual env vars being passed
+        Timber.i("Guest Executable: ${guestProgramLauncherComponent.guestExecutable}") // Log the command
+        Timber.i("---------------------------")
+    }
+
     // if (generateWinePrefix) {
     //     generateWineprefix(
     //         context,
@@ -910,6 +932,8 @@ private fun extractDXWrapperFiles(
             )
         }
         else -> {
+            // This block handles dxvk-VERSION strings
+            Timber.i("Extracting DXVK/D8VK DLLs for dxwrapper: $dxwrapper")
             restoreOriginalDllFiles(container, containerManager, imageFs, "d3d12.dll", "d3d12core.dll", "ddraw.dll")
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD, context.assets,
