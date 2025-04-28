@@ -1,12 +1,10 @@
 package com.winlator.xserver;
 
-import android.util.Log;
-import android.view.InputDevice;
 import android.view.KeyEvent;
 
 import androidx.collection.ArraySet;
 
-// import com.winlator.inputcontrols.ExternalController;
+import com.winlator.inputcontrols.ExternalController;
 
 import java.util.ArrayList;
 
@@ -95,18 +93,21 @@ public class Keyboard {
         }
     }
 
-    public static boolean isKeyboardDevice(InputDevice device) {
-        if (device == null) return false;
-        int sources = device.getSources();
-        return !device.isVirtual() && ((sources & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD);
-    }
-
     public boolean onKeyEvent(KeyEvent event) {
-        // if (ExternalController.isGameController(event.getDevice())) return false;
+        if (ExternalController.isGameController(event.getDevice())) return false;
 
         int action = event.getAction();
-        if (action == KeyEvent.ACTION_DOWN || action == KeyEvent.ACTION_UP) {
-            int keyCode = event.getKeyCode();
+        int keyCode = event.getKeyCode();
+
+        if (keyCode == KeyEvent.KEYCODE_TAB || keyCode == KeyEvent.KEYCODE_ESCAPE) {
+            if (action == KeyEvent.ACTION_DOWN) {
+                xServer.injectKeyPress(keycodeMap[keyCode]);
+                return true; // Consume the event to prevent default focus change
+            } else if (action == KeyEvent.ACTION_UP) {
+                xServer.injectKeyRelease(keycodeMap[keyCode]);
+                return true; // Consume the event to prevent default focus change
+            }
+        } else if (action == KeyEvent.ACTION_DOWN || action == KeyEvent.ACTION_UP) {
             XKeycode xKeycode = keycodeMap[keyCode];
             if (xKeycode == null) return false;
 
@@ -114,8 +115,7 @@ public class Keyboard {
                 boolean shiftPressed = event.isShiftPressed() || keyCode == KeyEvent.KEYCODE_AT || keyCode == KeyEvent.KEYCODE_STAR || keyCode == KeyEvent.KEYCODE_POUND || keyCode == KeyEvent.KEYCODE_PLUS;
                 if (shiftPressed) xServer.injectKeyPress(XKeycode.KEY_SHIFT_L);
                 xServer.injectKeyPress(xKeycode, xKeycode != XKeycode.KEY_ENTER ? event.getUnicodeChar() : 0);
-            }
-            else if (action == KeyEvent.ACTION_UP) {
+            } else if (action == KeyEvent.ACTION_UP) {
                 xServer.injectKeyRelease(XKeycode.KEY_SHIFT_L);
                 xServer.injectKeyRelease(xKeycode);
             }
@@ -125,6 +125,7 @@ public class Keyboard {
 
     private static XKeycode[] createKeycodeMap() {
         XKeycode[] keycodeMap = new XKeycode[(KeyEvent.getMaxKeyCode() + 1)];
+        // Adding the Escape key mapping
         keycodeMap[KeyEvent.KEYCODE_ESCAPE] = XKeycode.KEY_ESC;
         keycodeMap[KeyEvent.KEYCODE_ENTER] = XKeycode.KEY_ENTER;
         keycodeMap[KeyEvent.KEYCODE_DPAD_LEFT] = XKeycode.KEY_LEFT;
@@ -231,137 +232,137 @@ public class Keyboard {
 
     public static Keyboard createKeyboard(XServer xServer) {
         Keyboard keyboard = new Keyboard(xServer);
-        keyboard.setKeysyms(XKeycode.KEY_ESC.getId(), 65307, 0);
-        keyboard.setKeysyms(XKeycode.KEY_ENTER.getId(), 65293, 0);
-        keyboard.setKeysyms(XKeycode.KEY_RIGHT.getId(), 65363, 0);
-        keyboard.setKeysyms(XKeycode.KEY_UP.getId(), 65362, 0);
-        keyboard.setKeysyms(XKeycode.KEY_LEFT.getId(), 65361, 0);
-        keyboard.setKeysyms(XKeycode.KEY_DOWN.getId(), 65364, 0);
-        keyboard.setKeysyms(XKeycode.KEY_DEL.getId(), 65535, 0);
-        keyboard.setKeysyms(XKeycode.KEY_BKSP.getId(), 65288, 0);
-        keyboard.setKeysyms(XKeycode.KEY_INSERT.getId(), 65379, 0);
-        keyboard.setKeysyms(XKeycode.KEY_PRIOR.getId(), 65365, 0);
-        keyboard.setKeysyms(XKeycode.KEY_NEXT.getId(), 65366, 0);
-        keyboard.setKeysyms(XKeycode.KEY_HOME.getId(), 65360, 0);
-        keyboard.setKeysyms(XKeycode.KEY_END.getId(), 65367, 0);
-        keyboard.setKeysyms(XKeycode.KEY_SHIFT_L.getId(), 65505, 0);
-        keyboard.setKeysyms(XKeycode.KEY_SHIFT_R.getId(), 65506, 0);
-        keyboard.setKeysyms(XKeycode.KEY_CTRL_L.getId(), 65507, 0);
-        keyboard.setKeysyms(XKeycode.KEY_CTRL_R.getId(), 65508, 0);
-        keyboard.setKeysyms(XKeycode.KEY_ALT_L.getId(), 65511, 0);
-        keyboard.setKeysyms(XKeycode.KEY_ALT_R.getId(), 65512, 0);
-        keyboard.setKeysyms(XKeycode.KEY_TAB.getId(), 65289, 0);
-        keyboard.setKeysyms(XKeycode.KEY_SPACE.getId(), 32, 32);
-        keyboard.setKeysyms(XKeycode.KEY_A.getId(), 97, 65);
-        keyboard.setKeysyms(XKeycode.KEY_B.getId(), 98, 66);
-        keyboard.setKeysyms(XKeycode.KEY_C.getId(), 99, 67);
-        keyboard.setKeysyms(XKeycode.KEY_D.getId(), 100, 68);
-        keyboard.setKeysyms(XKeycode.KEY_E.getId(), 101, 69);
-        keyboard.setKeysyms(XKeycode.KEY_F.getId(), 102, 70);
-        keyboard.setKeysyms(XKeycode.KEY_G.getId(), 103, 71);
-        keyboard.setKeysyms(XKeycode.KEY_H.getId(), 104, 72);
-        keyboard.setKeysyms(XKeycode.KEY_I.getId(), 105, 73);
-        keyboard.setKeysyms(XKeycode.KEY_J.getId(), 106, 74);
-        keyboard.setKeysyms(XKeycode.KEY_K.getId(), 107, 75);
-        keyboard.setKeysyms(XKeycode.KEY_L.getId(), 108, 76);
-        keyboard.setKeysyms(XKeycode.KEY_M.getId(), 109, 77);
-        keyboard.setKeysyms(XKeycode.KEY_N.getId(), 110, 78);
-        keyboard.setKeysyms(XKeycode.KEY_O.getId(), 111, 79);
-        keyboard.setKeysyms(XKeycode.KEY_P.getId(), 112, 80);
-        keyboard.setKeysyms(XKeycode.KEY_Q.getId(), 113, 81);
-        keyboard.setKeysyms(XKeycode.KEY_R.getId(), 114, 82);
-        keyboard.setKeysyms(XKeycode.KEY_S.getId(), 115, 83);
-        keyboard.setKeysyms(XKeycode.KEY_T.getId(), 116, 84);
-        keyboard.setKeysyms(XKeycode.KEY_U.getId(), 117, 85);
-        keyboard.setKeysyms(XKeycode.KEY_V.getId(), 118, 86);
-        keyboard.setKeysyms(XKeycode.KEY_W.getId(), 119, 87);
-        keyboard.setKeysyms(XKeycode.KEY_X.getId(), 120, 88);
-        keyboard.setKeysyms(XKeycode.KEY_Y.getId(), 121, 89);
-        keyboard.setKeysyms(XKeycode.KEY_Z.getId(), 122, 90);
-        keyboard.setKeysyms(XKeycode.KEY_1.getId(), 49, 33);
-        keyboard.setKeysyms(XKeycode.KEY_2.getId(), 50, 64);
-        keyboard.setKeysyms(XKeycode.KEY_3.getId(), 51, 35);
-        keyboard.setKeysyms(XKeycode.KEY_4.getId(), 52, 36);
-        keyboard.setKeysyms(XKeycode.KEY_5.getId(), 53, 37);
-        keyboard.setKeysyms(XKeycode.KEY_6.getId(), 54, 94);
-        keyboard.setKeysyms(XKeycode.KEY_7.getId(), 55, 38);
-        keyboard.setKeysyms(XKeycode.KEY_8.getId(), 56, 42);
-        keyboard.setKeysyms(XKeycode.KEY_9.getId(), 57, 40);
-        keyboard.setKeysyms(XKeycode.KEY_0.getId(), 48, 41);
-        keyboard.setKeysyms(XKeycode.KEY_COMMA.getId(), 44, 60);
-        keyboard.setKeysyms(XKeycode.KEY_PERIOD.getId(), 46, 62);
-        keyboard.setKeysyms(XKeycode.KEY_SEMICOLON.getId(), 59, 58);
-        keyboard.setKeysyms(XKeycode.KEY_APOSTROPHE.getId(), 39, 34);
-        keyboard.setKeysyms(XKeycode.KEY_BRACKET_LEFT.getId(), 91, 123);
-        keyboard.setKeysyms(XKeycode.KEY_BRACKET_RIGHT.getId(), 93, 125);
-        keyboard.setKeysyms(XKeycode.KEY_GRAVE.getId(), 96, 126);
-        keyboard.setKeysyms(XKeycode.KEY_MINUS.getId(), 45, 95);
-        keyboard.setKeysyms(XKeycode.KEY_EQUAL.getId(), 61, 43);
-        keyboard.setKeysyms(XKeycode.KEY_SLASH.getId(), 47, 63);
-        keyboard.setKeysyms(XKeycode.KEY_BACKSLASH.getId(), 92, 124);
-        keyboard.setKeysyms(XKeycode.KEY_KP_DIVIDE.getId(), 65455, 65455);
-        keyboard.setKeysyms(XKeycode.KEY_KP_MULTIPLY.getId(), 65450, 65450);
-        keyboard.setKeysyms(XKeycode.KEY_KP_SUBTRACT.getId(), 65453, 65453);
-        keyboard.setKeysyms(XKeycode.KEY_KP_ADD.getId(), 65451, 65451);
-        keyboard.setKeysyms(XKeycode.KEY_KP_0.getId(), 65456, 65438);
-        keyboard.setKeysyms(XKeycode.KEY_KP_1.getId(), 65457, 65436);
-        keyboard.setKeysyms(XKeycode.KEY_KP_2.getId(), 65458, 65433);
-        keyboard.setKeysyms(XKeycode.KEY_KP_3.getId(), 65459, 65459);
-        keyboard.setKeysyms(XKeycode.KEY_KP_4.getId(), 65460, 65430);
-        keyboard.setKeysyms(XKeycode.KEY_KP_5.getId(), 65461, 65461);
-        keyboard.setKeysyms(XKeycode.KEY_KP_6.getId(), 65462, 65432);
-        keyboard.setKeysyms(XKeycode.KEY_KP_7.getId(), 65463, 65429);
-        keyboard.setKeysyms(XKeycode.KEY_KP_8.getId(), 65464, 65431);
-        keyboard.setKeysyms(XKeycode.KEY_KP_9.getId(), 65465, 65465);
-        keyboard.setKeysyms(XKeycode.KEY_KP_DEL.getId(), 65439, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F1.getId(), 65470, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F2.getId(), 65471, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F3.getId(), 65472, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F4.getId(), 65473, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F5.getId(), 65474, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F6.getId(), 65475, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F7.getId(), 65476, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F8.getId(), 65477, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F9.getId(), 65478, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F10.getId(), 65479, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F11.getId(), 65480, 0);
-        keyboard.setKeysyms(XKeycode.KEY_F12.getId(), 65481, 0);
+        keyboard.setKeysyms(XKeycode.KEY_ESC.id, 65307, 0);
+        keyboard.setKeysyms(XKeycode.KEY_ENTER.id, 65293, 0);
+        keyboard.setKeysyms(XKeycode.KEY_RIGHT.id, 65363, 0);
+        keyboard.setKeysyms(XKeycode.KEY_UP.id, 65362, 0);
+        keyboard.setKeysyms(XKeycode.KEY_LEFT.id, 65361, 0);
+        keyboard.setKeysyms(XKeycode.KEY_DOWN.id, 65364, 0);
+        keyboard.setKeysyms(XKeycode.KEY_DEL.id, 65535, 0);
+        keyboard.setKeysyms(XKeycode.KEY_BKSP.id, 65288, 0);
+        keyboard.setKeysyms(XKeycode.KEY_INSERT.id, 65379, 0);
+        keyboard.setKeysyms(XKeycode.KEY_PRIOR.id, 65365, 0);
+        keyboard.setKeysyms(XKeycode.KEY_NEXT.id, 65366, 0);
+        keyboard.setKeysyms(XKeycode.KEY_HOME.id, 65360, 0);
+        keyboard.setKeysyms(XKeycode.KEY_END.id, 65367, 0);
+        keyboard.setKeysyms(XKeycode.KEY_SHIFT_L.id, 65505, 0);
+        keyboard.setKeysyms(XKeycode.KEY_SHIFT_R.id, 65506, 0);
+        keyboard.setKeysyms(XKeycode.KEY_CTRL_L.id, 65507, 0);
+        keyboard.setKeysyms(XKeycode.KEY_CTRL_R.id, 65508, 0);
+        keyboard.setKeysyms(XKeycode.KEY_ALT_L.id, 65511, 0);
+        keyboard.setKeysyms(XKeycode.KEY_ALT_R.id, 65512, 0);
+        keyboard.setKeysyms(XKeycode.KEY_TAB.id, 65289, 0);
+        keyboard.setKeysyms(XKeycode.KEY_SPACE.id, 32, 32);
+        keyboard.setKeysyms(XKeycode.KEY_A.id, 97, 65);
+        keyboard.setKeysyms(XKeycode.KEY_B.id, 98, 66);
+        keyboard.setKeysyms(XKeycode.KEY_C.id, 99, 67);
+        keyboard.setKeysyms(XKeycode.KEY_D.id, 100, 68);
+        keyboard.setKeysyms(XKeycode.KEY_E.id, 101, 69);
+        keyboard.setKeysyms(XKeycode.KEY_F.id, 102, 70);
+        keyboard.setKeysyms(XKeycode.KEY_G.id, 103, 71);
+        keyboard.setKeysyms(XKeycode.KEY_H.id, 104, 72);
+        keyboard.setKeysyms(XKeycode.KEY_I.id, 105, 73);
+        keyboard.setKeysyms(XKeycode.KEY_J.id, 106, 74);
+        keyboard.setKeysyms(XKeycode.KEY_K.id, 107, 75);
+        keyboard.setKeysyms(XKeycode.KEY_L.id, 108, 76);
+        keyboard.setKeysyms(XKeycode.KEY_M.id, 109, 77);
+        keyboard.setKeysyms(XKeycode.KEY_N.id, 110, 78);
+        keyboard.setKeysyms(XKeycode.KEY_O.id, 111, 79);
+        keyboard.setKeysyms(XKeycode.KEY_P.id, 112, 80);
+        keyboard.setKeysyms(XKeycode.KEY_Q.id, 113, 81);
+        keyboard.setKeysyms(XKeycode.KEY_R.id, 114, 82);
+        keyboard.setKeysyms(XKeycode.KEY_S.id, 115, 83);
+        keyboard.setKeysyms(XKeycode.KEY_T.id, 116, 84);
+        keyboard.setKeysyms(XKeycode.KEY_U.id, 117, 85);
+        keyboard.setKeysyms(XKeycode.KEY_V.id, 118, 86);
+        keyboard.setKeysyms(XKeycode.KEY_W.id, 119, 87);
+        keyboard.setKeysyms(XKeycode.KEY_X.id, 120, 88);
+        keyboard.setKeysyms(XKeycode.KEY_Y.id, 121, 89);
+        keyboard.setKeysyms(XKeycode.KEY_Z.id, 122, 90);
+        keyboard.setKeysyms(XKeycode.KEY_1.id, 49, 33);
+        keyboard.setKeysyms(XKeycode.KEY_2.id, 50, 64);
+        keyboard.setKeysyms(XKeycode.KEY_3.id, 51, 35);
+        keyboard.setKeysyms(XKeycode.KEY_4.id, 52, 36);
+        keyboard.setKeysyms(XKeycode.KEY_5.id, 53, 37);
+        keyboard.setKeysyms(XKeycode.KEY_6.id, 54, 94);
+        keyboard.setKeysyms(XKeycode.KEY_7.id, 55, 38);
+        keyboard.setKeysyms(XKeycode.KEY_8.id, 56, 42);
+        keyboard.setKeysyms(XKeycode.KEY_9.id, 57, 40);
+        keyboard.setKeysyms(XKeycode.KEY_0.id, 48, 41);
+        keyboard.setKeysyms(XKeycode.KEY_COMMA.id, 44, 60);
+        keyboard.setKeysyms(XKeycode.KEY_PERIOD.id, 46, 62);
+        keyboard.setKeysyms(XKeycode.KEY_SEMICOLON.id, 59, 58);
+        keyboard.setKeysyms(XKeycode.KEY_APOSTROPHE.id, 39, 34);
+        keyboard.setKeysyms(XKeycode.KEY_BRACKET_LEFT.id, 91, 123);
+        keyboard.setKeysyms(XKeycode.KEY_BRACKET_RIGHT.id, 93, 125);
+        keyboard.setKeysyms(XKeycode.KEY_GRAVE.id, 96, 126);
+        keyboard.setKeysyms(XKeycode.KEY_MINUS.id, 45, 95);
+        keyboard.setKeysyms(XKeycode.KEY_EQUAL.id, 61, 43);
+        keyboard.setKeysyms(XKeycode.KEY_SLASH.id, 47, 63);
+        keyboard.setKeysyms(XKeycode.KEY_BACKSLASH.id, 92, 124);
+        keyboard.setKeysyms(XKeycode.KEY_KP_DIVIDE.id, 65455, 65455);
+        keyboard.setKeysyms(XKeycode.KEY_KP_MULTIPLY.id, 65450, 65450);
+        keyboard.setKeysyms(XKeycode.KEY_KP_SUBTRACT.id, 65453, 65453);
+        keyboard.setKeysyms(XKeycode.KEY_KP_ADD.id, 65451, 65451);
+        keyboard.setKeysyms(XKeycode.KEY_KP_0.id, 65456, 65438);
+        keyboard.setKeysyms(XKeycode.KEY_KP_1.id, 65457, 65436);
+        keyboard.setKeysyms(XKeycode.KEY_KP_2.id, 65458, 65433);
+        keyboard.setKeysyms(XKeycode.KEY_KP_3.id, 65459, 65459);
+        keyboard.setKeysyms(XKeycode.KEY_KP_4.id, 65460, 65430);
+        keyboard.setKeysyms(XKeycode.KEY_KP_5.id, 65461, 65461);
+        keyboard.setKeysyms(XKeycode.KEY_KP_6.id, 65462, 65432);
+        keyboard.setKeysyms(XKeycode.KEY_KP_7.id, 65463, 65429);
+        keyboard.setKeysyms(XKeycode.KEY_KP_8.id, 65464, 65431);
+        keyboard.setKeysyms(XKeycode.KEY_KP_9.id, 65465, 65465);
+        keyboard.setKeysyms(XKeycode.KEY_KP_DEL.id, 65439, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F1.id, 65470, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F2.id, 65471, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F3.id, 65472, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F4.id, 65473, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F5.id, 65474, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F6.id, 65475, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F7.id, 65476, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F8.id, 65477, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F9.id, 65478, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F10.id, 65479, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F11.id, 65480, 0);
+        keyboard.setKeysyms(XKeycode.KEY_F12.id, 65481, 0);
         return keyboard;
     }
 
     public static boolean isModifier(byte keycode) {
         return
-                keycode == XKeycode.KEY_SHIFT_L.getId() ||
-                        keycode == XKeycode.KEY_SHIFT_R.getId() ||
-                        keycode == XKeycode.KEY_CTRL_L.getId() ||
-                        keycode == XKeycode.KEY_CTRL_R.getId() ||
-                        keycode == XKeycode.KEY_ALT_L.getId() ||
-                        keycode == XKeycode.KEY_ALT_R.getId() ||
-                        keycode == XKeycode.KEY_CAPS_LOCK.getId() ||
-                        keycode == XKeycode.KEY_NUM_LOCK.getId()
-                ;
+            keycode == XKeycode.KEY_SHIFT_L.id ||
+            keycode == XKeycode.KEY_SHIFT_R.id ||
+            keycode == XKeycode.KEY_CTRL_L.id ||
+            keycode == XKeycode.KEY_CTRL_R.id ||
+            keycode == XKeycode.KEY_ALT_L.id ||
+            keycode == XKeycode.KEY_ALT_R.id ||
+            keycode == XKeycode.KEY_CAPS_LOCK.id ||
+            keycode == XKeycode.KEY_NUM_LOCK.id
+        ;
     }
 
     public static int getModifierFlag(byte keycode) {
-        if (keycode == XKeycode.KEY_SHIFT_L.getId() || keycode == XKeycode.KEY_SHIFT_R.getId()) {
+        if (keycode == XKeycode.KEY_SHIFT_L.id || keycode == XKeycode.KEY_SHIFT_R.id) {
             return 1;
         }
-        else if (keycode == XKeycode.KEY_CAPS_LOCK.getId()) {
+        else if (keycode == XKeycode.KEY_CAPS_LOCK.id) {
             return 2;
         }
-        else if (keycode == XKeycode.KEY_CTRL_L.getId() || keycode == XKeycode.KEY_CTRL_R.getId()) {
+        else if (keycode == XKeycode.KEY_CTRL_L.id || keycode == XKeycode.KEY_CTRL_R.id) {
             return 4;
         }
-        else if (keycode == XKeycode.KEY_ALT_L.getId() || keycode == XKeycode.KEY_ALT_R.getId()) {
+        else if (keycode == XKeycode.KEY_ALT_L.id || keycode == XKeycode.KEY_ALT_R.id) {
             return 8;
         }
-        else if (keycode == XKeycode.KEY_NUM_LOCK.getId()) {
+        else if (keycode == XKeycode.KEY_NUM_LOCK.id) {
             return 16;
         }
         return 0;
     }
 
     public static boolean isModifierSticky(byte keycode) {
-        return keycode == XKeycode.KEY_CAPS_LOCK.getId() || keycode == XKeycode.KEY_NUM_LOCK.getId();
+        return keycode == XKeycode.KEY_CAPS_LOCK.id || keycode == XKeycode.KEY_NUM_LOCK.id;
     }
 }

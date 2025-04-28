@@ -1,6 +1,5 @@
 package com.winlator.xconnector;
 
-import android.util.Log;
 import android.util.SparseArray;
 
 import androidx.annotation.Keep;
@@ -30,8 +29,6 @@ public class XConnectorEpoll implements Runnable {
     public XConnectorEpoll(UnixSocketConfig socketConfig, ConnectionHandler connectionHandler, RequestHandler requestHandler) {
         this.connectionHandler = connectionHandler;
         this.requestHandler = requestHandler;
-
-        setRLimitToMax();
 
         serverFd = createAFUnixSocket(socketConfig.path);
         if (serverFd < 0) {
@@ -76,19 +73,14 @@ public class XConnectorEpoll implements Runnable {
             try {
                 epollThread.join();
             }
-            catch (InterruptedException e) {
-                Log.e("XConnectorEpoll", "Failed to stop: " + e);
-            }
+            catch (InterruptedException e) {}
         }
         epollThread = null;
     }
 
     @Override
     public void run() {
-        Log.d("XConnectorEpoll", "Starting indefinite epoll");
         while (running && doEpollIndefinitely(epollFd, serverFd, !multithreadedClients));
-            // Log.d("XConnectorEpoll", "Polled");
-        Log.d("XConnectorEpoll", "Shutting down");
         shutdown();
     }
 
@@ -126,7 +118,6 @@ public class XConnectorEpoll implements Runnable {
             else requestHandler.handleRequest(client);
         }
         catch (IOException e) {
-            Log.e("XConnectorEpoll", "IOException occured while handling existing connection: " + e);
             killConnection(client);
         }
     }
@@ -146,9 +137,7 @@ public class XConnectorEpoll implements Runnable {
                     try {
                         client.pollThread.join();
                     }
-                    catch (InterruptedException e) {
-                        Log.e("XConnectorEpoll", "Failed to join client poll thread: " + e);
-                    }
+                    catch (InterruptedException e) {}
                 }
 
                 client.pollThread = null;
@@ -211,14 +200,10 @@ public class XConnectorEpoll implements Runnable {
             data.asLongBuffer().put(1);
             (new ClientSocket(shutdownFd)).write(data);
         }
-        catch (IOException e) {
-            Log.e("XConnectorEpoll", "Failed to shutdown: " + e);
-        }
+        catch (IOException e) {}
     }
 
     public static native void closeFd(int fd);
-
-    private static native void setRLimitToMax();
 
     private native int createEpollFd();
 

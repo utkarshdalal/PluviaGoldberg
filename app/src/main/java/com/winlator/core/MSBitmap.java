@@ -99,7 +99,7 @@ public abstract class MSBitmap {
         int vr = 0;
         int colorsUsed = 0;
         int colorsImportant = 0;
-
+        
         ByteBuffer buffer = ByteBuffer.allocate(dataOffset + imageSize).order(ByteOrder.LITTLE_ENDIAN);
 
         buffer.putShort((short)0x4d42); // "BM"

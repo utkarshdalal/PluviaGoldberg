@@ -94,8 +94,8 @@ public abstract class WindowRequests {
 
             if (valueMask.isSet(WindowAttributes.FLAG_EVENT_MASK)) {
                 if (isClientCanSelectFor(Event.SUBSTRUCTURE_REDIRECT, window, client) &&
-                        isClientCanSelectFor(Event.RESIZE_REDIRECT, window, client) &&
-                        isClientCanSelectFor(Event.BUTTON_PRESS, window, client)) {
+                    isClientCanSelectFor(Event.RESIZE_REDIRECT, window, client) &&
+                    isClientCanSelectFor(Event.BUTTON_PRESS, window, client)) {
                     client.setEventListenerForWindow(window, window.attributes.getEventMask());
                 }
                 else throw new BadAccess();
@@ -108,6 +108,10 @@ public abstract class WindowRequests {
     }
 
     public static void destroyWindow(XClient client, XInputStream inputStream, XOutputStream outputStream) {
+        client.xServer.windowManager.destroyWindow(inputStream.readInt());
+    }
+
+    public static void destroySubWindows(XClient client, XInputStream inputStream, XOutputStream outputStream) {
         client.xServer.windowManager.destroyWindow(inputStream.readInt());
     }
 
@@ -129,6 +133,23 @@ public abstract class WindowRequests {
         int windowId = inputStream.readInt();
         Window window = client.xServer.windowManager.getWindow(windowId);
         if (window == null) throw new BadWindow(windowId);
+        client.xServer.windowManager.mapWindow(window);
+    }
+
+    public static void mapSubWindows(XClient client, XInputStream inputStream, XOutputStream outputStream) throws XRequestError {
+        int windowId = inputStream.readInt();
+        Window window = client.xServer.windowManager.getWindow(windowId);
+        if (window == null) throw new BadWindow(windowId);
+        for (Window child : window.getChildren())
+            mapSubWindows(client, child.id);
+        client.xServer.windowManager.mapWindow(window);
+    }
+
+    private static void mapSubWindows(XClient client, int windowId) throws XRequestError {
+        Window window = client.xServer.windowManager.getWindow(windowId);
+        if (window == null) throw new BadWindow(windowId);
+        for (Window child : window.getChildren())
+            mapSubWindows(client, child.id);
         client.xServer.windowManager.mapWindow(window);
     }
 

@@ -52,7 +52,7 @@ public class ALSAClient {
     }
 
     public void start() {
-        if (streamPtr != 0 && !playing) {
+        if (streamPtr > 0 && !playing) {
             start(streamPtr);
             playing = true;
         }

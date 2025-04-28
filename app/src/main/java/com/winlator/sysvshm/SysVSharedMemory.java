@@ -1,8 +1,8 @@
 package com.winlator.sysvshm;
 
+import android.os.Build;
 import android.os.SharedMemory;
 import android.system.ErrnoException;
-import android.util.Log;
 import android.util.SparseArray;
 
 import com.winlator.xconnector.XConnectorEpoll;
@@ -23,12 +23,43 @@ public class SysVSharedMemory {
         private int fd;
         private long size;
         private ByteBuffer data;
+
+        // Constructor for SHMemory
+        private SHMemory() {}
+
+        // Synthetic access methods for accessing the private fields
+        static int access$000(SHMemory shMemory) {
+            return shMemory.fd;
+        }
+
+        static int access$002(SHMemory shMemory, int fd) {
+            shMemory.fd = fd;
+            return fd;
+        }
+
+        static long access$200(SHMemory shMemory) {
+            return shMemory.size;
+        }
+
+        static long access$202(SHMemory shMemory, long size) {
+            shMemory.size = size;
+            return size;
+        }
+
+        static ByteBuffer access$300(SHMemory shMemory) {
+            return shMemory.data;
+        }
+
+        static ByteBuffer access$302(SHMemory shMemory, ByteBuffer data) {
+            shMemory.data = data;
+            return data;
+        }
     }
 
     public int getFd(int shmid) {
         synchronized (shmemories) {
             SHMemory shmemory = shmemories.get(shmid);
-            return shmemory != null ? shmemory.fd : -1;
+            return shmemory != null ? SHMemory.access$000(shmemory) : -1;
         }
     }
 
@@ -36,13 +67,16 @@ public class SysVSharedMemory {
         synchronized (shmemories) {
             int index = shmemories.size();
             int fd = ashmemCreateRegion(index, size);
-            if (fd < 0) fd = createSharedMemory("sysvshm-"+index, (int)size);
+
+            if (fd < 0) {
+                fd = createSharedMemory("sysvshm-" + index, (int) size);
+            }
             if (fd < 0) return -1;
 
             SHMemory shmemory = new SHMemory();
             int id = ++maxSHMemoryId;
-            shmemory.fd = fd;
-            shmemory.size = size;
+            SHMemory.access$002(shmemory, fd);
+            SHMemory.access$202(shmemory, size);
             shmemories.put(id, shmemory);
             return id;
         }
@@ -51,9 +85,9 @@ public class SysVSharedMemory {
     public void delete(int shmid) {
         SHMemory shmemory = shmemories.get(shmid);
         if (shmemory != null) {
-            if (shmemory.fd != -1) {
-                XConnectorEpoll.closeFd(shmemory.fd);
-                shmemory.fd = -1;
+            if (SHMemory.access$000(shmemory) != -1) {
+                XConnectorEpoll.closeFd(SHMemory.access$000(shmemory));
+                SHMemory.access$002(shmemory, -1);
             }
             shmemories.remove(shmid);
         }
@@ -69,10 +103,14 @@ public class SysVSharedMemory {
         synchronized (shmemories) {
             SHMemory shmemory = shmemories.get(shmid);
             if (shmemory != null) {
-                if (shmemory.data == null) shmemory.data = mapSHMSegment(shmemory.fd, shmemory.size, 0, true);
-                return shmemory.data;
+                if (SHMemory.access$300(shmemory) == null) {
+                    SHMemory.access$302(shmemory, mapSHMSegment(SHMemory.access$000(shmemory),
+                            SHMemory.access$200(shmemory), 0, true));
+                }
+                return SHMemory.access$300(shmemory);
+            } else {
+                return null;
             }
-            else return null;
         }
     }
 
@@ -80,10 +118,10 @@ public class SysVSharedMemory {
         synchronized (shmemories) {
             for (int i = 0; i < shmemories.size(); i++) {
                 SHMemory shmemory = shmemories.valueAt(i);
-                if (shmemory.data == data) {
-                    if (shmemory.data != null) {
-                        unmapSHMSegment(shmemory.data, shmemory.size);
-                        shmemory.data = null;
+                if (SHMemory.access$300(shmemory) == data) {
+                    if (SHMemory.access$300(shmemory) != null) {
+                        unmapSHMSegment(SHMemory.access$300(shmemory), SHMemory.access$200(shmemory));
+                        SHMemory.access$302(shmemory, null);
                     }
                     break;
                 }
@@ -91,29 +129,23 @@ public class SysVSharedMemory {
         }
     }
 
-    private static int createSharedMemory(String name, int size) {
+    // This method is called to create memory using ashmem, for older devices or environments
+    private static native int ashmemCreateRegion(int index, long size);
+
+    // Creates shared memory, using SharedMemory for newer Android versions
+    public static int createSharedMemory(String name, int size) {
         try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O_MR1) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {  // Android 8.1+
                 SharedMemory sharedMemory = SharedMemory.create(name, size);
-                try {
-                    Method method = sharedMemory.getClass().getMethod("getFd");
-                    Object ret = method.invoke(sharedMemory);
-                    if (ret != null) return (int)ret;
-                }
-                catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                    Log.e("SysVSharedMemory", "Failed to access shared memory: " + e);
-                }
+                Method getFdMethod = sharedMemory.getClass().getMethod("getFd");
+                Integer fd = (Integer) getFdMethod.invoke(sharedMemory);
+                return fd != null ? fd : -1;
             }
-        }
-        catch (ErrnoException e) {
-            Log.e("SysVSharedMemory", "Failed to create shared memory: " + e);
+        } catch (ErrnoException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
         }
         return -1;
     }
-
-    public static native int createMemoryFd(String name, int size);
-
-    private static native int ashmemCreateRegion(int index, long size);
 
     public static native ByteBuffer mapSHMSegment(int fd, long size, int offset, boolean readonly);
 

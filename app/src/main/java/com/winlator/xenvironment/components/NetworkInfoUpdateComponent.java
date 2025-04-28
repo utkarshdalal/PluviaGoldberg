@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.util.Log;
 
 import com.winlator.core.FileUtils;
 import com.winlator.core.NetworkHelper;
@@ -19,7 +18,6 @@ public class NetworkInfoUpdateComponent extends EnvironmentComponent {
 
     @Override
     public void start() {
-        Log.d("NetworkInfoUpdateComponent", "Starting...");
         Context context = environment.getContext();
         final ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
         final NetworkHelper networkHelper = new NetworkHelper(context);
@@ -51,13 +49,8 @@ public class NetworkInfoUpdateComponent extends EnvironmentComponent {
 
     @Override
     public void stop() {
-        Log.d("NetworkInfoUpdateComponent", "Stopping...");
         if (broadcastReceiver != null) {
-            try {
-                environment.getContext().unregisterReceiver(broadcastReceiver);
-            } catch(Exception e) {
-                Log.e("NetworkInfoUpdateComponent", "Failed to unregister broadcast receiver: " + e);
-            }
+            environment.getContext().unregisterReceiver(broadcastReceiver);
             broadcastReceiver = null;
         }
     }

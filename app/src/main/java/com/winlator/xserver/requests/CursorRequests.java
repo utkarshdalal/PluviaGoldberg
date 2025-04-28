@@ -1,7 +1,10 @@
 package com.winlator.xserver.requests;
 
+import static com.winlator.xserver.XClientRequestHandler.RESPONSE_CODE_SUCCESS;
+
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
+import com.winlator.xconnector.XStreamLock;
 import com.winlator.xserver.Cursor;
 import com.winlator.xserver.Pixmap;
 import com.winlator.xserver.XClient;
@@ -9,6 +12,8 @@ import com.winlator.xserver.errors.BadIdChoice;
 import com.winlator.xserver.errors.BadMatch;
 import com.winlator.xserver.errors.BadPixmap;
 import com.winlator.xserver.errors.XRequestError;
+
+import java.io.IOException;
 
 public abstract class CursorRequests {
     public static void createCursor(XClient client, XInputStream inputStream, XOutputStream outputStream) throws XRequestError {
@@ -23,9 +28,9 @@ public abstract class CursorRequests {
 
         Pixmap maskPixmap = client.xServer.pixmapManager.getPixmap(maskPixmapId);
         if (maskPixmap != null && (
-                maskPixmap.drawable.visual.depth != 1 ||
-                        maskPixmap.drawable.width != sourcePixmap.drawable.width ||
-                        maskPixmap.drawable.height != sourcePixmap.drawable.height)) {
+            maskPixmap.drawable.visual.depth != 1 ||
+            maskPixmap.drawable.width != sourcePixmap.drawable.width ||
+            maskPixmap.drawable.height != sourcePixmap.drawable.height)) {
             throw new BadMatch();
         }
 
@@ -46,5 +51,23 @@ public abstract class CursorRequests {
 
     public static void freeCursor(XClient client, XInputStream inputStream, XOutputStream outputStream) throws XRequestError {
         client.xServer.cursorManager.freeCursor(inputStream.readInt());
+    }
+
+    public static void getPointerMaping(XClient client, XInputStream inputStream, XOutputStream outputStream) throws IOException, XRequestError {
+        try (XStreamLock lock = outputStream.lock()) {
+            byte[] buttonsMap = {1, 2, 3};
+            byte n = (byte) buttonsMap.length;
+            int padLen = -n & 3;
+
+            outputStream.writeByte(RESPONSE_CODE_SUCCESS);
+            outputStream.writeByte(n);
+            outputStream.writeShort(client.getSequenceNumber());
+            outputStream.writeInt((n + padLen) / 4);
+            outputStream.writePad(24);
+
+            for (byte b: buttonsMap)
+                outputStream.writeByte(b);
+            outputStream.writePad(padLen);
+        }
     }
 }

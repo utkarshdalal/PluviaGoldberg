@@ -9,6 +9,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class XOutputStream {
     private static final byte[] ZERO = new byte[64];
+    private static final int MAX_BUFFER_SIZE = 16 * 1024 * 1024; // 16MB maximum buffer size
     private ByteBuffer buffer;
     public final ClientSocket clientSocket;
     private final ReentrantLock lock = new ReentrantLock();
@@ -78,16 +79,22 @@ public class XOutputStream {
     }
 
     private void flush() throws IOException {
-        if (buffer.position() != 0) {
-            buffer.flip();
+        lock.lock();
+        try {
+            if (buffer.position() > 0) {
+                buffer.flip();
 
-            if (ancillaryFd != -1) {
-                clientSocket.sendAncillaryMsg(buffer, ancillaryFd);
-                ancillaryFd = -1;
+                if (ancillaryFd != -1) {
+                    clientSocket.sendAncillaryMsg(buffer, ancillaryFd);
+                    ancillaryFd = -1;
+                } else {
+                    clientSocket.write(buffer);
+                }
+
+                buffer.clear();
             }
-            else clientSocket.write(buffer);
-
-            buffer.clear();
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -97,11 +104,24 @@ public class XOutputStream {
 
     private void ensureSpaceIsAvailable(int length) {
         int position = buffer.position();
-        if ((buffer.capacity() - position) >= length) return;
-        ByteBuffer newBuffer = ByteBuffer.allocateDirect(buffer.capacity() + length).order(buffer.order());
-        buffer.rewind();
-        newBuffer.put(buffer).position(position);
-        buffer = newBuffer;
+        int requiredCapacity = position + length;
+
+        // Check if buffer needs to be resized
+        if (buffer.capacity() >= requiredCapacity) return;
+
+        // Calculate new capacity ensuring it does not exceed MAX_BUFFER_SIZE
+        int newCapacity = Math.min(Math.max(buffer.capacity() * 2, requiredCapacity), MAX_BUFFER_SIZE);
+
+        // If already at max capacity, throw exception
+        if (newCapacity > MAX_BUFFER_SIZE) {
+            throw new IllegalStateException("Buffer size exceeded maximum allowed size of " + MAX_BUFFER_SIZE + " bytes.");
+        }
+
+        // Allocate new buffer and copy data
+        ByteBuffer newBuffer = ByteBuffer.allocateDirect(newCapacity).order(buffer.order());
+        buffer.flip(); // Prepare for reading
+        newBuffer.put(buffer); // Copy data to new buffer
+        buffer = newBuffer; // Replace old buffer with new one
     }
 
     private class OutputStreamLock implements XStreamLock {
@@ -113,8 +133,7 @@ public class XOutputStream {
         public void close() throws IOException {
             try {
                 flush();
-            }
-            finally {
+            } finally {
                 lock.unlock();
             }
         }

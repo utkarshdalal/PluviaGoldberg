@@ -10,80 +10,18 @@
 #include <malloc.h>
 #include <jni.h>
 #include <android/log.h>
-#include <android/fdsan.h>
-#include <sys/resource.h>
-#include <errno.h>
 
 #define printf(...) __android_log_print(ANDROID_LOG_DEBUG, "System.out", __VA_ARGS__);
 #define MAX_EVENTS 10
 #define MAX_FDS 32
 
-#define MAX_TRACKED_FDS 1024  // Adjust based on your needs
-
-typedef struct {
-    int fd;
-    bool is_owned;
-} FdTracker;
-
-static FdTracker fd_tracking[MAX_TRACKED_FDS] = {0};
-
 struct epoll_event events[MAX_EVENTS];
-
-// Call this when you first obtain/create a file descriptor
-void trackFd(jint fd) {
-    for (int i = 0; i < MAX_TRACKED_FDS; i++) {
-        if (fd_tracking[i].fd == 0) {
-            fd_tracking[i].fd = fd;
-            fd_tracking[i].is_owned = true;
-            break;
-        }
-    }
-}
-void closeFd(jint fd) {
-    bool can_close = false;
-
-    // Find and check ownership
-    for (int i = 0; i < MAX_TRACKED_FDS; i++) {
-        if (fd_tracking[i].fd == fd) {
-            if (fd_tracking[i].is_owned) {
-                can_close = true;
-                // Mark as no longer owned
-                fd_tracking[i].fd = 0;
-                fd_tracking[i].is_owned = false;
-            }
-            break;
-        }
-    }
-
-    if (can_close) {
-        close(fd);
-        printf("XConnectorEpoll close %d", fd);
-    } else {
-        printf("XConnectorEpoll attempted to close unowned fd %d", fd);
-    }
-}
-
-JNIEXPORT void JNICALL
-Java_com_winlator_xconnector_XConnectorEpoll_setRLimitToMax(JNIEnv *env, jobject obj) {
-    struct rlimit rlm;
-    if (getrlimit(RLIMIT_NOFILE, &rlm) < 0) {
-        printf("XConnectorEpoll failed to getrlimit %s", strerror(errno));
-    } else {
-        printf("XConnectorEpoll setting current limit (%lu) to max limit (%lu)", rlm.rlim_cur, rlm.rlim_max);
-        rlm.rlim_cur = rlm.rlim_max;
-        if (setrlimit(RLIMIT_NOFILE, &rlm) < 0) {
-            printf("XConnectorEpoll failed to setrlimit %s", strerror(errno));
-        }
-    }
-}
 
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createAFUnixSocket(JNIEnv *env, jobject obj,
                                                                 jstring path) {
     int fd = socket(AF_UNIX, SOCK_STREAM, 0);
-    printf("xconnector_epoll.c socket %d", fd);
     if (fd < 0) return -1;
-    trackFd(fd);
 
     struct sockaddr_un serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
@@ -102,36 +40,24 @@ Java_com_winlator_xconnector_XConnectorEpoll_createAFUnixSocket(JNIEnv *env, job
 
     return fd;
     error:
-    closeFd(fd);
+    close(fd);
     return -1;
 }
 
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createEpollFd(JNIEnv *env, jobject obj) {
-    int fd = epoll_create(MAX_EVENTS);
-    printf("xconnector_epoll.c epoll_create %d", fd);
-    trackFd(fd);
-    return fd;
+    return epoll_create(MAX_EVENTS);
 }
 
 JNIEXPORT void JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_closeFd(JNIEnv *env, jobject obj, jint fd) {
-    closeFd(fd);
-//    printf("XConnectorEpoll2 close %d", fd);
-//    close(fd);
-//    printf("XConnectorEpoll2 close %d done", fd);
+    close(fd);
 }
 
 JNIEXPORT jboolean JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_doEpollIndefinitely(JNIEnv *env, jobject obj,
                                                                  jint epollFd, jint serverFd,
                                                                  jboolean addClientToEpoll) {
-    int auto fdsan_level = android_fdsan_get_error_level();
-    if (fdsan_level != ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS) {
-        printf("Setting fdsan error level")
-        android_fdsan_set_error_level(ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS);
-    }
-
     jclass cls = (*env)->GetObjectClass(env, obj);
     jmethodID handleNewConnection = (*env)->GetMethodID(env, cls, "handleNewConnection", "(I)V");
     jmethodID handleExistingConnection = (*env)->GetMethodID(env, cls, "handleExistingConnection", "(I)V");
@@ -140,9 +66,7 @@ Java_com_winlator_xconnector_XConnectorEpoll_doEpollIndefinitely(JNIEnv *env, jo
     for (int i = 0; i < numFds; i++) {
         if (events[i].data.fd == serverFd) {
             int clientFd = accept(serverFd, NULL, NULL);
-            printf("xconnector_epoll.c accept %d", clientFd);
             if (clientFd >= 0) {
-                trackFd(clientFd);
                 if (addClientToEpoll) {
                     struct epoll_event event;
                     event.data.fd = clientFd;
@@ -190,17 +114,13 @@ Java_com_winlator_xconnector_ClientSocket_read(JNIEnv *env, jobject obj, jint fd
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_ClientSocket_write(JNIEnv *env, jobject obj, jint fd, jobject data,
                                                 jint length) {
-//    printf("Writing to %d", fd);
     char *dataAddr = (*env)->GetDirectBufferAddress(env, data);
     return write(fd, dataAddr, length);
 }
 
 JNIEXPORT jint JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_createEventFd(JNIEnv *env, jobject obj) {
-    int fd = eventfd(0, EFD_NONBLOCK);
-    printf("xconnector_epoll.c eventfd %d", fd);
-    trackFd(fd);
-    return fd;
+    return eventfd(0, EFD_NONBLOCK);
 }
 
 JNIEXPORT jint JNICALL
@@ -235,8 +155,6 @@ Java_com_winlator_xconnector_ClientSocket_recvAncillaryMsg(JNIEnv *env, jobject 
                     jmethodID addAncillaryFd = (*env)->GetMethodID(env, cls, "addAncillaryFd", "(I)V");
                     for (int i = 0; i < numFds; i++) {
                         int ancillaryFd = ((int*)CMSG_DATA(cmsg))[i];
-                        printf("xconnector_epoll.c CMSG_DATA %d", ancillaryFd);
-                        trackFd(ancillaryFd);
                         (*env)->CallVoidMethod(env, obj, addAncillaryFd, ancillaryFd);
                     }
                 }
@@ -273,9 +191,7 @@ Java_com_winlator_xconnector_ClientSocket_sendAncillaryMsg(JNIEnv *env, jobject 
     cmsg->cmsg_len = msg.msg_controllen;
     ((int*)CMSG_DATA(cmsg))[0] = ancillaryFd;
 
-    jint size = sendmsg(clientFd, &msg, 0);
-    printf("xconnector_epoll.c sendmsg size %d", size);
-    return size;
+    return sendmsg(clientFd, &msg, 0);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -296,4 +212,25 @@ Java_com_winlator_xconnector_XConnectorEpoll_waitForSocketRead(JNIEnv *env, jobj
         (*env)->CallVoidMethod(env, obj, handleExistingConnection, clientFd);
     }
     return JNI_TRUE;
+}
+
+JNIEXPORT jintArray JNICALL
+Java_com_winlator_xconnector_XConnectorEpoll_pollEpollEvents(JNIEnv *env, jobject obj,
+                                                             jint epollFd, jint maxEvents) {
+    struct epoll_event events[maxEvents];
+    int numFds = epoll_wait(epollFd, events, maxEvents, -1); // Wait indefinitely
+
+    if (numFds < 0) return NULL;
+
+    jintArray result = (*env)->NewIntArray(env, numFds);
+    if (result == NULL) return NULL;
+
+    jint *r = (*env)->GetIntArrayElements(env, result, 0);
+
+    for (int i = 0; i < numFds; i++) {
+        r[i] = events[i].data.fd; // Store file descriptor
+    }
+
+    (*env)->ReleaseIntArrayElements(env, result, r, 0);
+    return result;
 }

@@ -10,7 +10,6 @@ public class UnixSocketConfig {
     public static final String PULSE_SERVER_PATH = "/tmp/.sound/PS0";
     public static final String XSERVER_PATH = "/tmp/.X11-unix/X0";
     public static final String VIRGL_SERVER_PATH = "/tmp/.virgl/V0";
-    public static final String STEAM_PIPE_PATH = "/tmp/.steam/steam_pipe";
     public final String path;
 
     private UnixSocketConfig(String path) {

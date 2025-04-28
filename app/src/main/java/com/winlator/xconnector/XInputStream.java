@@ -7,6 +7,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class XInputStream {
+    private static final int MAX_BUFFER_SIZE = 16 * 1024 * 1024; // 16MB maximum buffer size
     private ByteBuffer activeBuffer;
     private ByteBuffer buffer;
     public final ClientSocket clientSocket;
@@ -21,26 +22,25 @@ public class XInputStream {
     }
 
     public int readMoreData(boolean canReceiveAncillaryMessages) throws IOException {
+        // If there's an active buffer, check for remaining data or compact if necessary
         if (activeBuffer != null) {
             if (!activeBuffer.hasRemaining()) {
                 buffer.clear();
-            }
-            else if (activeBuffer.position() > 0) {
-                int newLimit = buffer.position();
-                buffer.position(activeBuffer.position()).limit(newLimit);
-                buffer.compact();
+            } else if (activeBuffer.position() > 0) {
+                compactBuffer();
             }
             activeBuffer = null;
         }
 
+        // Grow the buffer if necessary
         growInputBufferIfNecessary();
+
+        // Read data from the socket
         int bytesRead = canReceiveAncillaryMessages ? clientSocket.recvAncillaryMsg(buffer) : clientSocket.read(buffer);
 
+        // If data is read, prepare the buffer for reading
         if (bytesRead > 0) {
-            int position = buffer.position();
-            buffer.flip();
-            activeBuffer = buffer.slice().order(buffer.order());
-            buffer.limit(buffer.capacity()).position(position);
+            prepareActiveBuffer();
         }
         return bytesRead;
     }
@@ -50,12 +50,27 @@ public class XInputStream {
     }
 
     private void growInputBufferIfNecessary() {
-        if (buffer.position() == buffer.capacity()) {
-            ByteBuffer newBuffer = ByteBuffer.allocateDirect(buffer.capacity() * 2).order(buffer.order());
-            buffer.rewind();
-            newBuffer.put(buffer);
+        // Only grow the buffer if it's full and hasn't exceeded the max size
+        if (buffer.position() == buffer.capacity() && buffer.capacity() < MAX_BUFFER_SIZE) {
+            int newCapacity = Math.min(buffer.capacity() * 2, MAX_BUFFER_SIZE);
+            ByteBuffer newBuffer = ByteBuffer.allocateDirect(newCapacity).order(buffer.order());
+            buffer.flip(); // Prepare the buffer for reading
+            newBuffer.put(buffer); // Copy data to the new buffer
             buffer = newBuffer;
         }
+    }
+
+    private void compactBuffer() {
+        int newLimit = buffer.position();
+        buffer.position(activeBuffer.position()).limit(newLimit);
+        buffer.compact();
+    }
+
+    private void prepareActiveBuffer() {
+        int position = buffer.position();
+        buffer.flip();
+        activeBuffer = buffer.slice().order(buffer.order());
+        buffer.limit(buffer.capacity()).position(position);
     }
 
     public void setByteOrder(ByteOrder byteOrder) {
@@ -64,15 +79,15 @@ public class XInputStream {
     }
 
     public int getActivePosition() {
-        return activeBuffer.position();
+        return activeBuffer != null ? activeBuffer.position() : 0;
     }
 
     public void setActivePosition(int activePosition) {
-        activeBuffer.position(activePosition);
+        if (activeBuffer != null) activeBuffer.position(activePosition);
     }
 
     public int available() {
-        return activeBuffer.remaining();
+        return activeBuffer != null ? activeBuffer.remaining() : 0;
     }
 
     public byte readByte() {

@@ -58,3 +58,9 @@ app/keystores/*
 # virglrenderer
 *.pyc
 __pycache__/
+keystore
+tools/app-release-signed.aab
+tools/app-release.aab
+tools/app-release.aab.apks
+tools/app-release.aab 2/toc.pb
+tools/app-release.aab 3/toc.pb

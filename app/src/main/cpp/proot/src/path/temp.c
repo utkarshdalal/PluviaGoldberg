@@ -346,9 +346,7 @@ const char *create_temp_file(TALLOC_CTX *context, const char *prefix)
 			"to an alternate location (with write permission).");
 		return NULL;
 	}
-    printf("Temp close %d", fd);
 	close(fd);
-    printf("Temp close %d done", fd);
 
 	talloc_set_destructor(name, remove_temp_file);
 

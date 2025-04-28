@@ -2,14 +2,12 @@ package com.winlator.xenvironment.components;
 
 import android.content.Context;
 import android.os.Process;
-import android.util.Log;
 
 import com.winlator.core.AppUtils;
 import com.winlator.core.FileUtils;
 import com.winlator.core.ProcessHelper;
 import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.EnvironmentComponent;
-import com.winlator.xenvironment.XEnvironment;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -25,7 +23,6 @@ public class PulseAudioComponent extends EnvironmentComponent {
 
     @Override
     public void start() {
-        Log.d("PulseAudioComponent", "Starting...");
         synchronized (lock) {
             stop();
             pid = execPulseAudio();
@@ -34,7 +31,6 @@ public class PulseAudioComponent extends EnvironmentComponent {
 
     @Override
     public void stop() {
-        Log.d("PulseAudioComponent", "Stopping...");
         synchronized (lock) {
             if (pid != -1) {
                 Process.killProcess(pid);
@@ -46,7 +42,6 @@ public class PulseAudioComponent extends EnvironmentComponent {
     private int execPulseAudio() {
         Context context = environment.getContext();
         String nativeLibraryDir = context.getApplicationInfo().nativeLibraryDir;
-        // nativeLibraryDir = nativeLibraryDir.replace("arm64", "arm64-v8a");
         File workingDir = new File(context.getFilesDir(), "/pulseaudio");
         if (!workingDir.isDirectory()) {
             workingDir.mkdirs();
@@ -55,9 +50,9 @@ public class PulseAudioComponent extends EnvironmentComponent {
 
         File configFile = new File(workingDir, "default.pa");
         FileUtils.writeString(configFile, String.join("\n",
-                "load-module module-native-protocol-unix auth-anonymous=1 auth-cookie-enabled=0 socket=\""+socketConfig.path+"\"",
-                "load-module module-aaudio-sink",
-                "set-default-sink AAudioSink"
+            "load-module module-native-protocol-unix auth-anonymous=1 auth-cookie-enabled=0 socket=\""+socketConfig.path+"\"",
+            "load-module module-aaudio-sink",
+            "set-default-sink AAudioSink"
         ));
 
         String archName = AppUtils.getArchName();
@@ -67,7 +62,7 @@ public class PulseAudioComponent extends EnvironmentComponent {
         ArrayList<String> envVars = new ArrayList<>();
         envVars.add("LD_LIBRARY_PATH="+systemLibPath+":"+nativeLibraryDir+":"+modulesDir);
         envVars.add("HOME="+workingDir);
-        envVars.add("TMPDIR="+XEnvironment.getTmpDir(context));
+        envVars.add("TMPDIR="+environment.getTmpDir());
 
         String command = nativeLibraryDir+"/libpulseaudio.so";
         command += " --system=false";

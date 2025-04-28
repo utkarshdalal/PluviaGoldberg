@@ -1,7 +1,5 @@
 package com.winlator.core;
 
-import android.util.Log;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -19,9 +17,7 @@ public abstract class ElfHelper {
                 return header[4];
             }
         }
-        catch (IOException e) {
-            Log.e("ElfHelper", "Failed to get EI class: " + e);
-        }
+        catch (IOException e) {}
         return 0;
     }
 

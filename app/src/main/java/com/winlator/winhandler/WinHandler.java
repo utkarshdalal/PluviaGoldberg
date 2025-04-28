@@ -1,20 +1,20 @@
 package com.winlator.winhandler;
 
+import static com.winlator.inputcontrols.ExternalController.TRIGGER_IS_AXIS;
+
+import android.content.SharedPreferences;
 import android.util.Log;
-import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
-// import com.winlator.XServerDisplayActivity;
+import androidx.preference.PreferenceManager;
+
+import com.winlator.XServerDisplayActivity;
 import com.winlator.core.StringUtils;
-// import com.winlator.inputcontrols.ControlsProfile;
-// import com.winlator.inputcontrols.ExternalController;
+import com.winlator.inputcontrols.ControlsProfile;
 import com.winlator.inputcontrols.ExternalController;
-import com.winlator.inputcontrols.TouchMouse;
-import com.winlator.math.XForm;
-import com.winlator.widget.XServerView;
-import com.winlator.xserver.Pointer;
-import com.winlator.xserver.XKeycode;
+import com.winlator.inputcontrols.GamepadState;
+import com.winlator.math.Mathf;
 import com.winlator.xserver.XServer;
 
 import java.io.IOException;
@@ -26,16 +26,20 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class WinHandler {
     private static final short SERVER_PORT = 7947;
     private static final short CLIENT_PORT = 7946;
-    public static final byte DINPUT_MAPPER_TYPE_STANDARD = 0;
-    public static final byte DINPUT_MAPPER_TYPE_XINPUT = 1;
+    public static final byte FLAG_DINPUT_MAPPER_STANDARD = 0x01;
+    public static final byte FLAG_DINPUT_MAPPER_XINPUT = 0x02;
+    public static final byte FLAG_INPUT_TYPE_XINPUT = 0x04;
+    public static final byte FLAG_INPUT_TYPE_DINPUT = 0x08;
+    public static final byte DEFAULT_INPUT_TYPE = FLAG_INPUT_TYPE_XINPUT;
+    public static final byte INPUT_TYPE_MIXED = 2;
     private DatagramSocket socket;
     private final ByteBuffer sendData = ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN);
     private final ByteBuffer receiveData = ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN);
@@ -47,21 +51,133 @@ public class WinHandler {
     private OnGetProcessInfoListener onGetProcessInfoListener;
     private ExternalController currentController;
     private InetAddress localhost;
-    private byte dinputMapperType = DINPUT_MAPPER_TYPE_XINPUT;
-    // private final XServerDisplayActivity activity;
+    private byte inputType = DEFAULT_INPUT_TYPE;
+    private final XServerDisplayActivity activity;
     private final List<Integer> gamepadClients = new CopyOnWriteArrayList<>();
+    private SharedPreferences preferences;
+    private byte triggerType;
 
-    private final XServer xServer;
-    private final XServerView xServerView;
+    private boolean xinputDisabled; // Used for exclusive mouse control
+    private boolean xinputDisabledInitialized = false;
 
-    // public WinHandler(XServerDisplayActivity activity) {
-    //     this.activity = activity;
-    // }
-    public WinHandler(XServer xServer, XServerView xServerView) {
-        this.xServer = xServer;
-        this.xServerView = xServerView;
+
+    private boolean useLegacyInputMethod = false; // Default to using the new input method
+    // Add this field near the other field declarations at the top of the class
+    // Add these constants at the top of the class where other constants are defined
+    public static final byte DINPUT_MAPPER_TYPE_STANDARD = 0;
+    public static final byte DINPUT_MAPPER_TYPE_XINPUT = 1;
+    private byte dinputMapperType = DINPUT_MAPPER_TYPE_XINPUT; // Default value, you can set this as needed
+
+
+
+    // Gyro related variables
+    private float gyroX = 0;
+    private float gyroY = 0;
+    // Add fields for sensitivity, smoothing, and inversion
+    private float gyroSensitivityX = 0.35f;
+    private float gyroSensitivityY = 0.25f;
+    private float smoothingFactor = 0.45f; // For exponential smoothing
+    private boolean invertGyroX = true;
+    private boolean invertGyroY = false;
+    private float gyroDeadzone = 0.01f;
+
+    // Implement exponential smoothing
+    private float smoothGyroX = 0;
+    private float smoothGyroY = 0;
+
+    private boolean processGyroWithLeftTrigger = false;
+
+    private int gyroTriggerButton;
+    private boolean isGyroActive = false;
+    private boolean isToggleMode;
+
+
+    public void setUseLegacyInputMethod(boolean useLegacy) {
+        this.useLegacyInputMethod = useLegacy;
     }
 
+    public void setGyroSensitivityX(float sensitivity) {
+        this.gyroSensitivityX = sensitivity;
+    }
+
+    public void setGyroSensitivityY(float sensitivity) {
+        this.gyroSensitivityY = sensitivity;
+    }
+
+    public void setSmoothingFactor(float factor) {
+        this.smoothingFactor = factor;
+    }
+
+    public void setInvertGyroX(boolean invert) {
+        this.invertGyroX = invert;
+    }
+
+    public void setInvertGyroY(boolean invert) {
+        this.invertGyroY = invert;
+    }
+
+    public void setGyroDeadzone(float deadzone) {
+        this.gyroDeadzone = deadzone;
+    }
+
+    private boolean isLeftTriggerPressed() {
+        return currentController != null && currentController.state.triggerL > 0.5f; // Assuming 0.5f is the threshold for pressed
+    }
+
+
+    public void updateGyroData(float rawGyroX, float rawGyroY) {
+        // Check if gyro is enabled before processing the data
+        if (!preferences.getBoolean("gyro_enabled", false)) {
+            return; // Exit if the gyro is disabled
+        }
+
+        boolean shouldProcessGyro = true;
+
+        // Check if processing gyro data only when the left trigger is held
+        if (processGyroWithLeftTrigger) {
+            shouldProcessGyro = isLeftTriggerPressed();
+        }
+
+
+
+        if (isGyroActive) {
+            // Apply deadzone
+            if (Math.abs(rawGyroX) < gyroDeadzone) rawGyroX = 0;
+            if (Math.abs(rawGyroY) < gyroDeadzone) rawGyroY = 0;
+
+            // Apply inversion
+            if (invertGyroX) rawGyroX = -rawGyroX;
+            if (invertGyroY) rawGyroY = -rawGyroY;
+
+            // Further reduce sensitivity by lowering the multiplier
+            float sensitivityMultiplier = 0.25f; // Reduce the sensitivity even more
+            rawGyroX *= gyroSensitivityX * sensitivityMultiplier;
+            rawGyroY *= gyroSensitivityY * sensitivityMultiplier;
+
+            // Apply smoothing
+            smoothGyroX = smoothGyroX * smoothingFactor + rawGyroX * (1 - smoothingFactor);
+            smoothGyroY = smoothGyroY * smoothingFactor + rawGyroY * (1 - smoothingFactor);
+
+            // Clamp the result to reduce the overall range of movement
+            smoothGyroX = Mathf.clamp(smoothGyroX, -0.25f, 0.25f); // Reduce clamping range for less movement
+            smoothGyroY = Mathf.clamp(smoothGyroY, -0.25f, 0.25f);
+
+            // Update the gyro data
+            this.gyroX = smoothGyroX;
+            this.gyroY = smoothGyroY;
+
+            // Send the updated gamepad state
+            sendGamepadState();
+        }
+    }
+
+
+
+
+    public WinHandler(XServerDisplayActivity activity) {
+        this.activity = activity;
+        preferences = PreferenceManager.getDefaultSharedPreferences(activity.getBaseContext());
+    }
     private boolean sendPacket(int port) {
         try {
             int size = sendData.position();
@@ -79,9 +195,34 @@ public class WinHandler {
     public void exec(String command) {
         command = command.trim();
         if (command.isEmpty()) return;
-        String[] cmdList = command.split(" ", 2);
-        final String filename = cmdList[0];
-        final String parameters = cmdList.length > 1 ? cmdList[1] : "";
+
+        // The `split` function here should be sensitive to paths with spaces.
+        // Instead of splitting, let's assume that command is directly provided in two parts: filename and parameters.
+        // Adjust command splitting based on whether it contains quotes.
+
+        String filename;
+        String parameters;
+
+        if (command.contains("\"")) {
+            // If the command is quoted, extract the quoted part as the filename
+            int firstQuote = command.indexOf("\"");
+            int lastQuote = command.lastIndexOf("\"");
+            filename = command.substring(firstQuote + 1, lastQuote);
+            if (lastQuote + 1 < command.length()) {
+                parameters = command.substring(lastQuote + 1).trim();
+            } else {
+                parameters = "";
+            }
+        } else {
+            // Standard split when no quotes
+            String[] cmdList = command.split(" ", 2);
+            filename = cmdList[0];
+            if (cmdList.length > 1) {
+                parameters = cmdList[1];
+            } else {
+                parameters = "";
+            }
+        }
 
         addAction(() -> {
             byte[] filenameBytes = filename.getBytes();
@@ -97,6 +238,7 @@ public class WinHandler {
             sendPacket(CLIENT_PORT);
         });
     }
+
 
     public void killProcess(final String processName) {
         addAction(() -> {
@@ -180,11 +322,17 @@ public class WinHandler {
     public void bringToFront(final String processName, final long handle) {
         addAction(() -> {
             sendData.rewind();
-            sendData.put(RequestCodes.BRING_TO_FRONT);
-            byte[] bytes = processName.getBytes();
-            sendData.putInt(bytes.length);
-            sendData.put(bytes);
-            sendData.putLong(handle);
+            try {
+                sendData.put(RequestCodes.BRING_TO_FRONT);
+                byte[] bytes = processName.getBytes();
+                sendData.putInt(bytes.length);
+                // FIXME: Chinese and Japanese got from winhandler.exe are broken, and they cause overflow.
+                sendData.put(bytes);
+                sendData.putLong(handle);
+            } catch (java.nio.BufferOverflowException e) {
+                e.printStackTrace();
+                sendData.rewind();
+            }
             sendPacket(CLIENT_PORT);
         });
     }
@@ -207,26 +355,20 @@ public class WinHandler {
     }
 
     private void startSendThread() {
-        Log.d("WinHandler", "Starting send thread...");
         Executors.newSingleThreadExecutor().execute(() -> {
             while (running) {
                 synchronized (actions) {
-                    // Log.d("WinHandler", "Running actions until empty");
                     while (initReceived && !actions.isEmpty()) actions.poll().run();
                     try {
-                        // Log.d("WinHandler", "Waiting for actions");
                         actions.wait();
                     }
-                    catch (InterruptedException e) {
-                        Log.e("WinHandler", "Sent action was interrupted: " + e);
-                    }
+                    catch (InterruptedException e) {}
                 }
             }
         });
     }
 
     public void stop() {
-        Log.d("WinHandler", "Stopping...");
         running = false;
 
         if (socket != null) {
@@ -240,19 +382,48 @@ public class WinHandler {
     }
 
     private void handleRequest(byte requestCode, final int port) {
-        // Log.d("WinHandler", "Handling request: " + requestCode);
         switch (requestCode) {
             case RequestCodes.INIT: {
-                Log.d("WinHandler", "Request was init");
                 initReceived = true;
+
+
+
+                preferences = PreferenceManager.getDefaultSharedPreferences(activity.getBaseContext());
+
+                gyroTriggerButton = preferences.getInt("gyro_trigger_button", KeyEvent.KEYCODE_BUTTON_L1);
+                isToggleMode = preferences.getInt("gyro_mode", 0) == 1; // 1 is toggle mode, 0 is hold mode
+
+
+                // Load and apply trigger mode and xinput toggle settings
+                triggerType = (byte) preferences.getInt("trigger_type", TRIGGER_IS_AXIS);
+
+                refreshControllerMappings();
+
+                // Only set xinputDisabled if it hasn't been set explicitly by XServerDisplayActivity
+                if (!xinputDisabledInitialized) {
+                    xinputDisabled = preferences.getBoolean("xinput_toggle", false);
+                }
+
+                // Load the flag to use legacy input method
+                useLegacyInputMethod = preferences.getBoolean("useLegacyInputMethod", false);
+
+                // Load and apply gyro settings
+                setGyroSensitivityX(preferences.getFloat("gyro_x_sensitivity", 1.0f));
+                setGyroSensitivityY(preferences.getFloat("gyro_y_sensitivity", 1.0f));
+                setSmoothingFactor(preferences.getFloat("gyro_smoothing", 0.9f));
+                setInvertGyroX(preferences.getBoolean("invert_gyro_x", false));
+                setInvertGyroY(preferences.getBoolean("invert_gyro_y", false));
+                setGyroDeadzone(preferences.getFloat("gyro_deadzone", 0.05f));
+
+                processGyroWithLeftTrigger = preferences.getBoolean("process_gyro_with_left_trigger", false);
 
                 synchronized (actions) {
                     actions.notify();
                 }
                 break;
             }
+
             case RequestCodes.GET_PROCESS: {
-                Log.d("WinHandler", "Request was get process");
                 if (onGetProcessInfoListener == null) return;
                 receiveData.position(receiveData.position() + 4);
                 int numProcesses = receiveData.getShort();
@@ -270,56 +441,59 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_GAMEPAD: {
-                // Log.d("WinHandler", "Request was get gamepad on port " + port);
+                if (xinputDisabled) return;
                 boolean isXInput = receiveData.get() == 1;
                 boolean notify = receiveData.get() == 1;
-                // final ControlsProfile profile = activity.getInputControlsView().getProfile();
-                // boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
+                final ControlsProfile profile = activity.getInputControlsView().getProfile();
+                boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
 
-                // ArrayList<ExternalController> controllers = ExternalController.getControllers();
-                // for (ExternalController controller : controllers) {
-                //
-                // }
-                // if (!useVirtualGamepad && (currentController == null || !currentController.isConnected())) {
-                if (currentController == null || !currentController.isConnected()) {
+                if (!useVirtualGamepad && (currentController == null || !currentController.isConnected())) {
                     currentController = ExternalController.getController(0);
-                    Log.d("WinHandler", "Setting current external controller to " + currentController);
+                    if (currentController != null) {
+                        currentController.setTriggerType(triggerType);
+                    }
                 }
 
-                final boolean enabled = currentController != null;
+                final boolean enabled = currentController != null || useVirtualGamepad;
 
                 if (enabled && notify) {
-                    // Log.d("WinHandler", "Creating gamepad client on port " + port + " if not already existing");
                     if (!gamepadClients.contains(port)) gamepadClients.add(port);
+                } else {
+                    gamepadClients.remove(Integer.valueOf(port));
                 }
-                else gamepadClients.remove(Integer.valueOf(port));
 
                 addAction(() -> {
                     sendData.rewind();
                     sendData.put(RequestCodes.GET_GAMEPAD);
 
                     if (enabled) {
-                        // sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : profile.id);
-                        sendData.putInt(currentController.getDeviceId());
-                        sendData.put(dinputMapperType);
-                        // byte[] bytes = (useVirtualGamepad ? profile.getName() : currentController.getName()).getBytes();
-                        byte[] bytes = (currentController.getName()).getBytes();
+                        sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : profile.id);
+
+                        if (useLegacyInputMethod) {
+                            // Use legacy DInput mapper type
+                            sendData.put(dinputMapperType);
+                        } else {
+                            // Use new input type flags
+                            sendData.put(inputType);
+                        }
+
+                        byte[] bytes = (useVirtualGamepad ? profile.getName() : currentController.getName()).getBytes();
                         sendData.putInt(bytes.length);
                         sendData.put(bytes);
+                    } else {
+                        sendData.putInt(0);
                     }
-                    else sendData.putInt(0);
 
                     sendPacket(port);
                 });
                 break;
             }
             case RequestCodes.GET_GAMEPAD_STATE: {
-                Log.d("WinHandler", "Request was get gamepad state");
+                if (xinputDisabled) return;
                 int gamepadId = receiveData.getInt();
-                // final ControlsProfile profile = activity.getInputControlsView().getProfile();
-                // boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
-                // final boolean enabled = currentController != null || useVirtualGamepad;
-                final boolean enabled = currentController != null;
+                final ControlsProfile profile = activity.getInputControlsView().getProfile();
+                boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
+                final boolean enabled = currentController != null || useVirtualGamepad;
 
                 if (currentController != null && currentController.getDeviceId() != gamepadId) currentController = null;
 
@@ -330,11 +504,11 @@ public class WinHandler {
 
                     if (enabled) {
                         sendData.putInt(gamepadId);
-                        // if (useVirtualGamepad) {
-                        //     profile.getGamepadState().writeTo(sendData);
-                        // }
-                        // else currentController.state.writeTo(sendData);
-                        currentController.state.writeTo(sendData);
+                        if (useVirtualGamepad) {
+                            profile.getGamepadState().writeTo(sendData);
+                        } else {
+                            currentController.state.writeTo(sendData);
+                        }
                     }
 
                     sendPacket(port);
@@ -342,27 +516,29 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.RELEASE_GAMEPAD: {
-                Log.d("WinHandler", "Request was release gamepad");
                 currentController = null;
                 gamepadClients.clear();
                 break;
             }
             case RequestCodes.CURSOR_POS_FEEDBACK: {
-                Log.d("WinHandler", "Request was cursor pos feedback");
                 short x = receiveData.getShort();
                 short y = receiveData.getShort();
-                // XServer xServer = activity.getXServer();
+                XServer xServer = activity.getXServer();
                 xServer.pointer.setX(x);
                 xServer.pointer.setY(y);
-                // activity.getXServerView().requestRender();
-                xServerView.requestRender();
+                activity.getXServerView().requestRender();
+                break;
+            }
+            default: {
+                // Handle any other request codes if needed
                 break;
             }
         }
     }
 
-    public void  start() {
-        Log.d("WinHandler", "Starting...");
+
+
+    public void start() {
         try {
             localhost = InetAddress.getLocalHost();
         }
@@ -370,9 +546,7 @@ public class WinHandler {
             try {
                 localhost = InetAddress.getByName("127.0.0.1");
             }
-            catch (UnknownHostException ex) {
-                Log.e("WinHandler", "Failed to get local host address: " + e);
-            }
+            catch (UnknownHostException ex) {}
         }
 
         running = true;
@@ -384,9 +558,7 @@ public class WinHandler {
                 socket.bind(new InetSocketAddress((InetAddress)null, SERVER_PORT));
 
                 while (running) {
-                    // Log.d("WinHandler", "Waiting for packet...");
                     socket.receive(receivePacket);
-                    // Log.d("WinHandler", "Received packet, handling request...");
 
                     synchronized (actions) {
                         receiveData.rewind();
@@ -395,44 +567,45 @@ public class WinHandler {
                     }
                 }
             }
-            catch (IOException e) {
-                Log.e("WinHandler", "Failed to start: " + e);
-                e.printStackTrace();
-            }
+            catch (IOException e) {}
         });
-        Log.d("WinHandler", "Finished start up");
     }
 
     public void sendGamepadState() {
-        // Log.d("WinHandler", "Setting up send gamepad state packet");
-        if (!initReceived || gamepadClients.isEmpty()) return;
-        // final ControlsProfile profile = activity.getInputControlsView().getProfile();
-        // final boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
-        // final boolean enabled = currentController != null || useVirtualGamepad;
-        final boolean enabled = currentController != null;
+        if (!initReceived || gamepadClients.isEmpty() || xinputDisabled ) return; // Add this check
+        final ControlsProfile profile = activity.getInputControlsView().getProfile();
+        final boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
+        final boolean enabled = currentController != null || useVirtualGamepad;
 
         for (final int port : gamepadClients) {
-            // Log.d("WinHandler", "Creating send gamepad state packet action for gamepad client on port " + port);
             addAction(() -> {
                 sendData.rewind();
                 sendData.put(RequestCodes.GET_GAMEPAD_STATE);
                 sendData.put((byte)(enabled ? 1 : 0));
 
                 if (enabled) {
-                    // sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : profile.id);
-                    sendData.putInt(currentController.getDeviceId());
-                    // if (useVirtualGamepad) {
-                    //     profile.getGamepadState().writeTo(sendData);
-                    // }
-                    // else currentController.state.writeTo(sendData);
-                    currentController.state.writeTo(sendData);
+                    sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : profile.id);
+                    GamepadState state = useVirtualGamepad ? profile.getGamepadState() : currentController.state;
+
+                    // Combine gyro input with thumbstick input
+                    state.thumbRX = Mathf.clamp(state.thumbRX + gyroX, -1.0f, 1.0f); // Apply clamping
+                    state.thumbRY = Mathf.clamp(state.thumbRY + gyroY, -1.0f, 1.0f); // Apply clamping
+
+                    state.writeTo(sendData);
                 }
 
-                // Log.d("WinHandler", "Sending gamepad state packet");
                 sendPacket(port);
             });
         }
     }
+
+    public void setXInputDisabled(boolean disabled) {
+        this.xinputDisabled = disabled;
+        this.xinputDisabledInitialized = true; // Mark as initialized
+        Log.d("WinHandler", "XInput Disabled set to: " + xinputDisabled);
+    }
+
+
 
     public boolean onGenericMotionEvent(MotionEvent event) {
         boolean handled = false;
@@ -445,13 +618,34 @@ public class WinHandler {
 
     public boolean onKeyEvent(KeyEvent event) {
         boolean handled = false;
+
+        if (event.getKeyCode() == gyroTriggerButton) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                if (isToggleMode) {
+                    isGyroActive = !isGyroActive;
+                } else {
+                    isGyroActive = true;
+                }
+            } else if (event.getAction() == KeyEvent.ACTION_UP && !isToggleMode) {
+                isGyroActive = false;
+
+                // Reset the analog stick to center when the gyro activator is released
+                if (currentController != null) {
+                    currentController.state.thumbRX = 0.0f; // Reset X axis
+                    currentController.state.thumbRY = 0.0f; // Reset Y axis
+                }
+
+                // Immediately send the updated gamepad state
+                sendGamepadState();
+            }
+        }
+
         if (currentController != null && currentController.getDeviceId() == event.getDeviceId() && event.getRepeatCount() == 0) {
             int action = event.getAction();
 
             if (action == KeyEvent.ACTION_DOWN) {
                 handled = currentController.updateStateFromKeyEvent(event);
-            }
-            else if (action == KeyEvent.ACTION_UP) {
+            } else if (action == KeyEvent.ACTION_UP) {
                 handled = currentController.updateStateFromKeyEvent(event);
             }
 
@@ -460,15 +654,53 @@ public class WinHandler {
         return handled;
     }
 
-    public byte getDInputMapperType() {
-        return dinputMapperType;
+
+    public byte getInputType() {
+        return inputType;
     }
 
-    public void setDInputMapperType(byte dinputMapperType) {
-        this.dinputMapperType = dinputMapperType;
+    public void setInputType(byte inputType) {
+        this.inputType = inputType;
     }
 
     public ExternalController getCurrentController() {
         return currentController;
     }
+
+    public void execWithDelay(String command, int delaySeconds) {
+        if (command == null || command.trim().isEmpty() || delaySeconds < 0) return;
+
+        // Use a scheduled executor for delay
+        Executors.newSingleThreadScheduledExecutor().schedule(() -> exec(command), delaySeconds, TimeUnit.SECONDS);
+    }
+
+    public void initializeController() {
+        currentController = ExternalController.getController(0);
+        if (currentController != null) {
+            currentController.setContext(activity); // Ensure context is set
+            // Enforce mappings upon initialization
+            for (byte originalButton : ExternalController.buttonMappings.keySet()) {
+                currentController.setButtonMapping(originalButton, ExternalController.buttonMappings.get(originalButton));
+            }
+
+
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(activity.getBaseContext());
+            triggerType = (byte) preferences.getInt("trigger_type", TRIGGER_IS_AXIS);
+            currentController.setTriggerType(triggerType); // Ensure triggerType is set
+
+            Log.d("WinHandler", "Force mappings applied on initialization.");
+        }
+    }
+
+
+
+    public void refreshControllerMappings() {
+        if (currentController != null) {
+            Log.d("WinHandler", "Refreshing controller mappings");
+            initializeController(); // Make sure controller state is up-to-date
+            sendGamepadState(); // Send updated state to Wine
+        }
+    }
+
+
 }

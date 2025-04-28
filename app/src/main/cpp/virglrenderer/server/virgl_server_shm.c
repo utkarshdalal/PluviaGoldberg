@@ -49,16 +49,13 @@ int virgl_server_new_shm(uint32_t handle, size_t size)
    snprintf(str, length + 1, "virgl-res-%u", handle);
 
    fd = memfd_create(str, MFD_ALLOW_SEALING);
-   printf("virgl_server_shm.c memfd_create %d", fd);
    free(str);
    if (fd < 0)
       return -errno;
 
    ret = ftruncate(fd, size);
    if (ret < 0) {
-       printf("VirGLServerShm close %d", fd);
       close(fd);
-       printf("VirGLServerShm close %d done", fd);
       return -errno;
    }
 

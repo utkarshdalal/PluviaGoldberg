@@ -1,6 +1,5 @@
 package com.winlator.xserver;
 
-import android.util.Log;
 import android.util.SparseArray;
 
 import com.winlator.core.CursorLocker;
@@ -43,7 +42,6 @@ public class XServer {
     private boolean relativeMouseMovement = false;
 
     public XServer(ScreenInfo screenInfo) {
-        Log.d("XServer", "Creating xServer " + screenInfo);
         this.screenInfo = screenInfo;
         cursorLocker = new CursorLocker(this);
         for (Lockable lockable : Lockable.values()) locks.put(lockable, new ReentrantLock());
@@ -173,13 +171,13 @@ public class XServer {
 
     public void injectKeyPress(XKeycode xKeycode, int keysym) {
         try (XLock lock = lock(Lockable.WINDOW_MANAGER, Lockable.INPUT_DEVICE)) {
-            keyboard.setKeyPress(xKeycode.getId(), keysym);
+            keyboard.setKeyPress(xKeycode.id, keysym);
         }
     }
 
     public void injectKeyRelease(XKeycode xKeycode) {
         try (XLock lock = lock(Lockable.WINDOW_MANAGER, Lockable.INPUT_DEVICE)) {
-            keyboard.setKeyRelease(xKeycode.getId());
+            keyboard.setKeyRelease(xKeycode.id);
         }
     }
 

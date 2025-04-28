@@ -14,9 +14,9 @@ public class PixmapManager extends XResourceManager {
         supportedVisuals = new Visual[]{visual, new Visual(IDGenerator.generate(), false, 1, 1, 0, 0, 0)};
 
         supportedPixmapFormats = new PixmapFormat[] {
-                new PixmapFormat(1, 1, 32),
-                new PixmapFormat(24, 32, 32),
-                new PixmapFormat(32, 32, 32)
+            new PixmapFormat(1, 1, 32),
+            new PixmapFormat(24, 32, 32),
+            new PixmapFormat(32, 32, 32)
         };
     }
 

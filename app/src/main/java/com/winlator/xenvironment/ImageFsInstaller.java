@@ -1,18 +1,19 @@
 package com.winlator.xenvironment;
 
-import android.content.Context;
 import android.content.res.AssetManager;
+import android.content.Context;
 import android.util.Log;
 
-// import com.winlator.MainActivity;
-// import com.winlator.R;
-// import com.winlator.SettingsFragment;
+//import com.winlator.MainActivity;
+//import com.winlator.R;
+//import com.winlator.SettingsFragment;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
-// import com.winlator.core.DownloadProgressDialog;
+import com.winlator.core.AppUtils;
+//import com.winlator.core.DownloadProgressDialog;
 import com.winlator.core.Callback;
 import com.winlator.core.FileUtils;
-// import com.winlator.core.PreloaderDialog;
+//import com.winlator.core.PreloaderDialog;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.core.WineInfo;
 
@@ -27,7 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class ImageFsInstaller {
-    public static final byte LATEST_VERSION = 8;
+    public static final byte LATEST_VERSION = 17;
 
     private static void resetContainerImgVersions(Context context) {
         ContainerManager manager = new ContainerManager(context);
@@ -58,7 +59,7 @@ public abstract class ImageFsInstaller {
             final long contentLength = (long)(FileUtils.getSize(assetManager, "imagefs.txz") * (100.0f / compressionRatio));
             AtomicLong totalSizeRef = new AtomicLong();
 
-            boolean success = TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, assetManager, "imagefs.txz", rootDir, (file, size) -> {
+            boolean success = TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, context, "imagefs.txz", rootDir, (file, size) -> {
                 if (size > 0) {
                     long totalSize = totalSizeRef.addAndGet(size);
                     if (onProgress != null) {
@@ -113,8 +114,7 @@ public abstract class ImageFsInstaller {
                 for (File file : files) {
                     if (file.isDirectory()) {
                         String name = file.getName();
-                        if (name.equals("home") || name.equals("opt")) {
-                            if (name.equals("opt")) clearOptDir(file);
+                        if (name.equals("home")) {
                             continue;
                         }
                     }
@@ -137,7 +137,7 @@ public abstract class ImageFsInstaller {
 
             File containerPatternDir = new File(context.getCacheDir(), "container_pattern");
             FileUtils.delete(containerPatternDir);
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, assetManager, "container_pattern.tzst", containerPatternDir);
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "container_pattern.tzst", containerPatternDir);
 
             File containerSystem32Dir = new File(containerPatternDir, ".wine/drive_c/windows/system32");
             File containerSysWoW64Dir = new File(containerPatternDir, ".wine/drive_c/windows/syswow64");

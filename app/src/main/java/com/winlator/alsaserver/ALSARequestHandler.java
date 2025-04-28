@@ -1,7 +1,5 @@
 package com.winlator.alsaserver;
 
-import android.util.Log;
-
 import com.winlator.sysvshm.SysVSharedMemory;
 import com.winlator.xconnector.Client;
 import com.winlator.xconnector.RequestHandler;
@@ -28,7 +26,6 @@ public class ALSARequestHandler implements RequestHandler {
 
         switch (requestCode) {
             case RequestCodes.CLOSE:
-                Log.d("ALSARequestHandler", "Received request to close");
                 alsaClient.release();
                 break;
             case RequestCodes.START:
@@ -49,7 +46,7 @@ public class ALSARequestHandler implements RequestHandler {
                 alsaClient.setBufferSize(inputStream.readInt());
                 alsaClient.prepare();
 
-                createSharedMemory(alsaClient, outputStream);
+                createSharedMemory(alsaClient, outputStream);  // Updated call to createSharedMemory
                 break;
             case RequestCodes.WRITE:
                 ByteBuffer buffer = alsaClient.getSharedBuffer();
@@ -76,7 +73,9 @@ public class ALSARequestHandler implements RequestHandler {
 
     private void createSharedMemory(ALSAClient alsaClient, XOutputStream outputStream) throws IOException {
         int size = alsaClient.getBufferSizeInBytes();
-        int fd = SysVSharedMemory.createMemoryFd("alsa-shm"+(++maxSHMemoryId), size);
+
+        // Replacing createMemoryFd with the updated createSharedMemory method
+        int fd = SysVSharedMemory.createSharedMemory("alsa-shm" + (++maxSHMemoryId), size);
 
         if (fd >= 0) {
             ByteBuffer buffer = SysVSharedMemory.mapSHMSegment(fd, size, 0, true);
@@ -84,10 +83,9 @@ public class ALSARequestHandler implements RequestHandler {
         }
 
         try (XStreamLock lock = outputStream.lock()) {
-            outputStream.writeByte((byte)0);
+            outputStream.writeByte((byte) 0);
             outputStream.setAncillaryFd(fd);
-        }
-        finally {
+        } finally {
             if (fd >= 0) XConnectorEpoll.closeFd(fd);
         }
     }

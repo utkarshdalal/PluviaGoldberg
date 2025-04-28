@@ -422,81 +422,65 @@ static int remove_bindings(Bindings *bindings)
  */
 Binding *new_binding(Tracee *tracee, const char *host, const char *guest, bool must_exist)
 {
-    Binding *binding;
-    char base[PATH_MAX];
-    int status;
-    char *unquoted_host;
+	Binding *binding;
+	char base[PATH_MAX];
+	int status;
 
-    /* Lazy allocation of the list of bindings specified by the user. */
-    if (tracee->fs->bindings.pending == NULL) {
-        tracee->fs->bindings.pending = talloc_zero(tracee->fs, Bindings);
-        if (tracee->fs->bindings.pending == NULL)
-            return NULL;
-        CIRCLEQ_INIT(tracee->fs->bindings.pending);
-        talloc_set_destructor(tracee->fs->bindings.pending, remove_bindings);
-    }
+	/* Lasy allocation of the list of bindings specified by the
+	 * user.  This list will be used by initialize_bindings().  */
+	if (tracee->fs->bindings.pending == NULL) {
+		tracee->fs->bindings.pending = talloc_zero(tracee->fs, Bindings);
+		if (tracee->fs->bindings.pending == NULL)
+			return NULL;
+		CIRCLEQ_INIT(tracee->fs->bindings.pending);
+		talloc_set_destructor(tracee->fs->bindings.pending, remove_bindings);
+	}
 
-    /* Allocate an empty binding. */
-    binding = talloc_zero(tracee->ctx, Binding);
-    if (binding == NULL)
-        return NULL;
+	/* Allocate an empty binding.  */
+	binding = talloc_zero(tracee->ctx, Binding);
+	if (binding == NULL)
+		return NULL;
 
-    /* Remove surrounding quotes if present */
-    unquoted_host = talloc_strdup(binding, host);
-    if (unquoted_host == NULL)
-        goto error;
+	/* Canonicalize the host part of the binding, as expected by
+	 * get_binding().  */
+	status = realpath2(tracee->reconf.tracee, binding->host.path, host, true);
+	if (status < 0) {
+		if (must_exist && getenv("PROOT_IGNORE_MISSING_BINDINGS") == NULL)
+			note(tracee, WARNING, INTERNAL, "can't sanitize binding \"%s\": %s",
+				host, strerror(-status));
+		goto error;
+	}
+	binding->host.length = strlen(binding->host.path);
 
-    size_t len = strlen(unquoted_host);
-    if (len >= 2) {
-        if ((unquoted_host[0] == '"' && unquoted_host[len-1] == '"') ||
-            (unquoted_host[0] == '\'' && unquoted_host[len-1] == '\'')) {
-            unquoted_host[len-1] = '\0';
-            unquoted_host++;
-        }
-    }
+	/* Symetric binding?  */
+	guest = guest ?: host;
 
-    /* Canonicalize the host part of the binding */
-    status = realpath2(tracee->reconf.tracee, binding->host.path, unquoted_host, true);
-    if (status < 0) {
-        /* Try direct copy if realpath2 fails */
-        if (strlen(unquoted_host) < PATH_MAX) {
-            strcpy(binding->host.path, unquoted_host);
-            status = 0;
-        }
-        else if (must_exist && getenv("PROOT_IGNORE_MISSING_BINDINGS") == NULL) {
-            note(tracee, WARNING, INTERNAL, "can't sanitize binding \"%s\": %s",
-                 unquoted_host, strerror(-status));
-            goto error;
-        }
-    }
-    binding->host.length = strlen(binding->host.path);
+	/* When not absolute, assume the guest path is relative to the
+	 * current working directory, as with ``-b .`` for instance.  */
+	if (guest[0] != '/') {
+		status = getcwd2(tracee->reconf.tracee, base);
+		if (status < 0) {
+			note(tracee, WARNING, INTERNAL, "can't sanitize binding \"%s\": %s",
+				binding->guest.path, strerror(-status));
+			goto error;
+		}
+	}
+	else
+		strcpy(base, "/");
 
-    /* Symmetric binding? */
-    guest = guest ?: unquoted_host;
+	join_paths(binding->guest.path, base, guest);
+	binding->guest.length = strlen(binding->guest.path);
 
-    /* Handle relative guest path */
-    if (guest[0] != '/') {
-        status = getcwd2(tracee->reconf.tracee, base);
-        if (status < 0) {
-            note(tracee, WARNING, INTERNAL, "can't sanitize binding \"%s\": %s",
-                 binding->guest.path, strerror(-status));
-            goto error;
-        }
-    }
-    else
-        strcpy(base, "/");
+	/* Keep the list of bindings specified by the user ordered,
+	 * for the sake of consistency.  For instance binding to "/"
+	 * has to be the last in the list.  */
+	insort_binding(tracee, PENDING, binding);
 
-    join_paths(binding->guest.path, base, guest);
-    binding->guest.length = strlen(binding->guest.path);
+	return binding;
 
-    /* Keep the list of bindings ordered */
-    insort_binding(tracee, PENDING, binding);
-
-    return binding;
-
-    error:
-    TALLOC_FREE(binding);
-    return NULL;
+error:
+	TALLOC_FREE(binding);
+	return NULL;
 }
 
 /**

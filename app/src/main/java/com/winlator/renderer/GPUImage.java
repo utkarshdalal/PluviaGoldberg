@@ -1,9 +1,7 @@
 package com.winlator.renderer;
 
 import androidx.annotation.Keep;
-
 import com.winlator.xserver.Drawable;
-
 import java.nio.ByteBuffer;
 
 public class GPUImage extends Texture {
@@ -19,14 +17,30 @@ public class GPUImage extends Texture {
 
     public GPUImage(short width, short height) {
         hardwareBufferPtr = createHardwareBuffer(width, height);
-        if (hardwareBufferPtr != 0) virtualData = lockHardwareBuffer(hardwareBufferPtr);
+        if (hardwareBufferPtr != 0) {
+            virtualData = lockHardwareBuffer(hardwareBufferPtr);
+            if (virtualData == null) {
+                System.err.println("Error: Failed to lock hardware buffer");
+                destroyHardwareBuffer(hardwareBufferPtr);
+                hardwareBufferPtr = 0;
+            }
+        } else {
+            System.err.println("Error: Failed to create hardware buffer");
+        }
     }
 
     @Override
     public void allocateTexture(short width, short height, ByteBuffer data) {
         if (isAllocated()) return;
         super.allocateTexture(width, height, null);
-        imageKHRPtr = createImageKHR(hardwareBufferPtr, textureId);
+        if (hardwareBufferPtr != 0) {
+            imageKHRPtr = createImageKHR(hardwareBufferPtr, textureId);
+            if (imageKHRPtr == 0) {
+                System.err.println("Error: Failed to create EGL image");
+                destroyHardwareBuffer(hardwareBufferPtr);
+                hardwareBufferPtr = 0;
+            }
+        }
     }
 
     @Override
@@ -50,11 +64,15 @@ public class GPUImage extends Texture {
 
     @Override
     public void destroy() {
-        destroyImageKHR(imageKHRPtr);
-        destroyHardwareBuffer(hardwareBufferPtr);
+        if (imageKHRPtr != 0) {
+            destroyImageKHR(imageKHRPtr);
+            imageKHRPtr = 0;
+        }
+        if (hardwareBufferPtr != 0) {
+            destroyHardwareBuffer(hardwareBufferPtr);
+            hardwareBufferPtr = 0;
+        }
         virtualData = null;
-        imageKHRPtr = 0;
-        hardwareBufferPtr = 0;
         super.destroy();
     }
 

@@ -1,7 +1,6 @@
 package com.winlator.core;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.winlator.container.Container;
 
@@ -31,32 +30,15 @@ public abstract class WineStartMenuCreator {
             for (int i = 0; i < children.length(); i++) createMenuEntry(children.getJSONObject(i), currentDir);
         }
         else {
-            createLnk(
-                currentDir,
-                item.getString("name"),
-                item.getString("path"),
-                item.optString("cmdArgs"),
-                item.optString("iconLocation", item.getString("path")),
-                item.optInt("iconIndex", 0),
-                item.has("showCommand") ? item.getString("showCommand") : null
-            );
+            File outputFile = new File(currentDir, item.getString("name")+".lnk");
+            MSLink.Options options = new MSLink.Options();
+            options.targetPath = item.getString("path");
+            options.cmdArgs = item.optString("cmdArgs");
+            options.iconLocation = item.optString("iconLocation", options.targetPath);
+            options.iconIndex = item.optInt("iconIndex", 0);
+            if (item.has("showCommand")) options.showCommand = parseShowCommand(item.getString("showCommand"));
+            MSLink.createFile(options, outputFile);
         }
-    }
-    public static void createLnk(File currentDir, String name, String targetPath, String cmdArgs, String iconLocation, int iconIndex, String showCommand) {
-        File outputFile = new File(currentDir, name+".lnk");
-        MSLink.Options options = new MSLink.Options();
-        options.targetPath = targetPath;
-        options.cmdArgs = cmdArgs != null ? cmdArgs : "";
-        options.iconLocation = iconLocation != null ? iconLocation : targetPath;
-        options.iconIndex = iconIndex;
-        if (showCommand != null) options.showCommand = parseShowCommand(showCommand);
-        MSLink.createFile(options, outputFile);
-    }
-    public static void createLnk(File currentDir, String name, String targetPath, String cmdArgs) {
-        createLnk(currentDir, name, targetPath, cmdArgs, null, 0, null);
-    }
-    public static void createLnk(File currentDir, String name, String targetPath) {
-        createLnk(currentDir, name, targetPath, null, null, 0, null);
     }
 
     private static void removeMenuEntry(JSONObject item, File currentDir) throws JSONException {
@@ -87,8 +69,6 @@ public abstract class WineStartMenuCreator {
             FileUtils.writeString(containerStartMenuFile, data.toString());
             for (int i = 0; i < data.length(); i++) createMenuEntry(data.getJSONObject(i), startMenuDir);
         }
-        catch (JSONException e) {
-            Log.e("WineStartMenuCreator", "Failed to create: " + e);
-        }
+        catch (JSONException e) {}
     }
 }

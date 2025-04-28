@@ -11,21 +11,22 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Executors;
 
 public abstract class ProcessHelper {
-    public static final boolean PRINT_DEBUG = false; // FIXME change to false
+    public static final boolean PRINT_DEBUG = true; // FIXME change to false
     private static final ArrayList<Callback<String>> debugCallbacks = new ArrayList<>();
     private static final byte SIGCONT = 18;
     private static final byte SIGSTOP = 19;
 
     public static void suspendProcess(int pid) {
         Process.sendSignal(pid, SIGSTOP);
+        Log.d("GlibcDebug", "Process suspended with pid: " + pid);
     }
 
     public static void resumeProcess(int pid) {
         Process.sendSignal(pid, SIGCONT);
+        Log.d("GlibcDebug", "Process resumed with pid: " + pid);
     }
 
     public static int exec(String command) {
@@ -40,43 +41,25 @@ public abstract class ProcessHelper {
         return exec(command, envp, workingDir, null);
     }
 
-    public static class ProcessInfo {
-        public final int pid;
-        public final int ppid;
-        public final String name;
-
-        public ProcessInfo(int pid, int ppid, String name) {
-            this.pid = pid;
-            this.ppid = ppid;
-            this.name = name;
-        }
-    }
-
     public static int exec(String command, String[] envp, File workingDir, Callback<Integer> terminationCallback) {
+        Log.d("GlibcDebug", "env: " + Arrays.toString(envp) + "\ncmd: " + command);
+
         int pid = -1;
         try {
-            Log.d("ProcessHelper", "Executing: " + Arrays.toString(splitCommand(command)) + ", " + Arrays.toString(envp) + ", " + workingDir);
-            java.lang.Process process = Runtime.getRuntime().exec(splitCommand(command), envp, workingDir);
-            // ProcessBuilder builder = new ProcessBuilder()
-            //         .command(splitCommand(command))
-            //         .directory(workingDir)
-            //         .inheritIO();
-            // // Add environment variables
-            // if (envp != null) {
-            //     Map<String, String> environment = builder.environment();
-            //     for (String entry : envp) {
-            //         String[] parts = entry.split("=", 2);
-            //         if (parts.length == 2) {
-            //             environment.put(parts[0], parts[1]);
-            //         }
-            //     }
-            // }
-            // java.lang.Process process = builder.start();
+            Log.d("GlibcDebug", "Splitting command: " + command);
+            String[] splitCommand = splitCommand(command);
+            Log.d("GlibcDebug", "Split command result: " + Arrays.toString(splitCommand));
 
+            Log.d("GlibcDebug", "Starting process...");
+            java.lang.Process process = Runtime.getRuntime().exec(splitCommand, envp, workingDir);
+
+            // Accessing hidden field
+            Log.d("GlibcDebug", "Accessing hidden field to get PID");
             Field pidField = process.getClass().getDeclaredField("pid");
             pidField.setAccessible(true);
             pid = pidField.getInt(process);
             pidField.setAccessible(false);
+            Log.d("GlibcDebug", "Process started with pid: " + pid);
 
             if (!debugCallbacks.isEmpty()) {
                 createDebugThread(process.getInputStream());
@@ -86,68 +69,9 @@ public abstract class ProcessHelper {
             if (terminationCallback != null) createWaitForThread(process, terminationCallback);
         }
         catch (Exception e) {
-            Log.e("ProcessHelper", "Failed to execute command: " + e);
+            Log.e("GlibcDebug", "Error executing command: " + command, e);
         }
         return pid;
-    }
-
-    public static List<ProcessInfo> listSubProcesses() {
-        List<ProcessInfo> processes = new ArrayList<>();
-        String myUser = null;
-
-        // First get our username using the id command
-        try {
-            java.lang.Process idProcess = Runtime.getRuntime().exec("id");
-            BufferedReader idReader = new BufferedReader(new InputStreamReader(idProcess.getInputStream()));
-            String idOutput = idReader.readLine();
-            if (idOutput != null) {
-                // id output format: uid=10290(u0_a290) gid=10290(u0_a290) ...
-                int startIndex = idOutput.indexOf('(');
-                int endIndex = idOutput.indexOf(')');
-                if (startIndex != -1 && endIndex != -1) {
-                    myUser = idOutput.substring(startIndex + 1, endIndex);
-                }
-            }
-        } catch (IOException e) {
-            Log.e("ProcessHelper", "Failed to retrieve user id in order to list processes: " + e);
-            return processes;
-        }
-
-        if (myUser == null) {
-            return processes;
-        }
-
-        // Log.d("ProcessHelper", "Found user value to be: " + myUser);
-
-        // Now get the processes
-        try {
-            java.lang.Process process = Runtime.getRuntime().exec("ps -A -o USER,PID,PPID,VSZ,RSS,WCHAN,ADDR,S,NAME");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-
-            // Skip header line
-            reader.readLine();
-
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.trim().split("\\s+");
-                if (parts.length >= 9) {
-                    String user = parts[0];
-                    int pid = Integer.parseInt(parts[1]);
-                    int ppid = Integer.parseInt(parts[2]);
-                    String processName = parts[8];
-
-                    // Check if process belongs to our app (same user)
-                    if (user.equals(myUser) && pid != Process.myPid()) {
-                        ProcessInfo info = new ProcessInfo(pid, ppid, processName);
-                        processes.add(info);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            Log.e("ProcessHelper", "Failed to list processes: " + e);
-        }
-
-        return processes;
     }
 
     private static void createDebugThread(final InputStream inputStream) {
@@ -164,7 +88,7 @@ public abstract class ProcessHelper {
                 }
             }
             catch (IOException e) {
-                Log.e("ProcessHelper", "Error on debug thread: " + e);
+                Log.e("GlibcDebug", "Error in debug thread", e);
             }
         });
     }
@@ -176,7 +100,7 @@ public abstract class ProcessHelper {
                 terminationCallback.call(status);
             }
             catch (InterruptedException e) {
-                Log.e("ProcessHelper", "Error while waiting for thread: " + e);
+                Log.e("GlibcDebug", "Error waiting for process termination", e);
             }
         });
     }
@@ -184,18 +108,21 @@ public abstract class ProcessHelper {
     public static void removeAllDebugCallbacks() {
         synchronized (debugCallbacks) {
             debugCallbacks.clear();
+            Log.d("GlibcDebug", "All debug callbacks removed");
         }
     }
 
     public static void addDebugCallback(Callback<String> callback) {
         synchronized (debugCallbacks) {
             if (!debugCallbacks.contains(callback)) debugCallbacks.add(callback);
+            Log.d("GlibcDebug", "Added debug callback: " + callback.toString());
         }
     }
 
     public static void removeDebugCallback(Callback<String> callback) {
         synchronized (debugCallbacks) {
             debugCallbacks.remove(callback);
+            Log.d("GlibcDebug", "Removed debug callback: " + callback.toString());
         }
     }
 
@@ -206,23 +133,21 @@ public abstract class ProcessHelper {
         char currChar, nextChar;
         for (int i = 0, count = command.length(); i < count; i++) {
             currChar = command.charAt(i);
-            char quoteChar = '"';
 
             if (startedQuotes) {
-                if (currChar == quoteChar) {
+                if (currChar == '"') {
                     startedQuotes = false;
                     if (!value.isEmpty()) {
-                        value += quoteChar;
+                        value += '"';
                         result.add(value);
                         value = "";
                     }
                 }
                 else value += currChar;
             }
-            else if (currChar == '"' || currChar == '\'') {
-                if (currChar == '\'') quoteChar = '\'';
+            else if (currChar == '"') {
                 startedQuotes = true;
-                value += quoteChar;
+                value += '"';
             }
             else {
                 nextChar = i < count-1 ? command.charAt(i+1) : '\0';

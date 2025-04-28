@@ -27,10 +27,11 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 
-// import com.google.android.material.tabs.TabLayout;
-// import com.winlator.R;
+import com.google.android.material.tabs.TabLayout;
+import com.winlator.R;
+import com.winlator.XrActivity;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -54,12 +55,12 @@ public abstract class AppUtils {
         return "armhf";
     }
 
-    // public static void restartActivity(AppCompatActivity activity) {
-    //     Intent intent = activity.getIntent();
-    //     activity.finish();
-    //     activity.startActivity(intent);
-    //     activity.overridePendingTransition(0, 0);
-    // }
+    public static void restartActivity(AppCompatActivity activity) {
+        Intent intent = activity.getIntent();
+        activity.finish();
+        activity.startActivity(intent);
+        activity.overridePendingTransition(0, 0);
+    }
 
     public static void restartApplication(Context context) {
         restartApplication(context, 0);
@@ -73,46 +74,33 @@ public abstract class AppUtils {
         Runtime.getRuntime().exit(0);
     }
 
-    // public static void showKeyboard(AppCompatActivity activity) {
-    //     final InputMethodManager imm = (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-    //     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-    //         activity.getWindow().getDecorView().postDelayed(() -> imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0), 500L);
-    //     }
-    //     else imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-    // }
+    public static void showKeyboard(AppCompatActivity activity) {
+        final InputMethodManager imm = (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
+            activity.getWindow().getDecorView().postDelayed(() -> imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0), 500L);
+        }
+        else imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+    }
 
     public static void hideSystemUI(final Activity activity) {
-        hideSystemUI(activity, true);
-    }
-    public static void hideSystemUI(final Activity activity, Boolean hide) {
         Window window = activity.getWindow();
         final View decorView = window.getDecorView();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false);
             final WindowInsetsController insetsController = decorView.getWindowInsetsController();
             if (insetsController != null) {
-                if (hide) {
-                    insetsController.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                    insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                } else {
-                    insetsController.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                    insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_DEFAULT);
-                }
+                insetsController.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                insetsController.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
             }
         }
         else {
-            final int flags;
-            if (hide) {
-                flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
-            } else {
-                flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
-            }
+            final int flags = View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
 
             decorView.setSystemUiVisibility(flags);
             decorView.setOnSystemUiVisibilityChangeListener((visibility) -> {
@@ -133,98 +121,98 @@ public abstract class AppUtils {
         return Resources.getSystem().getDisplayMetrics().heightPixels;
     }
 
-    // public static int getPreferredDialogWidth(Context context) {
-    //     int orientation = context.getResources().getConfiguration().orientation;
-    //     float scale = orientation == Configuration.ORIENTATION_PORTRAIT ? 0.8f : 0.5f;
-    //     return (int)UnitUtils.dpToPx(UnitUtils.pxToDp(AppUtils.getScreenWidth()) * scale);
-    // }
-    //
-    // public static Toast showToast(Context context, int textResId) {
-    //     return showToast(context, context.getString(textResId));
-    // }
-    //
-    // public static Toast showToast(final Context context, final String text) {
-    //     if (!isUiThread()) {
-    //         if (context instanceof Activity) {
-    //             ((Activity)context).runOnUiThread(() -> showToast(context, text));
-    //         }
-    //         return null;
-    //     }
-    //
-    //     if (globalToastReference != null) {
-    //         Toast toast = globalToastReference.get();
-    //         if (toast != null) toast.cancel();
-    //         globalToastReference = null;
-    //     }
-    //
-    //     View view = LayoutInflater.from(context).inflate(R.layout.custom_toast, null);
-    //     ((TextView)view.findViewById(R.id.TextView)).setText(text);
-    //
-    //     Toast toast = new Toast(context);
-    //     toast.setGravity(Gravity.CENTER | Gravity.BOTTOM, 0, 50);
-    //     toast.setDuration(text.length() >= 40 ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT);
-    //     toast.setView(view);
-    //     toast.show();
-    //     globalToastReference = new WeakReference<>(toast);
-    //     return toast;
-    // }
-    //
-    // public static PopupWindow showPopupWindow(View anchor, View contentView) {
-    //     return showPopupWindow(anchor, contentView, 0, 0);
-    // }
-    //
-    // public static PopupWindow showPopupWindow(View anchor, View contentView, int width, int height) {
-    //     Context context = anchor.getContext();
-    //     PopupWindow popupWindow = new PopupWindow(context);
-    //     popupWindow.setElevation(5.0f);
-    //
-    //     if (width == 0 && height == 0) {
-    //         int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-    //         int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-    //         contentView.measure(widthMeasureSpec, heightMeasureSpec);
-    //         popupWindow.setWidth(contentView.getMeasuredWidth());
-    //         popupWindow.setHeight(contentView.getMeasuredHeight());
-    //     }
-    //     else {
-    //         if (width > 0) {
-    //             popupWindow.setWidth((int)UnitUtils.dpToPx(width));
-    //         }
-    //         else popupWindow.setWidth(LinearLayout.LayoutParams.WRAP_CONTENT);
-    //
-    //         if (height > 0) {
-    //             popupWindow.setHeight((int)UnitUtils.dpToPx(height));
-    //         }
-    //         else popupWindow.setHeight(LinearLayout.LayoutParams.WRAP_CONTENT);
-    //     }
-    //
-    //     popupWindow.setContentView(contentView);
-    //     popupWindow.setFocusable(false);
-    //     popupWindow.setOutsideTouchable(true);
-    //
-    //     popupWindow.update();
-    //     popupWindow.showAsDropDown(anchor);
-    //
-    //     popupWindow.setFocusable(true);
-    //     popupWindow.update();
-    //     return popupWindow;
-    // }
-    //
-    // public static void showHelpBox(Context context, View anchor, int textResId) {
-    //     showHelpBox(context, anchor, context.getString(textResId));
-    // }
-    //
-    // public static void showHelpBox(Context context, View anchor, String text) {
-    //     int padding = (int)UnitUtils.dpToPx(8);
-    //     TextView textView = new TextView(context);
-    //     textView.setLayoutParams(new ViewGroup.LayoutParams((int)UnitUtils.dpToPx(284), ViewGroup.LayoutParams.WRAP_CONTENT));
-    //     textView.setPadding(padding, padding, padding, padding);
-    //     textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
-    //     textView.setText(Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY));
-    //     int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-    //     int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
-    //     textView.measure(widthMeasureSpec, heightMeasureSpec);
-    //     showPopupWindow(anchor, textView, 300, textView.getMeasuredHeight());
-    // }
+    public static int getPreferredDialogWidth(Context context) {
+        int orientation = context.getResources().getConfiguration().orientation;
+        float scale = orientation == Configuration.ORIENTATION_PORTRAIT ? 0.8f : 0.5f;
+        return (int)UnitUtils.dpToPx(UnitUtils.pxToDp(AppUtils.getScreenWidth()) * scale);
+    }
+
+    public static Toast showToast(Context context, int textResId) {
+        return showToast(context, context.getString(textResId));
+    }
+
+    public static Toast showToast(final Context context, final String text) {
+        if (!isUiThread()) {
+            if (context instanceof Activity) {
+                ((Activity)context).runOnUiThread(() -> showToast(context, text));
+            }
+            return null;
+        }
+
+        if (globalToastReference != null) {
+            Toast toast = globalToastReference.get();
+            if (toast != null) toast.cancel();
+            globalToastReference = null;
+        }
+
+        View view = LayoutInflater.from(context).inflate(R.layout.custom_toast, null);
+        ((TextView)view.findViewById(R.id.TextView)).setText(text);
+
+        Toast toast = new Toast(context);
+        toast.setGravity(Gravity.CENTER | Gravity.BOTTOM, 0, 50);
+        toast.setDuration(text.length() >= 40 ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT);
+        toast.setView(view);
+        toast.show();
+        globalToastReference = new WeakReference<>(toast);
+        return toast;
+    }
+
+    public static PopupWindow showPopupWindow(View anchor, View contentView) {
+        return showPopupWindow(anchor, contentView, 0, 0);
+    }
+
+    public static PopupWindow showPopupWindow(View anchor, View contentView, int width, int height) {
+        Context context = anchor.getContext();
+        PopupWindow popupWindow = new PopupWindow(context);
+        popupWindow.setElevation(5.0f);
+
+        if (width == 0 && height == 0) {
+            int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+            int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+            contentView.measure(widthMeasureSpec, heightMeasureSpec);
+            popupWindow.setWidth(contentView.getMeasuredWidth());
+            popupWindow.setHeight(contentView.getMeasuredHeight());
+        }
+        else {
+            if (width > 0) {
+                popupWindow.setWidth((int)UnitUtils.dpToPx(width));
+            }
+            else popupWindow.setWidth(LinearLayout.LayoutParams.WRAP_CONTENT);
+
+            if (height > 0) {
+                popupWindow.setHeight((int)UnitUtils.dpToPx(height));
+            }
+            else popupWindow.setHeight(LinearLayout.LayoutParams.WRAP_CONTENT);
+        }
+
+        popupWindow.setContentView(contentView);
+        popupWindow.setFocusable(false);
+        popupWindow.setOutsideTouchable(true);
+
+        popupWindow.update();
+        popupWindow.showAsDropDown(anchor);
+
+        popupWindow.setFocusable(true);
+        popupWindow.update();
+        return popupWindow;
+    }
+
+    public static void showHelpBox(Context context, View anchor, int textResId) {
+        showHelpBox(context, anchor, context.getString(textResId));
+    }
+
+    public static void showHelpBox(Context context, View anchor, String text) {
+        int padding = (int)UnitUtils.dpToPx(8);
+        TextView textView = new TextView(context);
+        textView.setLayoutParams(new ViewGroup.LayoutParams((int)UnitUtils.dpToPx(284), ViewGroup.LayoutParams.WRAP_CONTENT));
+        textView.setPadding(padding, padding, padding, padding);
+        textView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        textView.setText(Html.fromHtml(text, Html.FROM_HTML_MODE_LEGACY));
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        int heightMeasureSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED);
+        textView.measure(widthMeasureSpec, heightMeasureSpec);
+        showPopupWindow(anchor, textView, 300, textView.getMeasuredHeight());
+    }
 
     public static int getVersionCode(Context context) {
         try {
@@ -292,31 +280,38 @@ public abstract class AppUtils {
         return false;
     }
 
-    // public static void setupTabLayout(final View view, int tabLayoutResId, final int... tabResIds) {
-    //     final Callback<Integer> tabSelectedCallback = (position) -> {
-    //         for (int i = 0; i < tabResIds.length; i++) {
-    //             View tabView = view.findViewById(tabResIds[i]);
-    //             tabView.setVisibility(position == i ? View.VISIBLE : View.GONE);
-    //         }
-    //     };
-    //
-    //     TabLayout tabLayout = view.findViewById(tabLayoutResId);
-    //     tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-    //         @Override
-    //         public void onTabSelected(TabLayout.Tab tab) {
-    //             tabSelectedCallback.call(tab.getPosition());
-    //         }
-    //
-    //         @Override
-    //         public void onTabUnselected(TabLayout.Tab tab) {}
-    //
-    //         @Override
-    //         public void onTabReselected(TabLayout.Tab tab) {
-    //             tabSelectedCallback.call(tab.getPosition());
-    //         }
-    //     });
-    //     tabLayout.getTabAt(0).select();
-    // }
+    public static void setupTabLayout(final View view, int tabLayoutResId, final int... tabResIds) {
+        final Callback<Integer> tabSelectedCallback = (position) -> {
+            for (int i = 0; i < tabResIds.length; i++) {
+                View tabView = view.findViewById(tabResIds[i]);
+                tabView.setVisibility(position == i ? View.VISIBLE : View.GONE);
+            }
+        };
+
+        TabLayout tabLayout = view.findViewById(tabLayoutResId);
+        for (int i = 0; i < tabResIds.length; i++) {
+            TabLayout.Tab tab = tabLayout.getTabAt(i);
+            if (view.getResources().getString(R.string.xr).compareTo(tab.getText().toString()) == 0) {
+                tab.view.setVisibility(XrActivity.isSupported() ? View.VISIBLE : View.GONE);
+            }
+        }
+
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                tabSelectedCallback.call(tab.getPosition());
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {
+                tabSelectedCallback.call(tab.getPosition());
+            }
+        });
+        tabLayout.getTabAt(0).select();
+    }
 
     public static void findViewsWithClass(ViewGroup parent, Class viewClass, ArrayList<View> outViews) {
         for (int i = 0, childCount = parent.getChildCount(); i < childCount; i++) {

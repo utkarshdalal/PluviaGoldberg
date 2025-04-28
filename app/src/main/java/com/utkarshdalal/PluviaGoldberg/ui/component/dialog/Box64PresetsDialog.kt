@@ -42,8 +42,8 @@ import com.utkarshdalal.PluviaGoldberg.ui.theme.settingsTileColors
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.box86_64.Box86_64PresetManager
 import com.winlator.core.StringUtils
+import com.winlator.core.EnvVars
 import com.winlator.core.envvars.EnvVarInfo
-import com.winlator.core.envvars.EnvVars
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)

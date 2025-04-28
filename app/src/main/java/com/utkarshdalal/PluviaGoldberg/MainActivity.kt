@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val onSetSystemUi: (AndroidEvent.SetSystemUIVisibility) -> Unit = {
-        AppUtils.hideSystemUI(this, !it.visible)
+        AppUtils.hideSystemUI(this)
     }
 
     private val onSetAllowedOrientation: (AndroidEvent.SetAllowedOrientation) -> Unit = {

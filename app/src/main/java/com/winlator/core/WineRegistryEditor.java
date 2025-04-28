@@ -1,7 +1,5 @@
 package com.winlator.core;
 
-import android.util.Log;
-
 import com.winlator.math.Mathf;
 
 import java.io.BufferedReader;
@@ -46,9 +44,7 @@ public class WineRegistryEditor implements Closeable {
             try {
                 cloneFile.createNewFile();
             }
-            catch (IOException e) {
-                Log.e("WineRegistryEditor", "Failed to set up editor: " + e);
-            }
+            catch (IOException e) {}
         }
         else FileUtils.copy(file, cloneFile);
     }
@@ -64,8 +60,8 @@ public class WineRegistryEditor implements Closeable {
     private static boolean lineHasName(String line) {
         int index;
         return (index = line.indexOf('"')) != -1 &&
-                (index = line.indexOf('"', index)) != -1 &&
-                (index = line.indexOf('=', index)) != -1;
+               (index = line.indexOf('"', index)) != -1 &&
+               (index = line.indexOf('=', index)) != -1;
     }
 
     @Override
@@ -118,16 +114,14 @@ public class WineRegistryEditor implements Closeable {
             long ticks1601To1970 = 86400L * (369 * 365 + 89) * 10000000;
             long currentTime = System.currentTimeMillis() + ticks1601To1970;
             String content = "\n["+escape(key)+"] "+((currentTime - ticks1601To1970) / 1000) +
-                    String.format(Locale.ENGLISH, "\n#time=%x%08x", currentTime >> 32, (int)currentTime)+"\n";
+                              String.format(Locale.ENGLISH, "\n#time=%x%08x", currentTime >> 32, (int)currentTime)+"\n";
             writer.write(content);
             totalLength += content.length() - 1;
 
             while ((length = reader.read(buffer)) != -1) writer.write(buffer, 0, length);
             success = true;
         }
-        catch (IOException e) {
-            Log.e("WineRegistryEditor", "Failed to create key: " + e);
-        }
+        catch (IOException e) {}
 
         if (success) {
             modified = true;
@@ -200,9 +194,7 @@ public class WineRegistryEditor implements Closeable {
             reader.skip(valueLocation.start);
             success = reader.read(buffer) == buffer.length;
         }
-        catch (IOException e) {
-            Log.e("WineRegistryEditor", "Failed to get raw value: " + e);
-        }
+        catch (IOException e) {}
         return success ? unescape(new String(buffer)) : null;
     }
 
@@ -244,9 +236,7 @@ public class WineRegistryEditor implements Closeable {
             while ((length = reader.read(buffer)) != -1) writer.write(buffer, 0, length);
             success = true;
         }
-        catch (IOException e) {
-            Log.e("WineRegistryEditor", "Failed to set raw value: " + e);
-        }
+        catch (IOException e) {}
 
         if (success) {
             modified = true;
@@ -306,9 +296,7 @@ public class WineRegistryEditor implements Closeable {
             while ((length = reader.read(buffer)) != -1) writer.write(buffer, 0, length);
             success = true;
         }
-        catch (IOException e) {
-            Log.e("WineRegistryEditor", "Failed to remove region: " + e);
-        }
+        catch (IOException e) {}
 
         if (success) {
             modified = true;

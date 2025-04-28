@@ -9,9 +9,9 @@ public class XForm {
 
     public static float[] identity(float[] xform) {
         return set(xform,
-                1, 0,
-                0, 1,
-                0, 0
+            1, 0,
+            0, 1,
+            0, 0
         );
     }
 
@@ -33,25 +33,25 @@ public class XForm {
         float c = (float)Math.cos(angle);
         float s = (float)Math.sin(angle);
         return set(xform,
-                sx *  c,  sy * s,
-                sx * -s,  sy * c,
-                tx,  ty
+            sx *  c,  sy * s,
+            sx * -s,  sy * c,
+            tx,  ty
         );
     }
 
     public static float[] makeTranslation(float[] xform, float x, float y) {
         return set(xform,
-                1, 0,
-                0, 1,
-                x, y
+            1, 0,
+            0, 1,
+            x, y
         );
     }
 
     public static float[] makeScale(float[] xform, float x, float y) {
         return set(xform,
-                x, 0,
-                0, y,
-                0, 0
+            x, 0,
+            0, y,
+            0, 0
         );
     }
 
@@ -60,9 +60,9 @@ public class XForm {
         float s = (float)Math.sin(angle);
 
         return set(xform,
-                c,  s,
-                -s,  c,
-                0,  0
+             c,  s,
+            -s,  c,
+             0,  0
         );
     }
 
@@ -80,11 +80,11 @@ public class XForm {
 
     public static float[] multiply(float[] result, float[] ta, float[] tb) {
         float a0 = ta[0], a3 = ta[3],
-                a1 = ta[1], a4 = ta[4],
-                a2 = ta[2], a5 = ta[5],
-                b0 = tb[0], b3 = tb[3],
-                b1 = tb[1], b4 = tb[4],
-                b2 = tb[2], b5 = tb[5];
+              a1 = ta[1], a4 = ta[4],
+              a2 = ta[2], a5 = ta[5],
+              b0 = tb[0], b3 = tb[3],
+              b1 = tb[1], b4 = tb[4],
+              b2 = tb[2], b5 = tb[5];
         result[0] = a0 * b0 + a1 * b2;
         result[1] = a0 * b1 + a1 * b3;
         result[2] = a2 * b0 + a3 * b2;

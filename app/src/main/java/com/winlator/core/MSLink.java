@@ -34,22 +34,22 @@ public abstract class MSLink {
 
     private static byte[] convertCLSIDtoDATA(String str) {
         return new byte[]{
-                twoCharsToByte(str.charAt(6), str.charAt(7)),
-                twoCharsToByte(str.charAt(4), str.charAt(5)),
-                twoCharsToByte(str.charAt(2), str.charAt(3)),
-                twoCharsToByte(str.charAt(0), str.charAt(1)),
-                twoCharsToByte(str.charAt(11), str.charAt(12)),
-                twoCharsToByte(str.charAt(9), str.charAt(10)),
-                twoCharsToByte(str.charAt(16), str.charAt(17)),
-                twoCharsToByte(str.charAt(14), str.charAt(15)),
-                twoCharsToByte(str.charAt(19), str.charAt(20)),
-                twoCharsToByte(str.charAt(21), str.charAt(22)),
-                twoCharsToByte(str.charAt(24), str.charAt(25)),
-                twoCharsToByte(str.charAt(26), str.charAt(27)),
-                twoCharsToByte(str.charAt(28), str.charAt(29)),
-                twoCharsToByte(str.charAt(30), str.charAt(31)),
-                twoCharsToByte(str.charAt(32), str.charAt(33)),
-                twoCharsToByte(str.charAt(34), str.charAt(35))
+            twoCharsToByte(str.charAt(6), str.charAt(7)),
+            twoCharsToByte(str.charAt(4), str.charAt(5)),
+            twoCharsToByte(str.charAt(2), str.charAt(3)),
+            twoCharsToByte(str.charAt(0), str.charAt(1)),
+            twoCharsToByte(str.charAt(11), str.charAt(12)),
+            twoCharsToByte(str.charAt(9), str.charAt(10)),
+            twoCharsToByte(str.charAt(16), str.charAt(17)),
+            twoCharsToByte(str.charAt(14), str.charAt(15)),
+            twoCharsToByte(str.charAt(19), str.charAt(20)),
+            twoCharsToByte(str.charAt(21), str.charAt(22)),
+            twoCharsToByte(str.charAt(24), str.charAt(25)),
+            twoCharsToByte(str.charAt(26), str.charAt(27)),
+            twoCharsToByte(str.charAt(28), str.charAt(29)),
+            twoCharsToByte(str.charAt(30), str.charAt(31)),
+            twoCharsToByte(str.charAt(32), str.charAt(33)),
+            twoCharsToByte(str.charAt(34), str.charAt(35))
         };
     }
 

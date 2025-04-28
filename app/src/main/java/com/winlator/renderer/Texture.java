@@ -3,7 +3,7 @@ package com.winlator.renderer;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 
-// import com.winlator.XrActivity;
+import com.winlator.XrActivity;
 import com.winlator.xserver.Drawable;
 
 import java.nio.ByteBuffer;
@@ -14,8 +14,10 @@ public class Texture {
     private int wrapT = GLES20.GL_CLAMP_TO_EDGE;
     private int magFilter = GLES20.GL_LINEAR;
     private int minFilter = GLES20.GL_LINEAR;
-    private int format = GLES11Ext.GL_BGRA;
+    protected int format = GLES11Ext.GL_BGRA;
     protected boolean needsUpdate = true;
+    protected byte unpackAlignment = 4; // or add a getter method
+
 
     public void allocateTexture(short width, short height, ByteBuffer data) {
         int[] textureIds = new int[1];
@@ -36,7 +38,6 @@ public class Texture {
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, minFilter);
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
-        // if (XrActivity.isSupported()) XrActivity.getInstance().bindFramebuffer();
     }
 
     public int getWrapS() {
@@ -118,6 +119,7 @@ public class Texture {
         GLES20.glCopyTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 0, 0, width, height, 0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, 0);
+        if (XrActivity.isSupported()) XrActivity.getInstance().bindFramebuffer();
     }
 
     public void destroy() {
@@ -127,4 +129,18 @@ public class Texture {
             textureId = 0;
         }
     }
+
+    protected void generateTextureId() {
+        int[] textureIds = new int[1];
+        GLES20.glGenTextures(1, textureIds, 0);
+        textureId = textureIds[0];
+    }
+
+    protected void setTextureParameters() {
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, wrapS);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, wrapT);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, magFilter);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, minFilter);
+    }
+
 }

@@ -356,25 +356,19 @@ int virgl_server_resource_create(struct virgl_client *client, UNUSED uint32_t le
                           MAP_SHARED, fd, 0);
 
    if (iovec->iov_base == MAP_FAILED) {
-      printf("VirGLServerRenderer close %d", fd);
       close(fd);
-      printf("VirGLServerRenderer close %d done", fd);
       FREE(iovec);
       return -ENOMEM;
    }
 
    ret = virgl_server_send_fd(client->fd, fd);
    if (ret < 0) {
-      printf("VirGLServerRenderer2 close %d", fd);
       close(fd);
-      printf("VirGLServerRenderer2 close %d done", fd);
       munmap(iovec->iov_base, iovec->iov_len);
       return ret;
    }
 
-   printf("VirGLServerRenderer3 close %d", fd);
    close(fd);
-   printf("VirGLServerRenderer3 close %d done", fd);
 
 out:
    vrend_renderer_resource_attach_iov(client, args.handle, iovec, 1);

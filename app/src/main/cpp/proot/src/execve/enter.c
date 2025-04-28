@@ -260,7 +260,6 @@ static int extract_load_info(Tracee *tracee, LoadInfo *load_info)
 	assert(load_info->host_path != NULL);
 
 	fd = open_elf(load_info->host_path, &load_info->elf_header);
-    printf("enter.c open_elf %d", fd);
 	if (fd < 0)
 		return fd;
 
@@ -281,10 +280,8 @@ static int extract_load_info(Tracee *tracee, LoadInfo *load_info)
 
 	status = iterate_program_headers(tracee, fd, &load_info->elf_header, add_load_info, &data);
 end:
-	if (fd >= 0) {
+	if (fd >= 0)
 		close(fd);
-        printf("enter.c close %d", fd);
-    }
 
 	return status;
 }

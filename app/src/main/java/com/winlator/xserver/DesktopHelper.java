@@ -56,12 +56,12 @@ public abstract class DesktopHelper {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> entry : values.entrySet()) {
             sb.append("Xcursor")
-                    .append('.')
-                    .append(entry.getKey())
-                    .append(':')
-                    .append('\t')
-                    .append(entry.getValue())
-                    .append('\n');
+              .append('.')
+              .append(entry.getKey())
+              .append(':')
+              .append('\t')
+              .append(entry.getValue())
+              .append('\n');
         }
 
         byte[] data = sb.toString().getBytes(XServer.LATIN1_CHARSET);

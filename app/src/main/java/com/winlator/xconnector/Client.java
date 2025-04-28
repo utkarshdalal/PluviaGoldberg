@@ -1,7 +1,5 @@
 package com.winlator.xconnector;
 
-import android.util.Log;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -51,8 +49,6 @@ public class Client {
             data.asLongBuffer().put(1);
             (new ClientSocket(shutdownFd)).write(data);
         }
-        catch (IOException e) {
-            Log.e("Client", "Failed to shutdown: " + e);
-        }
+        catch (IOException e) {}
     }
 }
