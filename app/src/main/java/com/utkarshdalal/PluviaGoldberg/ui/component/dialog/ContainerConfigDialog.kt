@@ -125,31 +125,21 @@ fun ContainerConfigDialog(
             mutableIntStateOf(if (driverIndex >= 0) driverIndex else 0)
         }
         var dxvkVersionIndex by rememberSaveable {
-            Timber.d("Initializing dxvkVersionIndex")
             val rawConfig = config.dxwrapperConfig
-            Timber.d("  Raw dxwrapperConfig: '$rawConfig'")
-
-            // Explicitly test KeyValueSet.get()
             val kvs = KeyValueSet(rawConfig)
-            Timber.d("  KeyValueSet: '$kvs'")
 
             val configuredVersion = kvs.get("version") // Direct call to get()
             
-            Timber.d("  Configured Version read via kvs.get: '$configuredVersion'")
-
             // Find index where the parsed display string matches the configured version
             val foundIndex = dxvkVersions.indexOfFirst {
                 val parsedDisplay = StringUtils.parseIdentifier(it)
                 val match = parsedDisplay == configuredVersion
-                // Timber.v("  Checking: '$it' -> Parsed: '$parsedDisplay' == Configured: '$configuredVersion' -> Match: $match") // Verbose: uncomment if needed
                 match
             }
-            Timber.d("  Found index: $foundIndex")
 
             // Use found index, or fallback to default entry index, or 0 if default isn't found
             val defaultIndex = dxvkVersions.indexOfFirst { it.contains("(Default)") }.coerceAtLeast(0)
             val finalIndex = if (foundIndex >= 0) foundIndex else defaultIndex
-            Timber.d("  Default index: $defaultIndex, Final index: $finalIndex")
             mutableIntStateOf(finalIndex)
         }
         var audioDriverIndex by rememberSaveable {
@@ -421,7 +411,6 @@ fun ContainerConfigDialog(
                                 items = dxvkVersions,     // Provide the list of items
                                 onItemSelected = { // Use implicit 'it' for consistency
                                     dxvkVersionIndex = it
-                                    // Parse the identifier from the display string (e.g., "2.3 (Default)" -> "2.3")
                                     val version = StringUtils.parseIdentifier(dxvkVersions[it])
                                     
                                     // Use KeyValueSet to safely update/add the version key
