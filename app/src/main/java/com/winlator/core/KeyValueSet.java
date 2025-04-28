@@ -42,7 +42,9 @@ public class KeyValueSet implements Iterable<String[]> {
         if (range != null) {
             data = StringUtils.replace(data, range[0], range[1], key+"="+value);
         }
-        else data = (!data.isEmpty() ? data+"," : "")+key+"="+value;
+        else {
+            data = (!data.isEmpty() ? data+"," : "") + key+"="+value+",";
+        }
     }
 
     @NonNull
