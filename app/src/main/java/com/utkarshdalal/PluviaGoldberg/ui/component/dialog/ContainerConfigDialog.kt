@@ -72,6 +72,7 @@ import com.winlator.core.KeyValueSet
 import com.winlator.core.StringUtils
 import com.winlator.core.envvars.EnvVarInfo
 import com.winlator.core.envvars.EnvVars
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,6 +93,7 @@ fun ContainerConfigDialog(
         val screenSizes = stringArrayResource(R.array.screen_size_entries).toList()
         val graphicsDrivers = stringArrayResource(R.array.graphics_driver_entries).toList()
         val dxWrappers = stringArrayResource(R.array.dxwrapper_entries).toList()
+        val dxvkVersions = stringArrayResource(R.array.dxvk_version_entries).toList()
         val audioDrivers = stringArrayResource(R.array.audio_driver_entries).toList()
         val gpuCards = ContainerUtils.getGPUCards(context)
         val renderingModes = stringArrayResource(R.array.offscreen_rendering_modes).toList()
@@ -121,6 +123,34 @@ fun ContainerConfigDialog(
         var dxWrapperIndex by rememberSaveable {
             val driverIndex = dxWrappers.indexOfFirst { StringUtils.parseIdentifier(it) == config.dxwrapper }
             mutableIntStateOf(if (driverIndex >= 0) driverIndex else 0)
+        }
+        var dxvkVersionIndex by rememberSaveable {
+            Timber.d("Initializing dxvkVersionIndex")
+            val rawConfig = config.dxwrapperConfig
+            Timber.d("  Raw dxwrapperConfig: '$rawConfig'")
+
+            // Explicitly test KeyValueSet.get()
+            val kvs = KeyValueSet(rawConfig)
+            Timber.d("  KeyValueSet: '$kvs'")
+
+            val configuredVersion = kvs.get("version") // Direct call to get()
+            
+            Timber.d("  Configured Version read via kvs.get: '$configuredVersion'")
+
+            // Find index where the parsed display string matches the configured version
+            val foundIndex = dxvkVersions.indexOfFirst {
+                val parsedDisplay = StringUtils.parseIdentifier(it)
+                val match = parsedDisplay == configuredVersion
+                // Timber.v("  Checking: '$it' -> Parsed: '$parsedDisplay' == Configured: '$configuredVersion' -> Match: $match") // Verbose: uncomment if needed
+                match
+            }
+            Timber.d("  Found index: $foundIndex")
+
+            // Use found index, or fallback to default entry index, or 0 if default isn't found
+            val defaultIndex = dxvkVersions.indexOfFirst { it.contains("(Default)") }.coerceAtLeast(0)
+            val finalIndex = if (foundIndex >= 0) foundIndex else defaultIndex
+            Timber.d("  Default index: $defaultIndex, Final index: $finalIndex")
+            mutableIntStateOf(finalIndex)
         }
         var audioDriverIndex by rememberSaveable {
             val driverIndex = audioDrivers.indexOfFirst { StringUtils.parseIdentifier(it) == config.audioDriver }
@@ -382,18 +412,27 @@ fun ContainerConfigDialog(
                                     dxWrapperIndex = it
                                     config = config.copy(dxwrapper = StringUtils.parseIdentifier(dxWrappers[it]))
                                 },
-                                // action = {
-                                //     if (StringUtils.parseIdentifier(dxWrapperIndex) == "dxvk") {
-                                //         IconButton(
-                                //             onClick = {},
-                                //             content = {
-                                //                 Icon(Icons.Filled.Settings, contentDescription = "DX wrapper settings")
-                                //             },
-                                //         )
-                                //     }
-                                // },
                             )
-                            // TODO: add way to configure audio driver
+                            // DXVK Version Dropdown (Corrected to use SettingsListDropdown properly)
+                            SettingsListDropdown(
+                                colors = settingsTileColors(),
+                                title = { Text(text = stringResource(R.string.dxvk_version)) },
+                                value = dxvkVersionIndex, // Use value for selected index
+                                items = dxvkVersions,     // Provide the list of items
+                                onItemSelected = { // Use implicit 'it' for consistency
+                                    dxvkVersionIndex = it
+                                    // Parse the identifier from the display string (e.g., "2.3 (Default)" -> "2.3")
+                                    val version = StringUtils.parseIdentifier(dxvkVersions[it])
+                                    
+                                    // Use KeyValueSet to safely update/add the version key
+                                    val currentConfig = KeyValueSet(config.dxwrapperConfig)
+                                    currentConfig.put("version", version)
+                                    
+                                    // Save the updated config string
+                                    config = config.copy(dxwrapperConfig = currentConfig.toString())
+                                },
+                            )
+                            // Audio Driver Dropdown
                             SettingsListDropdown(
                                 colors = settingsTileColors(),
                                 title = { Text(text = "Audio Driver") },

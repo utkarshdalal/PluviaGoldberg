@@ -47,6 +47,7 @@
     <string name="directx">DirectX</string>
     <string name="vcrun2010">Visual C++ 2010</string>
     <string name="wmdecoder">Windows Media Decoder</string>
+    <string name="dxvk_version">DXVK Version</string>
 
     <string name="box86_64_env_var_help__dynarec_safeflags"><![CDATA[
         Handling of flags on CALL/RET opcodes<br /><br />
