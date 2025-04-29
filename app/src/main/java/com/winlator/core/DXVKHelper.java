@@ -18,6 +18,9 @@ public class DXVKHelper {
     public static void setEnvVars(Context context, KeyValueSet config, EnvVars envVars) {
         envVars.put("DXVK_STATE_CACHE_PATH", ImageFs.CACHE_PATH);
         envVars.put("DXVK_LOG_LEVEL", "none");
+        if (config.get("version").contains("async")){
+            envVars.put("DXVK_ASYNC", "1");
+        }
 
         File rootDir = ImageFs.find(context).getRootDir();
         File dxvkConfigFile = new File(rootDir, ImageFs.CONFIG_PATH+"/dxvk.conf");
