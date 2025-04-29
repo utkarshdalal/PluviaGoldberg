@@ -89,7 +89,7 @@ public class ImageFs {
     }
 
     public File getGlibc64Dir() {
-        return new File(rootDir, "/usr/lib");
+        return new File(rootDir, "/usr/lib/aarch64-linux-gnu");
     }
 
     public File getLib32Dir() {

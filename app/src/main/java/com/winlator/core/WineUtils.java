@@ -9,6 +9,7 @@ import com.winlator.core.envvars.EnvVars;
 import com.winlator.xenvironment.ImageFs;
 import com.winlator.xenvironment.XEnvironment;
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent;
+import com.winlator.xenvironment.components.GlibcProgramLauncherComponent;
 
 import org.json.JSONArray;
 import org.json.JSONException;

@@ -32,6 +32,8 @@ import com.utkarshdalal.PluviaGoldberg.ui.data.XServerState
 import com.utkarshdalal.PluviaGoldberg.utils.ContainerUtils
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
+import com.winlator.container.Shortcut
+import com.winlator.contents.ContentsManager
 import com.winlator.core.AppUtils
 import com.winlator.core.Callback
 import com.winlator.core.DXVKHelper
@@ -56,6 +58,7 @@ import com.winlator.xconnector.UnixSocketConfig
 import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.XEnvironment
 import com.winlator.xenvironment.components.ALSAServerComponent
+import com.winlator.xenvironment.components.GlibcProgramLauncherComponent
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent
 import com.winlator.xenvironment.components.NetworkInfoUpdateComponent
 import com.winlator.xenvironment.components.PulseAudioComponent
@@ -69,15 +72,15 @@ import com.winlator.xserver.ScreenInfo
 import com.winlator.xserver.Window
 import com.winlator.xserver.WindowManager
 import com.winlator.xserver.XServer
-import java.io.File
-import java.nio.file.Paths
-import kotlin.io.path.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
+import java.io.File
+import java.nio.file.Paths
+import kotlin.io.path.name
 
 // TODO logs in composables are 'unstable' which can cause recomposition (performance issues)
 
@@ -286,58 +289,60 @@ fun XServerScreen(
                     appLaunchInfo?.let { renderer.forceFullscreenWMClass = Paths.get(it.executable).name }
                 }
 
-                getxServer().windowManager.addOnWindowModificationListener(object : WindowManager.OnWindowModificationListener {
-                    override fun onUpdateWindowContent(window: Window) {
-                        // Timber.v("onUpdateWindowContent:" +
-                        //     "\n\twindowName: ${window.name}" +
-                        //     "\n\tprocessId: ${window.processId}" +
-                        //     "\n\thasParent: ${window.parent != null}" +
-                        //     "\n\tchildrenSize: ${window.children.size}"
-                        // )
-                        if (!xServerState.value.winStarted && window.isApplicationWindow()) {
-                            renderer?.setCursorVisible(true)
-                            xServerState.value.winStarted = true
+                getxServer().windowManager.addOnWindowModificationListener(
+                    object : WindowManager.OnWindowModificationListener {
+                        override fun onUpdateWindowContent(window: Window) {
+                            // Timber.v("onUpdateWindowContent:" +
+                            //     "\n\twindowName: ${window.name}" +
+                            //     "\n\tprocessId: ${window.processId}" +
+                            //     "\n\thasParent: ${window.parent != null}" +
+                            //     "\n\tchildrenSize: ${window.children.size}"
+                            // )
+                            if (!xServerState.value.winStarted && window.isApplicationWindow()) {
+                                renderer?.setCursorVisible(true)
+                                xServerState.value.winStarted = true
+                            }
+                            // if (window.id == frameRatingWindowId) frameRating.update()
                         }
-                        // if (window.id == frameRatingWindowId) frameRating.update()
-                    }
 
-                    override fun onModifyWindowProperty(window: Window, property: Property) {
-                        // Timber.v("onModifyWindowProperty:" +
-                        //     "\n\twindowName: ${window.name}" +
-                        //     "\n\tprocessId: ${window.processId}" +
-                        //     "\n\thasParent: ${window.parent != null}" +
-                        //     "\n\tchildrenSize: ${window.children.size}" +
-                        //     "\n\tpropertyName${property.name}"
-                        // )
-                        // changeFrameRatingVisibility(window, property)
-                    }
+                        override fun onModifyWindowProperty(window: Window, property: Property) {
+                            // Timber.v("onModifyWindowProperty:" +
+                            //     "\n\twindowName: ${window.name}" +
+                            //     "\n\tprocessId: ${window.processId}" +
+                            //     "\n\thasParent: ${window.parent != null}" +
+                            //     "\n\tchildrenSize: ${window.children.size}" +
+                            //     "\n\tpropertyName${property.name}"
+                            // )
+                            // changeFrameRatingVisibility(window, property)
+                        }
 
-                    override fun onMapWindow(window: Window) {
-                        Timber.i(
-                            "onMapWindow:" +
-                                "\n\twindowName: ${window.name}" +
-                                "\n\twindowClassName: ${window.className}" +
-                                "\n\tprocessId: ${window.processId}" +
-                                "\n\thasParent: ${window.parent != null}" +
-                                "\n\tchildrenSize: ${window.children.size}",
-                        )
-                        assignTaskAffinity(window, getxServer().winHandler, taskAffinityMask, taskAffinityMaskWoW64)
-                        onWindowMapped?.invoke(window)
-                    }
+                        override fun onMapWindow(window: Window) {
+                            Timber.i(
+                                "onMapWindow:" +
+                                        "\n\twindowName: ${window.name}" +
+                                        "\n\twindowClassName: ${window.className}" +
+                                        "\n\tprocessId: ${window.processId}" +
+                                        "\n\thasParent: ${window.parent != null}" +
+                                        "\n\tchildrenSize: ${window.children.size}",
+                            )
+                            assignTaskAffinity(window, getxServer().winHandler, taskAffinityMask, taskAffinityMaskWoW64)
+                            onWindowMapped?.invoke(window)
+                        }
 
-                    override fun onUnmapWindow(window: Window) {
-                        Timber.i(
-                            "onUnmapWindow:" +
-                                "\n\twindowName: ${window.name}" +
-                                "\n\twindowClassName: ${window.className}" +
-                                "\n\tprocessId: ${window.processId}" +
-                                "\n\thasParent: ${window.parent != null}" +
-                                "\n\tchildrenSize: ${window.children.size}",
-                        )
-                        // changeFrameRatingVisibility(window, null)
-                        onWindowUnmapped?.invoke(window)
-                    }
-                })
+                        override fun onUnmapWindow(window: Window) {
+                            Timber.i(
+                                "onUnmapWindow:" +
+                                        "\n\twindowName: ${window.name}" +
+                                        "\n\twindowClassName: ${window.className}" +
+                                        "\n\tprocessId: ${window.processId}" +
+                                        "\n\thasParent: ${window.parent != null}" +
+                                        "\n\tchildrenSize: ${window.children.size}",
+                            )
+                            // changeFrameRatingVisibility(window, null)
+                            onWindowUnmapped?.invoke(window)
+                        }
+                    },
+                )
 
                 if (PluviaApp.xEnvironment != null) {
                     PluviaApp.xEnvironment = shiftXEnvironmentToContext(
@@ -544,7 +549,11 @@ private fun setupXEnvironment(
     val rootPath = imageFs.rootDir.path
     FileUtils.clear(imageFs.tmpDir)
 
-    val guestProgramLauncherComponent = GuestProgramLauncherComponent()
+    val usrGlibc: Boolean = PrefManager.getBoolean("use_glibc", true)
+    val guestProgramLauncherComponent = if (usrGlibc)
+        GlibcProgramLauncherComponent()
+    else
+        GuestProgramLauncherComponent()
 
     if (container != null) {
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
