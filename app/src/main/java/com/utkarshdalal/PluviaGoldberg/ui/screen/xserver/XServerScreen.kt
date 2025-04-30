@@ -364,12 +364,18 @@ fun XServerScreen(
                     Timber.i("First time boot: $firstTimeBoot")
 
                     val wineVersion = container.wineVersion
+                    Timber.i("Wine version is: $wineVersion")
+                    Timber.i("Wine info is: " + WineInfo.fromIdentifier(context, wineVersion))
                     xServerState.value = xServerState.value.copy(
                         wineInfo = WineInfo.fromIdentifier(context, wineVersion),
                     )
+                    Timber.i("xServerState.value.wineInfo is: " + xServerState.value.wineInfo)
+                    Timber.i("WineInfo.MAIN_WINE_VERSION is: " + WineInfo.MAIN_WINE_VERSION)
+                    Timber.i("Wine path for wineinfo is " + xServerState.value.wineInfo.path)
 
                     if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) {
-                        ImageFs.find(context).winePath = xServerState.value.wineInfo.path
+                        Timber.i("Settings wine path to: $xServerState.value.wineInfo.path")
+                        ImageFs.find(context).setWinePath(xServerState.value.wineInfo.path)
                     }
 
                     val onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
@@ -622,7 +628,7 @@ private fun setupXEnvironment(
     val manager: RCManager = RCManager(context)
     manager.loadRCFiles()
     val rcfileId: Int = container.getRCFileId()
-    val rcfile: RCFile = manager.getRcfile(rcfileId)
+    val rcfile: RCFile? = manager.getRcfile(rcfileId)
     val file = File(container.rootDir, ".box64rc")
     val str = if (rcfile == null) "" else rcfile.generateBox86_64rc()
     FileUtils.writeString(file, str)
@@ -802,7 +808,7 @@ private fun applyGeneralPatches(
     wineInfo: WineInfo,
     onExtractFileListener: OnExtractFileListener?,
 ) {
-    val rootDir = imageFs.rootDir
+    val rootDir = imageFs.getRootDir()
     FileUtils.delete(File(rootDir, "/opt/apps"))
     TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "imagefs_patches.tzst", rootDir, onExtractFileListener)
     TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "pulseaudio.tzst", File(context.filesDir, "pulseaudio"))
@@ -833,7 +839,7 @@ private fun extractDXWrapperFiles(
         "ddraw.dll",
     )
     if (firstTimeBoot && dxwrapper != "vkd3d") cloneOriginalDllFiles(imageFs, *dlls)
-    val rootDir = imageFs.rootDir
+    val rootDir = imageFs.getRootDir()
     val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
 
     when (dxwrapper) {
