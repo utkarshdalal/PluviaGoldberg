@@ -31,6 +31,7 @@
     <string name="destination_friends">Friends</string>
 
     <!--Winlator-->
+    <string name="disabled">Disabled</string>
     <string name="copy">Copy</string>
     <string name="stability">Stability</string>
     <string name="compatibility">Compatibility</string>
