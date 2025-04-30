@@ -36,12 +36,19 @@
         <item>CNC DDraw</item>
     </string-array>
     <string-array name="dxvk_version_entries">
+        <item>0.40.1</item>
         <item>0.96</item>
-        <item>1.10.3 (Default)</item>
-        <item>2.3.1</item>
-        <item>2.6.1</item>
-        <item>gplasync-v2.6.1-1</item>
+        <item>1.5.5</item>
+        <item>1.7.1</item>
+        <item>1.10.3</item>
         <item>async-1.10.3</item>
+        <item>2.2.116</item>
+        <item>2.3.1</item>
+        <item>2.4</item>
+        <item>2.4-gplasync</item>
+        <item>2.4-24-gplasync</item>
+        <item>2.4.1</item>
+        <item>2.4.1-gplasync</item>
     </string-array>
     <string-array name="dxvk_max_device_memory_entries">
         <item>0 (Default)</item>
@@ -75,9 +82,11 @@
         <item>0.3.7</item>
     </string-array>
     <string-array name="box64_version_entries">
-        <item>0.2.8 (Default)</item>
-        <item>0.2.9</item>
+        <item>0.2.7</item>
+        <item>0.2.8</item>
         <item>0.3.0</item>
+        <item>0.3.1</item>
+        <item>0.3.1.8g2</item>
         <item>0.3.2</item>
     </string-array>
     <string-array name="dinput_mapper_type_entries">
