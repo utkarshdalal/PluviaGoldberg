@@ -55,6 +55,8 @@ public class Container {
     private File rootDir;
     private JSONObject extraData;
 
+    private String lc_all = "";
+
     public Container(int id) {
         this.id = id;
         this.name = "Container-"+id;
@@ -330,6 +332,7 @@ public class Container {
             data.put("box64Preset", box64Preset);
             data.put("desktopTheme", desktopTheme);
             data.put("extraData", extraData);
+            data.put("lc_all", lc_all);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -406,6 +409,9 @@ public class Container {
                     break;
                 case "desktopTheme" :
                     setDesktopTheme(data.getString(key));
+                    break;
+                case "lc_all" :
+                    setLC_ALL(data.getString(key));
                     break;
             }
         }
@@ -485,5 +491,13 @@ public class Container {
         int numProcessors = Runtime.getRuntime().availableProcessors();
         for (int i = numProcessors / 2; i < numProcessors; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
         return cpuList;
+    }
+
+    public String getLC_ALL() {
+        return lc_all;
+    }
+
+    public void setLC_ALL(String lc_all) {
+        this.lc_all = lc_all;
     }
 }
