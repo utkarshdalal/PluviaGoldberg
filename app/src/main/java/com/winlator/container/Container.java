@@ -337,6 +337,8 @@ public class Container {
             data.put("showFPS", showFPS);
             data.put("wow64Mode", wow64Mode);
             data.put("startupSelection", startupSelection);
+            data.put("box86Version", box86Version);
+            data.put("box64Version", box64Version);
             data.put("box86Preset", box86Preset);
             data.put("box64Preset", box64Preset);
             data.put("desktopTheme", desktopTheme);
@@ -353,6 +355,7 @@ public class Container {
     }
 
     public void loadData(JSONObject data) throws JSONException {
+        Log.d("Container", "Setting container data: " + data);
         wineVersion = WineInfo.MAIN_WINE_VERSION.identifier();
         dxwrapperConfig = "";
         checkObsoleteOrMissingProperties(data);
@@ -407,6 +410,12 @@ public class Container {
                 }
                 case "wineVersion" :
                     setWineVersion(data.getString(key));
+                    break;
+                case "box86Version":
+                    setBox86Version(data.getString(key));
+                    break;
+                case "box64Version":
+                    setBox64Version(data.getString(key));
                     break;
                 case "box86Preset" :
                     setBox86Preset(data.getString(key));
