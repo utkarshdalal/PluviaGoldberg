@@ -2,6 +2,7 @@ package com.winlator.contents;
 
 import android.content.Context;
 import android.net.Uri;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -378,6 +379,7 @@ public class ContentsManager {
 
     public boolean applyContent(ContentProfile profile) {
         if (profile.type != ContentProfile.ContentType.CONTENT_TYPE_WINE) {
+            Log.d("ContentsManager", "if condition");
             for (ContentProfile.ContentFile contentFile : profile.fileList) {
                 File targetFile = new File(getPathFromTemplate(contentFile.target));
                 File sourceFile = new File(getInstallDir(context, profile), contentFile.source);
@@ -386,10 +388,12 @@ public class ContentsManager {
                 FileUtils.copy(sourceFile, targetFile);
 
                 if (profile.type == ContentProfile.ContentType.CONTENT_TYPE_BOX64) {
+                    Log.d("ContentsManager", "found box64 profile type - running chmod on " + targetFile);
                     FileUtils.chmod(targetFile, 0771);
                 }
             }
         } else {
+            Log.d("ContentsManager", "else condition - doing nothing");
             // TODO: do nothing?
         }
         return true;
