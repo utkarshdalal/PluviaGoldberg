@@ -520,7 +520,6 @@ private fun shiftXEnvironmentToContext(
         )
         environment.addComponent(virglComponent)
     }
-    environment.addComponent(xEnvironment.getComponent<GuestProgramLauncherComponent>(GuestProgramLauncherComponent::class.java))
     environment.addComponent(xEnvironment.getComponent<GlibcProgramLauncherComponent>(GlibcProgramLauncherComponent::class.java))
 
     FileUtils.clear(XEnvironment.getTmpDir(context))
@@ -562,10 +561,14 @@ private fun setupXEnvironment(
     FileUtils.clear(imageFs.getTmpDir())
 
     val usrGlibc: Boolean = PrefManager.getBoolean("use_glibc", true)
-    val guestProgramLauncherComponent = if (usrGlibc)
+    val guestProgramLauncherComponent = if (usrGlibc) {
+        Timber.i("Setting guestProgramLauncherComponent to GlibcProgarmLauncherComponent")
         GlibcProgramLauncherComponent(contentsManager, contentsManager.getProfileByEntryName(container.wineVersion))
-    else
+    }
+    else {
+        Timber.i("Setting guestProgramLauncherComponent to GuestProgarmLauncherComponent")
         GuestProgramLauncherComponent()
+    }
 
     if (container != null) {
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
@@ -586,6 +589,8 @@ private fun setupXEnvironment(
             bindingPaths.add(drive[1])
         }
         guestProgramLauncherComponent.bindingPaths = bindingPaths.toTypedArray()
+        guestProgramLauncherComponent.box64Version = container.box64Version
+        guestProgramLauncherComponent.box86Version = container.box86Version
         guestProgramLauncherComponent.box86Preset = container.box86Preset
         guestProgramLauncherComponent.box64Preset = container.box64Preset
     }
@@ -808,7 +813,7 @@ private fun applyGeneralPatches(
     wineInfo: WineInfo,
     onExtractFileListener: OnExtractFileListener?,
 ) {
-    val rootDir = imageFs.getRootDir()
+    val rootDir = imageFs.rootDir
     FileUtils.delete(File(rootDir, "/opt/apps"))
     TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "imagefs_patches.tzst", rootDir, onExtractFileListener)
     TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "pulseaudio.tzst", File(context.filesDir, "pulseaudio"))
