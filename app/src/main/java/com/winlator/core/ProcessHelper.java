@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 
 public abstract class ProcessHelper {
-    public static final boolean PRINT_DEBUG = false; // FIXME change to false
+    public static final boolean PRINT_DEBUG = true; // FIXME change to false
     private static final ArrayList<Callback<String>> debugCallbacks = new ArrayList<>();
     private static final byte SIGCONT = 18;
     private static final byte SIGSTOP = 19;

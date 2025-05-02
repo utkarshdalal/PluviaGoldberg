@@ -16,7 +16,7 @@ public class DXVKHelper {
     }
 
     public static void setEnvVars(Context context, KeyValueSet config, EnvVars envVars) {
-        envVars.put("DXVK_STATE_CACHE_PATH", ImageFs.CACHE_PATH);
+        envVars.put("DXVK_STATE_CACHE_PATH", "/data/data/com.winlator/files/imagefs"+ImageFs.CACHE_PATH);
         envVars.put("DXVK_LOG_LEVEL", "none");
 
         File rootDir = ImageFs.find(context).getRootDir();

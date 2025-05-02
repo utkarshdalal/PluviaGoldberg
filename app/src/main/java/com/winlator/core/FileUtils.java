@@ -256,8 +256,10 @@ public abstract class FileUtils {
     }
 
     public static void chmod(File file, int mode) {
+        Log.d("FileUtils", "Attempting to chmod " + file.getAbsolutePath());
         try {
             Os.chmod(file.getAbsolutePath(), mode);
+            Log.d("FileUtils", "Successfully chmod-ed " + file.getAbsolutePath());
         }
         catch (ErrnoException e) {
             Log.e("FileUtils", "Failed to chmod " + file.getAbsolutePath() + ": " + e);

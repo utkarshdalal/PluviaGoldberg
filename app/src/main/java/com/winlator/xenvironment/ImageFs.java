@@ -13,14 +13,23 @@ import java.util.Locale;
 public class ImageFs {
     public static final String USER = "xuser";
     public static final String HOME_PATH = "/home/"+USER;
-    public static final String CACHE_PATH = "/home/"+USER+"/.cache";
-    public static final String CONFIG_PATH = "/home/"+USER+"/.config";
-    public static final String WINEPREFIX = "/home/"+USER+"/.wine";
+    public static final String CACHE_PATH = HOME_PATH+"/.cache";
+    public static final String CONFIG_PATH = HOME_PATH+"/.config";
+    public static final String WINEPREFIX = HOME_PATH+"/.wine";
     private final File rootDir;
-    private String winePath = "/opt/wine";
+    public String winePath;
+    public String home_path;
+    public String cache_path;
+    public String config_path;
+    public String wineprefix;
 
     private ImageFs(File rootDir) {
         this.rootDir = rootDir;
+        winePath = rootDir + "/opt/wine";
+        home_path = rootDir + HOME_PATH;
+        cache_path = rootDir + CACHE_PATH;
+        config_path = rootDir + CONFIG_PATH;
+        wineprefix = rootDir + WINEPREFIX;
     }
 
     public static ImageFs find(Context context) {
@@ -80,12 +89,20 @@ public class ImageFs {
         return new File(rootDir, "/tmp");
     }
 
+    public File getGlibc32Dir() {
+        return new File(rootDir, "/usr/lib/arm-linux-gnueabihf");
+    }
+
+    public File getGlibc64Dir() {
+        return new File(rootDir, "/usr/lib");
+    }
+
     public File getLib32Dir() {
         return new File(rootDir, "/usr/lib/arm-linux-gnueabihf");
     }
 
     public File getLib64Dir() {
-        return new File(rootDir, "/usr/lib/aarch64-linux-gnu");
+        return new File(rootDir, "/usr/lib");
     }
 
     @NonNull

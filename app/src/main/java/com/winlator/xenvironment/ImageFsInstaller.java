@@ -27,7 +27,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class ImageFsInstaller {
-    public static final byte LATEST_VERSION = 8;
+    public static final byte LATEST_VERSION = 17;
 
     private static void resetContainerImgVersions(Context context) {
         ContainerManager manager = new ContainerManager(context);
@@ -70,6 +70,7 @@ public abstract class ImageFsInstaller {
             });
 
             if (success) {
+                Log.d("ImageFsInstaller", "Successfully installed system files");
                 imageFs.createImgVersionFile(LATEST_VERSION);
                 resetContainerImgVersions(context);
             }
@@ -89,6 +90,7 @@ public abstract class ImageFsInstaller {
     public static Future<Boolean> installIfNeededFuture(final Context context, AssetManager assetManager, Callback<Integer> onProgress) {
         ImageFs imageFs = ImageFs.find(context);
         if (!imageFs.isValid() || imageFs.getVersion() < LATEST_VERSION) {
+            Log.d("ImageFsInstaller", "Installing image from assets");
             return installFromAssetsFuture(context, assetManager, onProgress);
         } else {
             Log.d("ImageFsInstaller", "Image FS already valid and at latest version");
@@ -113,8 +115,7 @@ public abstract class ImageFsInstaller {
                 for (File file : files) {
                     if (file.isDirectory()) {
                         String name = file.getName();
-                        if (name.equals("home") || name.equals("opt")) {
-                            if (name.equals("opt")) clearOptDir(file);
+                        if (name.equals("home")) {
                             continue;
                         }
                     }

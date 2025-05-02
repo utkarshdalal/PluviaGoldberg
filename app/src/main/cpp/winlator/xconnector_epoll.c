@@ -297,3 +297,24 @@ Java_com_winlator_xconnector_XConnectorEpoll_waitForSocketRead(JNIEnv *env, jobj
     }
     return JNI_TRUE;
 }
+
+JNIEXPORT jintArray JNICALL
+Java_com_winlator_xconnector_XConnectorEpoll_pollEpollEvents(JNIEnv *env, jobject obj,
+                                                             jint epollFd, jint maxEvents) {
+    struct epoll_event events[maxEvents];
+    int numFds = epoll_wait(epollFd, events, maxEvents, -1); // Wait indefinitely
+
+    if (numFds < 0) return NULL;
+
+    jintArray result = (*env)->NewIntArray(env, numFds);
+    if (result == NULL) return NULL;
+
+    jint *r = (*env)->GetIntArrayElements(env, result, 0);
+
+    for (int i = 0; i < numFds; i++) {
+        r[i] = events[i].data.fd; // Store file descriptor
+    }
+
+    (*env)->ReleaseIntArrayElements(env, result, r, 0);
+    return result;
+}
