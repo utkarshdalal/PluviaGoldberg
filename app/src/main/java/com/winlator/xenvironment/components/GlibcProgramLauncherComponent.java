@@ -47,7 +47,23 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
     @Override
     public void start() {
-         Log.d("GlibcProgramLauncherComponent", "Starting...");
+        Log.d("GlibcProgramLauncherComponent", "Starting...");
+
+        // Log targetSdk version and related info
+        Context context = environment.getContext();
+        try {
+            int targetSdk = context.getApplicationInfo().targetSdkVersion;
+            int compileSdk = android.os.Build.VERSION_CODES.CUR_DEVELOPMENT;
+            int deviceSdk = android.os.Build.VERSION.SDK_INT;
+
+            Log.d("GlibcProgramLauncherComponent", "App targetSdk: " + targetSdk);
+            Log.d("GlibcProgramLauncherComponent", "Device SDK: " + deviceSdk + " (" + android.os.Build.VERSION.RELEASE + ")");
+            Log.d("GlibcProgramLauncherComponent", "Package name: " + context.getPackageName());
+
+        } catch (Exception e) {
+            Log.e("GlibcProgramLauncherComponent", "Error getting SDK info: " + e.getMessage());
+        }
+
         synchronized (lock) {
             stop();
             extractBox86_64Files();
@@ -174,9 +190,15 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
             envVars.put("LD_PRELOAD", "libandroid-sysvshm.so");
         if (this.envVars != null) envVars.putAll(this.envVars);
 
-        String command = rootDir.getPath() + "/usr/local/bin/box64 ";
+        String box64Path = rootDir.getPath() + "/usr/local/bin/box64";
 
-        command += guestExecutable;
+        // Check if box64 exists and log its details before executing
+        File box64File = new File(box64Path);
+        Log.d("GlibcProgramLauncherComponent", "About to execute box64 from: " + box64Path);
+        logFileDetails(box64File);
+
+        String command = box64Path + " " + guestExecutable;
+        Log.d("GlibcProgramLauncherComponent", "Final command: " + command);
 
         return ProcessHelper.exec(command, envVars.toStringArray(), rootDir, (status) -> {
             Log.d("GlibcProgramLauncherComponent", "Process terminated " + pid + " with status " + status);
@@ -195,6 +217,8 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         String currentBox64Version = PrefManager.getString("current_box64_version", "");
         File rootDir = imageFs.getRootDir();
 
+        Log.d("GlibcProgramLauncherComponent", "Extracting box86/64 files to rootDir: " + rootDir.getAbsolutePath());
+
         if (wow64Mode) {
             Log.d("GlibcProgramLauncherComponent", "wow64mode");
             File box86File = new File(rootDir, "/usr/local/bin/box86");
@@ -203,23 +227,84 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
                 PrefManager.putString("current_box86_version", "");
             }
         } else if (!box86Version.equals(currentBox86Version)) {
+            Log.d("GlibcProgramLauncherComponent", "Extracting box86 version " + box86Version + " (current version: " + currentBox86Version + ")");
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "box86_64/box86-" + box86Version + ".tzst", rootDir);
             PrefManager.putString("current_box86_version", box86Version);
+
+            // Log box86 file details
+            File box86File = new File(rootDir, "/usr/local/bin/box86");
+            logFileDetails(box86File);
         }
+
         Log.d("GlibcProgramLauncherComponent", "box64Version " + box64Version);
         Log.d("GlibcProgramLauncherComponent", "currentBox64Version " + currentBox64Version);
 
         if (!box64Version.equals(currentBox64Version)) {
             ContentProfile profile = contentsManager.getProfileByEntryName("box64-" + box64Version);
             if (profile != null) {
-                Log.d("GlibcProgramLauncherComponent", "Profile is not null - setting permissions");
+                Log.d("GlibcProgramLauncherComponent", "Profile is not null - applying content for box64 version " + box64Version);
                 contentsManager.applyContent(profile);
+
+                // Get destination path for box64 from profile
+                File box64File = new File(rootDir, "/usr/local/bin/box64");
+                Log.d("GlibcProgramLauncherComponent", "Expected box64 path after profile application: " + box64File.getAbsolutePath());
+                logFileDetails(box64File);
             }
             else {
-                Log.d("GlibcProgramLauncherComponent", "Profile is null - extracting box64");
+                Log.d("GlibcProgramLauncherComponent", "Profile is null - extracting box64 version " + box64Version + " directly");
                 TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "box86_64/box64-" + box64Version + ".tzst", rootDir);
+
+                // Log box64 file details after extraction
+                File box64File = new File(rootDir, "/usr/local/bin/box64");
+                Log.d("GlibcProgramLauncherComponent", "Expected box64 path after direct extraction: " + box64File.getAbsolutePath());
+                logFileDetails(box64File);
             }
             PrefManager.putString("current_box64_version", box64Version);
+        } else {
+            // Log current box64 file details even if not extracting
+            File box64File = new File(rootDir, "/usr/local/bin/box64");
+            Log.d("GlibcProgramLauncherComponent", "Using existing box64 at: " + box64File.getAbsolutePath());
+            logFileDetails(box64File);
+        }
+    }
+
+    // Helper method to log file details including permissions and SELinux context
+    private void logFileDetails(File file) {
+        if (file.exists()) {
+            Log.d("GlibcProgramLauncherComponent", "File exists: " + file.getAbsolutePath());
+            Log.d("GlibcProgramLauncherComponent", "File permissions: " +
+                  "readable=" + file.canRead() +
+                  ", writable=" + file.canWrite() +
+                  ", executable=" + file.canExecute());
+            Log.d("GlibcProgramLauncherComponent", "File size: " + file.length() + " bytes");
+
+            // Get file permissions as octal string
+            try {
+                String permissionsCmd = "ls -la " + file.getAbsolutePath();
+                ProcessBuilder pb = new ProcessBuilder("sh", "-c", permissionsCmd);
+                java.lang.Process proc = pb.start();
+                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
+                String lsOutput = scanner.hasNext() ? scanner.next() : "";
+                Log.d("GlibcProgramLauncherComponent", "File ls output: " + lsOutput);
+                proc.waitFor();
+            } catch (Exception e) {
+                Log.e("GlibcProgramLauncherComponent", "Error getting file permissions: " + e.getMessage());
+            }
+
+            // Try to get SELinux context if available
+            try {
+                String selinuxCmd = "ls -Z " + file.getAbsolutePath();
+                ProcessBuilder pb = new ProcessBuilder("sh", "-c", selinuxCmd);
+                java.lang.Process proc = pb.start();
+                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
+                String selinuxOutput = scanner.hasNext() ? scanner.next() : "";
+                Log.d("GlibcProgramLauncherComponent", "SELinux context: " + selinuxOutput);
+                proc.waitFor();
+            } catch (Exception e) {
+                Log.e("GlibcProgramLauncherComponent", "Error getting SELinux context: " + e.getMessage());
+            }
+        } else {
+            Log.e("GlibcProgramLauncherComponent", "File does NOT exist: " + file.getAbsolutePath());
         }
     }
 

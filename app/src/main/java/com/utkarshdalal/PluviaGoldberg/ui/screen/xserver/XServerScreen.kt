@@ -546,6 +546,12 @@ private fun setupXEnvironment(
 ): XEnvironment {
     val lc_all = container!!.lC_ALL
     val imageFs = ImageFs.find(context)
+    Timber.i("ImageFs paths:")
+    Timber.i("- rootDir: ${imageFs.getRootDir().absolutePath}")
+    Timber.i("- winePath: ${imageFs.winePath}")
+    Timber.i("- home_path: ${imageFs.home_path}")
+    Timber.i("- wineprefix: ${imageFs.wineprefix}")
+    
     val contentsManager = ContentsManager(context)
     contentsManager.syncContents()
     envVars.put("LC_ALL", lc_all)
