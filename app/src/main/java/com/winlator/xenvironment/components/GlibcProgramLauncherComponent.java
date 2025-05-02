@@ -13,6 +13,7 @@ import com.winlator.contents.ContentProfile;
 import com.winlator.contents.ContentsManager;
 import com.winlator.core.Callback;
 import com.winlator.core.DefaultVersion;
+import com.winlator.core.FileUtils;
 import com.winlator.core.envvars.EnvVars;
 import com.winlator.core.ProcessHelper;
 import com.winlator.core.TarCompressorUtils;
@@ -191,12 +192,45 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         if (this.envVars != null) envVars.putAll(this.envVars);
 
         String box64Path = rootDir.getPath() + "/usr/local/bin/box64";
-
+        
         // Check if box64 exists and log its details before executing
         File box64File = new File(box64Path);
         Log.d("GlibcProgramLauncherComponent", "About to execute box64 from: " + box64Path);
+        
+        // Ensure box64 is executable
+        FileUtils.chmod(box64File, 0755);
+        
+        // Check architecture of the binary
+        Log.d("GlibcProgramLauncherComponent", "Checking box64 binary format...");
+        checkBinaryFormat(box64File);
+        
+        // Log library dependencies
+        Log.d("GlibcProgramLauncherComponent", "Checking box64 library dependencies...");
+        checkLibraryDependencies(box64File, rootDir);
+        
+        // Log all parent directories and their permissions
+        Log.d("GlibcProgramLauncherComponent", "Checking parent directory permissions...");
+        checkParentDirectories(box64File);
+        
+        // Log all environment variables
+        Log.d("GlibcProgramLauncherComponent", "Environment variables:");
+        String[] envArray = envVars.toStringArray();
+        for (String env : envArray) {
+            Log.d("GlibcProgramLauncherComponent", "  " + env);
+        }
+        
+        // Check if dynamic linker exists
+        File linker64 = new File("/system/bin/linker64");
+        Log.d("GlibcProgramLauncherComponent", "System linker exists: " + linker64.exists());
+        if (linker64.exists()) {
+            Log.d("GlibcProgramLauncherComponent", "System linker permissions: " + 
+                  "readable=" + linker64.canRead() + 
+                  ", executable=" + linker64.canExecute());
+        }
+        
+        // Standard file checks
         logFileDetails(box64File);
-
+        
         String command = box64Path + " " + guestExecutable;
         Log.d("GlibcProgramLauncherComponent", "Final command: " + command);
 
@@ -256,6 +290,9 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
                 // Log box64 file details after extraction
                 File box64File = new File(rootDir, "/usr/local/bin/box64");
+                if (box64File.exists()) {
+                    FileUtils.chmod(box64File, 0755);
+                }
                 Log.d("GlibcProgramLauncherComponent", "Expected box64 path after direct extraction: " + box64File.getAbsolutePath());
                 logFileDetails(box64File);
             }
@@ -345,6 +382,97 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
     public void resumeProcess() {
         synchronized (lock) {
             if (pid != -1) ProcessHelper.resumeProcess(pid);
+        }
+    }
+
+    // Helper method to check binary format using 'file' command
+    private void checkBinaryFormat(File binaryFile) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("file", binaryFile.getAbsolutePath());
+            java.lang.Process proc = pb.start();
+            java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
+            String output = scanner.hasNext() ? scanner.next() : "";
+            Log.d("GlibcProgramLauncherComponent", "Binary format: " + output);
+            proc.waitFor();
+        } catch (Exception e) {
+            Log.e("GlibcProgramLauncherComponent", "Error checking binary format: " + e.getMessage());
+            
+            // Try alternative method
+            try {
+                ProcessBuilder pb = new ProcessBuilder("sh", "-c", "head -c 20 " + binaryFile.getAbsolutePath() + " | xxd -p");
+                java.lang.Process proc = pb.start();
+                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
+                String output = scanner.hasNext() ? scanner.next() : "";
+                Log.d("GlibcProgramLauncherComponent", "Binary header hex: " + output);
+                proc.waitFor();
+            } catch (Exception ex) {
+                Log.e("GlibcProgramLauncherComponent", "Error checking binary header: " + ex.getMessage());
+            }
+        }
+    }
+
+    // Helper method to check library dependencies using 'ldd' or similar
+    private void checkLibraryDependencies(File binaryFile, File rootDir) {
+        // Try using readelf
+        try {
+            // First try with readelf (may be available on some devices)
+            ProcessBuilder pb = new ProcessBuilder(rootDir.getPath() + "/usr/bin/readelf", "-d", binaryFile.getAbsolutePath());
+            java.lang.Process proc = pb.start();
+            java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
+            String output = scanner.hasNext() ? scanner.next() : "";
+            Log.d("GlibcProgramLauncherComponent", "Library dependencies (readelf): " + output);
+            proc.waitFor();
+        } catch (Exception e) {
+            Log.e("GlibcProgramLauncherComponent", "Error checking dependencies with readelf: " + e.getMessage());
+            
+            // Try alternate approach with objdump if available
+            try {
+                ProcessBuilder pb = new ProcessBuilder(rootDir.getPath() + "/usr/bin/objdump", "-p", binaryFile.getAbsolutePath());
+                java.lang.Process proc = pb.start();
+                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
+                String output = scanner.hasNext() ? scanner.next() : "";
+                Log.d("GlibcProgramLauncherComponent", "Library dependencies (objdump): " + output);
+                proc.waitFor();
+            } catch (Exception ex) {
+                Log.e("GlibcProgramLauncherComponent", "Error checking dependencies with objdump: " + ex.getMessage());
+            }
+        }
+        
+        // Check existence of some common libraries
+        String[] commonLibs = {
+            "/usr/lib/libstdc++.so.6",
+            "/usr/lib/libc.so.6",
+            "/usr/lib/libm.so.6",
+            "/usr/lib/ld-linux-aarch64.so.1"
+        };
+        
+        for (String lib : commonLibs) {
+            File libFile = new File(rootDir, lib);
+            Log.d("GlibcProgramLauncherComponent", "Library " + lib + " exists: " + libFile.exists());
+            if (libFile.exists()) {
+                Log.d("GlibcProgramLauncherComponent", "Library permissions: " + 
+                      "readable=" + libFile.canRead() + 
+                      ", executable=" + libFile.canExecute());
+            }
+        }
+    }
+
+    // Helper method to check parent directory permissions
+    private void checkParentDirectories(File file) {
+        File current = file.getParentFile();
+        while (current != null) {
+            Log.d("GlibcProgramLauncherComponent", "Directory: " + current.getAbsolutePath());
+            Log.d("GlibcProgramLauncherComponent", "  exists=" + current.exists() + 
+                  ", readable=" + current.canRead() + 
+                  ", writable=" + current.canWrite() + 
+                  ", executable=" + current.canExecute());
+            
+            // Ensure directory has execute permission
+            if (current.exists()) {
+                FileUtils.chmod(current, 0755);
+            }
+            
+            current = current.getParentFile();
         }
     }
 }
