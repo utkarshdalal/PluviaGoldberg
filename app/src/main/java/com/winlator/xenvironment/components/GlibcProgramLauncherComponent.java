@@ -144,7 +144,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
     private int execGuestProgram() {
         Context context = environment.getContext();
-        ImageFs imageFs = environment.getImageFs();
+        ImageFs imageFs = ImageFs.find(context);
         File rootDir = imageFs.getRootDir();
 
         PrefManager.init(context);
