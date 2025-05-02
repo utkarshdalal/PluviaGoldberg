@@ -30,6 +30,10 @@ public abstract class Box86_64PresetManager {
             envVars.put(ucPrefix + "_DYNAREC_FORWARD", "128");
             envVars.put(ucPrefix + "_DYNAREC_CALLRET", "0");
             envVars.put(ucPrefix + "_DYNAREC_WAIT", "0");
+            if (ucPrefix.equals("BOX64")) {
+                envVars.put("BOX64_AVX", "0");
+                envVars.put("BOX64_UNITYPLAYER", "1");
+            }
         } else if (id.equals(Box86_64Preset.COMPATIBILITY)) {
             envVars.put(ucPrefix + "_DYNAREC_SAFEFLAGS", "2");
             envVars.put(ucPrefix + "_DYNAREC_FASTNAN", "0");
@@ -40,6 +44,10 @@ public abstract class Box86_64PresetManager {
             envVars.put(ucPrefix + "_DYNAREC_FORWARD", "128");
             envVars.put(ucPrefix + "_DYNAREC_CALLRET", "0");
             envVars.put(ucPrefix + "_DYNAREC_WAIT", "1");
+            if (ucPrefix.equals("BOX64")) {
+                envVars.put("BOX64_AVX", "0");
+                envVars.put("BOX64_UNITYPLAYER", "1");
+            }
         } else if (id.equals(Box86_64Preset.INTERMEDIATE)) {
             envVars.put(ucPrefix + "_DYNAREC_SAFEFLAGS", "2");
             envVars.put(ucPrefix + "_DYNAREC_FASTNAN", "1");
@@ -50,6 +58,10 @@ public abstract class Box86_64PresetManager {
             envVars.put(ucPrefix + "_DYNAREC_FORWARD", "128");
             envVars.put(ucPrefix + "_DYNAREC_CALLRET", "0");
             envVars.put(ucPrefix + "_DYNAREC_WAIT", "1");
+            if (ucPrefix.equals("BOX64")) {
+                envVars.put("BOX64_AVX", "0");
+                envVars.put("BOX64_UNITYPLAYER", "0");
+            }
         } else if (id.equals(Box86_64Preset.PERFORMANCE)) {
             envVars.put(ucPrefix + "_DYNAREC_SAFEFLAGS", "1");
             envVars.put(ucPrefix + "_DYNAREC_FASTNAN", "1");
@@ -60,6 +72,10 @@ public abstract class Box86_64PresetManager {
             envVars.put(ucPrefix + "_DYNAREC_FORWARD", "512");
             envVars.put(ucPrefix + "_DYNAREC_CALLRET", "1");
             envVars.put(ucPrefix + "_DYNAREC_WAIT", "1");
+            if (ucPrefix.equals("BOX64")) {
+                envVars.put("BOX64_AVX", "0");
+                envVars.put("BOX64_UNITYPLAYER", "0");
+            }
         } else if (id.startsWith(Box86_64Preset.CUSTOM)) {
             for (String[] preset : customPresetsIterator(prefix, context)) {
                 if (preset[0].equals(id)) {

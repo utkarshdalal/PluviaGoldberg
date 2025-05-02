@@ -54,6 +54,9 @@ public class Container {
     private String box64Preset = Box86_64Preset.COMPATIBILITY;
     private File rootDir;
     private JSONObject extraData;
+    private int rcfileId = 0;
+
+    private String lc_all = "";
 
     public Container(int id) {
         this.id = id;
@@ -274,6 +277,14 @@ public class Container {
         this.desktopTheme = desktopTheme;
     }
 
+    public int getRCFileId() {
+        return rcfileId;
+    }
+
+    public void setRcfileId(int id) {
+        rcfileId = id;
+    }
+
     public Iterable<String[]> drivesIterator() {
         return drivesIterator(drives);
     }
@@ -326,10 +337,14 @@ public class Container {
             data.put("showFPS", showFPS);
             data.put("wow64Mode", wow64Mode);
             data.put("startupSelection", startupSelection);
+            data.put("box86Version", box86Version);
+            data.put("box64Version", box64Version);
             data.put("box86Preset", box86Preset);
             data.put("box64Preset", box64Preset);
             data.put("desktopTheme", desktopTheme);
             data.put("extraData", extraData);
+            data.put("rcfileId", rcfileId);
+            data.put("lc_all", lc_all);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -340,6 +355,7 @@ public class Container {
     }
 
     public void loadData(JSONObject data) throws JSONException {
+        Log.d("Container", "Setting container data: " + data);
         wineVersion = WineInfo.MAIN_WINE_VERSION.identifier();
         dxwrapperConfig = "";
         checkObsoleteOrMissingProperties(data);
@@ -395,6 +411,12 @@ public class Container {
                 case "wineVersion" :
                     setWineVersion(data.getString(key));
                     break;
+                case "box86Version":
+                    setBox86Version(data.getString(key));
+                    break;
+                case "box64Version":
+                    setBox64Version(data.getString(key));
+                    break;
                 case "box86Preset" :
                     setBox86Preset(data.getString(key));
                     break;
@@ -406,6 +428,12 @@ public class Container {
                     break;
                 case "desktopTheme" :
                     setDesktopTheme(data.getString(key));
+                    break;
+                case "rcfileId" :
+                    setRcfileId(data.getInt(key));
+                    break;
+                case "lc_all" :
+                    setLC_ALL(data.getString(key));
                     break;
             }
         }
@@ -485,5 +513,13 @@ public class Container {
         int numProcessors = Runtime.getRuntime().availableProcessors();
         for (int i = numProcessors / 2; i < numProcessors; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
         return cpuList;
+    }
+
+    public String getLC_ALL() {
+        return lc_all;
+    }
+
+    public void setLC_ALL(String lc_all) {
+        this.lc_all = lc_all;
     }
 }

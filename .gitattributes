@@ -1,2 +1,9 @@
 *.txz filter=lfs diff=lfs merge=lfs -text
 tools/bundletool-all-1.17.2.jar filter=lfs diff=lfs merge=lfs -text
+app/src/main/assets/imagefs.txz filter=lfs diff=lfs merge=lfs -text
+app/src/main/assets/imagefs_patches.tzst filter=lfs diff=lfs merge=lfs -text
+ubuntufs/src/main/assets/imagefs.txz filter=lfs diff=lfs merge=lfs -text
+*.apk filter=lfs diff=lfs merge=lfs -text
+*.aab filter=lfs diff=lfs merge=lfs -text
+*.hprof filter=lfs diff=lfs merge=lfs -text
+*.jar filter=lfs diff=lfs merge=lfs -text

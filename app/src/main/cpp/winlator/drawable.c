@@ -79,6 +79,11 @@ Java_com_winlator_xserver_Drawable_drawBitmap(JNIEnv *env, jclass obj,
     uint8_t *srcDataAddr = (*env)->GetDirectBufferAddress(env, srcData);
     int *dstDataAddr = (*env)->GetDirectBufferAddress(env, dstData);
 
+    if (!srcDataAddr || !dstDataAddr) {
+        printf("Error: NULL buffer address in drawBitmap\n");
+        return;
+    }
+
     int stride = getBitmapBytePad(width);
     for (int16_t y = 0, x; y < height; y++) {
         for (x = 0; x < width; x++) *dstDataAddr++ = getBit(srcDataAddr, x) ? WHITE : BLACK;
@@ -94,6 +99,12 @@ Java_com_winlator_xserver_Drawable_copyArea(JNIEnv *env, jclass obj, jshort srcX
                                             jobject dstData) {
     uint8_t *srcDataAddr = (*env)->GetDirectBufferAddress(env, srcData);
     uint8_t *dstDataAddr = (*env)->GetDirectBufferAddress(env, dstData);
+
+    if (!srcDataAddr || !dstDataAddr) {
+        printf("Error: NULL buffer address in copyArea\n");
+        return;
+    }
+
     jlong srcLength = (*env)->GetDirectBufferCapacity(env, srcData);
     jlong dstLength = (*env)->GetDirectBufferCapacity(env, dstData);
 
@@ -114,6 +125,11 @@ Java_com_winlator_xserver_Drawable_copyAreaOp(JNIEnv *env, jclass obj, jshort sr
                                               jobject dstData, int gcFunction) {
     uint8_t *srcDataAddr = (*env)->GetDirectBufferAddress(env, srcData);
     uint8_t *dstDataAddr = (*env)->GetDirectBufferAddress(env, dstData);
+
+    if (!srcDataAddr || !dstDataAddr) {
+        printf("Error: NULL buffer address in copyAreaOp\n");
+        return;
+    }
 
     for (int16_t y = 0; y < height; y++) {
         for (int16_t x = 0; x < width; x++) {
@@ -137,11 +153,20 @@ Java_com_winlator_xserver_Drawable_fillRect(JNIEnv *env, jclass obj, jshort x, j
                                             jobject data) {
     uint8_t *dataAddr = (*env)->GetDirectBufferAddress(env, data);
 
+    if (!dataAddr) {
+        printf("Error: NULL buffer address in fillRect\n");
+        return;
+    }
+
     uint8_t rgba[4];
     unpackColor(color, rgba);
 
     int rowSize = width * 4;
     uint8_t *row = malloc(rowSize);
+    if (!row) {
+        printf("Error: Failed to allocate memory for row\n");
+        return;
+    }
 
     for (int i = 0; i < rowSize; i += 4) memcpy(row + i, rgba, 4);
     for (int16_t i = 0; i < height; i++) {
@@ -156,6 +181,12 @@ Java_com_winlator_xserver_Drawable_drawLine(JNIEnv *env, jclass obj, jshort x0, 
                                             jshort x1, jshort y1, jint color, jshort lineWidth,
                                             jshort stride, jobject data) {
     uint8_t *dataAddr = (*env)->GetDirectBufferAddress(env, data);
+
+    if (!dataAddr) {
+        printf("Error: NULL buffer address in drawLine\n");
+        return;
+    }
+
     int dx =  abs(x1-x0);
     int dy = -abs(y1-y0);
     int8_t sx = x0 < x1 ? 1 : -1;
@@ -166,13 +197,20 @@ Java_com_winlator_xserver_Drawable_drawLine(JNIEnv *env, jclass obj, jshort x0, 
     unpackColor(color, rgba);
 
     int rowSize = lineWidth * 4;
-    uint8_t *row = malloc(lineWidth * 4);
+    uint8_t *row = malloc(rowSize);
+    if (!row) {
+        printf("Error: Failed to allocate memory for row\n");
+        return;
+    }
 
-    int16_t i;
-    for (i = 0; i < rowSize; i += 4) memcpy(row + i, rgba, 4);
+    for (int i = 0; i < rowSize; i += 4) {
+        memcpy(row + i, rgba, 4);
+    }
 
     while (true) {
-        for (i = 0; i < lineWidth; i++) memcpy(dataAddr + (x0 + (i + y0) * stride) * 4, row, rowSize);
+        for (int16_t i = 0; i < lineWidth; i++) {
+            memcpy(dataAddr + (x0 + (i + y0) * stride) * 4, row, rowSize);
+        }
         if (x0 == x1 && y0 == y1) break;
 
         e2 = e1 * 2;
@@ -200,6 +238,11 @@ Java_com_winlator_xserver_Drawable_drawAlphaMaskedBitmap(JNIEnv *env, jclass obj
     int *maskDataAddr = (*env)->GetDirectBufferAddress(env, maskData);
     int *dstDataAddr = (*env)->GetDirectBufferAddress(env, dstData);
 
+    if (!srcDataAddr || !maskDataAddr || !dstDataAddr) {
+        printf("Error: NULL buffer address in drawAlphaMaskedBitmap\n");
+        return;
+    }
+
     int foreColor = packColor(foreRed, foreGreen, foreBlue);
     int backColor = packColor(backRed, backGreen, backBlue);
 
@@ -214,11 +257,22 @@ Java_com_winlator_xserver_Drawable_fromBitmap(JNIEnv *env, jclass obj, jobject b
                                               jobject data) {
     char *dataAddr = (*env)->GetDirectBufferAddress(env, data);
 
+    if (!dataAddr) {
+        printf("Error: NULL buffer address in fromBitmap\n");
+        return;
+    }
+
     AndroidBitmapInfo info;
     uint8_t *pixels;
 
-    AndroidBitmap_getInfo(env, bitmap, &info);
-    AndroidBitmap_lockPixels(env, bitmap, (void**)&pixels);
+    if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {
+        printf("Error: Failed to get bitmap info in fromBitmap\n");
+        return;
+    }
+    if (AndroidBitmap_lockPixels(env, bitmap, (void**)&pixels) < 0) {
+        printf("Error: Failed to lock bitmap pixels in fromBitmap\n");
+        return;
+    }
 
     for (int i = 0, size = info.width * info.height * 4; i < size; i++) {
         memcpy(dataAddr + i, pixels + i, 4);
@@ -233,11 +287,22 @@ Java_com_winlator_xserver_Pixmap_toBitmap(JNIEnv *env, jclass obj, jobject color
     char *colorDataAddr = (*env)->GetDirectBufferAddress(env, colorData);
     char *maskDataAddr = maskData ? (*env)->GetDirectBufferAddress(env, maskData) : NULL;
 
+    if (!colorDataAddr) {
+        printf("Error: NULL color data address in toBitmap\n");
+        return;
+    }
+
     AndroidBitmapInfo info;
     uint8_t *pixels;
 
-    AndroidBitmap_getInfo(env, bitmap, &info);
-    AndroidBitmap_lockPixels(env, bitmap, (void**)&pixels);
+    if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {
+        printf("Error: Failed to get bitmap info in toBitmap\n");
+        return;
+    }
+    if (AndroidBitmap_lockPixels(env, bitmap, (void**)&pixels) < 0) {
+        printf("Error: Failed to lock bitmap pixels in toBitmap\n");
+        return;
+    }
 
     for (int i = 0, size = info.width * info.height * 4; i < size; i += 4) {
         pixels[i+2] = colorDataAddr[i+0];
