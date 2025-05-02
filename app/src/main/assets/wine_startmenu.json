@@ -1,13 +1,4 @@
-[{
-        "name" : "Extras",
-        "children" : [
-            {
-                "name" : "Install Windows Media Foundation",
-                "path" : "Z:/opt/apps/WMF/install wfm.bat"
-            }
-            
-        ]
-    },
+[
     {
         "name" : "Programs",
         "children" : [
@@ -28,35 +19,15 @@
                 "path" : "C:/windows/system32/write.exe",
                 "iconLocation" : "Z:/opt/wine/lib/wine/i386-windows/wordpad.exe"
             },
-				{
-					"name" : "Games",
-					"children" : [
-						{
-							"name" : "Windows Minesweeper",
-							"path" : "C:/windows/1.exe"
-						},
-						{
-							"name" : "Windows Solitaire",
-							"path" : "C:/windows/2.exe"
-						},
-						{
-							"name" : "Windows Spider Solitaire",
-							"path" : "C:/windows/3.exe"
-						},
-						{
-							"name" : "Windows FreeCell",
-							"path" : "C:/windows/4.exe"
-						},
-						{
-							"name" : "Windows 3D Pinball",
-							"path" : "C:/windows/Pinball/PINBALL.EXE"
-						},
-						{
-							"name" : "Wine Minesweeper",
-							"path" : "C:/windows/system32/winemine.exe"
-						}
-					]
-				}
+            {
+                "name" : "Games",
+                "children" : [
+                    {
+                        "name" : "WineMine",
+                        "path" : "C:/windows/system32/winemine.exe"
+                    }
+                ]
+            }
         ]
     },
     {
