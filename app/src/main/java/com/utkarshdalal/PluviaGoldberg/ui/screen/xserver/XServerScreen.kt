@@ -30,8 +30,11 @@ import com.utkarshdalal.PluviaGoldberg.events.SteamEvent
 import com.utkarshdalal.PluviaGoldberg.service.SteamService
 import com.utkarshdalal.PluviaGoldberg.ui.data.XServerState
 import com.utkarshdalal.PluviaGoldberg.utils.ContainerUtils
+import com.winlator.box86_64.rc.RCFile
+import com.winlator.box86_64.rc.RCManager
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
+import com.winlator.contents.ContentsManager
 import com.winlator.core.AppUtils
 import com.winlator.core.Callback
 import com.winlator.core.DXVKHelper
@@ -56,6 +59,7 @@ import com.winlator.xconnector.UnixSocketConfig
 import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.XEnvironment
 import com.winlator.xenvironment.components.ALSAServerComponent
+import com.winlator.xenvironment.components.GlibcProgramLauncherComponent
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent
 import com.winlator.xenvironment.components.NetworkInfoUpdateComponent
 import com.winlator.xenvironment.components.PulseAudioComponent
@@ -69,15 +73,15 @@ import com.winlator.xserver.ScreenInfo
 import com.winlator.xserver.Window
 import com.winlator.xserver.WindowManager
 import com.winlator.xserver.XServer
-import java.io.File
-import java.nio.file.Paths
-import kotlin.io.path.name
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
+import java.io.File
+import java.nio.file.Paths
+import kotlin.io.path.name
 
 // TODO logs in composables are 'unstable' which can cause recomposition (performance issues)
 
@@ -286,58 +290,60 @@ fun XServerScreen(
                     appLaunchInfo?.let { renderer.forceFullscreenWMClass = Paths.get(it.executable).name }
                 }
 
-                getxServer().windowManager.addOnWindowModificationListener(object : WindowManager.OnWindowModificationListener {
-                    override fun onUpdateWindowContent(window: Window) {
-                        // Timber.v("onUpdateWindowContent:" +
-                        //     "\n\twindowName: ${window.name}" +
-                        //     "\n\tprocessId: ${window.processId}" +
-                        //     "\n\thasParent: ${window.parent != null}" +
-                        //     "\n\tchildrenSize: ${window.children.size}"
-                        // )
-                        if (!xServerState.value.winStarted && window.isApplicationWindow()) {
-                            renderer?.setCursorVisible(true)
-                            xServerState.value.winStarted = true
+                getxServer().windowManager.addOnWindowModificationListener(
+                    object : WindowManager.OnWindowModificationListener {
+                        override fun onUpdateWindowContent(window: Window) {
+                            // Timber.v("onUpdateWindowContent:" +
+                            //     "\n\twindowName: ${window.name}" +
+                            //     "\n\tprocessId: ${window.processId}" +
+                            //     "\n\thasParent: ${window.parent != null}" +
+                            //     "\n\tchildrenSize: ${window.children.size}"
+                            // )
+                            if (!xServerState.value.winStarted && window.isApplicationWindow()) {
+                                renderer?.setCursorVisible(true)
+                                xServerState.value.winStarted = true
+                            }
+                            // if (window.id == frameRatingWindowId) frameRating.update()
                         }
-                        // if (window.id == frameRatingWindowId) frameRating.update()
-                    }
 
-                    override fun onModifyWindowProperty(window: Window, property: Property) {
-                        // Timber.v("onModifyWindowProperty:" +
-                        //     "\n\twindowName: ${window.name}" +
-                        //     "\n\tprocessId: ${window.processId}" +
-                        //     "\n\thasParent: ${window.parent != null}" +
-                        //     "\n\tchildrenSize: ${window.children.size}" +
-                        //     "\n\tpropertyName${property.name}"
-                        // )
-                        // changeFrameRatingVisibility(window, property)
-                    }
+                        override fun onModifyWindowProperty(window: Window, property: Property) {
+                            // Timber.v("onModifyWindowProperty:" +
+                            //     "\n\twindowName: ${window.name}" +
+                            //     "\n\tprocessId: ${window.processId}" +
+                            //     "\n\thasParent: ${window.parent != null}" +
+                            //     "\n\tchildrenSize: ${window.children.size}" +
+                            //     "\n\tpropertyName${property.name}"
+                            // )
+                            // changeFrameRatingVisibility(window, property)
+                        }
 
-                    override fun onMapWindow(window: Window) {
-                        Timber.i(
-                            "onMapWindow:" +
-                                "\n\twindowName: ${window.name}" +
-                                "\n\twindowClassName: ${window.className}" +
-                                "\n\tprocessId: ${window.processId}" +
-                                "\n\thasParent: ${window.parent != null}" +
-                                "\n\tchildrenSize: ${window.children.size}",
-                        )
-                        assignTaskAffinity(window, getxServer().winHandler, taskAffinityMask, taskAffinityMaskWoW64)
-                        onWindowMapped?.invoke(window)
-                    }
+                        override fun onMapWindow(window: Window) {
+                            Timber.i(
+                                "onMapWindow:" +
+                                        "\n\twindowName: ${window.name}" +
+                                        "\n\twindowClassName: ${window.className}" +
+                                        "\n\tprocessId: ${window.processId}" +
+                                        "\n\thasParent: ${window.parent != null}" +
+                                        "\n\tchildrenSize: ${window.children.size}",
+                            )
+                            assignTaskAffinity(window, getxServer().winHandler, taskAffinityMask, taskAffinityMaskWoW64)
+                            onWindowMapped?.invoke(window)
+                        }
 
-                    override fun onUnmapWindow(window: Window) {
-                        Timber.i(
-                            "onUnmapWindow:" +
-                                "\n\twindowName: ${window.name}" +
-                                "\n\twindowClassName: ${window.className}" +
-                                "\n\tprocessId: ${window.processId}" +
-                                "\n\thasParent: ${window.parent != null}" +
-                                "\n\tchildrenSize: ${window.children.size}",
-                        )
-                        // changeFrameRatingVisibility(window, null)
-                        onWindowUnmapped?.invoke(window)
-                    }
-                })
+                        override fun onUnmapWindow(window: Window) {
+                            Timber.i(
+                                "onUnmapWindow:" +
+                                        "\n\twindowName: ${window.name}" +
+                                        "\n\twindowClassName: ${window.className}" +
+                                        "\n\tprocessId: ${window.processId}" +
+                                        "\n\thasParent: ${window.parent != null}" +
+                                        "\n\tchildrenSize: ${window.children.size}",
+                            )
+                            // changeFrameRatingVisibility(window, null)
+                            onWindowUnmapped?.invoke(window)
+                        }
+                    },
+                )
 
                 if (PluviaApp.xEnvironment != null) {
                     PluviaApp.xEnvironment = shiftXEnvironmentToContext(
@@ -358,12 +364,18 @@ fun XServerScreen(
                     Timber.i("First time boot: $firstTimeBoot")
 
                     val wineVersion = container.wineVersion
+                    Timber.i("Wine version is: $wineVersion")
+                    Timber.i("Wine info is: " + WineInfo.fromIdentifier(context, wineVersion))
                     xServerState.value = xServerState.value.copy(
                         wineInfo = WineInfo.fromIdentifier(context, wineVersion),
                     )
+                    Timber.i("xServerState.value.wineInfo is: " + xServerState.value.wineInfo)
+                    Timber.i("WineInfo.MAIN_WINE_VERSION is: " + WineInfo.MAIN_WINE_VERSION)
+                    Timber.i("Wine path for wineinfo is " + xServerState.value.wineInfo.path)
 
                     if (xServerState.value.wineInfo != WineInfo.MAIN_WINE_VERSION) {
-                        ImageFs.find(context).winePath = xServerState.value.wineInfo.path
+                        Timber.i("Settings wine path to: $xServerState.value.wineInfo.path")
+                        ImageFs.find(context).setWinePath(xServerState.value.wineInfo.path)
                     }
 
                     val onExtractFileListener = if (!xServerState.value.wineInfo.isWin64) {
@@ -508,7 +520,7 @@ private fun shiftXEnvironmentToContext(
         )
         environment.addComponent(virglComponent)
     }
-    environment.addComponent(xEnvironment.getComponent<GuestProgramLauncherComponent>(GuestProgramLauncherComponent::class.java))
+    environment.addComponent(xEnvironment.getComponent<GlibcProgramLauncherComponent>(GlibcProgramLauncherComponent::class.java))
 
     FileUtils.clear(XEnvironment.getTmpDir(context))
     sysVSharedMemoryComponent.start()
@@ -532,27 +544,44 @@ private fun setupXEnvironment(
     // shortcut: Shortcut?,
     xServer: XServer,
 ): XEnvironment {
+    val lc_all = container!!.lC_ALL
+    val imageFs = ImageFs.find(context)
+    Timber.i("ImageFs paths:")
+    Timber.i("- rootDir: ${imageFs.getRootDir().absolutePath}")
+    Timber.i("- winePath: ${imageFs.winePath}")
+    Timber.i("- home_path: ${imageFs.home_path}")
+    Timber.i("- wineprefix: ${imageFs.wineprefix}")
+    
+    val contentsManager = ContentsManager(context)
+    contentsManager.syncContents()
+    envVars.put("LC_ALL", lc_all)
     envVars.put("MESA_DEBUG", "silent")
     envVars.put("MESA_NO_ERROR", "1")
-    envVars.put("WINEPREFIX", ImageFs.WINEPREFIX)
+    envVars.put("WINEPREFIX", imageFs.wineprefix)
 
     val enableWineDebug = true // preferences.getBoolean("enable_wine_debug", false)
     val wineDebugChannels = PrefManager.getString("wine_debug_channels", Constants.XServer.DEFAULT_WINE_DEBUG_CHANNELS)
     envVars.put("WINEDEBUG", if (enableWineDebug && !wineDebugChannels.isEmpty()) "+" + wineDebugChannels.replace(",", ",+") else "-all")
 
-    val imageFs = ImageFs.find(context)
-    val rootPath = imageFs.rootDir.path
-    FileUtils.clear(imageFs.tmpDir)
+    val rootPath = imageFs.getRootDir().getPath()
+    FileUtils.clear(imageFs.getTmpDir())
 
-    val guestProgramLauncherComponent = GuestProgramLauncherComponent()
+    val usrGlibc: Boolean = PrefManager.getBoolean("use_glibc", true)
+    val guestProgramLauncherComponent = if (usrGlibc) {
+        Timber.i("Setting guestProgramLauncherComponent to GlibcProgarmLauncherComponent")
+        GlibcProgramLauncherComponent(contentsManager, contentsManager.getProfileByEntryName(container.wineVersion))
+    }
+    else {
+        Timber.i("Setting guestProgramLauncherComponent to GuestProgarmLauncherComponent")
+        GuestProgramLauncherComponent()
+    }
 
     if (container != null) {
         if (container.startupSelection == Container.STARTUP_SELECTION_AGGRESSIVE) xServer.winHandler.killProcess("services.exe")
 
         val wow64Mode = container.isWoW64Mode
-        val guestExecutable =
-            xServerState.value.wineInfo.getExecutable(context, wow64Mode) + " explorer /desktop=shell," + xServer.screenInfo + " " +
-                getWineStartCommand(appId, container, bootToContainer, appLaunchInfo)
+        //            String guestExecutable = wineInfo.getExecutable(this, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand();
+        val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + getWineStartCommand(appId, container, bootToContainer, appLaunchInfo)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
@@ -566,8 +595,8 @@ private fun setupXEnvironment(
             bindingPaths.add(drive[1])
         }
         guestProgramLauncherComponent.bindingPaths = bindingPaths.toTypedArray()
-        guestProgramLauncherComponent.box86Version = container.box86Version
         guestProgramLauncherComponent.box64Version = container.box64Version
+        guestProgramLauncherComponent.box86Version = container.box86Version
         guestProgramLauncherComponent.box86Preset = container.box86Preset
         guestProgramLauncherComponent.box64Preset = container.box64Preset
     }
@@ -591,11 +620,11 @@ private fun setupXEnvironment(
     // environment.addComponent(SteamClientComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.STEAM_PIPE_PATH)))
 
     if (xServerState.value.audioDriver == "alsa") {
-        envVars.put("ANDROID_ALSA_SERVER", UnixSocketConfig.ALSA_SERVER_PATH)
+        envVars.put("ANDROID_ALSA_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.ALSA_SERVER_PATH)
         envVars.put("ANDROID_ASERVER_USE_SHM", "true")
         environment.addComponent(ALSAServerComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.ALSA_SERVER_PATH)))
     } else if (xServerState.value.audioDriver == "pulseaudio") {
-        envVars.put("PULSE_SERVER", UnixSocketConfig.PULSE_SERVER_PATH)
+        envVars.put("PULSE_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.PULSE_SERVER_PATH)
         environment.addComponent(PulseAudioComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.PULSE_SERVER_PATH)))
     }
 
@@ -607,6 +636,14 @@ private fun setupXEnvironment(
             ),
         )
     }
+    val manager: RCManager = RCManager(context)
+    manager.loadRCFiles()
+    val rcfileId: Int = container.getRCFileId()
+    val rcfile: RCFile? = manager.getRcfile(rcfileId)
+    val file = File(container.rootDir, ".box64rc")
+    val str = if (rcfile == null) "" else rcfile.generateBox86_64rc()
+    FileUtils.writeString(file, str)
+    envVars.put("BOX64_RCFILE", file.getAbsolutePath())
 
     guestProgramLauncherComponent.envVars = envVars
     guestProgramLauncherComponent.setTerminationCallback { status ->
@@ -663,7 +700,7 @@ private fun getWineStartCommand(
     bootToContainer: Boolean,
     appLaunchInfo: LaunchInfo?,
 ): String {
-    val tempDir = File(container.rootDir, ".wine/drive_c/windows/temp")
+    val tempDir = File(container.getRootDir(), ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
 
     // Log.d("XServerScreen", "Converting $appLocalExe to wine start command")
@@ -697,90 +734,6 @@ private fun exit(winHandler: WinHandler?, environment: XEnvironment?, onExit: ()
     // PluviaApp.touchMouse = null
     // PluviaApp.keyboard = null
     onExit()
-}
-
-private fun generateWineprefix(
-    context: Context,
-    imageFs: ImageFs,
-    wineInfo: WineInfo,
-    envVars: EnvVars,
-    environment: XEnvironment,
-) {
-    // Intent intent = getIntent()
-    // public static final @IntRange(from = 1, to = 19) byte CONTAINER_PATTERN_COMPRESSION_LEVEL = 9
-
-    val rootDir = imageFs.rootDir
-    val installedWineDir = imageFs.installedWineDir
-    // wineInfo = intent.getParcelableExtra("wine_info")
-    // WineUtils.extractWineFileForInstallAsync(context, )
-    // WineUtils.findWineVersionAsync(context, )
-    envVars.put("WINEARCH", if (wineInfo.isWin64) "win64" else "win32")
-    imageFs.winePath = wineInfo.path
-
-    val containerPatternDir = File(installedWineDir, "/preinstall/container-pattern")
-    if (containerPatternDir.isDirectory) FileUtils.delete(containerPatternDir)
-    containerPatternDir.mkdirs()
-
-    val linkFile = File(rootDir, ImageFs.HOME_PATH)
-    linkFile.delete()
-    FileUtils.symlink(".." + FileUtils.toRelativePath(rootDir.path, containerPatternDir.path), linkFile.path)
-
-    val guestProgramLauncherComponent = environment.getComponent(GuestProgramLauncherComponent::class.java)
-    guestProgramLauncherComponent.guestExecutable =
-        wineInfo.getExecutable(context, false) + " explorer /desktop=shell," + Container.DEFAULT_SCREEN_SIZE + " winecfg"
-
-    // val preloaderDialog = PreloaderDialog(context)
-    guestProgramLauncherComponent.terminationCallback = (
-        object : Callback<Int> {
-            override fun call(status: Int) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    if (status > 0) {
-                        // AppUtils.showToast(context, R.string.unable_to_install_wine)
-                        FileUtils.delete(File(installedWineDir, "/preinstall"))
-                        AppUtils.restartApplication(context)
-                        return@launch
-                    }
-
-                    // preloaderDialog.showOnUiThread(R.string.finishing_installation)
-                    // TODO: show loading modal
-                    FileUtils.writeString(File(rootDir, ImageFs.WINEPREFIX + "/.update-timestamp"), "disable\n")
-
-                    val userDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/users/xuser")
-                    val userFiles = userDir.listFiles()
-                    if (userFiles != null) {
-                        for (userFile in userFiles) {
-                            if (FileUtils.isSymlink(userFile)) {
-                                val path = userFile.path
-                                userFile.delete()
-                                File(path).mkdirs()
-                            }
-                        }
-                    }
-
-                    val suffix = wineInfo.fullVersion() + "-" + wineInfo.arch
-                    val containerPatternFile = File(installedWineDir, "/preinstall/container-pattern-$suffix.tzst")
-                    TarCompressorUtils.compress(
-                        TarCompressorUtils.Type.ZSTD,
-                        File(rootDir, ImageFs.WINEPREFIX),
-                        containerPatternFile,
-                        Constants.XServer.CONTAINER_PATTERN_COMPRESSION_LEVEL,
-                    )
-
-                    if (!containerPatternFile.renameTo(File(installedWineDir, containerPatternFile.name)) ||
-                        !(File(wineInfo.path)).renameTo(File(installedWineDir, wineInfo.identifier()))
-                    ) {
-                        containerPatternFile.delete()
-                    }
-
-                    FileUtils.delete(File(installedWineDir, "/preinstall"))
-
-                    // preloaderDialog.closeOnUiThread()
-                    // TODO: put away loading modal
-                    // AppUtils.restartApplication(context, R.id.main_menu_settings)
-                }
-            }
-        }
-        )
 }
 
 private fun setupWineSystemFiles(
@@ -866,9 +819,11 @@ private fun applyGeneralPatches(
     wineInfo: WineInfo,
     onExtractFileListener: OnExtractFileListener?,
 ) {
-    val rootDir = imageFs.rootDir
+    Timber.i("Applying general patches")
+    val rootDir = imageFs.getRootDir()
     FileUtils.delete(File(rootDir, "/opt/apps"))
-    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "imagefs_patches.tzst", rootDir, onExtractFileListener)
+    Timber.i("Applying imagefs_patches_longjunyu_patched.tzst")
+    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "imagefs_patches_longjunyu_patched.tzst", rootDir, onExtractFileListener)
     TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "pulseaudio.tzst", File(context.filesDir, "pulseaudio"))
     WineUtils.applySystemTweaks(context, wineInfo)
     container.putExtra("graphicsDriver", null)
@@ -897,7 +852,7 @@ private fun extractDXWrapperFiles(
         "ddraw.dll",
     )
     if (firstTimeBoot && dxwrapper != "vkd3d") cloneOriginalDllFiles(imageFs, *dlls)
-    val rootDir = imageFs.rootDir
+    val rootDir = imageFs.getRootDir()
     val windowsDir = File(rootDir, ImageFs.WINEPREFIX + "/drive_c/windows")
 
     when (dxwrapper) {

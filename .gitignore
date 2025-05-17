@@ -5,6 +5,7 @@
 # Gradle files
 .gradle/
 build/
+tools/*aab*
 
 # Build
 app/release/baselineProfiles/

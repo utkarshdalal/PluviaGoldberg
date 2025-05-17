@@ -3,7 +3,6 @@ package com.winlator.xenvironment;
 import android.content.Context;
 
 import com.winlator.core.FileUtils;
-import com.winlator.xenvironment.components.GuestProgramLauncherComponent;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -62,13 +61,4 @@ public class XEnvironment implements Iterable<EnvironmentComponent> {
         for (EnvironmentComponent environmentComponent : this) environmentComponent.stop();
     }
 
-    public void onPause() {
-        GuestProgramLauncherComponent guestProgramLauncherComponent = getComponent(GuestProgramLauncherComponent.class);
-        if (guestProgramLauncherComponent != null) guestProgramLauncherComponent.suspendProcess();
-    }
-
-    public void onResume() {
-        GuestProgramLauncherComponent guestProgramLauncherComponent = getComponent(GuestProgramLauncherComponent.class);
-        if (guestProgramLauncherComponent != null) guestProgramLauncherComponent.resumeProcess();
-    }
 }
