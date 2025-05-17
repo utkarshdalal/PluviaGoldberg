@@ -21,12 +21,12 @@ public abstract class WineUtils {
         if (files != null) for (File file : files) if (file.getName().matches("[a-z]:")) file.delete();
 
         FileUtils.symlink("../drive_c", dosdevicesPath+"/c:");
-        FileUtils.symlink("/", dosdevicesPath+"/z:");
+        FileUtils.symlink(container.getRootDir().getPath() + "/../..", dosdevicesPath+"/z:");
 
         for (String[] drive : container.drivesIterator()) {
             File linkTarget = new File(drive[1]);
             String path = linkTarget.getAbsolutePath();
-            if (!linkTarget.isDirectory() && path.endsWith("/com.winlator/storage")) {
+            if (!linkTarget.isDirectory() && path.endsWith("/com.utkarshdalal/PluviaGoldberg/storage")) {
                 linkTarget.mkdirs();
                 FileUtils.chmod(linkTarget, 0771);
             }
@@ -68,7 +68,7 @@ public abstract class WineUtils {
 
         try (WineRegistryEditor registryEditor = new WineRegistryEditor(userRegFile)) {
             for (String name : direct3dLibs) registryEditor.setStringValue(dllOverridesKey, name, "native,builtin");
-            for (String name : xinputLibs) registryEditor.setStringValue(dllOverridesKey, name, isMainWineVersion ? "builtin,native" : "native,builtin");
+            for (String name : xinputLibs) registryEditor.setStringValue(dllOverridesKey, name, "builtin,native");
 
             registryEditor.removeKey("Software\\Winlator\\WFM\\ContextMenu\\7-Zip");
             registryEditor.setStringValue("Software\\Winlator\\WFM\\ContextMenu\\7-Zip", "Open Archive", "Z:\\opt\\apps\\7-Zip\\7zFM.exe \"%FILE%\"");

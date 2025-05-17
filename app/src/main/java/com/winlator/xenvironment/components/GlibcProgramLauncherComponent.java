@@ -182,55 +182,23 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
                 imageFs.getRootDir().getPath() + "/usr/local/bin");
 
         envVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib");
-        envVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu");
+        envVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu/");
         envVars.put("ANDROID_SYSVSHM_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH);
         envVars.put("FONTCONFIG_PATH", imageFs.getRootDir().getPath() + "/usr/etc/fonts");
 
         if ((new File(imageFs.getGlibc64Dir(), "libandroid-sysvshm.so")).exists() ||
-                (new File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists())
-            envVars.put("LD_PRELOAD", "libandroid-sysvshm.so");
+                (new File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists
+                        ())
+            envVars.put("LD_PRELOAD", "libpluviagoldberg.so libandroid-sysvshm.so");
+        envVars.put("WINEESYNC_WINLATOR", "1");
         if (this.envVars != null) envVars.putAll(this.envVars);
 
         String box64Path = rootDir.getPath() + "/usr/local/bin/box64";
-        
+
         // Check if box64 exists and log its details before executing
         File box64File = new File(box64Path);
         Log.d("GlibcProgramLauncherComponent", "About to execute box64 from: " + box64Path);
-        
-        // Ensure box64 is executable
-        FileUtils.chmod(box64File, 0755);
-        
-        // Check architecture of the binary
-        Log.d("GlibcProgramLauncherComponent", "Checking box64 binary format...");
-        checkBinaryFormat(box64File);
-        
-        // Log library dependencies
-        Log.d("GlibcProgramLauncherComponent", "Checking box64 library dependencies...");
-        checkLibraryDependencies(box64File, rootDir);
-        
-        // Log all parent directories and their permissions
-        Log.d("GlibcProgramLauncherComponent", "Checking parent directory permissions...");
-        checkParentDirectories(box64File);
-        
-        // Log all environment variables
-        Log.d("GlibcProgramLauncherComponent", "Environment variables:");
-        String[] envArray = envVars.toStringArray();
-        for (String env : envArray) {
-            Log.d("GlibcProgramLauncherComponent", "  " + env);
-        }
-        
-        // Check if dynamic linker exists
-        File linker64 = new File("/system/bin/linker64");
-        Log.d("GlibcProgramLauncherComponent", "System linker exists: " + linker64.exists());
-        if (linker64.exists()) {
-            Log.d("GlibcProgramLauncherComponent", "System linker permissions: " + 
-                  "readable=" + linker64.canRead() + 
-                  ", executable=" + linker64.canExecute());
-        }
-        
-        // Standard file checks
-        logFileDetails(box64File);
-        
+
         String command = box64Path + " " + guestExecutable;
         Log.d("GlibcProgramLauncherComponent", "Final command: " + command);
 
@@ -264,10 +232,6 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
             Log.d("GlibcProgramLauncherComponent", "Extracting box86 version " + box86Version + " (current version: " + currentBox86Version + ")");
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "box86_64/box86-" + box86Version + ".tzst", rootDir);
             PrefManager.putString("current_box86_version", box86Version);
-
-            // Log box86 file details
-            File box86File = new File(rootDir, "/usr/local/bin/box86");
-            logFileDetails(box86File);
         }
 
         Log.d("GlibcProgramLauncherComponent", "box64Version " + box64Version);
@@ -278,70 +242,12 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
             if (profile != null) {
                 Log.d("GlibcProgramLauncherComponent", "Profile is not null - applying content for box64 version " + box64Version);
                 contentsManager.applyContent(profile);
-
-                // Get destination path for box64 from profile
-                File box64File = new File(rootDir, "/usr/local/bin/box64");
-                Log.d("GlibcProgramLauncherComponent", "Expected box64 path after profile application: " + box64File.getAbsolutePath());
-                logFileDetails(box64File);
             }
             else {
                 Log.d("GlibcProgramLauncherComponent", "Profile is null - extracting box64 version " + box64Version + " directly");
                 TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "box86_64/box64-" + box64Version + ".tzst", rootDir);
-
-                // Log box64 file details after extraction
-                File box64File = new File(rootDir, "/usr/local/bin/box64");
-                if (box64File.exists()) {
-                    FileUtils.chmod(box64File, 0755);
-                }
-                Log.d("GlibcProgramLauncherComponent", "Expected box64 path after direct extraction: " + box64File.getAbsolutePath());
-                logFileDetails(box64File);
             }
             PrefManager.putString("current_box64_version", box64Version);
-        } else {
-            // Log current box64 file details even if not extracting
-            File box64File = new File(rootDir, "/usr/local/bin/box64");
-            Log.d("GlibcProgramLauncherComponent", "Using existing box64 at: " + box64File.getAbsolutePath());
-            logFileDetails(box64File);
-        }
-    }
-
-    // Helper method to log file details including permissions and SELinux context
-    private void logFileDetails(File file) {
-        if (file.exists()) {
-            Log.d("GlibcProgramLauncherComponent", "File exists: " + file.getAbsolutePath());
-            Log.d("GlibcProgramLauncherComponent", "File permissions: " +
-                  "readable=" + file.canRead() +
-                  ", writable=" + file.canWrite() +
-                  ", executable=" + file.canExecute());
-            Log.d("GlibcProgramLauncherComponent", "File size: " + file.length() + " bytes");
-
-            // Get file permissions as octal string
-            try {
-                String permissionsCmd = "ls -la " + file.getAbsolutePath();
-                ProcessBuilder pb = new ProcessBuilder("sh", "-c", permissionsCmd);
-                java.lang.Process proc = pb.start();
-                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
-                String lsOutput = scanner.hasNext() ? scanner.next() : "";
-                Log.d("GlibcProgramLauncherComponent", "File ls output: " + lsOutput);
-                proc.waitFor();
-            } catch (Exception e) {
-                Log.e("GlibcProgramLauncherComponent", "Error getting file permissions: " + e.getMessage());
-            }
-
-            // Try to get SELinux context if available
-            try {
-                String selinuxCmd = "ls -Z " + file.getAbsolutePath();
-                ProcessBuilder pb = new ProcessBuilder("sh", "-c", selinuxCmd);
-                java.lang.Process proc = pb.start();
-                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
-                String selinuxOutput = scanner.hasNext() ? scanner.next() : "";
-                Log.d("GlibcProgramLauncherComponent", "SELinux context: " + selinuxOutput);
-                proc.waitFor();
-            } catch (Exception e) {
-                Log.e("GlibcProgramLauncherComponent", "Error getting SELinux context: " + e.getMessage());
-            }
-        } else {
-            Log.e("GlibcProgramLauncherComponent", "File does NOT exist: " + file.getAbsolutePath());
         }
     }
 
@@ -356,6 +262,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
         envVars.putAll(Box86_64PresetManager.getEnvVars("box86", environment.getContext(), box86Preset));
         envVars.put("BOX86_X11GLX", "1");
+        envVars.put("BOX86_NORCFILES", "1");
     }
 
     private void addBox64EnvVars(EnvVars envVars, boolean enableLogs) {
@@ -370,7 +277,6 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
         envVars.putAll(Box86_64PresetManager.getEnvVars("box64", environment.getContext(), box64Preset));
         envVars.put("BOX64_X11GLX", "1");
-        envVars.put("BOX64_NORCFILES", "1");
     }
 
     public void suspendProcess() {
@@ -382,97 +288,6 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
     public void resumeProcess() {
         synchronized (lock) {
             if (pid != -1) ProcessHelper.resumeProcess(pid);
-        }
-    }
-
-    // Helper method to check binary format using 'file' command
-    private void checkBinaryFormat(File binaryFile) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder("file", binaryFile.getAbsolutePath());
-            java.lang.Process proc = pb.start();
-            java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
-            String output = scanner.hasNext() ? scanner.next() : "";
-            Log.d("GlibcProgramLauncherComponent", "Binary format: " + output);
-            proc.waitFor();
-        } catch (Exception e) {
-            Log.e("GlibcProgramLauncherComponent", "Error checking binary format: " + e.getMessage());
-            
-            // Try alternative method
-            try {
-                ProcessBuilder pb = new ProcessBuilder("sh", "-c", "head -c 20 " + binaryFile.getAbsolutePath() + " | xxd -p");
-                java.lang.Process proc = pb.start();
-                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
-                String output = scanner.hasNext() ? scanner.next() : "";
-                Log.d("GlibcProgramLauncherComponent", "Binary header hex: " + output);
-                proc.waitFor();
-            } catch (Exception ex) {
-                Log.e("GlibcProgramLauncherComponent", "Error checking binary header: " + ex.getMessage());
-            }
-        }
-    }
-
-    // Helper method to check library dependencies using 'ldd' or similar
-    private void checkLibraryDependencies(File binaryFile, File rootDir) {
-        // Try using readelf
-        try {
-            // First try with readelf (may be available on some devices)
-            ProcessBuilder pb = new ProcessBuilder(rootDir.getPath() + "/usr/bin/readelf", "-d", binaryFile.getAbsolutePath());
-            java.lang.Process proc = pb.start();
-            java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
-            String output = scanner.hasNext() ? scanner.next() : "";
-            Log.d("GlibcProgramLauncherComponent", "Library dependencies (readelf): " + output);
-            proc.waitFor();
-        } catch (Exception e) {
-            Log.e("GlibcProgramLauncherComponent", "Error checking dependencies with readelf: " + e.getMessage());
-            
-            // Try alternate approach with objdump if available
-            try {
-                ProcessBuilder pb = new ProcessBuilder(rootDir.getPath() + "/usr/bin/objdump", "-p", binaryFile.getAbsolutePath());
-                java.lang.Process proc = pb.start();
-                java.util.Scanner scanner = new java.util.Scanner(proc.getInputStream()).useDelimiter("\\A");
-                String output = scanner.hasNext() ? scanner.next() : "";
-                Log.d("GlibcProgramLauncherComponent", "Library dependencies (objdump): " + output);
-                proc.waitFor();
-            } catch (Exception ex) {
-                Log.e("GlibcProgramLauncherComponent", "Error checking dependencies with objdump: " + ex.getMessage());
-            }
-        }
-        
-        // Check existence of some common libraries
-        String[] commonLibs = {
-            "/usr/lib/libstdc++.so.6",
-            "/usr/lib/libc.so.6",
-            "/usr/lib/libm.so.6",
-            "/usr/lib/ld-linux-aarch64.so.1"
-        };
-        
-        for (String lib : commonLibs) {
-            File libFile = new File(rootDir, lib);
-            Log.d("GlibcProgramLauncherComponent", "Library " + lib + " exists: " + libFile.exists());
-            if (libFile.exists()) {
-                Log.d("GlibcProgramLauncherComponent", "Library permissions: " + 
-                      "readable=" + libFile.canRead() + 
-                      ", executable=" + libFile.canExecute());
-            }
-        }
-    }
-
-    // Helper method to check parent directory permissions
-    private void checkParentDirectories(File file) {
-        File current = file.getParentFile();
-        while (current != null) {
-            Log.d("GlibcProgramLauncherComponent", "Directory: " + current.getAbsolutePath());
-            Log.d("GlibcProgramLauncherComponent", "  exists=" + current.exists() + 
-                  ", readable=" + current.canRead() + 
-                  ", writable=" + current.canWrite() + 
-                  ", executable=" + current.canExecute());
-            
-            // Ensure directory has execute permission
-            if (current.exists()) {
-                FileUtils.chmod(current, 0755);
-            }
-            
-            current = current.getParentFile();
         }
     }
 }

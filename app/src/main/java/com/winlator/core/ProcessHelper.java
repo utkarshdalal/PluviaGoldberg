@@ -57,21 +57,6 @@ public abstract class ProcessHelper {
         try {
             Log.d("ProcessHelper", "Executing: " + Arrays.toString(splitCommand(command)) + ", " + Arrays.toString(envp) + ", " + workingDir);
             java.lang.Process process = Runtime.getRuntime().exec(splitCommand(command), envp, workingDir);
-            // ProcessBuilder builder = new ProcessBuilder()
-            //         .command(splitCommand(command))
-            //         .directory(workingDir)
-            //         .inheritIO();
-            // // Add environment variables
-            // if (envp != null) {
-            //     Map<String, String> environment = builder.environment();
-            //     for (String entry : envp) {
-            //         String[] parts = entry.split("=", 2);
-            //         if (parts.length == 2) {
-            //             environment.put(parts[0], parts[1]);
-            //         }
-            //     }
-            // }
-            // java.lang.Process process = builder.start();
 
             Field pidField = process.getClass().getDeclaredField("pid");
             pidField.setAccessible(true);
@@ -82,6 +67,9 @@ public abstract class ProcessHelper {
                 createDebugThread(process.getInputStream());
                 createDebugThread(process.getErrorStream());
             }
+//            Uncomment the following lines to see logs from wine
+//            createDebugThread(process.getInputStream(), "STDOUT", pid);
+//            createDebugThread(process.getErrorStream(), "STDERR", pid);
 
             if (terminationCallback != null) createWaitForThread(process, terminationCallback);
         }
@@ -166,6 +154,31 @@ public abstract class ProcessHelper {
             catch (IOException e) {
                 Log.e("ProcessHelper", "Error on debug thread: " + e);
             }
+        });
+    }
+
+    private static void createDebugThread(final InputStream inputStream, final String streamType, final int pid) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // Always log to debug log
+                    if (streamType != null && pid != -1) {
+                        Log.d("ProcessOutput", "[PID:" + pid + "][" + streamType + "] " + line);
+                    } else {
+                        // Always log even if streamType/pid not provided
+                        Log.d("ProcessOutput", line);
+                    }
+
+                    if (PRINT_DEBUG) System.out.println(line);
+                    synchronized (debugCallbacks) {
+                        if (!debugCallbacks.isEmpty()) {
+                            for (Callback<String> callback : debugCallbacks) callback.call(line);
+                        }
+                    }
+                }
+            }
+            catch (IOException e) {}
         });
     }
 

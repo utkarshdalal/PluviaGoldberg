@@ -819,9 +819,11 @@ private fun applyGeneralPatches(
     wineInfo: WineInfo,
     onExtractFileListener: OnExtractFileListener?,
 ) {
-    val rootDir = imageFs.rootDir
+    Timber.i("Applying general patches")
+    val rootDir = imageFs.getRootDir()
     FileUtils.delete(File(rootDir, "/opt/apps"))
-    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "imagefs_patches.tzst", rootDir, onExtractFileListener)
+    Timber.i("Applying imagefs_patches_longjunyu_patched.tzst")
+    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "imagefs_patches_longjunyu_patched.tzst", rootDir, onExtractFileListener)
     TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "pulseaudio.tzst", File(context.filesDir, "pulseaudio"))
     WineUtils.applySystemTweaks(context, wineInfo)
     container.putExtra("graphicsDriver", null)

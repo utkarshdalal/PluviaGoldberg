@@ -441,7 +441,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             Timber.i("Found ${depotIds.size} depot(s) to download: $depotIds")
 
             val needsImageFsDownload = !ImageFs.find(instance!!).rootDir.exists() &&
-                !FileUtils.assetExists(instance!!.assets, "imagefs.txz")
+                !FileUtils.assetExists(instance!!.assets, "imagefs_longjunyu_patched.txz")
             val indexOffset = if (needsImageFsDownload) 1 else 0
 
             val downloadInfo = DownloadInfo(depotIds.size + indexOffset).also { downloadInfo ->
