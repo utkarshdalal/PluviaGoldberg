@@ -35,9 +35,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -59,6 +61,7 @@ import com.utkarshdalal.PluviaGoldberg.ui.component.settings.SettingsCPUList
 import com.utkarshdalal.PluviaGoldberg.ui.component.settings.SettingsCenteredLabel
 import com.utkarshdalal.PluviaGoldberg.ui.component.settings.SettingsEnvVars
 import com.utkarshdalal.PluviaGoldberg.ui.component.settings.SettingsListDropdown
+import com.utkarshdalal.PluviaGoldberg.ui.component.settings.SettingsMultiListDropdown
 import com.utkarshdalal.PluviaGoldberg.ui.theme.settingsTileColors
 import com.utkarshdalal.PluviaGoldberg.ui.theme.settingsTileColorsAlt
 import com.utkarshdalal.PluviaGoldberg.utils.ContainerUtils
@@ -72,6 +75,7 @@ import com.winlator.core.KeyValueSet
 import com.winlator.core.StringUtils
 import com.winlator.core.envvars.EnvVarInfo
 import com.winlator.core.envvars.EnvVars
+import com.winlator.core.envvars.EnvVarSelectionType
 import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -141,6 +145,17 @@ fun ContainerConfigDialog(
             val defaultIndex = dxvkVersions.indexOfFirst { it.contains("(Default)") }.coerceAtLeast(0)
             val finalIndex = if (foundIndex >= 0) foundIndex else defaultIndex
             mutableIntStateOf(finalIndex)
+        }
+        // When DXVK version defaults to an 'async' build, enable DXVK_ASYNC by default
+        LaunchedEffect(dxvkVersionIndex) {
+            val version = StringUtils.parseIdentifier(dxvkVersions[dxvkVersionIndex])
+            val envSet = EnvVars(config.envVars)
+            if (version.contains("async", ignoreCase = true)) {
+                envSet.put("DXVK_ASYNC", "1")
+            } else {
+                envSet.remove("DXVK_ASYNC")
+            }
+            config = config.copy(envVars = envSet.toString())
         }
         var audioDriverIndex by rememberSaveable {
             val driverIndex = audioDrivers.indexOfFirst { StringUtils.parseIdentifier(it) == config.audioDriver }
@@ -257,11 +272,33 @@ fun ContainerConfigDialog(
                                 }
                             }
                         }
-                        OutlinedTextField(
-                            value = envVarValue,
-                            onValueChange = { envVarValue = it },
-                            label = { Text(text = "Value") },
-                        )
+                        val selectedEnvVarInfo = EnvVarInfo.KNOWN_ENV_VARS[envVarName]
+                        if (selectedEnvVarInfo?.selectionType == EnvVarSelectionType.MULTI_SELECT) {
+                            var multiSelectedIndices by remember { mutableStateOf(listOf<Int>()) }
+                            SettingsMultiListDropdown(
+                                enabled = true,
+                                values = multiSelectedIndices,
+                                items = selectedEnvVarInfo.possibleValues,
+                                fallbackDisplay = "",
+                                onItemSelected = { index ->
+                                    val newIndices = if (multiSelectedIndices.contains(index)) {
+                                        multiSelectedIndices.filter { it != index }
+                                    } else {
+                                        multiSelectedIndices + index
+                                    }
+                                    multiSelectedIndices = newIndices
+                                    envVarValue = newIndices.joinToString(",") { selectedEnvVarInfo.possibleValues[it] }
+                                },
+                                title = { Text(text = "Value") },
+                                colors = settingsTileColors(),
+                            )
+                        } else {
+                            OutlinedTextField(
+                                value = envVarValue,
+                                onValueChange = { envVarValue = it },
+                                label = { Text(text = "Value") },
+                            )
+                        }
                     }
                 },
                 dismissButton = {
@@ -407,18 +444,26 @@ fun ContainerConfigDialog(
                             SettingsListDropdown(
                                 colors = settingsTileColors(),
                                 title = { Text(text = stringResource(R.string.dxvk_version)) },
-                                value = dxvkVersionIndex, // Use value for selected index
-                                items = dxvkVersions,     // Provide the list of items
-                                onItemSelected = { // Use implicit 'it' for consistency
+                                value = dxvkVersionIndex,
+                                items = dxvkVersions,
+                                onItemSelected = {
                                     dxvkVersionIndex = it
                                     val version = StringUtils.parseIdentifier(dxvkVersions[it])
-                                    
-                                    // Use KeyValueSet to safely update/add the version key
-                                    val currentConfig = KeyValueSet(config.dxwrapperConfig)
-                                    currentConfig.put("version", version)
-                                    
-                                    // Save the updated config string
-                                    config = config.copy(dxwrapperConfig = currentConfig.toString())
+                                    // Update dxwrapperConfig
+                                    val currentDxvkConfig = KeyValueSet(config.dxwrapperConfig)
+                                    currentDxvkConfig.put("version", version)
+                                    // Auto-manage DXVK_ASYNC env var
+                                    val envVarsSet = EnvVars(config.envVars)
+                                    if (version.contains("async", ignoreCase = true)) {
+                                        envVarsSet.put("DXVK_ASYNC", "1")
+                                    } else {
+                                        envVarsSet.remove("DXVK_ASYNC")
+                                    }
+                                    // Save both config and envVars
+                                    config = config.copy(
+                                        dxwrapperConfig = currentDxvkConfig.toString(),
+                                        envVars = envVarsSet.toString()
+                                    )
                                 },
                             )
                             // Audio Driver Dropdown
