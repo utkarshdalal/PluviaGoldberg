@@ -87,7 +87,7 @@ data class EnvVarInfo(
                 identifier = "DXVK_HUD",
                 selectionType = EnvVarSelectionType.MULTI_SELECT,
                 possibleValues = listOf(
-                    "devinfo", "fps", "frametimes", "submissions", "drawcalls", "pipelines", "descriptors",
+                    "async", "devinfo", "fps", "frametimes", "submissions", "drawcalls", "pipelines", "descriptors",
                     "memory", "gpuload", "version", "api", "cs", "compiler", "samplers",
                 ),
             ),
