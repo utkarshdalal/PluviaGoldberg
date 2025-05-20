@@ -36,9 +36,9 @@
         <item>CNC DDraw</item>
     </string-array>
     <string-array name="dxvk_version_entries">
+        <item>2.6.1-gplasync</item>
         <item>1.9.2</item>
         <item>2.3.1</item>
-        <item>2.6.1-gplasync</item>
     </string-array>
     <string-array name="dxvk_max_device_memory_entries">
         <item>0 (Default)</item>
