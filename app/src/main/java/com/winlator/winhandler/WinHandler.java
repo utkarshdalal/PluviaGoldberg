@@ -283,7 +283,7 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_GAMEPAD: {
-                // Log.d("WinHandler", "Request was get gamepad on port " + port);
+                Timber.tag("WinHandler").d("Request was get gamepad on port " + port);
                 boolean isXInput = receiveData.get() == 1;
                 boolean notify = receiveData.get() == 1;
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
