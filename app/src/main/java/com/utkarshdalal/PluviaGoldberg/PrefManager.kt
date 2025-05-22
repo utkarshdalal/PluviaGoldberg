@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.utkarshdalal.PluviaGoldberg.enums.AppTheme
 import com.utkarshdalal.PluviaGoldberg.service.SteamService
@@ -86,6 +87,12 @@ object PrefManager {
 
     fun getString(key: String, defaultValue: String): String =
         getPref(stringPreferencesKey(key), defaultValue)
+
+    fun getFloat(key: String, defaultValue: Float): Float =
+        getPref(floatPreferencesKey(key), defaultValue)
+
+    fun setFloat(key: String, value: Float): Unit =
+        setPref(floatPreferencesKey(key), value)
 
     @Suppress("SameParameterValue")
     private fun <T> getPref(key: Preferences.Key<T>, defaultValue: T): T = runBlocking {

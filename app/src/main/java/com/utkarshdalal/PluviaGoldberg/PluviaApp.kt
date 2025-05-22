@@ -4,6 +4,10 @@ import android.os.StrictMode
 import androidx.navigation.NavController
 import com.utkarshdalal.PluviaGoldberg.events.EventDispatcher
 import com.google.android.play.core.splitcompat.SplitCompatApplication
+import com.winlator.inputcontrols.InputControlsManager
+import com.winlator.widget.InputControlsView
+import com.winlator.widget.TouchpadView
+import com.winlator.widget.XServerView
 import com.winlator.xenvironment.XEnvironment
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
@@ -43,5 +47,9 @@ class PluviaApp : SplitCompatApplication() {
 
         // TODO: find a way to make this saveable, this is terrible
         internal var xEnvironment: XEnvironment? = null
+        internal var xServerView: XServerView? = null
+        var inputControlsView: InputControlsView? = null
+        var inputControlsManager: InputControlsManager? = null
+        var touchpadView: TouchpadView? = null
     }
 }
