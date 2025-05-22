@@ -156,6 +156,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.material)
     // JavaSteam
     val localBuild = false // Change to 'true' needed when building JavaSteam manually
     if (localBuild) {

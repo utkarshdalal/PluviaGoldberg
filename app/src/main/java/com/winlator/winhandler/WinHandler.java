@@ -32,11 +32,16 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 
+import timber.log.Timber;
+
 public class WinHandler {
     private static final short SERVER_PORT = 7947;
     private static final short CLIENT_PORT = 7946;
-    public static final byte DINPUT_MAPPER_TYPE_STANDARD = 0;
-    public static final byte DINPUT_MAPPER_TYPE_XINPUT = 1;
+    public static final byte FLAG_DINPUT_MAPPER_STANDARD = 0x01;
+    public static final byte FLAG_DINPUT_MAPPER_XINPUT = 0x02;
+    public static final byte FLAG_INPUT_TYPE_XINPUT = 0x04;
+    public static final byte FLAG_INPUT_TYPE_DINPUT = 0x08;
+    public static final byte DEFAULT_INPUT_TYPE = FLAG_INPUT_TYPE_XINPUT;
     private DatagramSocket socket;
     private final ByteBuffer sendData = ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN);
     private final ByteBuffer receiveData = ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN);
@@ -48,7 +53,7 @@ public class WinHandler {
     private OnGetProcessInfoListener onGetProcessInfoListener;
     private ExternalController currentController;
     private InetAddress localhost;
-    private byte dinputMapperType = DINPUT_MAPPER_TYPE_XINPUT;
+    private byte inputType = DEFAULT_INPUT_TYPE;
     // private final XServerDisplayActivity activity;
     private final List<Integer> gamepadClients = new CopyOnWriteArrayList<>();
 
@@ -308,8 +313,8 @@ public class WinHandler {
                     sendData.put(RequestCodes.GET_GAMEPAD);
 
                     if (enabled) {
-                         sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : inputControlsView.getProfile().id);
-                        sendData.put(dinputMapperType);
+                        sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : inputControlsView.getProfile().id);
+                        sendData.put(inputType);
                         byte[] bytes = (useVirtualGamepad ? inputControlsView.getProfile().getName() : currentController.getName()).getBytes();
                         sendData.putInt(bytes.length);
                         sendData.put(bytes);
@@ -460,14 +465,6 @@ public class WinHandler {
             if (handled) sendGamepadState();
         }
         return handled;
-    }
-
-    public byte getDInputMapperType() {
-        return dinputMapperType;
-    }
-
-    public void setDInputMapperType(byte dinputMapperType) {
-        this.dinputMapperType = dinputMapperType;
     }
 
     public ExternalController getCurrentController() {

@@ -25,6 +25,7 @@
     <string name="not_enough_space">Not Enough Space</string>
     <string name="proceed">Proceed</string>
     <string name="cancel">Cancel</string>
+    <string name="untitled">Untitled</string>
 
     <string name="destination_library">Library</string>
     <string name="destination_downloads">Downloads</string>
@@ -49,6 +50,38 @@
     <string name="vcrun2010">Visual C++ 2010</string>
     <string name="wmdecoder">Windows Media Decoder</string>
     <string name="dxvk_version">DXVK Version</string>
+    <string name="run">Run</string>
+    <string name="edit">Edit</string>
+    <string name="remove">Remove</string>
+    <string name="add">Add</string>
+    <string name="ok">Ok</string>
+    <string name="storage_info">Storage Info</string>
+    <string name="duplicate">Duplicate</string>
+    <string name="reconfigure">Reconfigure</string>
+    <string name="content_info">Content Info</string>
+    <string name="shortcuts">Shortcuts</string>
+    <string name="containers">Containers</string>
+    <string name="box64_rc_file">Box64 RCFile</string>
+    <string name="contents">Contents</string>
+    <string name="about">About</string>
+    <string name="open_file">Open File</string>
+    <string name="download_file">Download File</string>
+    <string name="processor_affinity">Processor Affinity</string>
+    <string name="bring_to_front">Bring to Front</string>
+    <string name="end_process">End Process</string>
+    <string name="new_file">New File</string>
+    <string name="add_to_home_screen">Add to Home Screen</string>
+    <string name="toggle_fullscreen">Toggle Fullscreen</string>
+    <string name="toggle_orientation">Toggle Orientation</string>
+    <string name="task_manager">Task Manager</string>
+    <string name="magnifier">Magnifier</string>
+    <string name="logs">Logs</string>
+    <string name="exit_game">Exit</string>
+    <string name="exit">Exit</string>
+    <string name="keyboard">Keyboard</string>
+    <string name="input_controls">Input Controls</string>
+    <string name="touchpad_help">Touchpad Help</string>
+
 
     <string name="box86_64_env_var_help__dynarec_safeflags"><![CDATA[
         Handling of flags on CALL/RET opcodes<br /><br />

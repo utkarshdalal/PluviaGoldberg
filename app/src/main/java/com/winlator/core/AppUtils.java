@@ -73,13 +73,10 @@ public abstract class AppUtils {
         Runtime.getRuntime().exit(0);
     }
 
-    // public static void showKeyboard(AppCompatActivity activity) {
-    //     final InputMethodManager imm = (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
-    //     if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-    //         activity.getWindow().getDecorView().postDelayed(() -> imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0), 500L);
-    //     }
-    //     else imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-    // }
+     public static void showKeyboard(Context activity) {
+         final InputMethodManager imm = (InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+         imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+     }
 
     public static void hideSystemUI(final Activity activity) {
         hideSystemUI(activity, true);
@@ -133,11 +130,11 @@ public abstract class AppUtils {
         return Resources.getSystem().getDisplayMetrics().heightPixels;
     }
 
-    // public static int getPreferredDialogWidth(Context context) {
-    //     int orientation = context.getResources().getConfiguration().orientation;
-    //     float scale = orientation == Configuration.ORIENTATION_PORTRAIT ? 0.8f : 0.5f;
-    //     return (int)UnitUtils.dpToPx(UnitUtils.pxToDp(AppUtils.getScreenWidth()) * scale);
-    // }
+    public static int getPreferredDialogWidth(Context context) {
+        int orientation = context.getResources().getConfiguration().orientation;
+        float scale = orientation == Configuration.ORIENTATION_PORTRAIT ? 0.8f : 0.5f;
+        return (int)UnitUtils.dpToPx(UnitUtils.pxToDp(AppUtils.getScreenWidth()) * scale);
+    }
     //
     // public static Toast showToast(Context context, int textResId) {
     //     return showToast(context, context.getString(textResId));

@@ -1,6 +1,7 @@
 package com.utkarshdalal.PluviaGoldberg.ui.screen.xserver
 
 import android.content.Context
+import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,8 +22,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import com.utkarshdalal.PluviaGoldberg.Constants
 import com.utkarshdalal.PluviaGoldberg.PluviaApp
 import com.utkarshdalal.PluviaGoldberg.PrefManager
@@ -37,8 +36,10 @@ import com.winlator.box86_64.rc.RCFile
 import com.winlator.box86_64.rc.RCManager
 import com.winlator.container.Container
 import com.winlator.container.ContainerManager
+import com.winlator.contentdialog.NavigationDialog
 import com.winlator.contents.ContentsManager
 import com.winlator.core.AppUtils
+import com.winlator.core.AppUtils.showKeyboard
 import com.winlator.core.Callback
 import com.winlator.core.DXVKHelper
 import com.winlator.core.DefaultVersion
@@ -54,6 +55,7 @@ import com.winlator.core.WineStartMenuCreator
 import com.winlator.core.WineThemeManager
 import com.winlator.core.WineUtils
 import com.winlator.core.envvars.EnvVars
+import com.winlator.inputcontrols.ControlsProfile
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.inputcontrols.TouchMouse
@@ -154,8 +156,6 @@ fun XServerScreen(
     var keyboard by remember { mutableStateOf<Keyboard?>(null) }
     // var pointerEventListener by remember { mutableStateOf<Callback<MotionEvent>?>(null) }
 
-    val drawerLayout = remember { mutableStateOf<DrawerLayout?>(null) }
-
     val appLaunchInfo = SteamService.getAppInfoOf(appId)?.let { appInfo ->
         SteamService.getWindowsLaunchInfos(appId).firstOrNull()
     }
@@ -166,9 +166,42 @@ fun XServerScreen(
         result
     }
 
+    var isKeyboardVisible = false
+    var areControlsVisible = false
+
     BackHandler {
         Timber.i("BackHandler")
-        exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
+        NavigationDialog(
+            context,
+            object : NavigationDialog.NavigationListener {
+                override fun onNavigationItemSelected(itemId: Int) {
+                    when (itemId) {
+                        NavigationDialog.ACTION_KEYBOARD -> {
+                            // Toggle keyboard using InputMethodManager
+                            showKeyboard(context);
+                        }
+
+                        NavigationDialog.ACTION_INPUT_CONTROLS -> {
+                            if (areControlsVisible){
+                                hideInputControls();
+                            } else {
+                                val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
+                                if (profiles.isNotEmpty()) {
+                                    showInputControls(profiles[2])
+                                }
+                            }
+                            areControlsVisible = !areControlsVisible
+                            Timber.d("Controls visibility toggled to: $areControlsVisible")
+                        }
+
+                        NavigationDialog.ACTION_EXIT_GAME -> {
+                            exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
+                        }
+                    }
+                }
+            },
+        ).show()
+
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -243,11 +276,18 @@ fun XServerScreen(
             .fillMaxSize()
             .pointerHoverIcon(PointerIcon(0))
             .pointerInteropFilter {
-                val handled = PluviaApp.inputControlsView?.onTouchEvent(it) ?: false
-                // Log.d("XServerScreen", "PointerInteropFilter:\n\t$it")
-                if (!handled) {
+                // If controls are visible, let them handle it first
+                val controlsHandled = if (areControlsVisible) {
+                    PluviaApp.inputControlsView?.onTouchEvent(it) ?: false
+                } else {
+                    false
+                }
+
+                // If controls didn't handle it or aren't visible, send to touchMouse
+                if (!controlsHandled) {
                     touchMouse?.onTouchEvent(it)
                 }
+
                 true
             },
         factory = { context ->
@@ -294,6 +334,7 @@ fun XServerScreen(
                 renderer.isCursorVisible = false
                 getxServer().renderer = renderer
                 PluviaApp.touchpadView = TouchpadView(context, getxServer())
+                frameLayout.addView(PluviaApp.touchpadView)
                 getxServer().winHandler = WinHandler(getxServer(), this)
                 touchMouse = TouchMouse(getxServer())
                 keyboard = Keyboard(getxServer())
@@ -441,6 +482,7 @@ fun XServerScreen(
                     )
                 }
             }
+            PluviaApp.xServerView = xServerView;
 
             frameLayout.addView(xServerView)
 
@@ -465,10 +507,11 @@ fun XServerScreen(
             }
             PluviaApp.inputControlsView = icView
 
-            xServerView.getxServer().winHandler.setInputControlsView(icView)
+            xServerView.getxServer().winHandler.setInputControlsView(PluviaApp.inputControlsView)
 
             // Add InputControlsView on top of XServerView
             frameLayout.addView(icView)
+            hideInputControls()
 
             frameLayout
 
@@ -500,6 +543,29 @@ fun XServerScreen(
     //
     //     }
     // }
+}
+
+private fun showInputControls(profile: ControlsProfile) {
+    PluviaApp.inputControlsView?.setVisibility(View.VISIBLE)
+    PluviaApp.inputControlsView?.requestFocus()
+    PluviaApp.inputControlsView?.setProfile(profile)
+
+    PluviaApp.touchpadView?.setSensitivity(profile.getCursorSpeed() * 1.0f)
+    PluviaApp.touchpadView?.setPointerButtonRightEnabled(false)
+
+    PluviaApp.inputControlsView?.invalidate()
+}
+
+private fun hideInputControls() {
+    PluviaApp.inputControlsView?.setShowTouchscreenControls(true)
+    PluviaApp.inputControlsView?.setVisibility(View.GONE)
+    PluviaApp.inputControlsView?.setProfile(null)
+
+    PluviaApp.touchpadView?.setSensitivity(1.0f)
+    PluviaApp.touchpadView?.setPointerButtonLeftEnabled(true)
+    PluviaApp.touchpadView?.setPointerButtonRightEnabled(true)
+
+    PluviaApp.inputControlsView?.invalidate()
 }
 
 /**

@@ -98,7 +98,7 @@ public class Keyboard {
     public static boolean isKeyboardDevice(InputDevice device) {
         if (device == null) return false;
         int sources = device.getSources();
-        return !device.isVirtual() && ((sources & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD);
+        return (sources & InputDevice.SOURCE_KEYBOARD) == InputDevice.SOURCE_KEYBOARD;
     }
 
     public boolean onKeyEvent(KeyEvent event) {
