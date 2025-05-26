@@ -1,6 +1,7 @@
 package com.utkarshdalal.PluviaGoldberg.ui.screen.login
 
 import android.content.res.Configuration
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,11 +10,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -48,13 +54,20 @@ fun TwoFactorAuthScreenContent(
 ) {
     Column(
         modifier = Modifier
-            .height(IntrinsicSize.Max)
+            .fillMaxWidth()
+            .heightIn(min = 350.dp)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = message, textAlign = TextAlign.Center)
-        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
         if (userLoginState.loginResult == LoginResult.DeviceConfirm) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         } else if (userLoginState.loginResult == LoginResult.EmailAuth ||
@@ -64,11 +77,19 @@ fun TwoFactorAuthScreenContent(
                 twoFactorText = userLoginState.twoFactorCode,
                 onTwoFactorTextChange = onSetTwoFactor,
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             ElevatedButton(
                 enabled = userLoginState.twoFactorCode.length == 5,
                 onClick = onLogin,
-                content = { Text(text = "Login") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                content = { 
+                    Text(
+                        text = "Login",
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    ) 
+                },
             )
         }
     }
@@ -86,19 +107,50 @@ private fun TwoFactorTextField(
         focusRequester.requestFocus()
     }
 
-    OutlinedTextField(
-        modifier = Modifier.focusRequester(focusRequester),
-        value = twoFactorText,
-        onValueChange = { value ->
-            val filtered = value.filter { it.isLetterOrDigit() }.take(5)
-            onTwoFactorTextChange(filtered)
-        },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Text,
-            imeAction = ImeAction.Done,
-        ),
-    )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Verification Code",
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth()
+                .focusRequester(focusRequester)
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline,
+                    shape = RoundedCornerShape(8.dp)
+                ),
+            value = twoFactorText,
+            onValueChange = { value ->
+                val filtered = value.filter { it.isLetterOrDigit() }.take(5)
+                onTwoFactorTextChange(filtered)
+            },
+            singleLine = true,
+            placeholder = { 
+                Text(
+                    "Enter 5-character code",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Text,
+                imeAction = ImeAction.Done,
+            ),
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            )
+        )
+    }
 }
 
 internal class TwoFactorPreview : PreviewParameterProvider<UserLoginState> {

@@ -49,23 +49,8 @@ fun HomeScreen(
     }
     // Pressing back again; while logged in, confirm we want to close the app.
     BackHandler(enabled = homeState.currentDestination == PrefManager.startScreen) {
-        viewModel.onConfirmExit(true)
+        viewModel.onConfirmExit(false)
     }
-
-    // Confirm to exit
-    MessageDialog(
-        visible = homeState.confirmExit,
-        onDismissRequest = { viewModel.onConfirmExit(false) },
-        icon = Icons.AutoMirrored.Filled.ExitToApp,
-        title = "Are you sure you want to close PluviaGoldberg?",
-        confirmBtnText = "Close",
-        onConfirmClick = {
-            viewModel.onConfirmExit(false)
-            onClickExit()
-        },
-        dismissBtnText = "Cancel",
-        onDismissClick = { viewModel.onConfirmExit(false) },
-    )
 
     HomeScreenContent(
         destination = homeState.currentDestination,
