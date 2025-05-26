@@ -8,9 +8,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.material3.adaptive.currentWindowSize
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
-import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,104 +40,16 @@ fun HomeScreen(
 ) {
     val homeState by viewModel.homeState.collectAsStateWithLifecycle()
 
-    // When in Downloads or Friends, pressing back brings us back to default screen from preference (Default: Library)
-    BackHandler(enabled = homeState.currentDestination != PrefManager.startScreen) {
-        viewModel.onDestination(PrefManager.startScreen)
-    }
-    // Pressing back again; while logged in, confirm we want to close the app.
-    BackHandler(enabled = homeState.currentDestination == PrefManager.startScreen) {
-        viewModel.onConfirmExit(true)
+    // Pressing back while logged in, confirm we want to close the app.
+    BackHandler {
+        onClickExit()
     }
 
-    // Confirm to exit
-    MessageDialog(
-        visible = homeState.confirmExit,
-        onDismissRequest = { viewModel.onConfirmExit(false) },
-        icon = Icons.AutoMirrored.Filled.ExitToApp,
-        title = "Are you sure you want to close PluviaGoldberg?",
-        confirmBtnText = "Close",
-        onConfirmClick = {
-            viewModel.onConfirmExit(false)
-            onClickExit()
-        },
-        dismissBtnText = "Cancel",
-        onDismissClick = { viewModel.onConfirmExit(false) },
-    )
-
-    HomeScreenContent(
-        destination = homeState.currentDestination,
-        onDestination = viewModel::onDestination,
-        onChat = onChat,
+    // Always show the Library screen
+    HomeLibraryScreen(
         onClickPlay = onClickPlay,
-        onLogout = onLogout,
         onSettings = onSettings,
-    )
-}
-
-@Composable
-private fun HomeScreenContent(
-    destination: HomeDestination,
-    onDestination: (HomeDestination) -> Unit,
-    onChat: (Long) -> Unit,
-    onClickPlay: (Int, Boolean) -> Unit,
-    onLogout: () -> Unit,
-    onSettings: () -> Unit,
-) {
-    HomeNavigationWrapperUI(
-        destination = destination,
-        onDestination = onDestination,
-    ) {
-        when (destination) {
-            HomeDestination.Library -> HomeLibraryScreen(
-                onClickPlay = onClickPlay,
-                onSettings = onSettings,
-                onLogout = onLogout,
-            )
-
-            HomeDestination.Downloads -> HomeDownloadsScreen(
-                onSettings = onSettings,
-                onLogout = onLogout,
-            )
-
-            HomeDestination.Friends -> FriendsScreen(
-                onSettings = onSettings,
-                onChat = onChat,
-                onLogout = onLogout,
-            )
-        }
-    }
-}
-
-@Composable
-internal fun HomeNavigationWrapperUI(
-    destination: HomeDestination,
-    onDestination: (HomeDestination) -> Unit,
-    content: @Composable () -> Unit = {},
-) {
-    val windowSize = with(LocalDensity.current) {
-        currentWindowSize().toSize().toDpSize()
-    }
-    val navLayoutType = if (windowSize.width >= Constants.Composables.WINDOW_WIDTH_LARGE) {
-        // Show a permanent drawer when window width is large.
-        NavigationSuiteType.NavigationDrawer
-    } else {
-        // Otherwise use the default from NavigationSuiteScaffold.
-        NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(currentWindowAdaptiveInfo())
-    }
-
-    NavigationSuiteScaffold(
-        navigationSuiteItems = {
-            HomeDestination.entries.forEach {
-                item(
-                    label = { Text(stringResource(it.title)) },
-                    icon = { Icon(it.icon, stringResource(it.title)) },
-                    selected = (it == destination),
-                    onClick = { onDestination(it) },
-                )
-            }
-        },
-        layoutType = navLayoutType,
-        content = content,
+        onLogout = onLogout,
     )
 }
 
@@ -155,13 +64,12 @@ private fun Preview_HomeScreenContent() {
         var destination: HomeDestination by remember {
             mutableStateOf(HomeDestination.Library)
         }
-        HomeScreenContent(
-            destination = destination,
-            onDestination = { destination = it },
+        HomeScreen(
             onChat = {},
             onClickPlay = { _, _ -> },
             onLogout = {},
             onSettings = {},
+            onClickExit = {}
         )
     }
 }

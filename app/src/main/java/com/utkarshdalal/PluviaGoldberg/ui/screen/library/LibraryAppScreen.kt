@@ -3,20 +3,31 @@ package com.utkarshdalal.PluviaGoldberg.ui.screen.library
 import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
@@ -28,6 +39,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,11 +55,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -75,6 +93,7 @@ import com.utkarshdalal.PluviaGoldberg.utils.StorageUtils
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
+import com.utkarshdalal.PluviaGoldberg.utils.SteamUtils
 import com.winlator.container.ContainerData
 import com.winlator.xenvironment.ImageFsInstaller
 import java.text.SimpleDateFormat
@@ -258,27 +277,9 @@ fun AppScreen(
         progress = loadingProgress,
     )
 
-    Scaffold(
-        topBar = {
-            // Show Top App Bar when in Compact or Medium screen space.
-            if (windowWidth == WindowWidthSizeClass.COMPACT || windowWidth == WindowWidthSizeClass.MEDIUM) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = appInfo.name,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    navigationIcon = {
-                        BackButton(onClick = onBack)
-                    },
-                )
-            }
-        },
-    ) { paddingValues ->
+    Scaffold {
         AppScreenContent(
-            modifier = Modifier.padding(paddingValues),
+            modifier = Modifier.padding(it),
             appInfo = appInfo,
             isInstalled = isInstalled,
             isDownloading = isDownloading(),
@@ -334,6 +335,7 @@ fun AppScreen(
                     onClickPlay(false)
                 }
             },
+            onBack = onBack,
             optionsMenu = arrayOf(
                 AppMenuOption(
                     optionType = AppOptionMenuType.StorePage,
@@ -422,10 +424,41 @@ private fun AppScreenContent(
     isDownloading: Boolean,
     downloadProgress: Float,
     onDownloadBtnClick: () -> Unit,
+    onBack: () -> Unit = {},
     vararg optionsMenu: AppMenuOption,
 ) {
     val scrollState = rememberScrollState()
     var optionsMenuVisible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Compute last played timestamp from local install folder
+    val lastPlayedText by remember(appInfo.id, isInstalled) {
+        mutableStateOf(
+            if (isInstalled) {
+                val path = SteamService.getAppDirPath(appInfo.id)
+                val file = java.io.File(path)
+                if (file.exists()) {
+                    SteamUtils.fromSteamTime((file.lastModified() / 1000).toInt())
+                } else {
+                    "Never"
+                }
+            } else {
+                "Never"
+            }
+        )
+    }
+    // Compute real playtime by fetching owned games
+    var playtimeText by remember { mutableStateOf("0 hrs") }
+    LaunchedEffect(appInfo.id) {
+        val steamID = SteamService.userSteamId?.accountID?.toLong()
+        if (steamID != null) {
+            val games = SteamService.getOwnedGames(steamID)
+            val game = games.firstOrNull { it.appId == appInfo.id }
+            playtimeText = if (game != null) {
+                SteamUtils.formatPlayTime(game.playtimeForever) + " hrs"
+            } else "0 hrs"
+        }
+    }
 
     LaunchedEffect(appInfo.id) {
         scrollState.animateScrollTo(0)
@@ -437,106 +470,81 @@ private fun AppScreenContent(
             .verticalScroll(scrollState),
         horizontalAlignment = Alignment.Start,
     ) {
-        // Images
-        Box {
-            // (Hero Logo) Steam Partner:
-            //  Size: 3840px x 1240px
-            //  (an additional half-size 1920px x 620px PNG will be auto-generated from larger file)
+        // Hero Section with Game Image Background
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+        ) {
+            // Hero background image
             CoilImage(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(with(LocalDensity.current) { 620.toDp() }),
+                modifier = Modifier.fillMaxSize(),
                 imageModel = { appInfo.getHeroUrl() },
-                imageOptions = ImageOptions(contentScale = ContentScale.None),
+                imageOptions = ImageOptions(contentScale = ContentScale.Crop),
                 loading = { LoadingScreen() },
                 failure = {
                     Box(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            modifier = Modifier.align(Alignment.TopCenter),
-                            text = appInfo.name,
-                            style = MaterialTheme.typography.displayLarge,
-                            textAlign = TextAlign.Center,
-                        )
-                        Text(
-                            modifier = Modifier.align(Alignment.BottomEnd),
-                            text = "[Image not found]",
-                        )
+                        // Gradient background as fallback
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.primary
+                        ) { }
                     }
                 },
                 previewPlaceholder = painterResource(R.drawable.testhero),
             )
 
-            // (Library Logo) Steam Partner:
-            //  Size: 1280px x 720px
-            //  (an additional 640px x 360px PNG will be auto-generated from larger file)
-            CoilImage(
+            // Gradient overlay
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth(.45f)
-                    .padding(start = 16.dp)
-                    .height(with(LocalDensity.current) { 360.toDp() })
-                    .align(Alignment.BottomStart),
-                imageModel = { appInfo.getLogoUrl() },
-                imageOptions = ImageOptions(contentScale = ContentScale.Fit),
-                loading = { LoadingScreen() },
-                previewPlaceholder = painterResource(R.drawable.testliblogo),
-            )
-        }
-
-        HorizontalDivider(modifier = Modifier.fillMaxWidth())
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Controls Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .wrapContentHeight(),
-        ) {
-            FilledTonalButton(
-                modifier = Modifier.width(96.dp), // Fixed width to stop button jumping.
-                onClick = onDownloadBtnClick,
-                content = {
-                    val text = if (isInstalled) {
-                        stringResource(R.string.run_app)
-                    } else if (isDownloading) {
-                        stringResource(R.string.cancel)
-                    } else {
-                        stringResource(R.string.install_app)
-                    }
-                    Text(text = text)
-                },
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.8f)
+                            )
+                        )
+                    )
             )
 
-            Crossfade(
+            // Back button (top left)
+            Box(
                 modifier = Modifier
-                    .align(Alignment.CenterVertically)
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                targetState = isDownloading,
-            ) { state ->
-                if (state) {
-                    Column {
-                        Text(
-                            modifier = Modifier.align(Alignment.End),
-                            text = "${(downloadProgress * 100f).toInt()}%",
-                        )
-                        LinearProgressIndicator(
-                            modifier = Modifier.fillMaxWidth(),
-                            progress = { downloadProgress },
-                        )
-                    }
-                }
+                    .padding(20.dp)
+                    .background(
+                        color = Color.Black.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+            ) {
+                BackButton(onClick = onBack)
             }
 
-            Box {
+            // Settings/options button (top right)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(20.dp)
+            ) {
                 IconButton(
+                    modifier = Modifier
+                        .background(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(12.dp)
+                        ),
                     onClick = { optionsMenuVisible = !optionsMenuVisible },
-                    content = { Icon(Icons.Filled.MoreVert, "Options") },
+                    content = {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = "Settings",
+                            tint = Color.White
+                        )
+                    },
                 )
+
                 DropdownMenu(
                     expanded = optionsMenuVisible,
                     onDismissRequest = { optionsMenuVisible = false },
@@ -552,19 +560,310 @@ private fun AppScreenContent(
                     }
                 }
             }
+
+            // Game title and subtitle
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = appInfo.name,
+                    style = MaterialTheme.typography.headlineLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(0f, 2f),
+                            blurRadius = 10f
+                        )
+                    ),
+                    color = Color.White
+                )
+
+                Text(
+                    text = "${appInfo.developer} • ${remember(appInfo.releaseDate) {
+                        SimpleDateFormat("yyyy", Locale.getDefault()).format(Date(appInfo.releaseDate * 1000))
+                    }}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
         }
-        // Game info
-        Card(modifier = Modifier.padding(16.dp)) {
-            Column {
-                val date = remember(appInfo.releaseDate) {
-                    val date = Date(appInfo.releaseDate.times(1000))
-                    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
+
+        // Content section
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+        ) {
+            // Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Play/Install/Cancel button
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = onDownloadBtnClick,
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    contentPadding = PaddingValues(16.dp)
+                ) {
+                    val text = if (isInstalled) {
+                        stringResource(R.string.run_app)
+                    } else if (isDownloading) {
+                        stringResource(R.string.cancel)
+                    } else {
+                        stringResource(R.string.install_app)
+                    }
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                    )
                 }
 
-                GameInfoRow(key = "Controller Support:", value = appInfo.controllerSupport.name)
-                GameInfoRow(key = "Developer:", value = appInfo.developer)
-                GameInfoRow(key = "Publisher:", value = appInfo.publisher)
-                GameInfoRow(key = "Release date:", value = date)
+                // Uninstall/Secondary button (only if installed)
+                if (isInstalled) {
+                    OutlinedButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            optionsMenu.find { it.optionType == AppOptionMenuType.Uninstall }?.onClick?.invoke()
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.uninstall),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Download progress section
+            if (isDownloading) {
+                // Track download start time and estimate remaining time
+                var downloadStartTime by remember { mutableStateOf<Long?>(null) }
+                LaunchedEffect(downloadProgress) {
+                    if (downloadProgress > 0f && downloadStartTime == null) {
+                        downloadStartTime = System.currentTimeMillis()
+                    }
+                }
+                val timeLeftText = remember(downloadProgress, downloadStartTime) {
+                    if (downloadProgress in 0f..1f && downloadStartTime != null && downloadProgress < 1f) {
+                        val elapsed = System.currentTimeMillis() - downloadStartTime!!
+                        val totalEst = (elapsed / downloadProgress).toLong()
+                        val remaining = totalEst - elapsed
+                        val secondsLeft = remaining / 1000
+                        val minutesLeft = secondsLeft / 60
+                        val secondsPart = secondsLeft % 60
+                        "${minutesLeft}m ${secondsPart}s left"
+                    } else {
+                        "Calculating..."
+                    }
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Installation Progress",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "${(downloadProgress * 100f).toInt()}%",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LinearProgressIndicator(
+                        progress = { downloadProgress },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = MaterialTheme.colorScheme.tertiary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // This is placeholder text since we don't have exact size info in the state
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Downloading...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = timeLeftText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(32.dp))
+                }
+            }
+
+            // Game information card
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Colored top border
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary
+                                    )
+                                )
+                            )
+                    )
+
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        Text(
+                            text = "Game Information",
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            // Setting a fixed height to avoid nested scrolling issues
+                            modifier = Modifier.height(220.dp)
+                        ) {
+                            // Status item
+                            item {
+                                Column {
+                                    Text(
+                                        text = "Status",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(20.dp),
+                                        color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .background(
+                                                        color = MaterialTheme.colorScheme.tertiary,
+                                                        shape = CircleShape
+                                                    )
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = when {
+                                                    isInstalled -> "Installed"
+                                                    isDownloading -> "Installing"
+                                                    else -> "Not Installed"
+                                                },
+                                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+                                                color = MaterialTheme.colorScheme.tertiary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Size item
+                            item {
+                                Column {
+                                    Text(
+                                        text = "Size",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = if (isInstalled) {
+                                            StorageUtils.formatBinarySize(
+                                                StorageUtils.getFolderSize(SteamService.getAppDirPath(appInfo.id))
+                                            )
+                                        } else {
+                                            val depots = SteamService.getDownloadableDepots(appInfo.id)
+                                            val downloadBytes = depots.values.sumOf { it.manifests["public"]?.download ?: 0L }
+                                            val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0L }
+                                            "${StorageUtils.formatBinarySize(installBytes)}"
+                                        },
+                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                }
+                            }
+
+                            // Developer item
+                            item {
+                                Column {
+                                    Text(
+                                        text = "Developer",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = appInfo.developer,
+                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                }
+                            }
+
+                            // Release Date item
+                            item {
+                                Column {
+                                    Text(
+                                        text = "Release Date",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = remember(appInfo.releaseDate) {
+                                            val date = Date(appInfo.releaseDate * 1000)
+                                            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
+                                        },
+                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

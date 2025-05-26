@@ -1,33 +1,34 @@
 package com.utkarshdalal.PluviaGoldberg.ui.screen.library.components
 
-import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.utkarshdalal.PluviaGoldberg.data.LibraryItem
-import com.utkarshdalal.PluviaGoldberg.ui.component.topbar.AccountButton
 import com.utkarshdalal.PluviaGoldberg.ui.data.LibraryState
 import com.utkarshdalal.PluviaGoldberg.ui.internal.fakeAppInfo
 import com.utkarshdalal.PluviaGoldberg.ui.theme.PluviaTheme
@@ -35,6 +36,8 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
 import timber.log.Timber
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 @OptIn(ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -63,58 +66,58 @@ internal fun LibrarySearchBar(
         internalSearchText.value = it
     }
 
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        SearchBar(
+    // Modern search field with rounded corners
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        TextField(
+            value = state.searchQuery,
+            onValueChange = onSearchText,
             modifier = Modifier
-                .semantics { traversalIndex = 0f },
-            expanded = state.isSearching,
-            onExpandedChange = onIsSearching,
-            inputField = {
-                SearchBarDefaults.InputField(
-                    query = state.searchQuery,
-                    onSearch = { keyboardController?.hide() },
-                    expanded = state.isSearching,
-                    onExpandedChange = onIsSearching,
-                    placeholder = { Text(text = "Search for games") },
-                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
-                    trailingIcon = {
-                        Crossfade(state.isSearching) { cfState ->
-                            if (cfState) {
-                                IconButton(
-                                    onClick = {
-                                        if (state.searchQuery.isEmpty()) {
-                                            onIsSearching(false)
-                                        } else {
-                                            onSearchText("")
-                                        }
-                                    },
-                                    content = {
-                                        Icon(Icons.Default.Clear, "Clear search query")
-                                    },
-                                )
-                            } else {
-                                AccountButton(
-                                    onSettings = onSettings,
-                                    onLogout = onLogout,
-                                )
-                            }
-                        }
-                    },
-                    onQueryChange = onSearchText,
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(RoundedCornerShape(16.dp)),
+            placeholder = {
+                Text(
+                    text = "Search your games...",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             },
-            content = {
-                if (state.isSearching) {
-                    LibraryList(
-                        contentPaddingValues = PaddingValues(bottom = 72.dp),
-                        listState = listState,
-                        list = state.appInfoList,
-                        onItemClick = onItemClick,
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            trailingIcon = {
+                if (state.searchQuery.isNotEmpty()) {
+                    IconButton(
+                        onClick = { onSearchText("") },
+                        content = {
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = "Clear search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     )
                 }
             },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = { keyboardController?.hide() })
         )
     }
+
+    // The dropdown search results are handled elsewhere in the LibraryList component
 }
 
 /***********
@@ -129,7 +132,7 @@ private fun Preview_LibrarySearchBar() {
         Surface {
             LibrarySearchBar(
                 state = LibraryState(
-                    isSearching = true,
+                    isSearching = false,
                     appInfoList = List(5) { idx ->
                         val item = fakeAppInfo(idx)
                         LibraryItem(

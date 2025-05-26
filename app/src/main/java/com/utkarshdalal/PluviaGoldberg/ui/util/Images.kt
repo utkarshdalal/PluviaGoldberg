@@ -2,6 +2,7 @@ package com.utkarshdalal.PluviaGoldberg.ui.util
 
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QuestionMark
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,6 +23,7 @@ import com.skydoves.landscapist.coil.CoilImage
 @Composable
 internal fun ListItemImage(
     modifier: Modifier = Modifier,
+    imageModifier: Modifier = Modifier.clip(CircleShape),
     contentDescription: String? = null,
     size: Dp = 40.dp,
     image: () -> Any?,
@@ -29,7 +31,33 @@ internal fun ListItemImage(
     CoilImage(
         modifier = modifier
             .size(size)
-            .clip(CircleShape),
+            .then(imageModifier),
+        imageModel = image,
+        imageOptions = ImageOptions(
+            contentScale = ContentScale.Crop,
+            contentDescription = contentDescription,
+        ),
+        loading = {
+            CircularProgressIndicator()
+        },
+        failure = {
+            Icon(Icons.Filled.QuestionMark, null)
+        },
+        previewPlaceholder = painterResource(R.drawable.ic_logo_color),
+    )
+}
+
+@Composable
+internal fun SteamIconImage(
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+    size: Dp = 40.dp,
+    image: () -> Any?,
+) {
+    CoilImage(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(12.dp)),
         imageModel = image,
         imageOptions = ImageOptions(
             contentScale = ContentScale.Crop,
