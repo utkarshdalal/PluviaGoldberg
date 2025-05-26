@@ -7,4 +7,5 @@ data class OwnedGames(
     val playtimeForever: Int = 0,
     val imgIconUrl: String = "",
     val sortAs: String? = null,
+    val rtimeLastPlayed: Int = 0,
 )

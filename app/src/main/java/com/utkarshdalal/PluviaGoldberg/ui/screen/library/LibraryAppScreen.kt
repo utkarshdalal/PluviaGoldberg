@@ -93,6 +93,7 @@ import com.utkarshdalal.PluviaGoldberg.utils.StorageUtils
 import com.google.android.play.core.splitcompat.SplitCompat
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
+import com.utkarshdalal.PluviaGoldberg.utils.SteamUtils
 import com.winlator.container.ContainerData
 import com.winlator.xenvironment.ImageFsInstaller
 import java.text.SimpleDateFormat
@@ -430,6 +431,35 @@ private fun AppScreenContent(
     var optionsMenuVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
+    // Compute last played timestamp from local install folder
+    val lastPlayedText by remember(appInfo.id, isInstalled) {
+        mutableStateOf(
+            if (isInstalled) {
+                val path = SteamService.getAppDirPath(appInfo.id)
+                val file = java.io.File(path)
+                if (file.exists()) {
+                    SteamUtils.fromSteamTime((file.lastModified() / 1000).toInt())
+                } else {
+                    "Never"
+                }
+            } else {
+                "Never"
+            }
+        )
+    }
+    // Compute real playtime by fetching owned games
+    var playtimeText by remember { mutableStateOf("0 hrs") }
+    LaunchedEffect(appInfo.id) {
+        val steamID = SteamService.userSteamId?.accountID?.toLong()
+        if (steamID != null) {
+            val games = SteamService.getOwnedGames(steamID)
+            val game = games.firstOrNull { it.appId == appInfo.id }
+            playtimeText = if (game != null) {
+                SteamUtils.formatPlayTime(game.playtimeForever) + " hrs"
+            } else "0 hrs"
+        }
+    }
+
     LaunchedEffect(appInfo.id) {
         scrollState.animateScrollTo(0)
     }
@@ -620,6 +650,26 @@ private fun AppScreenContent(
 
             // Download progress section
             if (isDownloading) {
+                // Track download start time and estimate remaining time
+                var downloadStartTime by remember { mutableStateOf<Long?>(null) }
+                LaunchedEffect(downloadProgress) {
+                    if (downloadProgress > 0f && downloadStartTime == null) {
+                        downloadStartTime = System.currentTimeMillis()
+                    }
+                }
+                val timeLeftText = remember(downloadProgress, downloadStartTime) {
+                    if (downloadProgress in 0f..1f && downloadStartTime != null && downloadProgress < 1f) {
+                        val elapsed = System.currentTimeMillis() - downloadStartTime!!
+                        val totalEst = (elapsed / downloadProgress).toLong()
+                        val remaining = totalEst - elapsed
+                        val secondsLeft = remaining / 1000
+                        val minutesLeft = secondsLeft / 60
+                        val secondsPart = secondsLeft % 60
+                        "${minutesLeft}m ${secondsPart}s left"
+                    } else {
+                        "Calculating..."
+                    }
+                }
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -664,7 +714,7 @@ private fun AppScreenContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = if (downloadProgress < 1f) "Estimating time..." else "Complete",
+                            text = timeLeftText,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -766,39 +816,12 @@ private fun AppScreenContent(
                                             StorageUtils.formatBinarySize(
                                                 StorageUtils.getFolderSize(SteamService.getAppDirPath(appInfo.id))
                                             )
-                                        } else "Unknown",
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                    )
-                                }
-                            }
-
-                            // Last Played item
-                            item {
-                                Column {
-                                    Text(
-                                        text = "Last Played",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Never",
-                                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
-                                    )
-                                }
-                            }
-
-                            // Playtime item
-                            item {
-                                Column {
-                                    Text(
-                                        text = "Playtime",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "0 hours",
+                                        } else {
+                                            val depots = SteamService.getDownloadableDepots(appInfo.id)
+                                            val downloadBytes = depots.values.sumOf { it.manifests["public"]?.download ?: 0L }
+                                            val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0L }
+                                            "${StorageUtils.formatBinarySize(installBytes)}"
+                                        },
                                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                                     )
                                 }
@@ -822,7 +845,7 @@ private fun AppScreenContent(
 
                             // Release Date item
                             item {
-            Column {
+                                Column {
                                     Text(
                                         text = "Release Date",
                                         style = MaterialTheme.typography.bodyMedium,
@@ -832,7 +855,7 @@ private fun AppScreenContent(
                                     Text(
                                         text = remember(appInfo.releaseDate) {
                                             val date = Date(appInfo.releaseDate * 1000)
-                    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
+                                            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
                                         },
                                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                                     )
