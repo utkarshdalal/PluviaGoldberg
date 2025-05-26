@@ -276,27 +276,9 @@ fun AppScreen(
         progress = loadingProgress,
     )
 
-    Scaffold(
-        topBar = {
-            // Show Top App Bar when in Compact or Medium screen space.
-            if (windowWidth == WindowWidthSizeClass.COMPACT || windowWidth == WindowWidthSizeClass.MEDIUM) {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = appInfo.name,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    navigationIcon = {
-                        BackButton(onClick = onBack)
-                    },
-                )
-            }
-        },
-    ) { paddingValues ->
+    Scaffold {
         AppScreenContent(
-            modifier = Modifier.padding(paddingValues),
+            modifier = Modifier.padding(it),
             appInfo = appInfo,
             isInstalled = isInstalled,
             isDownloading = isDownloading(),
@@ -507,7 +489,6 @@ private fun AppScreenContent(
                         color = Color.Black.copy(alpha = 0.5f),
                         shape = RoundedCornerShape(12.dp)
                     )
-                    .padding(4.dp)
             ) {
                 BackButton(onClick = onBack)
             }
@@ -841,7 +822,7 @@ private fun AppScreenContent(
 
                             // Release Date item
                             item {
-                                Column {
+            Column {
                                     Text(
                                         text = "Release Date",
                                         style = MaterialTheme.typography.bodyMedium,
@@ -851,7 +832,7 @@ private fun AppScreenContent(
                                     Text(
                                         text = remember(appInfo.releaseDate) {
                                             val date = Date(appInfo.releaseDate * 1000)
-                                            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
+                    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
                                         },
                                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
                                     )

@@ -73,7 +73,10 @@ class MainActivity : ComponentActivity() {
     private var index = totalIndex++
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.light(TRANSPARENT, TRANSPARENT))
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.rgb(30, 30, 30)),
+            navigationBarStyle = SystemBarStyle.light(TRANSPARENT, TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
 
         // startOrientator() // causes memory leak since activity restarted every orientation change

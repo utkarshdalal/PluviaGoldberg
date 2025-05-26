@@ -33,7 +33,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.utkarshdalal.PluviaGoldberg.R
 import com.utkarshdalal.PluviaGoldberg.ui.theme.PluviaTheme
-import com.utkarshdalal.PluviaGoldberg.ui.util.ListItemImage
+import com.utkarshdalal.PluviaGoldberg.ui.util.SteamIconImage
 import com.utkarshdalal.PluviaGoldberg.utils.getAvatarURL
 import `in`.dragonbra.javasteam.enums.EPersonaState
 
@@ -64,7 +64,7 @@ fun ProfileDialog(
                         containerColor = Color.Transparent,
                     ),
                     leadingContent = {
-                        ListItemImage(
+                        SteamIconImage(
                             size = 48.dp,
                             image = { avatarHash.getAvatarURL() },
                         )

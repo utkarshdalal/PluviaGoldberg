@@ -20,7 +20,7 @@ import com.utkarshdalal.PluviaGoldberg.events.SteamEvent
 import com.utkarshdalal.PluviaGoldberg.service.SteamService
 import com.utkarshdalal.PluviaGoldberg.ui.component.dialog.ProfileDialog
 import com.utkarshdalal.PluviaGoldberg.ui.theme.PluviaTheme
-import com.utkarshdalal.PluviaGoldberg.ui.util.ListItemImage
+import com.utkarshdalal.PluviaGoldberg.ui.util.SteamIconImage
 import com.utkarshdalal.PluviaGoldberg.utils.getAvatarURL
 import `in`.dragonbra.javasteam.enums.EPersonaState
 import kotlinx.coroutines.launch
@@ -80,7 +80,7 @@ fun AccountButton(
     IconButton(
         onClick = { showDialog = true },
         content = {
-            ListItemImage(
+            SteamIconImage(
                 image = { persona?.avatarHash?.getAvatarURL() },
                 contentDescription = "Logged in account user profile",
             )

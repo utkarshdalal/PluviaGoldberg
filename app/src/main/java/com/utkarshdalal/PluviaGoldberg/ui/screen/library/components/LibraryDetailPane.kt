@@ -1,21 +1,20 @@
 package com.utkarshdalal.PluviaGoldberg.ui.screen.library.components
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.utkarshdalal.PluviaGoldberg.service.SteamService
+import com.utkarshdalal.PluviaGoldberg.ui.data.LibraryState
+import com.utkarshdalal.PluviaGoldberg.ui.enums.AppFilter
 import com.utkarshdalal.PluviaGoldberg.ui.screen.library.AppScreen
 import com.utkarshdalal.PluviaGoldberg.ui.theme.PluviaTheme
+import java.util.EnumSet
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun LibraryDetailPane(
     appId: Int,
@@ -24,28 +23,34 @@ internal fun LibraryDetailPane(
 ) {
     Surface {
         if (appId == SteamService.INVALID_APP_ID) {
-            LibraryEmptyDetailPane()
+            // Simply use the regular LibraryListPane with empty data
+            val listState = rememberLazyListState()
+            val sheetState = rememberModalBottomSheetState()
+            val emptyState = remember {
+                LibraryState(
+                    appInfoList = emptyList(),
+                    // Use the same default filter as in PrefManager (GAME)
+                    appInfoSortType = EnumSet.of(AppFilter.GAME)
+                )
+            }
+            
+            LibraryListPane(
+                state = emptyState,
+                listState = listState,
+                sheetState = sheetState,
+                onFilterChanged = {},
+                onModalBottomSheet = {},
+                onIsSearching = {},
+                onLogout = {},
+                onNavigate = {},
+                onSearchQuery = {},
+                onSettings = {},
+            )
         } else {
             AppScreen(
                 appId = appId,
                 onClickPlay = onClickPlay,
                 onBack = onBack,
-            )
-        }
-    }
-}
-
-@Composable
-private fun LibraryEmptyDetailPane() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shadowElevation = 8.dp,
-        ) {
-            Text(
-                modifier = Modifier.padding(24.dp),
-                text = "Select an item in the list to view game info",
             )
         }
     }
