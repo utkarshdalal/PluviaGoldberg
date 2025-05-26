@@ -78,6 +78,9 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.light(TRANSPARENT, TRANSPARENT)
         )
         super.onCreate(savedInstanceState)
+        
+        // Prevent device from sleeping while app is open
+        AppUtils.keepScreenOn(this)
 
         // startOrientator() // causes memory leak since activity restarted every orientation change
         PluviaApp.events.on<AndroidEvent.SetSystemUIVisibility, Unit>(onSetSystemUi)
