@@ -89,6 +89,10 @@ import app.gamenative.ui.theme.PluviaTheme
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import app.gamenative.ui.enums.Orientation
+import app.gamenative.PluviaApp
+import app.gamenative.events.AndroidEvent
+import java.util.EnumSet
 
 @Composable
 fun UserLoginScreen(
@@ -96,6 +100,11 @@ fun UserLoginScreen(
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
     val userLoginState by viewModel.loginState.collectAsState()
+
+    // Force portrait orientation for this screen
+    LaunchedEffect(Unit) {
+        PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.PORTRAIT)))
+    }
 
     LaunchedEffect(Unit) {
         viewModel.snackEvents.collect { message ->
