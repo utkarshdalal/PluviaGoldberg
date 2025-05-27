@@ -15,12 +15,14 @@ import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,11 +31,15 @@ import com.utkarshdalal.PluviaGoldberg.data.LibraryItem
 import com.utkarshdalal.PluviaGoldberg.service.SteamService
 import com.utkarshdalal.PluviaGoldberg.ui.data.LibraryState
 import com.utkarshdalal.PluviaGoldberg.ui.enums.AppFilter
+import com.utkarshdalal.PluviaGoldberg.ui.enums.Orientation
+import com.utkarshdalal.PluviaGoldberg.events.AndroidEvent
+import com.utkarshdalal.PluviaGoldberg.PluviaApp
 import com.utkarshdalal.PluviaGoldberg.ui.internal.fakeAppInfo
 import com.utkarshdalal.PluviaGoldberg.ui.model.LibraryViewModel
 import com.utkarshdalal.PluviaGoldberg.ui.screen.library.components.LibraryDetailPane
 import com.utkarshdalal.PluviaGoldberg.ui.screen.library.components.LibraryListPane
 import com.utkarshdalal.PluviaGoldberg.ui.theme.PluviaTheme
+import java.util.EnumSet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,6 +51,11 @@ fun HomeLibraryScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    // Force portrait orientation for this screen
+    LaunchedEffect(Unit) {
+        PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.PORTRAIT)))
+    }
 
     LibraryScreenContent(
         state = state,
