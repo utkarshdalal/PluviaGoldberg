@@ -98,11 +98,15 @@ import com.winlator.container.ContainerData
 import com.winlator.xenvironment.ImageFsInstaller
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.EnumSet
 import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.utkarshdalal.PluviaGoldberg.PluviaApp
+import com.utkarshdalal.PluviaGoldberg.ui.enums.Orientation
+import com.utkarshdalal.PluviaGoldberg.events.AndroidEvent
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -114,6 +118,12 @@ fun AppScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    
+    // Force portrait orientation for this screen
+    LaunchedEffect(Unit) {
+        PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.PORTRAIT)))
+    }
+    
     var downloadInfo by remember(appId) {
         mutableStateOf(SteamService.getAppDownloadInfo(appId))
     }
