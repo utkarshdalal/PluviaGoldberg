@@ -55,10 +55,10 @@ public abstract class ImageFsInstaller {
         return Executors.newSingleThreadExecutor().submit(() -> {
             clearRootDir(rootDir);
             final byte compressionRatio = 22;
-            final long contentLength = (long)(FileUtils.getSize(assetManager, "imagefs_longjunyu_patched.txz") * (100.0f / compressionRatio));
+            final long contentLength = (long)(FileUtils.getSize(assetManager, "imagefs.txz") * (100.0f / compressionRatio));
             AtomicLong totalSizeRef = new AtomicLong();
 
-            boolean success = TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, assetManager, "imagefs_longjunyu_patched.txz", rootDir, (file, size) -> {
+            boolean success = TarCompressorUtils.extract(TarCompressorUtils.Type.XZ, assetManager, "imagefs.txz", rootDir, (file, size) -> {
                 if (size > 0) {
                     long totalSize = totalSizeRef.addAndGet(size);
                     if (onProgress != null) {
