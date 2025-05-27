@@ -1,6 +1,7 @@
-package com.utkarshdalal.PluviaGoldberg
+package app.gamenative
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import app.gamenative.Crypto
 import java.security.SecureRandom
 import org.junit.Assert.*
 import org.junit.Test

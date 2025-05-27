@@ -1,4 +1,4 @@
-package com.utkarshdalal.ubuntufs
+package app.ubuntufs
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.utkarshdalal.ubuntufs", appContext.packageName)
+        assertEquals("app.ubuntufs", appContext.packageName)
     }
 }

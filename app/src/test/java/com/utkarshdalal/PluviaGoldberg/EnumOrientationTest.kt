@@ -1,7 +1,7 @@
-package com.utkarshdalal.PluviaGoldberg
+package app.gamenative
 
 import android.content.pm.ActivityInfo
-import com.utkarshdalal.PluviaGoldberg.ui.enums.Orientation
+import app.gamenative.ui.enums.Orientation
 import java.util.EnumSet
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue

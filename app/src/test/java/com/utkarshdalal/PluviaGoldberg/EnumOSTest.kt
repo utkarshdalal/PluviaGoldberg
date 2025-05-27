@@ -1,6 +1,6 @@
-package com.utkarshdalal.PluviaGoldberg
+package app.gamenative
 
-import com.utkarshdalal.PluviaGoldberg.enums.OS
+import app.gamenative.enums.OS
 import java.util.EnumSet
 import junit.framework.TestCase.assertEquals
 import org.junit.Test

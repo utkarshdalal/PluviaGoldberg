@@ -19,7 +19,7 @@ val keystoreProperties: Properties? = if (keystorePropertiesFile.exists()) {
 } else null
 
 android {
-    namespace = "com.utkarshdalal.PluviaGoldberg"
+    namespace = "app.gamenative"
     compileSdk = 35
 
     // https://developer.android.com/ndk/downloads
@@ -37,7 +37,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.utkarshdalal.PluviaGoldberg"
+        applicationId = "app.gamenative"
 
         minSdk = 26
         targetSdk = 28
@@ -157,7 +157,7 @@ android {
 
 dependencies {
     implementation(libs.material)
-    // JavaSteam
+    // JavaSteaml
     val localBuild = false // Change to 'true' needed when building JavaSteam manually
     if (localBuild) {
         implementation(files("../../../IntelliJ/JavaSteam/build/libs/javasteam-1.6.1-SNAPSHOT.jar"))

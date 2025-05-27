@@ -16,7 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.content.res.AppCompatResources;
 
 import com.google.android.material.navigation.NavigationView;
-import com.utkarshdalal.PluviaGoldberg.R;
+import app.gamenative.R;
 
 public class NavigationDialog extends ContentDialog {
 

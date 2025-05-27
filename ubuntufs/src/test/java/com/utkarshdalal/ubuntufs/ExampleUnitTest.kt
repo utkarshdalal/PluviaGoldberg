@@ -1,4 +1,4 @@
-package com.utkarshdalal.ubuntufs
+package app.ubuntufs
 
 import org.junit.Test
 

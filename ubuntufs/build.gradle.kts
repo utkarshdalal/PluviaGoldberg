@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.android)
 }
 android {
-    namespace = "com.utkarshdalal.ubuntufs"
+    namespace = "app.ubuntufs"
     compileSdk = 35
 
     defaultConfig {

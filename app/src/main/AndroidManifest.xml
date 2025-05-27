@@ -26,7 +26,6 @@
         android:icon="${icon}"
         android:isGame="true"
         android:label="@string/app_name"
-        android:roundIcon="${roundIcon}"
         android:supportsRtl="true"
         android:theme="@style/Theme.Pluvia">
         <!--

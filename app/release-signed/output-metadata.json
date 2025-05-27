@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.utkarshdalal.PluviaGoldberg",
+  "applicationId": "app.gamenative",
   "variantName": "release-signed",
   "elements": [
     {
