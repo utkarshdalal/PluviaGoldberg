@@ -463,7 +463,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     installPath = PrefManager.appInstallPath,
                                     stagingPath = PrefManager.appStagingPath,
                                     branch = branch,
-                                    // maxDownloads = 1,
+                                    maxDownloads = 4,
                                     onDownloadProgress = { downloadInfo.setProgress(it, jobIndex + indexOffset) },
                                     parentScope = coroutineContext.job as CoroutineScope,
                                 ).await()
