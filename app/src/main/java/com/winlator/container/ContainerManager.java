@@ -5,7 +5,7 @@ import android.os.Handler;
 import android.util.Log;
 
 // import com.winlator.R;
-import com.utkarshdalal.PluviaGoldberg.R;
+import app.gamenative.R;
 import com.winlator.box86_64.Box86_64Preset;
 import com.winlator.core.Callback;
 import com.winlator.core.FileUtils;
@@ -276,7 +276,7 @@ public class ContainerManager {
 
     public boolean extractContainerPatternFile(String wineVersion, File containerDir, OnExtractFileListener onExtractFileListener) {
         if (WineInfo.isMainWineVersion(wineVersion)) {
-            boolean result = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "container_pattern_longjunyu.tzst", containerDir, onExtractFileListener);
+            boolean result = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "container_pattern_gamenative.tzst", containerDir, onExtractFileListener);
 
             if (result) {
                 try {

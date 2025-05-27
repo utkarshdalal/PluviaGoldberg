@@ -15,7 +15,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import com.utkarshdalal.PluviaGoldberg.R;
+import app.gamenative.R;
 import com.winlator.core.AppUtils;
 import com.winlator.core.Callback;
 
