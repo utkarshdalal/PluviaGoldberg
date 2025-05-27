@@ -10,6 +10,7 @@ import com.winlator.core.FileUtils;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.WineInfo;
 import com.winlator.core.WineThemeManager;
+import com.winlator.winhandler.WinHandler;
 import com.winlator.xenvironment.ImageFs;
 
 import org.json.JSONException;
@@ -19,6 +20,11 @@ import java.io.File;
 import java.util.Iterator;
 
 public class Container {
+    public enum XrControllerMapping {
+        BUTTON_A, BUTTON_B, BUTTON_X, BUTTON_Y, BUTTON_GRIP, BUTTON_TRIGGER,
+        THUMBSTICK_UP, THUMBSTICK_DOWN, THUMBSTICK_LEFT, THUMBSTICK_RIGHT
+    }
+
     public static final String DEFAULT_ENV_VARS = "ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=1 MESA_VK_WSI_PRESENT_MODE=mailbox TU_DEBUG=noconform";
     public static final String DEFAULT_SCREEN_SIZE = "1280x720";
     public static final String DEFAULT_GRAPHICS_DRIVER = "turnip";
@@ -26,7 +32,7 @@ public class Container {
     public static final String DEFAULT_DXWRAPPER = "dxvk";
     public static final String DEFAULT_WINCOMPONENTS = "direct3d=1,directsound=1,directmusic=0,directshow=0,directplay=0,vcrun2010=1,wmdecoder=1";
     public static final String FALLBACK_WINCOMPONENTS = "direct3d=0,directsound=0,directmusic=0,directshow=0,directplay=0,vcrun2010=0,wmdecoder=0";
-    public static final String DEFAULT_DRIVES = "D:"+Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+"E:/data/data/com.utkarshdalal/PluviaGoldberg/storage";
+    public static final String DEFAULT_DRIVES = "D:"+Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+"E:/data/data/com.utkarshdalal.PluviaGoldberg/storage";
     public static final byte STARTUP_SELECTION_NORMAL = 0;
     public static final byte STARTUP_SELECTION_ESSENTIAL = 1;
     public static final byte STARTUP_SELECTION_AGGRESSIVE = 2;
@@ -55,8 +61,11 @@ public class Container {
     private File rootDir;
     private JSONObject extraData;
     private int rcfileId = 0;
-
+    private String midiSoundFont = "";
+    private int inputType = WinHandler.DEFAULT_INPUT_TYPE;
     private String lc_all = "";
+    private int primaryController = 1;
+    private String controllerMapping = new String(new char[XrControllerMapping.values().length]);
 
     public Container(int id) {
         this.id = id;
@@ -133,6 +142,30 @@ public class Container {
 
     public void setDrives(String drives) {
         this.drives = drives;
+    }
+
+    public String getLC_ALL() {
+        return lc_all;
+    }
+
+    public void setLC_ALL(String lc_all) {
+        this.lc_all = lc_all;
+    }
+
+    public int getPrimaryController() {
+        return primaryController;
+    }
+
+    public void setPrimaryController(int primaryController) {
+        this.primaryController = primaryController;
+    }
+
+    public byte getControllerMapping(XrControllerMapping input) {
+        return (byte) controllerMapping.charAt(input.ordinal());
+    }
+
+    public void setControllerMapping(String controllerMapping) {
+        this.controllerMapping = controllerMapping;
     }
 
     public boolean isShowFPS() {
@@ -285,6 +318,22 @@ public class Container {
         rcfileId = id;
     }
 
+    public String getMIDISoundFont() {
+        return midiSoundFont;
+    }
+
+    public void setMidiSoundFont(String fileName) {
+        midiSoundFont = fileName;
+    }
+
+    public int getInputType() {
+        return inputType;
+    }
+
+    public void setInputType(int inputType) {
+        this.inputType = inputType;
+    }
+
     public Iterable<String[]> drivesIterator() {
         return drivesIterator(drives);
     }
@@ -335,6 +384,7 @@ public class Container {
             data.put("wincomponents", wincomponents);
             data.put("drives", drives);
             data.put("showFPS", showFPS);
+            data.put("inputType", inputType);
             data.put("wow64Mode", wow64Mode);
             data.put("startupSelection", startupSelection);
             data.put("box86Version", box86Version);
@@ -344,7 +394,10 @@ public class Container {
             data.put("desktopTheme", desktopTheme);
             data.put("extraData", extraData);
             data.put("rcfileId", rcfileId);
+            data.put("midiSoundFont", midiSoundFont);
             data.put("lc_all", lc_all);
+            data.put("primaryController", primaryController);
+            data.put("controllerMapping", controllerMapping);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -396,6 +449,9 @@ public class Container {
                 case "showFPS" :
                     setShowFPS(data.getBoolean(key));
                     break;
+                case "inputType" :
+                    setInputType(data.getInt(key));
+                    break;
                 case "wow64Mode" :
                     setWoW64Mode(data.getBoolean(key));
                     break;
@@ -432,8 +488,17 @@ public class Container {
                 case "rcfileId" :
                     setRcfileId(data.getInt(key));
                     break;
+                case "midiSoundFont" :
+                    setMidiSoundFont(data.getString(key));
+                    break;
                 case "lc_all" :
                     setLC_ALL(data.getString(key));
+                    break;
+                case "primaryController" :
+                    setPrimaryController(data.getInt(key));
+                    break;
+                case "controllerMapping" :
+                    controllerMapping = data.getString(key);
                     break;
             }
         }
@@ -509,17 +574,10 @@ public class Container {
     }
 
     public static String getFallbackCPUListWoW64() {
-        String cpuList = "";
-        int numProcessors = Runtime.getRuntime().availableProcessors();
-        for (int i = numProcessors / 2; i < numProcessors; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
-        return cpuList;
-    }
-
-    public String getLC_ALL() {
-        return lc_all;
-    }
-
-    public void setLC_ALL(String lc_all) {
-        this.lc_all = lc_all;
+//        String cpuList = "";
+//        int numProcessors = Runtime.getRuntime().availableProcessors();
+//        for (int i = numProcessors / 2; i < numProcessors; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
+//        return cpuList;
+        return getFallbackCPUList();
     }
 }

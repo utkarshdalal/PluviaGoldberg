@@ -26,7 +26,7 @@ public abstract class WineUtils {
         for (String[] drive : container.drivesIterator()) {
             File linkTarget = new File(drive[1]);
             String path = linkTarget.getAbsolutePath();
-            if (!linkTarget.isDirectory() && path.endsWith("/com.utkarshdalal/PluviaGoldberg/storage")) {
+            if (!linkTarget.isDirectory() && path.endsWith("/com.utkarshdalal.PluviaGoldberg/storage")) {
                 linkTarget.mkdirs();
                 FileUtils.chmod(linkTarget, 0771);
             }
