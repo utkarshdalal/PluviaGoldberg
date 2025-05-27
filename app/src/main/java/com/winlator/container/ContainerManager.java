@@ -276,7 +276,7 @@ public class ContainerManager {
 
     public boolean extractContainerPatternFile(String wineVersion, File containerDir, OnExtractFileListener onExtractFileListener) {
         if (WineInfo.isMainWineVersion(wineVersion)) {
-            boolean result = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "container_pattern_longjunyu.tzst", containerDir, onExtractFileListener);
+            boolean result = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "container_pattern_gamenative.tzst", containerDir, onExtractFileListener);
 
             if (result) {
                 try {
