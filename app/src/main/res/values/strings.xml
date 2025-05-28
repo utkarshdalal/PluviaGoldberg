@@ -78,9 +78,9 @@
     <string name="magnifier">Magnifier</string>
     <string name="logs">Logs</string>
     <string name="exit_game">Exit</string>
-    <string name="exit">Exit</string>
+    <string name="exit">Exit Game</string>
     <string name="keyboard">Keyboard</string>
-    <string name="input_controls">Input Controls</string>
+    <string name="input_controls">On-screen Controller</string>
     <string name="touchpad_help">Touchpad Help</string>
 
 

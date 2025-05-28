@@ -2,6 +2,7 @@ package com.winlator.contentdialog;
 
 import android.content.Context;
 import android.content.res.Configuration;
+import android.graphics.Typeface;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.Menu;
@@ -14,6 +15,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.content.res.AppCompatResources;
+import androidx.core.content.res.ResourcesCompat;
 
 import com.google.android.material.navigation.NavigationView;
 import app.gamenative.R;
@@ -30,9 +32,12 @@ public class NavigationDialog extends ContentDialog {
 
     public NavigationDialog(@NonNull Context context, NavigationListener listener) {
         super(context, R.layout.navigation_dialog);
-        setIcon(R.drawable.icon_container);
-        setTitle(context.getString(R.string.app_name));
-        findViewById(R.id.BTCancel).setVisibility(View.GONE);
+        if (getWindow() != null) {
+            getWindow().setBackgroundDrawableResource(R.drawable.navigation_dialog_background);
+        }
+        // Hide the title bar and bottom bar for a clean menu-only dialog
+        findViewById(R.id.LLTitleBar).setVisibility(View.GONE);
+        findViewById(R.id.LLBottomBar).setVisibility(View.GONE);
 
         GridLayout grid = findViewById(R.id.main_menu_grid);
         int orientation = context.getResources().getConfiguration().orientation;
@@ -61,7 +66,7 @@ public class NavigationDialog extends ContentDialog {
         View icon = new View(context);
         icon.setBackground(AppCompatResources.getDrawable(context, iconRes));
         if (icon.getBackground() != null) {
-            icon.getBackground().setTint(context.getColor(R.color.colorAccent));
+            icon.getBackground().setTint(context.getColor(R.color.navigation_dialog_item_color));
         }
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
         lp.gravity = Gravity.CENTER_HORIZONTAL;
@@ -74,6 +79,11 @@ public class NavigationDialog extends ContentDialog {
         text.setText(context.getString(titleRes));
         text.setGravity(Gravity.CENTER);
         text.setLines(2);
+        text.setTextColor(context.getColor(R.color.navigation_dialog_item_color));
+        Typeface tf = ResourcesCompat.getFont(context, R.font.bricolage_grotesque_regular);
+        if (tf != null) {
+            text.setTypeface(tf);
+        }
         layout.addView(text);
 
         grid.addView(layout);
