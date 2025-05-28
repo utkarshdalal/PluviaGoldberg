@@ -12,6 +12,10 @@ import com.winlator.xenvironment.XEnvironment
 import dagger.hilt.android.HiltAndroidApp
 import timber.log.Timber
 
+// Add PostHog imports
+import com.posthog.android.PostHogAndroid
+import com.posthog.android.PostHogAndroidConfig
+
 typealias NavChangedListener = NavController.OnDestinationChangedListener
 
 @HiltAndroidApp
@@ -39,6 +43,13 @@ class PluviaApp : SplitCompatApplication() {
 
         // Init our datastore preferences.
         PrefManager.init(this)
+
+        // Initialize PostHog Analytics
+        val postHogConfig = PostHogAndroidConfig(
+            apiKey = BuildConfig.POSTHOG_API_KEY,
+            host = BuildConfig.POSTHOG_HOST
+        )
+        PostHogAndroid.setup(this, postHogConfig)
     }
 
     companion object {

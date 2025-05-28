@@ -32,6 +32,7 @@ import app.gamenative.ui.PluviaMain
 import app.gamenative.ui.enums.Orientation
 import app.gamenative.utils.AnimatedPngDecoder
 import app.gamenative.utils.IconDecoder
+import com.posthog.PostHog
 import com.skydoves.landscapist.coil.LocalCoilImageLoader
 import com.winlator.core.AppUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -157,6 +158,16 @@ class MainActivity : ComponentActivity() {
             Timber.i("Stopping Steam Service")
             SteamService.stop()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        PostHog.capture(event = "app_foregrounded")
+    }
+
+    override fun onPause() {
+        PostHog.capture(event = "app_backgrounded")
+        super.onPause()
     }
 
     // override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
