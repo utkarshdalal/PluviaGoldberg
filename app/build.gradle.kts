@@ -18,6 +18,10 @@ val keystoreProperties: Properties? = if (keystorePropertiesFile.exists()) {
     }
 } else null
 
+// Add PostHog API key and host as build-time variables
+val posthogApiKey: String = project.findProperty("POSTHOG_API_KEY") as String? ?: System.getenv("POSTHOG_API_KEY") ?: ""
+val posthogHost: String = project.findProperty("POSTHOG_HOST") as String? ?: System.getenv("POSTHOG_HOST") ?: "https://us.i.posthog.com"
+
 android {
     namespace = "app.gamenative"
     compileSdk = 35
@@ -46,6 +50,8 @@ android {
         versionName = "1.0"
 
         buildConfigField("boolean", "GOLD", "false")
+        buildConfigField("String", "POSTHOG_API_KEY", "\"$posthogApiKey\"")
+        buildConfigField("String", "POSTHOG_HOST", "\"$posthogHost\"")
         val iconValue = "@mipmap/ic_launcher"
         val iconRoundValue = "@mipmap/ic_launcher_round"
         manifestPlaceholders.putAll(
@@ -215,4 +221,7 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.test.manifest)
     testImplementation(libs.junit)
+
+    // Add PostHog Android SDK dependency
+    implementation("com.posthog:posthog-android:3.+")
 }

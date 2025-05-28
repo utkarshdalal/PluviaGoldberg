@@ -32,6 +32,7 @@ import app.gamenative.events.SteamEvent
 import app.gamenative.service.SteamService
 import app.gamenative.ui.data.XServerState
 import app.gamenative.utils.ContainerUtils
+import com.posthog.PostHog
 import com.winlator.box86_64.rc.RCFile
 import com.winlator.box86_64.rc.RCManager
 import com.winlator.container.Container
@@ -160,6 +161,8 @@ fun XServerScreen(
         SteamService.getWindowsLaunchInfos(appId).firstOrNull()
     }
 
+    var currentAppInfo = SteamService.getAppInfoOf(appId)
+
     var xServerView: XServerView? by remember {
         val result = mutableStateOf<XServerView?>(null)
         Timber.i("Remembering xServerView as $result")
@@ -178,13 +181,16 @@ fun XServerScreen(
                     when (itemId) {
                         NavigationDialog.ACTION_KEYBOARD -> {
                             // Toggle keyboard using InputMethodManager
+                            PostHog.capture(event = "onscreen_keyboard_enabled")
                             showKeyboard(context);
                         }
 
                         NavigationDialog.ACTION_INPUT_CONTROLS -> {
                             if (areControlsVisible){
+                                PostHog.capture(event = "onscreen_controller_disabled")
                                 hideInputControls();
                             } else {
+                                PostHog.capture(event = "onscreen_controller_enabled")
                                 val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
                                 if (profiles.isNotEmpty()) {
                                     showInputControls(profiles[2])
@@ -195,6 +201,14 @@ fun XServerScreen(
                         }
 
                         NavigationDialog.ACTION_EXIT_GAME -> {
+                            if (currentAppInfo != null) {
+                                PostHog.capture(event = "game_closed",
+                                    properties = mapOf(
+                                        "game_name" to currentAppInfo.name
+                                    ))
+                            } else {
+                                PostHog.capture(event = "game_closed")
+                            }
                             exit(xServerView!!.getxServer().winHandler, PluviaApp.xEnvironment, onExit)
                         }
                     }
@@ -898,6 +912,7 @@ private fun getWineStartCommand(
 }
 private fun exit(winHandler: WinHandler?, environment: XEnvironment?, onExit: () -> Unit) {
     Timber.i("Exit called")
+    PostHog.capture(event = "game_exited")
     winHandler?.stop()
     environment?.stopEnvironmentComponents()
     // AppUtils.restartApplication(this)

@@ -96,6 +96,7 @@ import timber.log.Timber
 import app.gamenative.PluviaApp
 import app.gamenative.ui.enums.Orientation
 import app.gamenative.events.AndroidEvent
+import com.posthog.PostHog
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -175,6 +176,10 @@ fun AppScreen(
     when (msgDialogState.type) {
         DialogType.CANCEL_APP_DOWNLOAD -> {
             onConfirmClick = {
+                PostHog.capture(event = "game_install_cancelled",
+                    properties = mapOf(
+                        "game_name" to appInfo.name
+                    ))
                 downloadInfo?.cancel()
                 SteamService.deleteApp(appId)
                 downloadInfo = null
@@ -195,6 +200,10 @@ fun AppScreen(
         DialogType.INSTALL_APP -> {
             onDismissRequest = { msgDialogState = MessageDialogState(false) }
             onConfirmClick = {
+                PostHog.capture(event = "game_install_started",
+                    properties = mapOf(
+                        "game_name" to appInfo.name
+                    ))
                 CoroutineScope(Dispatchers.IO).launch {
                     downloadProgress = 0f
                     downloadInfo = SteamService.downloadApp(appId)
@@ -331,6 +340,10 @@ fun AppScreen(
                         )
                     }
                 } else {
+                    PostHog.capture(event = "game_launched",
+                        properties = mapOf(
+                            "game_name" to appInfo.name
+                        ))
                     onClickPlay(false)
                 }
             },
@@ -385,6 +398,11 @@ fun AppScreen(
                             AppMenuOption(
                                 AppOptionMenuType.RunContainer,
                                 onClick = {
+                                    PostHog.capture(event = "container_opened",
+                                        properties = mapOf(
+                                            "game_name" to appInfo.name
+                                        )
+                                    )
                                     onClickPlay(true)
                                 },
                             ),
