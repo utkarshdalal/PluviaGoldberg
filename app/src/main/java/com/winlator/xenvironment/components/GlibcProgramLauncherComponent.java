@@ -22,7 +22,9 @@ import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.ImageFs;
 import com.winlator.xenvironment.XEnvironment;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
 
@@ -182,7 +184,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
                 imageFs.getRootDir().getPath() + "/usr/local/bin");
 
         envVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib");
-        envVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu/");
+        envVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu");
         envVars.put("ANDROID_SYSVSHM_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH);
         envVars.put("FONTCONFIG_PATH", imageFs.getRootDir().getPath() + "/usr/etc/fonts");
 
@@ -289,5 +291,35 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         synchronized (lock) {
             if (pid != -1) ProcessHelper.resumeProcess(pid);
         }
+    }
+
+    public String execShellCommand(String command) {
+        StringBuilder output = new StringBuilder();
+        EnvVars envVars = new EnvVars();
+        ImageFs imageFs = environment.getImageFs();
+
+        envVars.put("PATH", imageFs.getRootDir().getPath() + "/usr/bin:/usr/local/bin:" + imageFs.getWinePath() + "/bin");
+        envVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib");
+
+        // Execute the command and capture its output
+        try {
+            java.lang.Process process = Runtime.getRuntime().exec(command, envVars.toStringArray(), imageFs.getRootDir());
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            while ((line = errorReader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+
+            process.waitFor();
+        } catch (Exception e) {
+            output.append("Error: ").append(e.getMessage());
+        }
+
+        return output.toString();
     }
 }

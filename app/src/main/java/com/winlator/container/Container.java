@@ -31,7 +31,7 @@ public class Container {
     public static final String DEFAULT_AUDIO_DRIVER = "alsa";
     public static final String DEFAULT_DXWRAPPER = "dxvk";
     public static final String DEFAULT_WINCOMPONENTS = "direct3d=1,directsound=1,directmusic=0,directshow=0,directplay=0,vcrun2010=1,wmdecoder=1";
-    public static final String FALLBACK_WINCOMPONENTS = "direct3d=0,directsound=0,directmusic=0,directshow=0,directplay=0,vcrun2010=0,wmdecoder=0";
+    public static final String FALLBACK_WINCOMPONENTS = "direct3d=1,directsound=1,directmusic=1,directshow=1,directplay=1,vcrun2010=1,wmdecoder=1";
     public static final String DEFAULT_DRIVES = "D:"+Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)+"E:/data/data/app.gamenative/storage";
     public static final byte STARTUP_SELECTION_NORMAL = 0;
     public static final byte STARTUP_SELECTION_ESSENTIAL = 1;
@@ -50,7 +50,7 @@ public class Container {
     private String wineVersion = WineInfo.MAIN_WINE_VERSION.identifier();
     private boolean showFPS;
     private boolean wow64Mode = true;
-    private byte startupSelection = STARTUP_SELECTION_ESSENTIAL;
+    private byte startupSelection = STARTUP_SELECTION_AGGRESSIVE;
     private String cpuList;
     private String cpuListWoW64;
     private String desktopTheme = WineThemeManager.DEFAULT_DESKTOP_THEME;
@@ -66,6 +66,21 @@ public class Container {
     private String lc_all = "";
     private int primaryController = 1;
     private String controllerMapping = new String(new char[XrControllerMapping.values().length]);
+
+    private String graphicsDriverVersion = "25.1.0"; // Default version or fallback
+
+    private ContainerManager containerManager;
+
+
+    public String getGraphicsDriverVersion() {
+        return graphicsDriverVersion;
+    }
+
+    public void setGraphicsDriverVersion(String graphicsDriverVersion) {
+        Log.d("Container", "Setting graphicsDriverVersion: " + graphicsDriverVersion);
+        this.graphicsDriverVersion = graphicsDriverVersion;
+    }
+
 
     public Container(int id) {
         this.id = id;
@@ -378,6 +393,7 @@ public class Container {
             data.put("cpuList", cpuList);
             data.put("cpuListWoW64", cpuListWoW64);
             data.put("graphicsDriver", graphicsDriver);
+            data.put("graphicsDriverVersion", graphicsDriverVersion); // Ensure this is added
             data.put("dxwrapper", dxwrapper);
             if (!dxwrapperConfig.isEmpty()) data.put("dxwrapperConfig", dxwrapperConfig);
             data.put("audioDriver", audioDriver);
@@ -433,6 +449,9 @@ public class Container {
                     break;
                 case "graphicsDriver" :
                     setGraphicsDriver(data.getString(key));
+                    break;
+                case "graphicsDriverVersion":
+                    setGraphicsDriverVersion(data.getString(key));
                     break;
                 case "wincomponents" :
                     setWinComponents(data.getString(key));
@@ -517,7 +536,7 @@ public class Container {
                     data.put("dxwrapper", DEFAULT_DXWRAPPER);
                 }
                 else if (dxwrapper.startsWith("d8vk-") || dxwrapper.startsWith("dxvk-")) {
-                    data.put("dxwrapper", dxwrapper.substring(0, dxwrapper.indexOf("-")));
+                    data.put("dxwrapper", dxwrapper);
                 }
             }
 
