@@ -321,4 +321,5 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         }
 
         return output.toString();
+    }
 }
