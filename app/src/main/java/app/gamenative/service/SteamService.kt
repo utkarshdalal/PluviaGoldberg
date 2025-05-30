@@ -4,10 +4,12 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
+import android.os.SystemClock
 import androidx.room.withTransaction
 import app.gamenative.BuildConfig
 import app.gamenative.PluviaApp
 import app.gamenative.PrefManager
+import app.gamenative.ThreadSafeManifestProvider
 import app.gamenative.data.DepotInfo
 import app.gamenative.data.DownloadInfo
 import app.gamenative.data.Emoticon
@@ -120,8 +122,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -133,8 +137,14 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
+import okhttp3.ConnectionPool
+import okhttp3.Dispatcher
+import okhttp3.OkHttpClient
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -215,7 +225,16 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         private var instance: SteamService? = null
 
+        const val DOWNLOAD_COMPLETE_MARKER = ".download_complete"
+
         private val downloadJobs = ConcurrentHashMap<Int, DownloadInfo>()
+
+        /** Returns true if there is an incomplete download on disk (no complete marker). */
+        fun hasPartialDownload(appId: Int): Boolean {
+            val dir = File(getAppDirPath(appId))
+            val marker = File(dir, DOWNLOAD_COMPLETE_MARKER)
+            return dir.exists() && !marker.exists()
+        }
 
         private var syncInProgress: Boolean = false
 
@@ -249,6 +268,41 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         val familyMembers: List<Int>
             get() = instance!!.familyGroupMembers
+
+        private const val MAX_PARALLEL_DEPOTS   = 4     // instead of all 38
+        private const val CHUNKS_PER_DEPOT      = 10     // was 16
+        private const val CHUNK_TIMEOUT_MS      = 90_000   // was library default 15 s
+
+        fun widenH2Window(client: OkHttpClient) {
+            try {
+                val settingsCls = Class.forName("okhttp3.internal.http2.Settings")
+                val initWinField = settingsCls.getDeclaredField("initialWindowSize")
+                initWinField.isAccessible = true
+                // 16 MiB – same as desktop Steam
+                initWinField.setInt(null, 16 * 1024 * 1024)
+            } catch (e: Exception) {
+                // reflection failed – keep default window, you only lose ~10 %
+            }
+        }
+
+        // single OkHttpClient with larger per-stream timeout
+        object Net {
+            val http by lazy {
+                OkHttpClient.Builder()
+                    .readTimeout(CHUNK_TIMEOUT_MS.toLong(), TimeUnit.MILLISECONDS)
+                    .dispatcher(Dispatcher().apply {
+                        maxRequests          = MAX_PARALLEL_DEPOTS * CHUNKS_PER_DEPOT
+                        maxRequestsPerHost   = MAX_PARALLEL_DEPOTS * CHUNKS_PER_DEPOT
+                    })
+                    .connectionPool(ConnectionPool(
+                        MAX_PARALLEL_DEPOTS * CHUNKS_PER_DEPOT, 5, TimeUnit.MINUTES))
+                    .build()
+                    .also { widenH2Window(it) }
+            }
+        }
+
+        // simple depot-level semaphore
+        private val depotGate = Semaphore(MAX_PARALLEL_DEPOTS)
 
         suspend fun setPersonaState(state: EPersonaState) = withContext(Dispatchers.IO) {
             PrefManager.personaState = state
@@ -294,6 +348,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun isAppInstalled(appId: Int): Boolean {
+            val dir = File(getAppDirPath(appId))
+            val markerFile = File(dir, DOWNLOAD_COMPLETE_MARKER)
             val appDownloadInfo = getAppDownloadInfo(appId)
             val isNotDownloading = appDownloadInfo == null || appDownloadInfo.getProgress() >= 1f
             val appDirPath = Paths.get(getAppDirPath(appId))
@@ -301,7 +357,7 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             // logD("isDownloading: $isNotDownloading && pathExists: $pathExists && appDirPath: $appDirPath")
 
-            return isNotDownloading && pathExists
+            return isNotDownloading && pathExists && markerFile.exists()
         }
 
         fun getAppDlc(appId: Int): Map<Int, DepotInfo> {
@@ -339,6 +395,9 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun deleteApp(appId: Int): Boolean {
+            // Remove any download-complete marker
+            val marker = File(getAppDirPath(appId), DOWNLOAD_COMPLETE_MARKER)
+            if (marker.exists()) marker.delete()
             with(instance!!) {
                 scope.launch {
                     db.withTransaction {
@@ -428,58 +487,59 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
 
-        fun downloadApp(appId: Int, depotIds: List<Int>, branch: String): DownloadInfo? {
-            if (downloadJobs.contains(appId)) {
-                Timber.w("Could not start new download job for $appId since one already exists")
-                return getAppDownloadInfo(appId)
-            }
 
-            if (depotIds.isEmpty()) {
-                Timber.w("No depots to download for $appId")
-                return null
-            }
+        fun downloadApp(
+            appId: Int,
+            depotIds: List<Int>,
+            branch: String,
+        ): DownloadInfo? {
 
-            Timber.i("Found ${depotIds.size} depot(s) to download: $depotIds")
+            if (downloadJobs.contains(appId)) return getAppDownloadInfo(appId)
+            if (depotIds.isEmpty()) return null
 
-            val needsImageFsDownload = !ImageFs.find(instance!!).rootDir.exists() &&
-                !FileUtils.assetExists(instance!!.assets, "imagefs_gamenative.txz")
-            val indexOffset = if (needsImageFsDownload) 1 else 0
+            Timber.i("Starting download for $appId")
 
-            val downloadInfo = DownloadInfo(depotIds.size + indexOffset).also { downloadInfo ->
-                downloadInfo.setDownloadJob(
-                    CoroutineScope(Dispatchers.IO).launch {
-                        // TODO: change downloads to be one item/depot per job and connect them to the game requesting to download them
-                        try {
-                            downloadImageFs(
-                                onDownloadProgress = { downloadInfo.setProgress(it, 0) },
-                                parentScope = this,
-                            ).await()
+            val info = DownloadInfo(depotIds.size).also { di ->
+                di.setDownloadJob(CoroutineScope(Dispatchers.IO).launch {
 
-                            depotIds.forEachIndexed { jobIndex, depotId ->
-                                // TODO: download shared install depots to a common location
-                                ContentDownloader(instance!!.steamClient!!).downloadApp(
-                                    appId = appId,
-                                    depotId = depotId,
-                                    installPath = PrefManager.appInstallPath,
-                                    stagingPath = PrefManager.appStagingPath,
-                                    branch = branch,
-                                    maxDownloads = 4,
-                                    onDownloadProgress = { downloadInfo.setProgress(it, jobIndex + indexOffset) },
-                                    parentScope = coroutineContext.job as CoroutineScope,
-                                ).await()
+                    coroutineScope {
+                        depotIds.mapIndexed { idx, depotId ->
+                            async {
+                                depotGate.acquire()               // ── enter gate
+                                try {
+                                    ContentDownloader(instance!!.steamClient!!)
+                                        .downloadApp(
+                                            appId         = appId,
+                                            depotId       = depotId,
+                                            installPath   = PrefManager.appInstallPath,
+                                            stagingPath   = PrefManager.appStagingPath,
+                                            branch        = branch,
+                                            maxDownloads  = CHUNKS_PER_DEPOT,
+                                            onDownloadProgress = { p ->
+                                                di.setProgress(p, idx)
+                                            },
+                                            parentScope   = this,
+                                        ).await()
+                                } finally {
+                                    depotGate.release()           // ── leave gate
+                                }
                             }
-                        } catch (e: Exception) {
-                            Timber.e(e, "Download failed")
-                        }
-
-                        downloadJobs.remove(appId)
-                    },
-                )
+                        }.awaitAll()
+                    }
+                    downloadJobs.remove(appId)
+                })
             }
 
-            downloadJobs[appId] = downloadInfo
-
-            return downloadInfo
+            downloadJobs[appId] = info
+            var lastPercent = -1
+            info.addProgressListener { p ->
+                val percent = (p * 100).toInt()
+                if (percent != lastPercent) {          // only when it really changed
+                    lastPercent = percent
+                    instance?.notificationHelper?.notify("Downloading: $percent%")
+                }
+            }
+            return info
         }
 
         fun getWindowsLaunchInfos(appId: Int): List<LaunchInfo> {
@@ -980,6 +1040,14 @@ class SteamService : Service(), IChallengeUrlChanged {
             val friend = SteamID(friendID)
             instance?._steamFriends!!.setFriendNickname(friend, value)
         }
+
+        // Add helper to detect if any downloads or cloud sync are in progress
+        fun hasActiveOperations(): Boolean {
+            return syncInProgress || downloadJobs.values.any { it.getProgress() < 1f }
+        }
+
+        // Should service auto-stop when idle (backgrounded)?
+        var autoStopWhenIdle: Boolean = false
     }
 
     override fun onCreate() {
@@ -1025,7 +1093,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 it.withProtocolTypes(PROTOCOL_TYPES)
                 it.withCellID(PrefManager.cellId)
                 it.withServerListProvider(FileServerListProvider(File(serverListPath)))
-                it.withManifestProvider(FileManifestProvider(File(depotManifestsPath)))
+                it.withManifestProvider(ThreadSafeManifestProvider(File(depotManifestsPath).toPath()))
             }
 
             // create our steam client instance
