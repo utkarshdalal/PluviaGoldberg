@@ -280,7 +280,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             get() = instance!!.familyGroupMembers
 
         private const val MAX_PARALLEL_DEPOTS   = 4     // instead of all 38
-        private const val CHUNKS_PER_DEPOT      = 10     // was 16
+        private const val CHUNKS_PER_DEPOT      = 8     // was 16
         private const val CHUNK_TIMEOUT_MS      = 90_000   // was library default 15 s
 
         fun widenH2Window(client: OkHttpClient) {

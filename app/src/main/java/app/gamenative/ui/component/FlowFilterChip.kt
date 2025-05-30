@@ -1,12 +1,21 @@
 package app.gamenative.ui.component
 
 import android.content.res.Configuration
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,15 +32,40 @@ fun FlowFilterChip(
     label: @Composable (() -> Unit),
     leadingIcon: @Composable (() -> Unit),
 ) {
-    FilterChip(
-        modifier = Modifier
-            .padding(end = 8.dp)
-            .then(modifier),
-        onClick = onClick,
-        label = label,
-        selected = selected,
-        leadingIcon = leadingIcon,
-    )
+    val chipModifier = Modifier
+        .padding(end = 8.dp)
+        .then(modifier)
+    if (selected) {
+        Button(
+            modifier = chipModifier,
+            onClick = onClick,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            leadingIcon()
+            Spacer(modifier = Modifier.width(8.dp))
+            label()
+        }
+    } else {
+        OutlinedButton(
+            modifier = chipModifier,
+            onClick = onClick,
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.primary
+            ),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            leadingIcon()
+            Spacer(modifier = Modifier.width(8.dp))
+            label()
+        }
+    }
 }
 
 /***********

@@ -44,6 +44,10 @@ internal fun AppItem(
     appInfo: LibraryItem,
     onClick: () -> Unit,
 ) {
+    // Determine download and install state
+    val downloadInfo = remember(appInfo.appId) { SteamService.getAppDownloadInfo(appInfo.appId) }
+    val downloadProgress = remember(downloadInfo) { downloadInfo?.getProgress() ?: 0f }
+    val isDownloading = downloadInfo != null && downloadProgress < 1f
     val isInstalled = remember(appInfo.appId) {
         SteamService.isAppInstalled(appInfo.appId)
     }
@@ -108,27 +112,40 @@ internal fun AppItem(
                     modifier = Modifier.padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Status indicator
+                    // Status indicator: Installing / Installed / Not installed
+                    val statusText = when {
+                        isDownloading -> "Installing"
+                        isInstalled -> "Installed"
+                        else -> "Not installed"
+                    }
+                    val statusColor = when {
+                        isDownloading || isInstalled -> MaterialTheme.colorScheme.tertiary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Status dot
                         Box(
                             modifier = Modifier
                                 .size(8.dp)
-                                .background(
-                                    color = if (isInstalled)
-                                        MaterialTheme.colorScheme.tertiary
-                                    else
-                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                    shape = CircleShape
-                                )
+                                .background(color = statusColor, shape = CircleShape)
                         )
+                        // Status text
                         Text(
-                            text = if (isInstalled) "Installed" else "Not installed",
+                            text = statusText,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = statusColor
                         )
+                        // Download percentage when installing
+                        if (isDownloading) {
+                            Text(
+                                text = "${(downloadProgress * 100).toInt()}%",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = statusColor
+                            )
+                        }
                     }
 
                     // Only show game size for installed games
