@@ -73,6 +73,9 @@ class MainActivity : ComponentActivity() {
 
     private var index = totalIndex++
 
+    // Add a property to keep a reference to the orientation sensor listener
+    private var orientationSensorListener: OrientationEventListener? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.rgb(30, 30, 30)),
@@ -162,12 +165,29 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // disable auto-stop when returning to foreground
+        SteamService.autoStopWhenIdle = false
         PostHog.capture(event = "app_foregrounded")
     }
 
     override fun onPause() {
         PostHog.capture(event = "app_backgrounded")
         super.onPause()
+    }
+
+    // Add cleanup when app is backgrounded
+    override fun onStop() {
+        super.onStop()
+        orientationSensorListener?.disable()
+        orientationSensorListener = null
+        // enable auto-stop behavior if backgrounded
+        SteamService.autoStopWhenIdle = true
+
+        // stop SteamService only if no downloads or sync are in progress
+        if (!isChangingConfigurations && SteamService.isConnected && !SteamService.hasActiveOperations()) {
+            Timber.i("Stopping SteamService - no active operations")
+            SteamService.stop()
+        }
     }
 
     // override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -218,21 +238,20 @@ class MainActivity : ComponentActivity() {
     private fun startOrientator() {
         // Log.d("MainActivity$index", "Orientator starting up")
 
-        val orientationEventListener = object : OrientationEventListener(this) {
+        // create and register the orientation listener
+        orientationSensorListener = object : OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
                 currentOrientationChangeValue = if (orientation != ORIENTATION_UNKNOWN) {
                     orientation
                 } else {
                     currentOrientationChangeValue
                 }
-
                 setOrientationTo(currentOrientationChangeValue, availableOrientations)
             }
         }
 
-        if (orientationEventListener.canDetectOrientation()) {
-            orientationEventListener.enable()
-        }
+        // enable if possible
+        orientationSensorListener?.takeIf { it.canDetectOrientation() }?.enable()
     }
 
     private fun setOrientationTo(orientation: Int, conformTo: EnumSet<Orientation>) {

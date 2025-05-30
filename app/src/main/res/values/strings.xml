@@ -110,4 +110,7 @@
     <string name="box86_64_env_var_help__dynarec_forward">Defines the max allowed forward value when building Block</string>
     <string name="box86_64_env_var_help__dynarec_callret">Optimization of CALL/RET opcodes</string>
     <string name="box86_64_env_var_help__dynarec_wait">Defines whether or not Dynarec will wait for the FillBlock to be ready</string>
+
+    <string name="resume_download">Resume</string>
+    <string name="pause_download">Pause</string>
 </resources>

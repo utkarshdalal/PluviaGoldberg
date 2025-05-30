@@ -96,7 +96,10 @@ import timber.log.Timber
 import app.gamenative.PluviaApp
 import app.gamenative.ui.enums.Orientation
 import app.gamenative.events.AndroidEvent
+import app.gamenative.service.SteamService.Companion.DOWNLOAD_COMPLETE_MARKER
+import app.gamenative.service.SteamService.Companion.getAppDirPath
 import com.posthog.PostHog
+import java.io.File
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -153,6 +156,16 @@ fun AppScreen(
         val onDownloadProgress: (Float) -> Unit = {
             if (it >= 1f) {
                 isInstalled = SteamService.isAppInstalled(appId)
+                downloadInfo = null
+                isInstalled = true
+                try {
+                    val dir = File(getAppDirPath(appId))
+                    dir.mkdirs()
+                    File(dir, DOWNLOAD_COMPLETE_MARKER).createNewFile()
+                    Timber.i("Wrote download complete marker for $appId at $dir")
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to write download complete marker for $appId")
+                }
             }
             downloadProgress = it
         }
@@ -292,8 +305,9 @@ fun AppScreen(
             isInstalled = isInstalled,
             isDownloading = isDownloading(),
             downloadProgress = downloadProgress,
-            onDownloadBtnClick = {
+            onDownloadInstallClick = {
                 if (isDownloading()) {
+                    // Prompt to cancel ongoing download
                     msgDialogState = MessageDialogState(
                         visible = true,
                         type = DialogType.CANCEL_APP_DOWNLOAD,
@@ -302,18 +316,19 @@ fun AppScreen(
                         confirmBtnText = context.getString(R.string.yes),
                         dismissBtnText = context.getString(R.string.no),
                     )
+                } else if (SteamService.hasPartialDownload(appId)) {
+                    // Resume incomplete download
+                    CoroutineScope(Dispatchers.IO).launch {
+                        downloadInfo = SteamService.downloadApp(appId)
+                    }
                 } else if (!isInstalled) {
-                    val depots = SteamService.getDownloadableDepots(appId)
+                    // New install: check available space
+                    val depots = SteamService.getDownloadableDepots(appInfo.id)
                     Timber.d("There are ${depots.size} depots belonging to $appId")
-                    // TODO: get space available based on where user wants to install
-                    val availableBytes =
-                        StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
+                    val availableBytes = StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
                     val availableSpace = StorageUtils.formatBinarySize(availableBytes)
-                    // TODO: un-hardcode "public" branch
                     val downloadSize = StorageUtils.formatBinarySize(
-                        depots.values.sumOf {
-                            it.manifests["public"]?.download ?: 0
-                        },
+                        depots.values.sumOf { it.manifests["public"]?.download ?: 0 }
                     )
                     val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0 }
                     val installSize = StorageUtils.formatBinarySize(installBytes)
@@ -340,12 +355,31 @@ fun AppScreen(
                         )
                     }
                 } else {
+                    // Already installed: launch app
                     PostHog.capture(event = "game_launched",
                         properties = mapOf(
                             "game_name" to appInfo.name
                         ))
                     onClickPlay(false)
                 }
+            },
+            onPauseResumeClick = {
+                if (isDownloading()) {
+                    downloadInfo?.cancel()
+                    downloadInfo = null
+                } else {
+                    downloadInfo = SteamService.downloadApp(appId)
+                }
+            },
+            onDeleteDownloadClick = {
+                msgDialogState = MessageDialogState(
+                    visible = true,
+                    type = DialogType.CANCEL_APP_DOWNLOAD,
+                    title = context.getString(R.string.cancel_download_prompt_title),
+                    message = "Delete all downloaded data for this game?",
+                    confirmBtnText = context.getString(R.string.yes),
+                    dismissBtnText = context.getString(R.string.no)
+                )
             },
             onBack = onBack,
             optionsMenu = arrayOf(
@@ -355,7 +389,7 @@ fun AppScreen(
                         // TODO add option to view web page externally or internally
                         val browserIntent = Intent(
                             Intent.ACTION_VIEW,
-                            (Constants.Library.STORE_URL + appId).toUri(),
+                            (Constants.Library.STORE_URL + appInfo.id).toUri(),
                         )
                         context.startActivity(browserIntent)
                     },
@@ -410,7 +444,7 @@ fun AppScreen(
                                 AppOptionMenuType.Uninstall,
                                 onClick = {
                                     val sizeOnDisk = StorageUtils.formatBinarySize(
-                                        StorageUtils.getFolderSize(SteamService.getAppDirPath(appId)),
+                                        StorageUtils.getFolderSize(SteamService.getAppDirPath(appInfo.id)),
                                     )
                                     // TODO: show loading screen of delete progress
                                     msgDialogState = MessageDialogState(
@@ -440,7 +474,9 @@ private fun AppScreenContent(
     isInstalled: Boolean,
     isDownloading: Boolean,
     downloadProgress: Float,
-    onDownloadBtnClick: () -> Unit,
+    onDownloadInstallClick: () -> Unit,
+    onPauseResumeClick: () -> Unit,
+    onDeleteDownloadClick: () -> Unit,
     onBack: () -> Unit = {},
     vararg optionsMenu: AppMenuOption,
 ) {
@@ -618,47 +654,66 @@ private fun AppScreenContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Play/Install/Cancel button
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = onDownloadBtnClick,
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    ),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    val text = if (isInstalled) {
-                        stringResource(R.string.run_app)
-                    } else if (isDownloading) {
-                        stringResource(R.string.cancel)
-                    } else {
-                        stringResource(R.string.install_app)
-                    }
-                    Text(
-                        text = text,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-
-                // Uninstall/Secondary button (only if installed)
-                if (isInstalled) {
-                    OutlinedButton(
+                // Pause/Resume and Delete when downloading or paused
+                // Determine if there's a partial download (in-session or from ungraceful close)
+                val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || SteamService.hasPartialDownload(appInfo.id)
+                if (isDownloading || isPartiallyDownloaded) {
+                    // Pause or Resume
+                    Button(
                         modifier = Modifier.weight(1f),
-                        onClick = {
-                            optionsMenu.find { it.optionType == AppOptionMenuType.Uninstall }?.onClick?.invoke()
-                        },
+                        onClick = onPauseResumeClick,
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(16.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.uninstall),
+                            text = if (isDownloading) stringResource(R.string.pause_download)
+                                   else stringResource(R.string.resume_download),
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                         )
+                    }
+                    // Delete (Cancel) download data
+                    OutlinedButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onDeleteDownloadClick,
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Text(stringResource(R.string.delete_app), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
+                    }
+                } else {
+                    // Install or Play button
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        onClick = onDownloadInstallClick,
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        val text = if (isInstalled) stringResource(R.string.run_app)
+                                   else stringResource(R.string.install_app)
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                    // Uninstall if already installed
+                    if (isInstalled) {
+                        OutlinedButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = { optionsMenu.find { it.optionType == AppOptionMenuType.Uninstall }?.onClick?.invoke() },
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                            contentPadding = PaddingValues(16.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.uninstall),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
                     }
                 }
             }
@@ -908,7 +963,9 @@ private fun Preview_AppScreen() {
                 isInstalled = false,
                 isDownloading = isDownloading,
                 downloadProgress = .50f,
-                onDownloadBtnClick = { isDownloading = !isDownloading },
+                onDownloadInstallClick = { isDownloading = !isDownloading },
+                onPauseResumeClick = { },
+                onDeleteDownloadClick = { },
                 optionsMenu = AppOptionMenuType.entries.map {
                     AppMenuOption(
                         optionType = it,
