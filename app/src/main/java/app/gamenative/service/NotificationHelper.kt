@@ -16,7 +16,7 @@ class NotificationHelper(private val context: Context) {
 
     companion object {
         private const val CHANNEL_ID = "pluvia_foreground_service"
-        private const val CHANNEL_NAME = "gamenative Foreground Service"
+        private const val CHANNEL_NAME = "GameNative Foreground Service"
         private const val NOTIFICATION_ID = 1
 
         const val ACTION_EXIT = "com.oxgames.pluvia.EXIT"
@@ -35,7 +35,7 @@ class NotificationHelper(private val context: Context) {
             CHANNEL_NAME,
             NotificationManager.IMPORTANCE_LOW,
         ).apply {
-            description = "Allows to display gamenative foreground notifications"
+            description = "Allows to display GameNative foreground notifications"
             setShowBadge(false)
         }
 

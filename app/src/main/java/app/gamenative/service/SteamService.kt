@@ -1,8 +1,13 @@
 package app.gamenative.service
 
+import android.app.Notification
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkRequest
+import android.net.NetworkCapabilities
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.room.withTransaction
@@ -201,6 +206,11 @@ class SteamService : Service(), IChallengeUrlChanged {
 
     // The current shared family group the logged in user is joined to.
     private var familyGroupMembers: ArrayList<Int> = arrayListOf()
+
+    // Connectivity management for Wi-Fi-only downloads
+    private lateinit var connectivityManager: ConnectivityManager
+    private lateinit var networkCallback: ConnectivityManager.NetworkCallback
+    private var isWifiConnected: Boolean = true
 
     companion object {
         private val PICS_CHANGE_CHECK_DELAY = 60.seconds
@@ -413,6 +423,11 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun downloadApp(appId: Int): DownloadInfo? {
+            // Enforce Wi-Fi-only downloads
+            if (PrefManager.downloadOnWifiOnly && instance?.isWifiConnected == false) {
+                instance?.notificationHelper?.notify("Not connected to Wi-Fi")
+                return null
+            }
             return getAppInfoOf(appId)?.let { appInfo ->
                 Timber.i("App contains ${appInfo.depots.size} depot(s): ${appInfo.depots.keys}")
                 downloadApp(appId, getDownloadableDepots(appId).keys.toList(), "public")
@@ -493,7 +508,11 @@ class SteamService : Service(), IChallengeUrlChanged {
             depotIds: List<Int>,
             branch: String,
         ): DownloadInfo? {
-
+            // Enforce Wi-Fi-only downloads
+            if (PrefManager.downloadOnWifiOnly && instance?.isWifiConnected == false) {
+                instance?.notificationHelper?.notify("Not connected to Wi-Fi")
+                return null
+            }
             if (downloadJobs.contains(appId)) return getAppDownloadInfo(appId)
             if (depotIds.isEmpty()) return null
 
@@ -1057,6 +1076,36 @@ class SteamService : Service(), IChallengeUrlChanged {
         PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
         notificationHelper = NotificationHelper(applicationContext)
+        // Setup Wi-Fi connectivity monitoring for download-on-WiFi-only
+        connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        // Determine initial Wi-Fi state
+        val activeNetwork = connectivityManager.activeNetwork
+        val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+        isWifiConnected = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+        // Register callback for Wi-Fi connectivity
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                Timber.d("Wifi available")
+                isWifiConnected = true
+            }
+            override fun onLost(network: Network) {
+                Timber.d("Wifi lost")
+                isWifiConnected = false
+                if (PrefManager.downloadOnWifiOnly) {
+                    // Pause all ongoing downloads
+                    for ((_, info) in downloadJobs) {
+                        Timber.d("Cancelling job")
+                        info.cancel()
+                    }
+                    downloadJobs.clear()
+                    notificationHelper.notify("Download paused – waiting for Wi-Fi")
+                }
+            }
+        }
+        val networkRequest = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .build()
+        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
 
         // To view log messages in android logcat properly
         val logger = object : LogListener {
@@ -1171,6 +1220,9 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         stopForeground(STOP_FOREGROUND_REMOVE)
         notificationHelper.cancel()
+
+        // Unregister Wi-Fi connectivity callback
+        connectivityManager.unregisterNetworkCallback(networkCallback)
 
         scope.launch { stop() }
     }

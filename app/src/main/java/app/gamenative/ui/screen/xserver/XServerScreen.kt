@@ -1,6 +1,7 @@
 package app.gamenative.ui.screen.xserver
 
 import android.content.Context
+import android.util.Log
 import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
@@ -202,10 +203,12 @@ fun XServerScreen(
 
                         NavigationDialog.ACTION_EXIT_GAME -> {
                             if (currentAppInfo != null) {
-                                PostHog.capture(event = "game_closed",
+                                PostHog.capture(
+                                    event = "game_closed",
                                     properties = mapOf(
-                                        "game_name" to currentAppInfo.name
-                                    ))
+                                        "game_name" to currentAppInfo.name,
+                                    ),
+                                )
                             } else {
                                 PostHog.capture(event = "game_closed")
                             }
@@ -769,7 +772,7 @@ private fun setupXEnvironment(
 
         val wow64Mode = container.isWoW64Mode
         //            String guestExecutable = wineInfo.getExecutable(this, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand();
-        val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + getWineStartCommand(appId, container, bootToContainer, appLaunchInfo)
+        val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + getWineStartCommand(appId, container, bootToContainer, appLaunchInfo, envVars)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
@@ -887,11 +890,12 @@ private fun getWineStartCommand(
     container: Container,
     bootToContainer: Boolean,
     appLaunchInfo: LaunchInfo?,
+    envVars: EnvVars,
 ): String {
     val tempDir = File(container.getRootDir(), ".wine/drive_c/windows/temp")
     FileUtils.clear(tempDir)
 
-    // Log.d("XServerScreen", "Converting $appLocalExe to wine start command")
+    Timber.tag("XServerScreen").d("appLaunchInfo is $appLaunchInfo")
     val args = if (bootToContainer || appLaunchInfo == null) {
         "\"wfm.exe\""
     } else {
@@ -905,7 +909,8 @@ private fun getWineStartCommand(
             Timber.e("Could not locate game drive")
             'D'
         }
-        "/dir $drive:/${appLaunchInfo.workingDir} \"${appLaunchInfo.executable}\""
+        envVars.put("WINEPATH", "$drive:/${appLaunchInfo.workingDir}")
+        "\"$drive:/${appLaunchInfo.executable}\""
     }
 
     return "winhandler.exe $args"

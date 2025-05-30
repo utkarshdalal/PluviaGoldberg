@@ -64,14 +64,14 @@ fun SettingsGroupInfo() {
         SettingsMenuLink(
             colors = settingsTileColors(),
             title = { Text(text = "Libraries Used") },
-            subtitle = { Text(text = "See what technologies make gamenative possible") },
+            subtitle = { Text(text = "See what technologies make GameNative possible") },
             onClick = { showLibrariesDialog = true },
         )
 
         SettingsMenuLink(
             colors = settingsTileColors(),
             title = { Text(text = "Privacy Policy") },
-            subtitle = { Text(text = "Opens a link to gamenative's privacy policy") },
+            subtitle = { Text(text = "Opens a link to GameNative's privacy policy") },
             onClick = {
                 uriHandler.openUri(Constants.Misc.PRIVACY_LINK)
             },
