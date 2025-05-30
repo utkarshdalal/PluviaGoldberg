@@ -315,4 +315,8 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             if (pid != -1) ProcessHelper.resumeProcess(pid);
         }
     }
+
+    public String execShellCommand(String command){
+        return "";
+    }
 }

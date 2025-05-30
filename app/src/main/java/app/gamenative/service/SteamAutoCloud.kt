@@ -66,10 +66,11 @@ object SteamAutoCloud {
             fileList.pathPrefixes
                 .map {
                     val matchResults = Regex("%\\w+%").findAll(it).map { it.value }.toList()
+                    val bare = if (it.startsWith("ROOT_MOD")) listOf("ROOT_MOD") else emptyList()
 
                     Timber.i("Mapping prefix $it and found $matchResults")
 
-                    matchResults
+                    matchResults + bare
                 }
                 .flatten()
                 .distinct()

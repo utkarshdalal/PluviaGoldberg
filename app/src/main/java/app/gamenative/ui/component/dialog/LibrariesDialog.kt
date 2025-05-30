@@ -17,17 +17,19 @@ fun LibrariesDialog(
         icon = Icons.Default.Info,
         title = "Libraries Used",
         message = """
+                Pluvia - github.com/oxters168/Pluvia
                 JavaSteam - github.com/Longi94/JavaSteam
                 Winlator - github.com/brunodev85/winlator
+                Winlator Cmod - github.com/coffincolors/winlator/
                 Ubuntu RootFs - releases.ubuntu.com/focal
                 Wine - winehq.org
                 Box86/Box64 - box86.org
-                PRoot - proot-me.github.io
                 Mesa (Turnip/Zink/VirGL) - mesa3d.org
                 DXVK - github.com/doitsujin/dxvk
                 VKD3D - gitlab.winehq.org/wine/vkd3d
                 D8VK - github.com/AlpyneDreams/d8vk
                 CNC DDraw - github.com/FunkyFr3sh/cnc-ddraw
+                Goldberg - gitlab.com/Mr_Goldberg/goldberg_emulator
         """.trimIndent(),
     )
 }

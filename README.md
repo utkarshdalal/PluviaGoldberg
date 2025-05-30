@@ -23,7 +23,7 @@ Pluvia is a lightweight unofficial Steam client for Android with the ability to 
 
 [Playing Balatro (DRM protected game)](https://github.com/user-attachments/assets/cbeab580-f537-4c88-b908-9510f1c27053)
 
-> NOTE: This project is **NOT** affilated, endorsed, sponsored, or developed by __Valve Corporation__. Do not report any bugs found in this project to them. 
+> NOTE: This project is **NOT** affilated, endorsed, sponsored, or developed by __Valve Corporation__. Do not report any bugs found in this project to them.
 > Steam is a trademark of the Valve Corporation
 
 ## Features
@@ -34,29 +34,29 @@ Pluvia currently provides these features:
 - View and download games through the app.
 - Play games using [Winlator](https://github.com/brunodev85/winlator) built into the app. (Compatibility with some DRM-protected games is improved via Goldberg Emulator integration).
 - Configure the game containers to use different options to improve the performance of each game.
-- Steam Cloud integration for your cloud saves, allowing you to resume where you left off. 
+- Steam Cloud integration for your cloud saves, allowing you to resume where you left off.
 - View your friends list. (Note: chat and friend management in the works too)
 
 &ast; Existing issues or limitations that occur with the actual Winlator app will mostly apply here when running a game.
 
-See the [Wiki](https://github.com/oxters168/Pluvia/wiki) for more information.
+See the [Wiki](https://github.com/utkarshdalal/GameNative/wiki) for more information.
 
 
-See the [compatibility repo](https://github.com/oxters168/PluviaCompat) to check if your game runs.
+See the [compatibility repo](https://github.com/utkarshdalal/GameNativeCompat) to check if your game runs.
 
 ## Development
-Want to contribute? 
+Want to contribute?
 
-Check out [Contributing](https://github.com/oxters168/Pluvia/wiki/Contributing) in the Wiki for information on how to get started. 
+Check out [Contributing](https://github.com/utkarshdalal/GameNative/wiki/Contributing) in the Wiki for information on how to get started.
 
 Also check out the [project board](https://github.com/users/oxters168/projects/1) to see what issues, features, and ideas are being tracked.
 
-See an issue, bug, or something isn't right? 
+See an issue, bug, or something isn't right?
 
-File an [issue](https://github.com/oxters168/Pluvia/issues) and let us know!
+File an [issue](https://github.com/utkarshdalal/GameNative/issues) and let us know!
 
 ## License
-[GPL 3.0](https://github.com/oxters168/Pluvia/blob/master/LICENSE)
+[GPL 3.0](https://github.com/utkarshdalal/GameNative/blob/master/LICENSE)
 
 ## Privacy Policy
-[Privicy Policy](https://github.com/oxters168/Pluvia/blob/master/PrivacyPolicy/README.md)
+[Privicy Policy](https://github.com/utkarshdalal/GameNative/blob/master/PrivacyPolicy/README.md)

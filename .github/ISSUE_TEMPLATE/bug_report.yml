@@ -46,8 +46,8 @@ body:
   - type: input
     id: pluvia-version
     attributes:
-      label: gamenative Version
-      description: "What version of gamenative are you using? (ie: 1.3.0)"
+      label: GameNativeVersion
+      description: "What version of GameNative are you using? (ie: 1.3.0)"
     validations:
       required: true
 

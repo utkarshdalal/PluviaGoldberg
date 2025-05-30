@@ -129,8 +129,8 @@ fun PluviaMain(
                                 msgDialogState = MessageDialogState(
                                     visible = true,
                                     type = DialogType.SUPPORT,
-                                    message = "Thank you for using gamenative, please consider supporting " +
-                                        "us by tipping whatever amount is comfortable to you",
+                                    message = "Thank you for using GameNative, please consider supporting " +
+                                        "the original devs of Pluvia by tipping whatever amount is comfortable to you",
                                     confirmBtnText = "Tip",
                                     dismissBtnText = "Close",
                                 )

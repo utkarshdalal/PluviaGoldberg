@@ -100,6 +100,10 @@ import app.gamenative.service.SteamService.Companion.DOWNLOAD_COMPLETE_MARKER
 import app.gamenative.service.SteamService.Companion.getAppDirPath
 import com.posthog.PostHog
 import java.io.File
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import app.gamenative.PrefManager
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -480,9 +484,15 @@ private fun AppScreenContent(
     onBack: () -> Unit = {},
     vararg optionsMenu: AppMenuOption,
 ) {
-    val scrollState = rememberScrollState()
-    var optionsMenuVisible by remember { mutableStateOf(false) }
+    // Determine Wi-Fi connectivity for 'Wi-Fi only' preference
     val context = LocalContext.current
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+    val wifiConnected = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+    val wifiAllowed = !PrefManager.downloadOnWifiOnly || wifiConnected
+    val scrollState = rememberScrollState()
+
+    var optionsMenuVisible by remember { mutableStateOf(false) }
 
     // Compute last played timestamp from local install folder
     val lastPlayedText by remember(appInfo.id, isInstalled) {
@@ -657,9 +667,13 @@ private fun AppScreenContent(
                 // Pause/Resume and Delete when downloading or paused
                 // Determine if there's a partial download (in-session or from ungraceful close)
                 val isPartiallyDownloaded = (downloadProgress > 0f && downloadProgress < 1f) || SteamService.hasPartialDownload(appInfo.id)
+                // Disable resume when Wi-Fi only is enabled and there's no Wi-Fi
+                val isResume = !isDownloading && isPartiallyDownloaded
+                val pauseResumeEnabled = if (isResume) wifiAllowed else true
                 if (isDownloading || isPartiallyDownloaded) {
                     // Pause or Resume
                     Button(
+                        enabled = pauseResumeEnabled,
                         modifier = Modifier.weight(1f),
                         onClick = onPauseResumeClick,
                         shape = RoundedCornerShape(16.dp),
@@ -684,8 +698,12 @@ private fun AppScreenContent(
                         Text(stringResource(R.string.delete_app), style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold))
                     }
                 } else {
+                    // Disable install when Wi-Fi only is enabled and there's no Wi-Fi
+                    val isInstall = !isInstalled
+                    val installEnabled = if (isInstall) wifiAllowed else true
                     // Install or Play button
                     Button(
+                        enabled = installEnabled,
                         modifier = Modifier.weight(1f),
                         onClick = onDownloadInstallClick,
                         shape = RoundedCornerShape(16.dp),

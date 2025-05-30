@@ -24,7 +24,7 @@ class PluviaApp : SplitCompatApplication() {
     override fun onCreate() {
         super.onCreate()
 
-        // Allows to find resource streams not closed within gamenative and JavaSteam
+        // Allows to find resource streams not closed within GameNative and JavaSteam
         if (BuildConfig.DEBUG) {
             StrictMode.setVmPolicy(
                 StrictMode.VmPolicy.Builder()

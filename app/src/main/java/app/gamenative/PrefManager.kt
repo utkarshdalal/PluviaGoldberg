@@ -462,4 +462,12 @@ object PrefManager {
         set(value) {
             setPref(OPEN_WEB_LINKS_EXTERNALLY, value)
         }
+
+    // Whether to download games only over Wi-Fi.
+    private val DOWNLOAD_ON_WIFI_ONLY = booleanPreferencesKey("download_on_wifi_only")
+    var downloadOnWifiOnly: Boolean
+        get() = getPref(DOWNLOAD_ON_WIFI_ONLY, true)
+        set(value) {
+            setPref(DOWNLOAD_ON_WIFI_ONLY, value)
+        }
 }

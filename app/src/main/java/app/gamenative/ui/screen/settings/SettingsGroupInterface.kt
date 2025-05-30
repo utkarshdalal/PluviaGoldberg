@@ -39,77 +39,7 @@ fun SettingsGroupInterface(
     var openStartScreenDialog by rememberSaveable { mutableStateOf(false) }
     var startScreenOption by rememberSaveable(openStartScreenDialog) { mutableStateOf(PrefManager.startScreen) }
 
-    SingleChoiceDialog(
-        openDialog = openAppThemeDialog,
-        icon = Icons.Default.BrightnessMedium,
-        title = "App Theme",
-        items = AppTheme.entries.map { it.text },
-        onSelected = {
-            val entry = AppTheme.entries[it]
-            onAppTheme(entry)
-        },
-        currentItem = appTheme.ordinal,
-        onDismiss = {
-            openAppThemeDialog = false
-        },
-    )
-
-    SingleChoiceDialog(
-        openDialog = openAppPaletteDialog,
-        icon = Icons.Default.ColorLens,
-        title = "Palette Style",
-        items = PaletteStyle.entries.map { it.name },
-        onSelected = {
-            val entry = PaletteStyle.entries[it]
-            onPaletteStyle(entry)
-        },
-        currentItem = paletteStyle.ordinal,
-        onDismiss = {
-            openAppPaletteDialog = false
-        },
-    )
-
-    SingleChoiceDialog(
-        openDialog = openStartScreenDialog,
-        icon = Icons.Default.Map,
-        title = "Start Screen",
-        items = HomeDestination.entries.map { context.getString(it.title) },
-        onSelected = {
-            val entry = HomeDestination.entries[it]
-            startScreenOption = entry
-            PrefManager.startScreen = entry
-        },
-        currentItem = startScreenOption.ordinal,
-        onDismiss = {
-            openStartScreenDialog = false
-        },
-    )
-
     SettingsGroup(title = { Text(text = "Interface") }) {
-        SettingsMenuLink(
-            colors = settingsTileColors(),
-            title = { Text(text = "Start Destination") },
-            subtitle = { Text(text = "Choose between Library, Downloads, or Friends") },
-            onClick = {
-                openStartScreenDialog = true
-            },
-        )
-        SettingsMenuLink(
-            colors = settingsTileColors(),
-            title = { Text(text = "App Theme") },
-            subtitle = { Text(text = "Choose between Day, Night, or Auto") },
-            onClick = {
-                openAppThemeDialog = true
-            },
-        )
-        SettingsMenuLink(
-            colors = settingsTileColors(),
-            title = { Text(text = "Palette Style") },
-            subtitle = { Text(text = "Change the Material Design 3 color palette") },
-            onClick = {
-                openAppPaletteDialog = true
-            },
-        )
         SettingsSwitch(
             colors = settingsTileColorsAlt(),
             title = { Text(text = "Open web links externally") },
@@ -118,6 +48,21 @@ fun SettingsGroupInterface(
             onCheckedChange = {
                 openWebLinks = it
                 PrefManager.openWebLinksExternally = it
+            },
+        )
+    }
+
+    // Downloads settings
+    SettingsGroup(title = { Text(text = "Downloads") }) {
+        var wifiOnlyDownload by rememberSaveable { mutableStateOf(PrefManager.downloadOnWifiOnly) }
+        SettingsSwitch(
+            colors = settingsTileColorsAlt(),
+            title = { Text(text = "Download only over Wi-Fi") },
+            subtitle = { Text(text = "Prevent downloads on cellular data") },
+            state = wifiOnlyDownload,
+            onCheckedChange = {
+                wifiOnlyDownload = it
+                PrefManager.downloadOnWifiOnly = it
             },
         )
     }

@@ -19,6 +19,7 @@ enum class PathType {
     MacHome,
     MacAppSupport,
     None,
+    Root,
     ;
 
     /**
@@ -64,6 +65,13 @@ enum class PathType {
                 "/drive_c/users/",
                 ImageFs.USER,
                 "Saved Games/",
+            ).toString()
+            Root -> Paths.get(
+                ImageFs.find(context).rootDir.absolutePath,
+                ImageFs.WINEPREFIX,
+                "/drive_c/users/",
+                ImageFs.USER,
+                "",
             ).toString()
             else -> {
                 Timber.e("Did not recognize or unsupported path type $this")
@@ -121,6 +129,9 @@ enum class PathType {
                 "%${MacAppSupport.name.lowercase()}%",
                 MacAppSupport.name.lowercase(),
                 -> MacAppSupport
+                "%ROOT_MOD%",
+                "ROOT_MOD",
+                -> Root
                 else -> {
                     if (keyValue != null) {
                         Timber.w("Could not identify $keyValue as PathType")
