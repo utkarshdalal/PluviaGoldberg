@@ -546,6 +546,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                         }.awaitAll()
                     }
                     downloadJobs.remove(appId)
+                    // Write complete marker on disk
+                    try {
+                        val dir = File(getAppDirPath(appId))
+                        dir.mkdirs()
+                        File(dir, DOWNLOAD_COMPLETE_MARKER).createNewFile()
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to write download complete marker for $appId")
+                    }
                 })
             }
 
