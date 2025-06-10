@@ -372,6 +372,13 @@ fun ContainerConfigDialog(
                         SettingsGroup(
                             title = { Text(text = "General") },
                         ) {
+                            OutlinedTextField(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                value = config.execArgs,
+                                onValueChange = { config = config.copy(execArgs = it) },
+                                label = { Text(text = "Exec Arguments") },
+                                placeholder = { Text(text = "-dx11") },
+                            )
                             SettingsListDropdown(
                                 colors = settingsTileColors(),
                                 title = { Text(text = "Screen Size") },

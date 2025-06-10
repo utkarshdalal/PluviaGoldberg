@@ -69,6 +69,8 @@ public class Container {
 
     private String graphicsDriverVersion = "25.1.0"; // Default version or fallback
 
+    private String execArgs = "-dx11"; // Default exec arguments
+    
     private ContainerManager containerManager;
 
 
@@ -81,6 +83,13 @@ public class Container {
         this.graphicsDriverVersion = graphicsDriverVersion;
     }
 
+    public String getExecArgs() {
+        return execArgs;
+    }
+
+    public void setExecArgs(String execArgs) {
+        this.execArgs = execArgs != null ? execArgs : "";
+    }
 
     public Container(int id) {
         this.id = id;
@@ -414,6 +423,7 @@ public class Container {
             data.put("lc_all", lc_all);
             data.put("primaryController", primaryController);
             data.put("controllerMapping", controllerMapping);
+            data.put("execArgs", execArgs);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -518,6 +528,9 @@ public class Container {
                     break;
                 case "controllerMapping" :
                     controllerMapping = data.getString(key);
+                    break;
+                case "execArgs" :
+                    setExecArgs(data.getString(key));
                     break;
             }
         }

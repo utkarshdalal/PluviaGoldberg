@@ -772,7 +772,9 @@ private fun setupXEnvironment(
 
         val wow64Mode = container.isWoW64Mode
         //            String guestExecutable = wineInfo.getExecutable(this, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand();
-        val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + getWineStartCommand(appId, container, bootToContainer, appLaunchInfo, envVars)
+        val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + 
+            getWineStartCommand(appId, container, bootToContainer, appLaunchInfo, envVars) + 
+            (if (container.execArgs.isNotEmpty()) " " + container.execArgs else "")
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
 
