@@ -772,11 +772,14 @@ private fun setupXEnvironment(
 
         val wow64Mode = container.isWoW64Mode
         //            String guestExecutable = wineInfo.getExecutable(this, wow64Mode)+" explorer /desktop=shell,"+xServer.screenInfo+" "+getWineStartCommand();
-        val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " + 
-            getWineStartCommand(appId, container, bootToContainer, appLaunchInfo, envVars) + 
+        val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " +
+            getWineStartCommand(appId, container, bootToContainer, appLaunchInfo, envVars) +
             (if (container.execArgs.isNotEmpty()) " " + container.execArgs else "")
+        val shellCommand = "wine Z:\\\\Steamless\\\\Steamless.CLI.exe " + getSteamlessCommand(appId, container, appLaunchInfo)
+        Timber.i("Setting shell command to " + shellCommand)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
+        guestProgramLauncherComponent.shellCommand = shellCommand
 
         envVars.putAll(container.envVars)
         if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1")
@@ -916,6 +919,21 @@ private fun getWineStartCommand(
     }
 
     return "winhandler.exe $args"
+}
+private fun getSteamlessCommand(appId: Int,
+                                container: Container,
+                                appLaunchInfo: LaunchInfo?): String {
+    val appDirPath = SteamService.getAppDirPath(appId)
+    val drives = container.drives
+    val driveIndex = drives.indexOf(appDirPath)
+    // greater than 1 since there is the drive character and the colon before the app dir path
+    val drive = if (driveIndex > 1) {
+        drives[driveIndex - 2]
+    } else {
+        Timber.e("Could not locate game drive")
+        'D'
+    }
+    return "$drive:\\${appLaunchInfo?.executable}"
 }
 private fun exit(winHandler: WinHandler?, environment: XEnvironment?, onExit: () -> Unit) {
     Timber.i("Exit called")

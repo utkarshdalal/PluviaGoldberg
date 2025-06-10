@@ -30,6 +30,7 @@ import java.util.List;
 
 public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent {
     private String guestExecutable;
+    private String shellCommand;
     private static int pid = -1;
     private String[] bindingPaths;
     private EnvVars envVars;
@@ -70,6 +71,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         synchronized (lock) {
             stop();
             extractBox86_64Files();
+            Log.d("GlibcProgramLauncherComponant", "Running shell command" + shellCommand + " " + execShellCommand());
             pid = execGuestProgram();
             Log.d("GlibcProgramLauncherComponent", "Process " + pid + " started");
         }
@@ -111,6 +113,14 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
     public void setGuestExecutable(String guestExecutable) {
         this.guestExecutable = guestExecutable;
+    }
+
+    public String getShellCommand() {
+        return shellCommand;
+    }
+
+    public void setShellCommand(String shellCommand) {
+        this.shellCommand = shellCommand;
     }
 
     public boolean isWoW64Mode() {
@@ -293,7 +303,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         }
     }
 
-    public String execShellCommand(String command) {
+    public String execShellCommand() {
         Context context = environment.getContext();
         ImageFs imageFs = ImageFs.find(context);
         File rootDir = imageFs.getRootDir();
@@ -301,9 +311,32 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         PrefManager.init(context);
         StringBuilder output = new StringBuilder();
         EnvVars envVars = new EnvVars();
+        envVars.put("HOME", imageFs.home_path);
+        envVars.put("USER", ImageFs.USER);
+        envVars.put("TMPDIR", imageFs.getRootDir().getPath() + "/tmp");
+        envVars.put("DISPLAY", ":0");
 
-        envVars.put("PATH", imageFs.getRootDir().getPath() + "/usr/bin:/usr/local/bin:" + imageFs.getWinePath() + "/bin");
+        String winePath = wineProfile == null ? imageFs.getWinePath() + "/bin"
+                : ContentsManager.getSourceFile(context, wineProfile, wineProfile.wineBinPath).getAbsolutePath();
+        envVars.put("PATH", winePath + ":" +
+                imageFs.getRootDir().getPath() + "/usr/bin:" +
+                imageFs.getRootDir().getPath() + "/usr/local/bin");
+
         envVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib");
+        envVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu");
+        envVars.put("ANDROID_SYSVSHM_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH);
+        envVars.put("FONTCONFIG_PATH", imageFs.getRootDir().getPath() + "/usr/etc/fonts");
+
+        if ((new File(imageFs.getGlibc64Dir(), "libandroid-sysvshm.so")).exists() ||
+                (new File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists
+                        ())
+            envVars.put("LD_PRELOAD", "libredirect.so libandroid-sysvshm.so");
+        envVars.put("WINEESYNC_WINLATOR", "1");
+        if (this.envVars != null) envVars.putAll(this.envVars);
+
+        String box64Path = rootDir.getPath() + "/usr/local/bin/box64";
+
+        String command = box64Path + " " + shellCommand;
 
         // Execute the command and capture its output
         try {

@@ -24,6 +24,7 @@ import java.util.List;
 
 public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
+    private String shellCommand;
     private static int pid = -1;
     private String[] bindingPaths;
     private EnvVars envVars;
@@ -82,6 +83,14 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
 
     public void setGuestExecutable(String guestExecutable) {
         this.guestExecutable = guestExecutable;
+    }
+
+    public void setShellCommand(String shellCommand) {
+        this.shellCommand = shellCommand;
+    }
+
+    public String getShellCommand() {
+        return getShellCommand();
     }
 
     public boolean isWoW64Mode() {
