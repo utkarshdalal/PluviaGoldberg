@@ -377,7 +377,7 @@ fun ContainerConfigDialog(
                                 value = config.execArgs,
                                 onValueChange = { config = config.copy(execArgs = it) },
                                 label = { Text(text = "Exec Arguments") },
-                                placeholder = { Text(text = "-dx11") },
+                                placeholder = { Text(text = "Example: -dx11") },
                             )
                             SettingsListDropdown(
                                 colors = settingsTileColors(),

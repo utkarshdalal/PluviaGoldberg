@@ -47,6 +47,7 @@ object ContainerUtils {
             audioDriver = PrefManager.audioDriver,
             wincomponents = PrefManager.winComponents,
             drives = PrefManager.drives,
+            execArgs = PrefManager.execArgs,
             showFPS = PrefManager.showFps,
             cpuList = PrefManager.cpuList,
             cpuListWoW64 = PrefManager.cpuListWoW64,
@@ -75,6 +76,7 @@ object ContainerUtils {
         PrefManager.audioDriver = containerData.audioDriver
         PrefManager.winComponents = containerData.wincomponents
         PrefManager.drives = containerData.drives
+        PrefManager.execArgs = containerData.execArgs
         PrefManager.showFps = containerData.showFPS
         PrefManager.cpuList = containerData.cpuList
         PrefManager.cpuListWoW64 = containerData.cpuListWoW64
@@ -133,6 +135,7 @@ object ContainerUtils {
             audioDriver = container.audioDriver,
             wincomponents = container.winComponents,
             drives = container.drives,
+            execArgs = container.execArgs,
             showFPS = container.isShowFPS,
             cpuList = container.cpuList,
             cpuListWoW64 = container.cpuListWoW64,
@@ -164,6 +167,7 @@ object ContainerUtils {
     }
 
     private fun applyToContainer(context: Context, container: Container, containerData: ContainerData) {
+        Timber.d("Applying containerData to container. execArgs: '${containerData.execArgs}'")
         val userRegFile = File(container.rootDir, ".wine/user.reg")
         WineRegistryEditor(userRegFile).use { registryEditor ->
             registryEditor.setDwordValue("Software\\Wine\\Direct3D", "csmt", if (containerData.csmt) 3 else 0)
@@ -190,6 +194,7 @@ object ContainerUtils {
         container.audioDriver = containerData.audioDriver
         container.winComponents = containerData.wincomponents
         container.drives = containerData.drives
+        container.execArgs = containerData.execArgs
         container.isShowFPS = containerData.showFPS
         container.cpuList = containerData.cpuList
         container.cpuListWoW64 = containerData.cpuListWoW64
@@ -201,6 +206,7 @@ object ContainerUtils {
         container.box64Preset = containerData.box64Preset
         container.desktopTheme = containerData.desktopTheme
         container.saveData()
+        Timber.d("Set container.execArgs to '${containerData.execArgs}'")
     }
 
     fun getContainerId(appId: Int): Int {
@@ -254,6 +260,7 @@ object ContainerUtils {
                 audioDriver = PrefManager.audioDriver,
                 wincomponents = PrefManager.winComponents,
                 drives = drives,
+                execArgs = PrefManager.execArgs,
                 showFPS = PrefManager.showFps,
                 wow64Mode = PrefManager.wow64Mode,
                 startupSelection = PrefManager.startupSelection.toByte(),

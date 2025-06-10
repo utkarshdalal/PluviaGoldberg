@@ -74,7 +74,7 @@ data class ContainerData(
                     audioDriver = savedMap["audioDriver"] as String,
                     wincomponents = savedMap["wincomponents"] as String,
                     drives = savedMap["drives"] as String,
-                    execArgs = (savedMap["execArgs"] as? String) ?: "-dx11",
+                    execArgs = savedMap["execArgs"] as String,
                     showFPS = savedMap["showFPS"] as Boolean,
                     cpuList = savedMap["cpuList"] as String,
                     cpuListWoW64 = savedMap["cpuListWoW64"] as String,
