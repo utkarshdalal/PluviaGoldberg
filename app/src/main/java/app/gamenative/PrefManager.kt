@@ -282,6 +282,14 @@ object PrefManager {
             setPref(BOX_64_VERSION, value)
         }
 
+    private val EXEC_ARGS = stringPreferencesKey("exec_args")
+    var execArgs: String
+        get() = getPref(EXEC_ARGS, "-dx11")
+        set(value) {
+            setPref(EXEC_ARGS, value)
+        }
+
+
     /* Recent Crash Flag */
     private val RECENTLY_CRASHED = booleanPreferencesKey("recently_crashed")
     var recentlyCrashed: Boolean

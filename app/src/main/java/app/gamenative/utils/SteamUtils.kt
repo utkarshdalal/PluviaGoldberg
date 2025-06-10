@@ -15,6 +15,7 @@ import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.name
 import timber.log.Timber
+import java.nio.file.Path
 
 object SteamUtils {
 
@@ -74,6 +75,7 @@ object SteamUtils {
                 }
                 Timber.i("Replaced steam_api.dll")
                 replaced32 = true
+                ensureSteamSettings(it)
             }
             if (it.name == "steam_api64.dll" && it.exists()) {
                 Timber.i("Found steam_api64.dll at ${it.absolutePathString()}, replacing...")
@@ -86,9 +88,28 @@ object SteamUtils {
                 }
                 Timber.i("Replaced steam_api64.dll")
                 replaced64 = true
+                ensureSteamSettings(it)
             }
         }
         Timber.i("Finished replaceSteamApi for appId: $appId. Replaced 32bit: $replaced32, Replaced 64bit: $replaced64")
+    }
+
+    /**
+     * Sibling folder “steam_settings” + empty “offline.txt” file, no-ops if they already exist.
+     */
+    private fun ensureSteamSettings(dllPath: Path) {
+        val settingsDir = dllPath.parent.resolve("steam_settings")
+        if (Files.notExists(settingsDir)) {
+            Files.createDirectories(settingsDir)
+        }
+        val offlineFile = settingsDir.resolve("offline.txt")
+        if (Files.notExists(offlineFile)) {
+            Files.createFile(offlineFile)
+        }
+        val disableNetworkingFile = settingsDir.resolve("disable_networking.txt")
+        if (Files.notExists(disableNetworkingFile)) {
+            Files.createFile(disableNetworkingFile)
+        }
     }
 
     /**
