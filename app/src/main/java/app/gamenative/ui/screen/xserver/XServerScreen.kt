@@ -89,8 +89,13 @@ import kotlinx.coroutines.launch
 import org.json.JSONException
 import org.json.JSONObject
 import timber.log.Timber
+import java.io.BufferedReader
 import java.io.File
+import java.io.IOException
+import java.io.InputStreamReader
+import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.Arrays
 import kotlin.io.path.name
 
 // TODO logs in composables are 'unstable' which can cause recomposition (performance issues)
@@ -468,6 +473,70 @@ fun XServerScreen(
                     Timber.i("Doing things once")
                     val envVars = EnvVars()
 
+                    val imageFs = ImageFs.find(context)
+                    val shellCommandEnvVars = EnvVars()
+                    shellCommandEnvVars.put("HOME", imageFs.home_path)
+                    shellCommandEnvVars.put("USER", ImageFs.USER)
+                    shellCommandEnvVars.put("TMPDIR", imageFs.getRootDir().getPath() + "/tmp")
+                    shellCommandEnvVars.put("DISPLAY", ":0")
+
+                    val winePath = imageFs.getWinePath() + "/bin"
+                    shellCommandEnvVars.put(
+                        "PATH",
+                        winePath + ":" +
+                                imageFs.getRootDir().getPath() + "/usr/bin:" +
+                                imageFs.getRootDir().getPath() + "/usr/local/bin",
+                    )
+
+                    shellCommandEnvVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib")
+                    shellCommandEnvVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu")
+                    shellCommandEnvVars.put("ANDROID_SYSVSHM_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH)
+                    shellCommandEnvVars.put("FONTCONFIG_PATH", imageFs.getRootDir().getPath() + "/usr/etc/fonts")
+                    shellCommandEnvVars.put("WINEDLLOVERRIDES", "winex11.drv=b");
+                    shellCommandEnvVars.put("DISPLAY", "");
+
+                    if ((File(imageFs.getGlibc64Dir(), "libandroid-sysvshm.so")).exists() ||
+                        (File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists()
+                    ) shellCommandEnvVars.put("LD_PRELOAD", "libredirect.so libandroid-sysvshm.so")
+                    shellCommandEnvVars.put("WINEESYNC_WINLATOR", "1")
+                    val rootDir: File = imageFs.getRootDir()
+                    val executableFile = getSteamlessTarget(appId, container, appLaunchInfo)
+                    val shellCommandArray = arrayOf(
+                        rootDir.getPath() + "/usr/local/bin/box64", "wine",
+                        "z:\\\\Steamless\\\\Steamless.CLI.exe", executableFile,
+                    )
+                    Timber.i("Running shell command " + Arrays.toString(shellCommandArray))
+                    val process: Process = Runtime.getRuntime().exec(shellCommandArray, shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
+                    val reader = BufferedReader(InputStreamReader(process.getInputStream()))
+                    val errorReader = BufferedReader(InputStreamReader(process.getErrorStream()))
+
+                    var line: String?
+                    val output = StringBuilder()
+                    while ((reader.readLine().also { line = it }) != null) {
+                        output.append(line).append("\n")
+                    }
+                    while ((errorReader.readLine().also { line = it }) != null) {
+                        output.append(line).append("\n")
+                    }
+                    process.waitFor()
+                    Timber.i("Result of shell command " + output)
+                    val exe = File(imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:").replace('\\', '/'))
+                    val unpackedExe = File(
+                        imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:")
+                            .replace('\\', '/') + ".unpacked.exe",
+                    )
+                    val originalExe = File(
+                        imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:")
+                            .replace('\\', '/') + ".original.exe",
+                    )
+                    Timber.i("Moving " + unpackedExe + " to " + exe)
+                    try {
+                        Files.move(exe.toPath(), originalExe.toPath())
+                        Files.copy(unpackedExe.toPath(), exe.toPath())
+                    } catch (e: IOException) {
+                        Timber.i("Could not move: " + e)
+                    }
+
                     setupWineSystemFiles(
                         context,
                         firstTimeBoot,
@@ -775,11 +844,8 @@ private fun setupXEnvironment(
         val guestExecutable = "wine explorer /desktop=shell," + xServer.screenInfo + " " +
             getWineStartCommand(appId, container, bootToContainer, appLaunchInfo, envVars) +
             (if (container.execArgs.isNotEmpty()) " " + container.execArgs else "")
-        val shellCommand = "wine Z:\\\\Steamless\\\\Steamless.CLI.exe " + getSteamlessCommand(appId, container, appLaunchInfo)
-        Timber.i("Setting shell command to " + shellCommand)
         guestProgramLauncherComponent.isWoW64Mode = wow64Mode
         guestProgramLauncherComponent.guestExecutable = guestExecutable
-        guestProgramLauncherComponent.shellCommand = shellCommand
 
         envVars.putAll(container.envVars)
         if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1")
@@ -920,9 +986,11 @@ private fun getWineStartCommand(
 
     return "winhandler.exe $args"
 }
-private fun getSteamlessCommand(appId: Int,
-                                container: Container,
-                                appLaunchInfo: LaunchInfo?): String {
+private fun getSteamlessTarget(
+    appId: Int,
+    container: Container,
+    appLaunchInfo: LaunchInfo?,
+): String {
     val appDirPath = SteamService.getAppDirPath(appId)
     val drives = container.drives
     val driveIndex = drives.indexOf(appDirPath)

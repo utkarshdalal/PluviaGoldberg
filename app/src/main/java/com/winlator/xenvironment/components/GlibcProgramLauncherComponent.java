@@ -71,7 +71,6 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         synchronized (lock) {
             stop();
             extractBox86_64Files();
-            Log.d("GlibcProgramLauncherComponant", "Running shell command" + shellCommand + " " + execShellCommand());
             pid = execGuestProgram();
             Log.d("GlibcProgramLauncherComponent", "Process " + pid + " started");
         }
