@@ -908,6 +908,8 @@ private fun getWineStartCommand(
         "\"wfm.exe\""
     } else {
         val appDirPath = SteamService.getAppDirPath(appId)
+        val executablePath = SteamService.getInstalledExe(appId)
+        Timber.i("Final exe path is " + executablePath)
         val drives = container.drives
         val driveIndex = drives.indexOf(appDirPath)
         // greater than 1 since there is the drive character and the colon before the app dir path
@@ -918,7 +920,7 @@ private fun getWineStartCommand(
             'D'
         }
         envVars.put("WINEPATH", "$drive:/${appLaunchInfo.workingDir}")
-        "\"$drive:/${appLaunchInfo.executable}\""
+        "\"$drive:/${executablePath}\""
     }
 
     return "winhandler.exe $args"
@@ -929,6 +931,7 @@ private fun getSteamlessTarget(
     appLaunchInfo: LaunchInfo?,
 ): String {
     val appDirPath = SteamService.getAppDirPath(appId)
+    val executablePath = SteamService.getInstalledExe(appId)
     val drives = container.drives
     val driveIndex = drives.indexOf(appDirPath)
     // greater than 1 since there is the drive character and the colon before the app dir path
@@ -938,7 +941,7 @@ private fun getSteamlessTarget(
         Timber.e("Could not locate game drive")
         'D'
     }
-    return "$drive:\\${appLaunchInfo?.executable}"
+    return "$drive:\\${executablePath}"
 }
 private fun exit(winHandler: WinHandler?, environment: XEnvironment?, onExit: () -> Unit) {
     Timber.i("Exit called")
