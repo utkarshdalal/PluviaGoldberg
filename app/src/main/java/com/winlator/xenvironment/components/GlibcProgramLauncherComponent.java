@@ -1,8 +1,8 @@
 package com.winlator.xenvironment.components;
 
+import static com.winlator.core.ProcessHelper.splitCommand;
+
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.icu.util.TimeZone;
 import android.os.Process;
 import android.util.Log;
 
@@ -13,24 +13,23 @@ import com.winlator.contents.ContentProfile;
 import com.winlator.contents.ContentsManager;
 import com.winlator.core.Callback;
 import com.winlator.core.DefaultVersion;
-import com.winlator.core.FileUtils;
 import com.winlator.core.envvars.EnvVars;
 import com.winlator.core.ProcessHelper;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.xconnector.UnixSocketConfig;
-import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.ImageFs;
-import com.winlator.xenvironment.XEnvironment;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 
 public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent {
     private String guestExecutable;
-    private String shellCommand;
     private static int pid = -1;
     private String[] bindingPaths;
     private EnvVars envVars;
@@ -112,14 +111,6 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
     public void setGuestExecutable(String guestExecutable) {
         this.guestExecutable = guestExecutable;
-    }
-
-    public String getShellCommand() {
-        return shellCommand;
-    }
-
-    public void setShellCommand(String shellCommand) {
-        this.shellCommand = shellCommand;
     }
 
     public boolean isWoW64Mode() {
@@ -302,7 +293,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         }
     }
 
-    public String execShellCommand() {
+    public String execShellCommand(String command) {
         Context context = environment.getContext();
         ImageFs imageFs = ImageFs.find(context);
         File rootDir = imageFs.getRootDir();
@@ -335,11 +326,12 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
 
         String box64Path = rootDir.getPath() + "/usr/local/bin/box64";
 
-        String command = box64Path + " " + shellCommand;
+        String finalCommand = box64Path + " " + command;
 
         // Execute the command and capture its output
         try {
-            java.lang.Process process = Runtime.getRuntime().exec(command, envVars.toStringArray(), imageFs.getRootDir());
+            Log.d("GlibcProgramLauncherComponent", "Shell command is " + finalCommand);
+            java.lang.Process process = Runtime.getRuntime().exec(finalCommand, envVars.toStringArray(), imageFs.getRootDir());
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
@@ -350,7 +342,6 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
             while ((line = errorReader.readLine()) != null) {
                 output.append(line).append("\n");
             }
-
             process.waitFor();
         } catch (Exception e) {
             output.append("Error: ").append(e.getMessage());
