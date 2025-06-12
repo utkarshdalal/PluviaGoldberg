@@ -1,6 +1,5 @@
 package app.gamenative.service
 
-import android.app.Notification
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -9,7 +8,6 @@ import android.net.Network
 import android.net.NetworkRequest
 import android.net.NetworkCapabilities
 import android.os.IBinder
-import android.os.SystemClock
 import androidx.room.withTransaction
 import app.gamenative.BuildConfig
 import app.gamenative.PluviaApp
@@ -43,7 +41,6 @@ import app.gamenative.events.AndroidEvent
 import app.gamenative.events.SteamEvent
 import app.gamenative.service.callback.EmoticonListCallback
 import app.gamenative.service.handler.PluviaHandler
-import app.gamenative.utils.FileUtils
 import app.gamenative.utils.SteamUtils
 import app.gamenative.utils.generateSteamApp
 import app.gamenative.utils.timeChunked
@@ -57,6 +54,7 @@ import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import com.winlator.xenvironment.ImageFs
 import dagger.hilt.android.AndroidEntryPoint
+import `in`.dragonbra.javasteam.enums.EDepotFileFlag
 import `in`.dragonbra.javasteam.enums.EFriendRelationship
 import `in`.dragonbra.javasteam.enums.ELicenseFlags
 import `in`.dragonbra.javasteam.enums.EOSType
@@ -73,7 +71,6 @@ import `in`.dragonbra.javasteam.steam.authentication.IAuthenticator
 import `in`.dragonbra.javasteam.steam.authentication.IChallengeUrlChanged
 import `in`.dragonbra.javasteam.steam.authentication.QrAuthSession
 import `in`.dragonbra.javasteam.steam.contentdownloader.ContentDownloader
-import `in`.dragonbra.javasteam.steam.contentdownloader.FileManifestProvider
 import `in`.dragonbra.javasteam.steam.discovery.FileServerListProvider
 import `in`.dragonbra.javasteam.steam.discovery.ServerQuality
 import `in`.dragonbra.javasteam.steam.handlers.steamapps.GamePlayedInfo
@@ -105,6 +102,7 @@ import `in`.dragonbra.javasteam.steam.steamclient.callbackmgr.CallbackManager
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.ConnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.callbacks.DisconnectedCallback
 import `in`.dragonbra.javasteam.steam.steamclient.configuration.SteamConfiguration
+import `in`.dragonbra.javasteam.types.FileData
 import `in`.dragonbra.javasteam.types.SteamID
 import `in`.dragonbra.javasteam.util.NetHelpers
 import `in`.dragonbra.javasteam.util.log.LogListener
@@ -139,11 +137,9 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
@@ -403,6 +399,101 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             return Paths.get(PrefManager.appInstallPath, appName).pathString
         }
+
+        private fun isExecutable(flags: Any): Boolean = when (flags) {
+            // SteamKit-JVM (most forks) – flags is EnumSet<EDepotFileFlag>
+            is EnumSet<*> -> {
+                flags.contains(EDepotFileFlag.Executable) ||
+                        flags.contains(EDepotFileFlag.CustomExecutable)
+            }
+
+            // SteamKit-C# protobuf port – flags is UInt / Int / Long
+            is Int  -> (flags and 0x20) != 0 || (flags and 0x80) != 0
+            is Long -> ((flags and 0x20L) != 0L) || ((flags and 0x80L) != 0L)
+
+            else    -> false
+        }
+
+        private val NEGATIVE_KEYWORDS = listOf(
+            "crash", "handler", "unity", "setup", "unins", "eac",
+            "steam", "launcher", "vulkan", "dxdiag"
+        )
+
+        /** score one candidate */
+        private fun scoreExe(
+            file: FileData,
+            gameName: String,
+            hasExeFlag: Boolean
+        ): Int {
+            var s = 0
+            val fname = file.fileName.lowercase()
+
+            if (fname.contains(gameName))         s += 100      // rule A
+            if (NEGATIVE_KEYWORDS.any { fname.contains(it) }) s -= 100  // rule B
+            if (hasExeFlag)                       s += 50       // rule C
+
+            // rule D handled later (maxBy)
+            return s
+        }
+
+        /** select the primary binary */
+        fun choosePrimaryExe(
+            files: List<FileData>?,
+            gameName: String
+        ): FileData? {
+            // first, compute per-file flags once
+            return files?.maxWithOrNull { a, b ->
+                val scoreA = scoreExe(a, gameName, isExecutable(a))
+                val scoreB = scoreExe(b, gameName, isExecutable(b))
+
+                // compare score, then size
+                when {
+                    scoreA != scoreB -> scoreA - scoreB
+                    else             -> (a.totalSize - b.totalSize).toInt()
+                }
+            }
+        }
+
+        fun getInstalledExe(appId: Int): String {
+            val appInfo = getAppInfoOf(appId) ?: return ""
+
+            // 1. installDir you already have
+            val installDir = appInfo.config.installDir
+            val root = Paths.get(PrefManager.appInstallPath, installDir)
+
+            // 2. choose the depots that matter (non-shared, Windows)
+            Timber.i("All exe depots are " + appInfo.depots.values)
+            val depots = appInfo.depots.values.filter { depot ->
+                !depot.sharedInstall && (depot.osList.isEmpty() || depot.osList.any { it.name.equals("windows") || it.name.equals("none") })
+            }
+
+            Timber.i("installed exe depots are " + depots)
+
+            for (depot in depots) {
+                val manifestInfo = depot.manifests["public"] ?: continue
+
+                // 3. download manifest (simplified – assumes you already have CDN client + depot key)
+                val manifest = ThreadSafeManifestProvider(File(depotManifestsPath).toPath()).fetchManifest(
+                    depot.depotId,
+                    manifestInfo.gid
+                )
+
+                // 4. executables in this depot
+                val exes = manifest?.files?.filter { f ->
+                    isExecutable(f.flags) || f.fileName.endsWith(".exe", true)
+                }
+                Timber.i("installed exe depot exes are " + exes)
+
+                // 5. pick the “main” one (largest, not obvious wrappers)
+                val primary = choosePrimaryExe(exes, installDir.lowercase())
+
+                Timber.i("Primary exe is " + primary)
+
+                return primary?.fileName?.replace('\\', '/').toString()
+            }
+            return getAppDirPath(appId)
+        }
+
 
         fun deleteApp(appId: Int): Boolean {
             // Remove any download-complete marker

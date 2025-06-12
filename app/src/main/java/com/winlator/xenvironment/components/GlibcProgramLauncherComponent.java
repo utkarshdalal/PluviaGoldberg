@@ -1,8 +1,8 @@
 package com.winlator.xenvironment.components;
 
+import static com.winlator.core.ProcessHelper.splitCommand;
+
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.icu.util.TimeZone;
 import android.os.Process;
 import android.util.Log;
 
@@ -13,18 +13,18 @@ import com.winlator.contents.ContentProfile;
 import com.winlator.contents.ContentsManager;
 import com.winlator.core.Callback;
 import com.winlator.core.DefaultVersion;
-import com.winlator.core.FileUtils;
 import com.winlator.core.envvars.EnvVars;
 import com.winlator.core.ProcessHelper;
 import com.winlator.core.TarCompressorUtils;
 import com.winlator.xconnector.UnixSocketConfig;
-import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.ImageFs;
-import com.winlator.xenvironment.XEnvironment;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 
@@ -301,13 +301,37 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         PrefManager.init(context);
         StringBuilder output = new StringBuilder();
         EnvVars envVars = new EnvVars();
+        envVars.put("HOME", imageFs.home_path);
+        envVars.put("USER", ImageFs.USER);
+        envVars.put("TMPDIR", imageFs.getRootDir().getPath() + "/tmp");
+        envVars.put("DISPLAY", ":0");
 
-        envVars.put("PATH", imageFs.getRootDir().getPath() + "/usr/bin:/usr/local/bin:" + imageFs.getWinePath() + "/bin");
+        String winePath = wineProfile == null ? imageFs.getWinePath() + "/bin"
+                : ContentsManager.getSourceFile(context, wineProfile, wineProfile.wineBinPath).getAbsolutePath();
+        envVars.put("PATH", winePath + ":" +
+                imageFs.getRootDir().getPath() + "/usr/bin:" +
+                imageFs.getRootDir().getPath() + "/usr/local/bin");
+
         envVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib");
+        envVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu");
+        envVars.put("ANDROID_SYSVSHM_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH);
+        envVars.put("FONTCONFIG_PATH", imageFs.getRootDir().getPath() + "/usr/etc/fonts");
+
+        if ((new File(imageFs.getGlibc64Dir(), "libandroid-sysvshm.so")).exists() ||
+                (new File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists
+                        ())
+            envVars.put("LD_PRELOAD", "libredirect.so libandroid-sysvshm.so");
+        envVars.put("WINEESYNC_WINLATOR", "1");
+        if (this.envVars != null) envVars.putAll(this.envVars);
+
+        String box64Path = rootDir.getPath() + "/usr/local/bin/box64";
+
+        String finalCommand = box64Path + " " + command;
 
         // Execute the command and capture its output
         try {
-            java.lang.Process process = Runtime.getRuntime().exec(command, envVars.toStringArray(), imageFs.getRootDir());
+            Log.d("GlibcProgramLauncherComponent", "Shell command is " + finalCommand);
+            java.lang.Process process = Runtime.getRuntime().exec(finalCommand, envVars.toStringArray(), imageFs.getRootDir());
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
@@ -318,7 +342,6 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
             while ((line = errorReader.readLine()) != null) {
                 output.append(line).append("\n");
             }
-
             process.waitFor();
         } catch (Exception e) {
             output.append("Error: ").append(e.getMessage());
