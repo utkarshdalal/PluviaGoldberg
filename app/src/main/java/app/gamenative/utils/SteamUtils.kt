@@ -75,7 +75,7 @@ object SteamUtils {
                 }
                 Timber.i("Replaced steam_api.dll")
                 replaced32 = true
-                ensureSteamSettings(it)
+                ensureSteamSettings(it, appId)
             }
             if (it.name == "steam_api64.dll" && it.exists()) {
                 Timber.i("Found steam_api64.dll at ${it.absolutePathString()}, replacing...")
@@ -88,7 +88,7 @@ object SteamUtils {
                 }
                 Timber.i("Replaced steam_api64.dll")
                 replaced64 = true
-                ensureSteamSettings(it)
+                ensureSteamSettings(it, appId)
             }
         }
         Timber.i("Finished replaceSteamApi for appId: $appId. Replaced 32bit: $replaced32, Replaced 64bit: $replaced64")
@@ -97,7 +97,12 @@ object SteamUtils {
     /**
      * Sibling folder “steam_settings” + empty “offline.txt” file, no-ops if they already exist.
      */
-    private fun ensureSteamSettings(dllPath: Path) {
+    private fun ensureSteamSettings(dllPath: Path, appId: Int) {
+        val appIdFileUpper = dllPath.parent.resolve("steam_appid.txt")
+        if (Files.notExists(appIdFileUpper)) {
+            Files.createFile(appIdFileUpper)
+            appIdFileUpper.toFile().writeText(appId.toString())
+        }
         val settingsDir = dllPath.parent.resolve("steam_settings")
         if (Files.notExists(settingsDir)) {
             Files.createDirectories(settingsDir)
@@ -109,6 +114,11 @@ object SteamUtils {
         val disableNetworkingFile = settingsDir.resolve("disable_networking.txt")
         if (Files.notExists(disableNetworkingFile)) {
             Files.createFile(disableNetworkingFile)
+        }
+        val appIdFile = settingsDir.resolve("steam_appid.txt")
+        if (Files.notExists(appIdFile)) {
+            Files.createFile(appIdFile)
+            appIdFile.toFile().writeText(appId.toString())
         }
     }
 

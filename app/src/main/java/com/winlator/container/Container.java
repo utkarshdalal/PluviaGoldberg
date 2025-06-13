@@ -69,8 +69,8 @@ public class Container {
 
     private String graphicsDriverVersion = "25.1.0"; // Default version or fallback
 
-    private String execArgs = "-dx11"; // Default exec arguments
-    
+    private String execArgs = ""; // Default exec arguments
+
     private ContainerManager containerManager;
 
 

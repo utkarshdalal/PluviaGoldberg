@@ -94,6 +94,7 @@ import java.io.IOException
 import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.util.Arrays
 import kotlin.io.path.name
 
@@ -472,8 +473,6 @@ fun XServerScreen(
                     Timber.i("Doing things once")
                     val envVars = EnvVars()
 
-                    unpackExecutableFile(context, firstTimeBoot, container, appId, appLaunchInfo)
-
                     setupWineSystemFiles(
                         context,
                         firstTimeBoot,
@@ -493,6 +492,7 @@ fun XServerScreen(
                         envVars,
                     )
                     changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
+                    unpackExecutableFile(context, firstTimeBoot, container, appId, appLaunchInfo)
                     PluviaApp.xEnvironment = setupXEnvironment(
                         context,
                         appId,
@@ -999,17 +999,34 @@ private fun unpackExecutableFile(
     shellCommandEnvVars.put("WINEESYNC_WINLATOR", "1")
     val rootDir: File = imageFs.getRootDir()
     val executableFile = getSteamlessTarget(appId, container, appLaunchInfo)
+    val installMonoArray = arrayOf(
+        rootDir.getPath() + "/usr/local/bin/box64", "wine", "msiexec", "/i",
+        "Z:\\opt\\mono-gecko-offline\\wine-mono-9.0.0-x86.msi",
+    )
+    Timber.i("Install mono command " + Arrays.toString(installMonoArray))
+    val monoProcess = Runtime.getRuntime().exec(installMonoArray, shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
+    var reader = BufferedReader(InputStreamReader(monoProcess.getInputStream()))
+    var errorReader = BufferedReader(InputStreamReader(monoProcess.getErrorStream()))
+
+    var line: String?
+    var output = StringBuilder()
+    while ((reader.readLine().also { line = it }) != null) {
+        output.append(line).append("\n")
+    }
+    while ((errorReader.readLine().also { line = it }) != null) {
+        output.append(line).append("\n")
+    }
+    monoProcess.waitFor()
+    Timber.i("Result of mono command " + output)
+    output = StringBuilder()
     val shellCommandArray = arrayOf(
         rootDir.getPath() + "/usr/local/bin/box64", "wine",
         "z:\\\\Steamless\\\\Steamless.CLI.exe", executableFile,
     )
     Timber.i("Running shell command " + Arrays.toString(shellCommandArray))
     val process: Process = Runtime.getRuntime().exec(shellCommandArray, shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
-    val reader = BufferedReader(InputStreamReader(process.getInputStream()))
-    val errorReader = BufferedReader(InputStreamReader(process.getErrorStream()))
-
-    var line: String?
-    val output = StringBuilder()
+    reader = BufferedReader(InputStreamReader(process.getInputStream()))
+    errorReader = BufferedReader(InputStreamReader(process.getErrorStream()))
     while ((reader.readLine().also { line = it }) != null) {
         output.append(line).append("\n")
     }
@@ -1029,8 +1046,8 @@ private fun unpackExecutableFile(
     )
     Timber.i("Moving " + unpackedExe + " to " + exe)
     try {
-        Files.move(exe.toPath(), originalExe.toPath())
-        Files.copy(unpackedExe.toPath(), exe.toPath())
+        Files.copy(exe.toPath(), originalExe.toPath())
+        Files.copy(unpackedExe.toPath(), exe.toPath(), REPLACE_EXISTING)
     } catch (e: IOException) {
         Timber.i("Could not move: " + e)
     }
