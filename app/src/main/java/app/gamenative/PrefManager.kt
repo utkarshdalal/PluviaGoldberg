@@ -284,7 +284,7 @@ object PrefManager {
 
     private val EXEC_ARGS = stringPreferencesKey("exec_args")
     var execArgs: String
-        get() = getPref(EXEC_ARGS, "-dx11")
+        get() = getPref(EXEC_ARGS, "")
         set(value) {
             setPref(EXEC_ARGS, value)
         }

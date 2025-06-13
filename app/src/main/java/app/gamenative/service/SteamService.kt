@@ -387,7 +387,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 (depot.osList.contains(OS.windows) || (!depot.osList.contains(OS.linux) && !depot.osList.contains(
                     OS.macos))) &&
                 (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
-                (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(depot.depotId))
+                (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(depot.dlcAppId))
         }.orEmpty()
 
         fun getAppDirPath(appId: Int): String {
@@ -414,25 +414,63 @@ class SteamService : Service(), IChallengeUrlChanged {
             else    -> false
         }
 
-        private val NEGATIVE_KEYWORDS = listOf(
-            "crash", "handler", "unity", "setup", "unins", "eac",
-            "steam", "launcher", "vulkan", "dxdiag"
-        )
+        /* -------------------------------------------------------------------------- */
+        /* 1. Extra patterns & word lists                                             */
+        /* -------------------------------------------------------------------------- */
 
-        /** score one candidate */
+        // Unreal Engine “Shipping” binaries (e.g. Stray-Win64-Shipping.exe)
+        private val UE_SHIPPING = Regex(""".*-win(32|64)(-shipping)?\.exe$""",
+            RegexOption.IGNORE_CASE)
+
+        // UE folder hint …/Binaries/Win32|64/…
+        private val UE_BINARIES = Regex(""".*/binaries/win(32|64)/.*\.exe$""",
+            RegexOption.IGNORE_CASE)
+
+        // Tools / crash-dumpers to push down
+        private val NEGATIVE_KEYWORDS = listOf(
+            "crash", "handler", "viewer", "compiler", "tool",
+            "setup", "unins", "eac", "launcher", "steam"
+        )
+        /* add near-name helper */
+        private fun fuzzyMatch(a: String, b: String): Boolean {
+            /* strip digits & punctuation, compare first 5 letters */
+            val cleanA = a.replace(Regex("[^a-z]"), "")
+            val cleanB = b.replace(Regex("[^a-z]"), "")
+            return cleanA.take(5) == cleanB.take(5)
+        }
+
+        /* add generic short-name detector: one letter + digits, ≤4 chars  */
+        private val GENERIC_NAME = Regex("^[a-z]\\d{1,3}\\.exe$", RegexOption.IGNORE_CASE)
+
+        /* -------------------------------------------------------------------------- */
+        /* 2. Heuristic score (same signature!)                                       */
+        /* -------------------------------------------------------------------------- */
+
         private fun scoreExe(
             file: FileData,
             gameName: String,
             hasExeFlag: Boolean
         ): Int {
             var s = 0
-            val fname = file.fileName.lowercase()
+            val path = file.fileName.lowercase()
 
-            if (fname.contains(gameName))         s += 100      // rule A
-            if (NEGATIVE_KEYWORDS.any { fname.contains(it) }) s -= 100  // rule B
-            if (hasExeFlag)                       s += 50       // rule C
+            // 1️⃣ UE shipping or binaries folder bonus
+            if (UE_SHIPPING.matches(path))      s += 300
+            if (UE_BINARIES.containsMatchIn(path)) s += 250
 
-            // rule D handled later (maxBy)
+            // 2️⃣ root-folder exe bonus
+            if (!path.contains('/'))            s += 200
+
+            // 3️⃣ filename contains the game / installDir
+            if (path.contains(gameName) || fuzzyMatch(path, gameName))  s += 100
+
+            // 4️⃣ obvious tool / crash-dumper penalty
+            if (NEGATIVE_KEYWORDS.any { it in path }) s -= 150
+            if (GENERIC_NAME.matches(file.fileName))                    s -= 200   // ← new
+
+            // 5️⃣ Executable | CustomExecutable flag
+            if (hasExeFlag)                     s += 50
+
             return s
         }
 
@@ -440,60 +478,99 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun choosePrimaryExe(
             files: List<FileData>?,
             gameName: String
-        ): FileData? {
-            // first, compute per-file flags once
-            return files?.maxWithOrNull { a, b ->
-                val scoreA = scoreExe(a, gameName, isExecutable(a))
-                val scoreB = scoreExe(b, gameName, isExecutable(b))
+        ): FileData? = files?.maxWithOrNull { a, b ->
+            val sa = scoreExe(a, gameName, isExecutable(a.flags))   // <- fixed
+            val sb = scoreExe(b, gameName, isExecutable(b.flags))
 
-                // compare score, then size
-                when {
-                    scoreA != scoreB -> scoreA - scoreB
-                    else             -> (a.totalSize - b.totalSize).toInt()
-                }
+            when {
+                sa != sb -> sa - sb                                 // higher score wins
+                else     -> (a.totalSize - b.totalSize).toInt()     // tie-break on size
             }
         }
 
+        /**
+         * Picks the real shipped EXE for a Steam app.
+         *
+         * ❶ try the dev-supplied launch entry (skip obvious stubs)
+         * ❷ else score all manifest-flagged EXEs and keep the best
+         * ❸ else fall back to the largest flagged EXE in the biggest depot
+         * If everything fails, return the game’s install directory.
+         */
         fun getInstalledExe(appId: Int): String {
             val appInfo = getAppInfoOf(appId) ?: return ""
 
-            // 1. installDir you already have
-            val installDir = appInfo.config.installDir
-            val root = Paths.get(PrefManager.appInstallPath, installDir)
+            val installDir = appInfo.config.installDir.ifEmpty { appInfo.name }
+            val root       = Paths.get(PrefManager.appInstallPath, installDir)
 
-            // 2. choose the depots that matter (non-shared, Windows)
-            Timber.i("All exe depots are " + appInfo.depots.values)
-            val depots = appInfo.depots.values.filter { depot ->
-                !depot.sharedInstall && (depot.osList.isEmpty() || depot.osList.any { it.name.equals("windows") || it.name.equals("none") })
+            val depots = appInfo.depots.values.filter { d ->
+                !d.sharedInstall && (d.osList.isEmpty() ||
+                        d.osList.any { it.name.equals("windows", true) || it.name.equals("none", true) })
+            }
+            Timber.i("Depots considered: $depots")
+
+            /* launch targets (lower-case) */
+            val launchTargets = appInfo.config.launch
+                .mapNotNull { it.executable.lowercase() }.toSet() ?: emptySet()
+
+            Timber.i("Launch targets from appinfo: $launchTargets")
+
+            /* stub detector (same short rules) */
+            val generic = Regex("^[a-z]\\d{1,3}\\.exe$", RegexOption.IGNORE_CASE)
+            val bad     = listOf("launcher","steam","crash","handler","setup","unins","eac")
+            fun FileData.isStub(): Boolean {
+                val n = fileName.lowercase()
+                val stub = generic.matches(n) || bad.any { it in n } || totalSize < 1_000_000
+                if (stub) Timber.d("Stub filtered: $fileName  size=$totalSize")
+                return stub
             }
 
-            Timber.i("installed exe depots are " + depots)
+            /* ---------------------------------------------------------- */
+            val flagged = mutableListOf<Pair<FileData, Long>>()   // (file, depotSize)
+            var largestDepotSize = 0L
+
+            val provider = ThreadSafeManifestProvider(File(depotManifestsPath).toPath())
 
             for (depot in depots) {
-                val manifestInfo = depot.manifests["public"] ?: continue
+                val mi = depot.manifests["public"] ?: continue
+                if (mi.size > largestDepotSize) largestDepotSize = mi.size
 
-                // 3. download manifest (simplified – assumes you already have CDN client + depot key)
-                val manifest = ThreadSafeManifestProvider(File(depotManifestsPath).toPath()).fetchManifest(
-                    depot.depotId,
-                    manifestInfo.gid
-                )
+                val man = provider.fetchManifest(depot.depotId, mi.gid) ?: continue
+                Timber.d("Fetched manifest for depot ${depot.depotId}  size=${mi.size}")
 
-                // 4. executables in this depot
-                val exes = manifest?.files?.filter { f ->
-                    isExecutable(f.flags) || f.fileName.endsWith(".exe", true)
+                /* 1️⃣ exact launch entry that isn’t a stub */
+                man.files.firstOrNull { f ->
+                    f.fileName.lowercase() in launchTargets && !f.isStub()
+                }?.let {
+                    Timber.i("Picked via launch entry: ${it.fileName}")
+                    return it.fileName.replace('\\','/').toString()
                 }
-                Timber.i("installed exe depot exes are " + exes)
 
-                // 5. pick the “main” one (largest, not obvious wrappers)
-                val primary = choosePrimaryExe(exes, installDir.lowercase())
-
-                Timber.i("Primary exe is " + primary)
-
-                return primary?.fileName?.replace('\\', '/').toString()
+                /* collect for later */
+                man.files.filter { isExecutable(it.flags) || it.fileName.endsWith(".exe", true) }
+                    .forEach { flagged += it to mi.size }
             }
+
+            Timber.i("Flagged executable candidates: ${flagged.map { it.first.fileName }}")
+
+            /* 2️⃣ scorer (unchanged) */
+            choosePrimaryExe(flagged.map { it.first }, installDir.lowercase())?.let {
+                Timber.i("Picked via scorer: ${it.fileName}")
+                return it.fileName.replace('\\','/').toString()
+            }
+
+            /* 3️⃣ fallback: biggest exe from the biggest depot */
+            flagged
+                .filter { it.second == largestDepotSize }
+                .maxByOrNull { it.first.totalSize }
+                ?.let {
+                    Timber.i("Picked via largest-depot fallback: ${it.first.fileName}")
+                    return it.first.fileName.replace('\\','/').toString()
+                }
+
+            /* 4️⃣ last resort */
+            Timber.w("No executable found; falling back to install dir")
             return getAppDirPath(appId)
         }
-
 
         fun deleteApp(appId: Int): Boolean {
             // Remove any download-complete marker
@@ -616,8 +693,9 @@ class SteamService : Service(), IChallengeUrlChanged {
                         depotIds.mapIndexed { idx, depotId ->
                             async {
                                 depotGate.acquire()               // ── enter gate
+                                var success = false
                                 try {
-                                    ContentDownloader(instance!!.steamClient!!)
+                                    success = ContentDownloader(instance!!.steamClient!!)
                                         .downloadApp(
                                             appId         = appId,
                                             depotId       = depotId,
@@ -630,7 +708,12 @@ class SteamService : Service(), IChallengeUrlChanged {
                                             },
                                             parentScope   = this,
                                         ).await()
+                                } catch (e: Exception) {
+                                    Timber.w(e, "Skipping depot $depotId – probably no entitlement")
                                 } finally {
+                                    if (!success) {
+                                        di.setProgress(1f, idx)
+                                    }
                                     depotGate.release()           // ── leave gate
                                 }
                             }
