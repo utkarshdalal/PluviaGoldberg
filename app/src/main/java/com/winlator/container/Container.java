@@ -26,7 +26,7 @@ public class Container {
     }
 
     public static final String DEFAULT_ENV_VARS = "ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=1 MESA_VK_WSI_PRESENT_MODE=mailbox TU_DEBUG=noconform";
-    public static final String DEFAULT_SCREEN_SIZE = "1280x720";
+    public static final String DEFAULT_SCREEN_SIZE = "854x480";
     public static final String DEFAULT_GRAPHICS_DRIVER = "turnip";
     public static final String DEFAULT_AUDIO_DRIVER = "alsa";
     public static final String DEFAULT_DXWRAPPER = "dxvk";
@@ -50,6 +50,7 @@ public class Container {
     private String wineVersion = WineInfo.MAIN_WINE_VERSION.identifier();
     private boolean showFPS;
     private boolean wow64Mode = true;
+    private boolean needsUnpacking = true;
     private byte startupSelection = STARTUP_SELECTION_AGGRESSIVE;
     private String cpuList;
     private String cpuListWoW64;
@@ -206,6 +207,14 @@ public class Container {
 
     public void setWoW64Mode(boolean wow64Mode) {
         this.wow64Mode = wow64Mode;
+    }
+
+    public boolean isNeedsUnpacking() {
+        return needsUnpacking;
+    }
+
+    public void setNeedsUnpacking(boolean needsUnpacking) {
+        this.needsUnpacking = needsUnpacking;
     }
 
     public byte getStartupSelection() {
@@ -424,6 +433,7 @@ public class Container {
             data.put("primaryController", primaryController);
             data.put("controllerMapping", controllerMapping);
             data.put("execArgs", execArgs);
+            data.put("needsUnpacking", needsUnpacking);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -531,6 +541,9 @@ public class Container {
                     break;
                 case "execArgs" :
                     setExecArgs(data.getString(key));
+                    break;
+                case "needsUnpacking" :
+                    setNeedsUnpacking(data.getBoolean(key));
                     break;
             }
         }

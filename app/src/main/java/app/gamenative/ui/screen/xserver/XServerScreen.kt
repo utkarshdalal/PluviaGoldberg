@@ -124,6 +124,7 @@ fun XServerScreen(
     // seems to be used to indicate when a custom wine is being installed (intent extra "generate_wineprefix")
     // val generateWinePrefix = false
     var firstTimeBoot = false
+    var needsUnpacking = false
     // val frameRatingWindowId = -1
     var taskAffinityMask = 0
     var taskAffinityMaskWoW64 = 0
@@ -437,6 +438,7 @@ fun XServerScreen(
                     taskAffinityMask = ProcessHelper.getAffinityMask(container.getCPUList(true)).toShort().toInt()
                     taskAffinityMaskWoW64 = ProcessHelper.getAffinityMask(container.getCPUListWoW64(true)).toShort().toInt()
                     firstTimeBoot = container.getExtra("appVersion").isEmpty()
+                    needsUnpacking = container.isNeedsUnpacking
                     Timber.i("First time boot: $firstTimeBoot")
 
                     val wineVersion = container.wineVersion
@@ -492,7 +494,7 @@ fun XServerScreen(
                         envVars,
                     )
                     changeWineAudioDriver(xServerState.value.audioDriver, container, ImageFs.find(context))
-                    unpackExecutableFile(context, firstTimeBoot, container, appId, appLaunchInfo)
+                    unpackExecutableFile(context, needsUnpacking, container, appId, appLaunchInfo)
                     PluviaApp.xEnvironment = setupXEnvironment(
                         context,
                         appId,
@@ -963,12 +965,12 @@ private fun exit(winHandler: WinHandler?, environment: XEnvironment?, onExit: ()
 
 private fun unpackExecutableFile(
     context: Context,
-    firstTimeBoot: Boolean,
+    needsUnpacking: Boolean,
     container: Container,
     appId: Int,
     appLaunchInfo: LaunchInfo?
 ) {
-    if (!firstTimeBoot){
+    if (!needsUnpacking){
         return
     }
     val imageFs = ImageFs.find(context)
@@ -1051,6 +1053,9 @@ private fun unpackExecutableFile(
     } catch (e: IOException) {
         Timber.i("Could not move: " + e)
     }
+    container.setNeedsUnpacking(false)
+    Timber.d("Setting needs unpacking to false")
+    container.saveData()
 }
 
 private fun setupWineSystemFiles(
@@ -1372,7 +1377,7 @@ private fun extractGraphicsDriverFiles(
         if (dxwrapper == "dxvk") {
             DXVKHelper.setEnvVars(context, dxwrapperConfig, envVars)
         } else if (dxwrapper == "vkd3d") {
-            envVars.put("VKD3D_FEATURE_LEVEL", "12_1")
+            envVars.put("VKD3D_FEATURE_LEVEL", "12_2")
         }
 
         envVars.put("GALLIUM_DRIVER", "zink")
