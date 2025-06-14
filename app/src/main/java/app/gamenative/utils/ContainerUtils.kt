@@ -282,4 +282,20 @@ object ContainerUtils {
             container
         }
     }
+
+    /**
+     * Deletes the container associated with the given appId, if it exists.
+     */
+    fun deleteContainer(context: Context, appId: Int) {
+        val containerId = getContainerId(appId)
+        val manager = ContainerManager(context)
+        if (manager.hasContainer(containerId)) {
+            // Remove the container directory asynchronously
+            manager.removeContainerAsync(
+                manager.getContainerById(containerId)
+            ) {
+                Timber.i("Deleted container for appId=$appId (containerId=$containerId)")
+            }
+        }
+    }
 }

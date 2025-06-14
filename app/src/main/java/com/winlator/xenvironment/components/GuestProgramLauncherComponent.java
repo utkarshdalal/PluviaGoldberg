@@ -35,6 +35,8 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private static final Object lock = new Object();
     private boolean wow64Mode = true;
 
+    private Runnable preUnpack;
+    public void setPreUnpack(Runnable r) { this.preUnpack = r; }
     @Override
     public void start() {
         // Log.d("GuestProgramLauncherComponent", "Starting...");
