@@ -1045,15 +1045,11 @@ private fun unpackExecutableFile(
             }
             while ((errorReader.readLine().also { line = it }) != null) {
                 output.append(line).append("\n")
-                if (line?.contains("no driver could be loaded") == true) {
-                    onError?.invoke("Wine error: No driver could be loaded. This may be a graphics driver issue.")
-                }
             }
             monoProcess.waitFor()
             Timber.i("Result of mono command " + output)
         } catch (e: Exception) {
             Timber.e("Error during mono installation: $e")
-            onError?.invoke("Error during mono installation: ${e.message}")
         }
 
         output = StringBuilder()
@@ -1071,15 +1067,10 @@ private fun unpackExecutableFile(
             }
             while ((errorReader.readLine().also { line = it }) != null) {
                 output.append(line).append("\n")
-                if (line?.contains("no driver could be loaded") == true) {
-                    onError?.invoke("Wine error: No driver could be loaded. This may be a graphics driver issue.")
-                }
             }
             process.waitFor()
-            Timber.i("Result of shell command " + output)
         } catch (e: Exception) {
             Timber.e("Error running Steamless: $e")
-            onError?.invoke("Error running Steamless: ${e.message}")
         }
 
         val exe = File(imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:").replace('\\', '/'))
@@ -1099,11 +1090,9 @@ private fun unpackExecutableFile(
             } else {
                 val errorMsg = "Either original exe or unpacked exe does not exist. Original: ${exe.exists()}, Unpacked: ${unpackedExe.exists()}"
                 Timber.w(errorMsg)
-                onError?.invoke(errorMsg)
             }
         } catch (e: IOException) {
             Timber.e("Could not move files: $e")
-            onError?.invoke("Could not move files: ${e.message}")
         }
 
         output = StringBuilder()
@@ -1122,15 +1111,11 @@ private fun unpackExecutableFile(
             }
             while ((errorReader.readLine().also { line = it }) != null) {
                 output.append(line).append("\n")
-                if (line?.contains("no driver could be loaded") == true) {
-                    onError?.invoke("Wine error: No driver could be loaded. This may be a graphics driver issue.")
-                }
             }
             wineserverProcess.waitFor()
             Timber.i("Result of wineserver -w command " + output)
         } catch (e: Exception) {
             Timber.e("Error running wineserver: $e")
-            onError?.invoke("Error running wineserver: ${e.message}")
         }
 
         container.setNeedsUnpacking(false)
