@@ -776,6 +776,11 @@ private fun setupXEnvironment(
     envVars.put("MESA_DEBUG", "silent")
     envVars.put("MESA_NO_ERROR", "1")
     envVars.put("WINEPREFIX", imageFs.wineprefix)
+    if (container.isShowFPS){
+        envVars.put("DXVK_HUD", "fps,frametimes")
+        envVars.put("VK_INSTANCE_LAYERS", "VK_LAYER_MESA_overlay")
+        envVars.put("MESA_OVERLAY_SHOW_FPS", 1)
+    }
 
     val enableWineDebug = true // preferences.getBoolean("enable_wine_debug", false)
     val wineDebugChannels = PrefManager.getString("wine_debug_channels", Constants.XServer.DEFAULT_WINE_DEBUG_CHANNELS)
