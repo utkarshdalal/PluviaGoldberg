@@ -1,8 +1,5 @@
 # GameNative
 
-**Disclaimer: This software is intended for playing games that you legally own. Do not use this software for piracy or any other illegal purposes. The maintainer of this fork assumes no 
-responsibility for misuse or for any action taken against your Steam account (e.g., account 
-blocking) as a result of using this software.**
 
 GameNative allows you to play games you own on Steam directly on Android devices.
 
@@ -27,3 +24,6 @@ Join our [Discord server](https://discord.gg/2hKv4VfZfE) for support and updates
 
 ## Privacy Policy
 [Privacy Policy](https://github.com/utkarshdalal/GameNative/blob/master/PrivacyPolicy/README.md)
+
+**Disclaimer: This software is intended for playing games that you legally own. Do not use this software for piracy or any other illegal purposes. The maintainer of this fork assumes no 
+responsibility for misuse.**
