@@ -1,5 +1,6 @@
 package app.gamenative.ui.screen.xserver
 
+import android.app.Activity
 import android.content.Context
 import android.view.View
 import android.widget.FrameLayout
@@ -126,7 +127,8 @@ fun XServerScreen(
     // val generateWinePrefix = false
     var firstTimeBoot = false
     var needsUnpacking = false
-    // val frameRatingWindowId = -1
+    var frameRating by remember { mutableStateOf<FrameRating?>(null) }
+    var frameRatingWindowId = -1
     var taskAffinityMask = 0
     var taskAffinityMaskWoW64 = 0
 
@@ -370,29 +372,36 @@ fun XServerScreen(
 
                 getxServer().windowManager.addOnWindowModificationListener(
                     object : WindowManager.OnWindowModificationListener {
+                        private fun changeFrameRatingVisibility(window: Window, property: Property?) {
+                            if (frameRating == null) return
+                            if (property != null) {
+                                if (frameRatingWindowId == -1 && window.attributes.isMapped() && property.nameAsString() == "_MESA_DRV") {
+                                    frameRatingWindowId = window.id
+                                    (context as? Activity)?.runOnUiThread {
+                                        frameRating?.visibility = View.VISIBLE
+                                    }
+                                }
+                            } else if (window.id == frameRatingWindowId) {
+                                frameRatingWindowId = -1
+                                (context as? Activity)?.runOnUiThread {
+                                    frameRating?.visibility = View.GONE
+                                }
+                            }
+                        }
                         override fun onUpdateWindowContent(window: Window) {
-                            // Timber.v("onUpdateWindowContent:" +
-                            //     "\n\twindowName: ${window.name}" +
-                            //     "\n\tprocessId: ${window.processId}" +
-                            //     "\n\thasParent: ${window.parent != null}" +
-                            //     "\n\tchildrenSize: ${window.children.size}"
-                            // )
                             if (!xServerState.value.winStarted && window.isApplicationWindow()) {
                                 renderer?.setCursorVisible(true)
                                 xServerState.value.winStarted = true
                             }
-                            // if (window.id == frameRatingWindowId) frameRating.update()
+                            if (window.id == frameRatingWindowId) {
+                                (context as? Activity)?.runOnUiThread {
+                                    frameRating?.update()
+                                }
+                            }
                         }
 
                         override fun onModifyWindowProperty(window: Window, property: Property) {
-                            // Timber.v("onModifyWindowProperty:" +
-                            //     "\n\twindowName: ${window.name}" +
-                            //     "\n\tprocessId: ${window.processId}" +
-                            //     "\n\thasParent: ${window.parent != null}" +
-                            //     "\n\tchildrenSize: ${window.children.size}" +
-                            //     "\n\tpropertyName${property.name}"
-                            // )
-                            // changeFrameRatingVisibility(window, property)
+                            changeFrameRatingVisibility(window, property)
                         }
 
                         override fun onMapWindow(window: Window) {
@@ -417,7 +426,7 @@ fun XServerScreen(
                                         "\n\thasParent: ${window.parent != null}" +
                                         "\n\tchildrenSize: ${window.children.size}",
                             )
-                            // changeFrameRatingVisibility(window, null)
+                            changeFrameRatingVisibility(window, null)
                             onWindowUnmapped?.invoke(window)
                         }
                     },
@@ -504,7 +513,7 @@ fun XServerScreen(
                         container,
                         appLaunchInfo,
                         xServerView!!.getxServer(),
-                        onGameLaunchError
+                        onGameLaunchError,
                     )
                 }
             }
@@ -540,10 +549,11 @@ fun XServerScreen(
             hideInputControls()
             val container = ContainerUtils.getContainer(context, appId)
 
-            if (container != null && container.isShowFPS()) {
-                val frameRating = FrameRating(context)
-                frameRating.setVisibility(View.GONE)
-                frameLayout.addView(frameRating)
+            if (container.isShowFPS()) {
+                Timber.i("Attempting to show FPS")
+                frameRating = FrameRating(context)
+                frameRating?.setVisibility(View.GONE)
+                frameRating?.let { frameLayout.addView(it) }
             }
 
             frameLayout
@@ -750,7 +760,7 @@ private fun setupXEnvironment(
     appLaunchInfo: LaunchInfo?,
     // shortcut: Shortcut?,
     xServer: XServer,
-    onGameLaunchError: ((String) -> Unit)? = null
+    onGameLaunchError: ((String) -> Unit)? = null,
 ): XEnvironment {
     val lc_all = container!!.lC_ALL
     val imageFs = ImageFs.find(context)
@@ -985,7 +995,7 @@ private fun unpackExecutableFile(
     container: Container,
     appId: Int,
     appLaunchInfo: LaunchInfo?,
-    onError: ((String) -> Unit)? = null
+    onError: ((String) -> Unit)? = null,
 ) {
     if (!needsUnpacking){
         return
@@ -1098,8 +1108,13 @@ private fun unpackExecutableFile(
 
         output = StringBuilder()
         try {
-            val wineserverProcess = Runtime.getRuntime().exec(arrayOf(rootDir.getPath() + "/usr/local/bin/box64", "wineserver",
-                "-w"), shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
+            val wineserverProcess = Runtime.getRuntime().exec(
+                arrayOf(
+                    rootDir.getPath() + "/usr/local/bin/box64", "wineserver",
+                    "-w",
+                ),
+                shellCommandEnvVars.toStringArray(), imageFs.getRootDir(),
+            )
             val reader = BufferedReader(InputStreamReader(wineserverProcess.getInputStream()))
             val errorReader = BufferedReader(InputStreamReader(wineserverProcess.getErrorStream()))
             while ((reader.readLine().also { line = it }) != null) {
