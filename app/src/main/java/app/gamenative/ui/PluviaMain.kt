@@ -3,14 +3,17 @@ package app.gamenative.ui
 import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -37,6 +40,7 @@ import app.gamenative.service.SteamService
 import app.gamenative.ui.component.dialog.LoadingDialog
 import app.gamenative.ui.component.dialog.MessageDialog
 import app.gamenative.ui.component.dialog.state.MessageDialogState
+import app.gamenative.ui.components.BootingSplash
 import app.gamenative.ui.enums.DialogType
 import app.gamenative.ui.enums.Orientation
 import app.gamenative.ui.model.MainViewModel
@@ -382,6 +386,15 @@ fun PluviaMain(
             message = msgDialogState.message,
         )
 
+        Box(modifier = Modifier.zIndex(10f)) {
+            BootingSplash(
+                visible = state.showBootingSplash,
+                onBootCompleted = {
+                    viewModel.setShowBootingSplash(false)
+                },
+            )
+        }
+
         NavHost(
             navController = navController,
             startDestination = PluviaScreen.LoginUser.route,
@@ -464,6 +477,9 @@ fun PluviaMain(
                     },
                     onExit = {
                         viewModel.exitSteamApp(context, state.launchedAppId)
+                    },
+                    onGameLaunchError = { error ->
+                        viewModel.onGameLaunchError(error)
                     },
                 )
             }

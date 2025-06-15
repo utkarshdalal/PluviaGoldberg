@@ -25,6 +25,7 @@ import java.nio.file.Paths
 import javax.inject.Inject
 import kotlin.io.path.name
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import kotlinx.coroutines.Job
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -84,6 +86,8 @@ class MainViewModel @Inject constructor(
             _uiEvent.send(MainUiEvent.OnLoggedOut)
         }
     }
+
+    private var bootingSplashTimeoutJob: Job? = null
 
     init {
         PluviaApp.events.on<AndroidEvent.BackPressed, Unit>(onBackPressed)
@@ -148,6 +152,10 @@ class MainViewModel @Inject constructor(
         _state.update { it.copy(hasLaunched = value) }
     }
 
+    fun setShowBootingSplash(value: Boolean) {
+        _state.update { it.copy(showBootingSplash = value) }
+    }
+
     fun setCurrentScreen(currentScreen: String?) {
         val screen = when (currentScreen) {
             PluviaScreen.LoginUser.route -> PluviaScreen.LoginUser
@@ -186,10 +194,14 @@ class MainViewModel @Inject constructor(
 
     fun launchApp(context: Context, appId: Int) {
         SteamUtils.replaceSteamApi(context, appId)
-        // TODO: fix XServerScreen change orientation issue rather than setting the orientation
-        //  before entering XServerScreen
+        // Show booting splash before launching the app
         viewModelScope.launch {
+            setShowBootingSplash(true)
             PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(PrefManager.allowedOrientation))
+            
+            // Small delay to ensure the splash screen is visible before proceeding
+            delay(100)
+            
             _uiEvent.send(MainUiEvent.LaunchApp)
         }
     }
@@ -205,6 +217,11 @@ class MainViewModel @Inject constructor(
 
     fun onWindowMapped(window: Window, appId: Int) {
         viewModelScope.launch {
+            // Hide the booting splash when a window is mapped
+            bootingSplashTimeoutJob?.cancel()
+            bootingSplashTimeoutJob = null
+            setShowBootingSplash(false)
+            
             SteamService.getAppInfoOf(appId)?.let { appInfo ->
                 // TODO: this should not be a search, the app should have been launched with a specific launch config that we then use to compare
                 val launchConfig = SteamService.getWindowsLaunchInfos(appId).firstOrNull {
@@ -238,6 +255,18 @@ class MainViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
+
+    fun onGameLaunchError(error: String) {
+        viewModelScope.launch {
+            // Hide the splash screen if it's still showing
+            bootingSplashTimeoutJob?.cancel()
+            bootingSplashTimeoutJob = null
+            setShowBootingSplash(false)
+            
+            // You could also show an error dialog here if needed
+            Timber.e("Game launch error: $error")
         }
     }
 }

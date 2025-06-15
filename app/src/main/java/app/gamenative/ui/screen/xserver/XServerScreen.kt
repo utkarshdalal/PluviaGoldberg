@@ -60,6 +60,7 @@ import com.winlator.inputcontrols.ControlsProfile
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.inputcontrols.TouchMouse
+import com.winlator.widget.FrameRating
 import com.winlator.widget.InputControlsView
 import com.winlator.widget.TouchpadView
 import com.winlator.widget.XServerView
@@ -110,7 +111,7 @@ fun XServerScreen(
     onExit: () -> Unit,
     onWindowMapped: ((Window) -> Unit)? = null,
     onWindowUnmapped: ((Window) -> Unit)? = null,
-    // xServerViewModel: XServerViewModel = viewModel()
+    onGameLaunchError: ((String) -> Unit)? = null,
 ) {
     Timber.i("Starting up XServerScreen")
     val context = LocalContext.current
@@ -503,6 +504,7 @@ fun XServerScreen(
                         container,
                         appLaunchInfo,
                         xServerView!!.getxServer(),
+                        onGameLaunchError
                     )
                 }
             }
@@ -536,6 +538,13 @@ fun XServerScreen(
             // Add InputControlsView on top of XServerView
             frameLayout.addView(icView)
             hideInputControls()
+            val container = ContainerUtils.getContainer(context, appId)
+
+            if (container != null && container.isShowFPS()) {
+                val frameRating = FrameRating(context)
+                frameRating.setVisibility(View.GONE)
+                frameLayout.addView(frameRating)
+            }
 
             frameLayout
 
@@ -741,6 +750,7 @@ private fun setupXEnvironment(
     appLaunchInfo: LaunchInfo?,
     // shortcut: Shortcut?,
     xServer: XServer,
+    onGameLaunchError: ((String) -> Unit)? = null
 ): XEnvironment {
     val lc_all = container!!.lC_ALL
     val imageFs = ImageFs.find(context)
@@ -800,7 +810,7 @@ private fun setupXEnvironment(
         guestProgramLauncherComponent.box86Preset = container.box86Preset
         guestProgramLauncherComponent.box64Preset = container.box64Preset
         guestProgramLauncherComponent.setPreUnpack {
-            unpackExecutableFile(context, container.isNeedsUnpacking, container, appId, appLaunchInfo)
+            unpackExecutableFile(context, container.isNeedsUnpacking, container, appId, appLaunchInfo, onGameLaunchError)
         }
     }
 
@@ -850,6 +860,10 @@ private fun setupXEnvironment(
 
     guestProgramLauncherComponent.envVars = envVars
     guestProgramLauncherComponent.setTerminationCallback { status ->
+        if (status != 0) {
+            Timber.e("Guest program terminated with status: $status")
+            onGameLaunchError?.invoke("Game terminated with error status: $status")
+        }
         PluviaApp.events.emit(AndroidEvent.GuestProgramTerminated)
     }
     environment.addComponent(guestProgramLauncherComponent)
@@ -970,112 +984,149 @@ private fun unpackExecutableFile(
     needsUnpacking: Boolean,
     container: Container,
     appId: Int,
-    appLaunchInfo: LaunchInfo?
+    appLaunchInfo: LaunchInfo?,
+    onError: ((String) -> Unit)? = null
 ) {
     if (!needsUnpacking){
         return
     }
-    val imageFs = ImageFs.find(context)
     val shellCommandEnvVars = EnvVars()
-    shellCommandEnvVars.put("HOME", imageFs.home_path)
-    shellCommandEnvVars.put("USER", ImageFs.USER)
-    shellCommandEnvVars.put("TMPDIR", imageFs.getRootDir().getPath() + "/tmp")
-    shellCommandEnvVars.put("DISPLAY", ":99")
-
-    val winePath = imageFs.getWinePath() + "/bin"
-    shellCommandEnvVars.put(
-        "PATH",
-        winePath + ":" +
-                imageFs.getRootDir().getPath() + "/usr/bin:" +
-                imageFs.getRootDir().getPath() + "/usr/local/bin",
-    )
-
-    shellCommandEnvVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib")
-    shellCommandEnvVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu")
-    shellCommandEnvVars.put("ANDROID_SYSVSHM_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH)
-    shellCommandEnvVars.put("FONTCONFIG_PATH", imageFs.getRootDir().getPath() + "/usr/etc/fonts")
-    shellCommandEnvVars.put("WINEDLLOVERRIDES", "winex11.drv=b");
-
-    if ((File(imageFs.getGlibc64Dir(), "libandroid-sysvshm.so")).exists() ||
-        (File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists()
-    ) shellCommandEnvVars.put("LD_PRELOAD", "libredirect.so libandroid-sysvshm.so")
-    shellCommandEnvVars.put("WINEESYNC_WINLATOR", "1")
-    val rootDir: File = imageFs.getRootDir()
-    val executableFile = getSteamlessTarget(appId, container, appLaunchInfo)
-    var line: String?
-    var output = StringBuilder()
-
-
-    val installMonoArray = arrayOf(
-        rootDir.getPath() + "/usr/local/bin/box64", "wine", "msiexec", "/i",
-        "Z:\\opt\\mono-gecko-offline\\wine-mono-9.0.0-x86.msi",
-    )
-    Timber.i("Install mono command " + Arrays.toString(installMonoArray))
-    val monoProcess = Runtime.getRuntime().exec(installMonoArray, shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
-    var reader = BufferedReader(InputStreamReader(monoProcess.getInputStream()))
-    var errorReader = BufferedReader(InputStreamReader(monoProcess.getErrorStream()))
-    while ((reader.readLine().also { line = it }) != null) {
-        output.append(line).append("\n")
-    }
-    while ((errorReader.readLine().also { line = it }) != null) {
-        output.append(line).append("\n")
-    }
-    monoProcess.waitFor()
-    Timber.i("Result of mono command " + output)
-
-    output = StringBuilder()
-    val shellCommandArray = arrayOf(
-        rootDir.getPath() + "/usr/local/bin/box64", "wine",
-        "z:\\\\Steamless\\\\Steamless.CLI.exe", executableFile,
-    )
-    Timber.i("Running shell command " + Arrays.toString(shellCommandArray))
-    val process: Process = Runtime.getRuntime().exec(shellCommandArray, shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
-    reader = BufferedReader(InputStreamReader(process.getInputStream()))
-    errorReader = BufferedReader(InputStreamReader(process.getErrorStream()))
-    while ((reader.readLine().also { line = it }) != null) {
-        output.append(line).append("\n")
-    }
-    while ((errorReader.readLine().also { line = it }) != null) {
-        output.append(line).append("\n")
-    }
-    process.waitFor()
-    Timber.i("Result of shell command " + output)
-
-
-    val exe = File(imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:").replace('\\', '/'))
-    val unpackedExe = File(
-        imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:")
-            .replace('\\', '/') + ".unpacked.exe",
-    )
-    val originalExe = File(
-        imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:")
-            .replace('\\', '/') + ".original.exe",
-    )
-    Timber.i("Moving " + unpackedExe + " to " + exe)
     try {
-        Files.copy(exe.toPath(), originalExe.toPath())
-        Files.copy(unpackedExe.toPath(), exe.toPath(), REPLACE_EXISTING)
-    } catch (e: IOException) {
-        Timber.i("Could not move: " + e)
-    }
+        val imageFs = ImageFs.find(context)
+        shellCommandEnvVars.put("HOME", imageFs.home_path)
+        shellCommandEnvVars.put("USER", ImageFs.USER)
+        shellCommandEnvVars.put("TMPDIR", imageFs.getRootDir().getPath() + "/tmp")
+        shellCommandEnvVars.put("DISPLAY", ":99")
 
-    output = StringBuilder()
-    val wineserverProcess = Runtime.getRuntime().exec(arrayOf(rootDir.getPath() + "/usr/local/bin/box64", "wineserver",
-        "-w"), shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
-    reader = BufferedReader(InputStreamReader(wineserverProcess.getInputStream()))
-    errorReader = BufferedReader(InputStreamReader(wineserverProcess.getErrorStream()))
-    while ((reader.readLine().also { line = it }) != null) {
-        output.append(line).append("\n")
+        val winePath = imageFs.getWinePath() + "/bin"
+        shellCommandEnvVars.put(
+            "PATH",
+            winePath + ":" +
+                    imageFs.getRootDir().getPath() + "/usr/bin:" +
+                    imageFs.getRootDir().getPath() + "/usr/local/bin",
+        )
+
+        shellCommandEnvVars.put("LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib")
+        shellCommandEnvVars.put("BOX64_LD_LIBRARY_PATH", imageFs.getRootDir().getPath() + "/usr/lib/x86_64-linux-gnu")
+        shellCommandEnvVars.put("ANDROID_SYSVSHM_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.SYSVSHM_SERVER_PATH)
+        shellCommandEnvVars.put("FONTCONFIG_PATH", imageFs.getRootDir().getPath() + "/usr/etc/fonts")
+        shellCommandEnvVars.put("WINEDLLOVERRIDES", "winex11.drv=b");
+
+        if ((File(imageFs.getGlibc64Dir(), "libandroid-sysvshm.so")).exists() ||
+            (File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists()
+        ) shellCommandEnvVars.put("LD_PRELOAD", "libredirect.so libandroid-sysvshm.so")
+        shellCommandEnvVars.put("WINEESYNC_WINLATOR", "1")
+        val rootDir: File = imageFs.getRootDir()
+        val executableFile = getSteamlessTarget(appId, container, appLaunchInfo)
+        var line: String?
+        var output = StringBuilder()
+
+        try {
+            val installMonoArray = arrayOf(
+                rootDir.getPath() + "/usr/local/bin/box64", "wine", "msiexec", "/i",
+                "Z:\\opt\\mono-gecko-offline\\wine-mono-9.0.0-x86.msi",
+            )
+            Timber.i("Install mono command " + Arrays.toString(installMonoArray))
+            val monoProcess = Runtime.getRuntime().exec(installMonoArray, shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
+            var reader = BufferedReader(InputStreamReader(monoProcess.getInputStream()))
+            var errorReader = BufferedReader(InputStreamReader(monoProcess.getErrorStream()))
+            while ((reader.readLine().also { line = it }) != null) {
+                output.append(line).append("\n")
+            }
+            while ((errorReader.readLine().also { line = it }) != null) {
+                output.append(line).append("\n")
+                if (line?.contains("no driver could be loaded") == true) {
+                    onError?.invoke("Wine error: No driver could be loaded. This may be a graphics driver issue.")
+                }
+            }
+            monoProcess.waitFor()
+            Timber.i("Result of mono command " + output)
+        } catch (e: Exception) {
+            Timber.e("Error during mono installation: $e")
+            onError?.invoke("Error during mono installation: ${e.message}")
+        }
+
+        output = StringBuilder()
+        try {
+            val shellCommandArray = arrayOf(
+                rootDir.getPath() + "/usr/local/bin/box64", "wine",
+                "z:\\\\Steamless\\\\Steamless.CLI.exe", executableFile,
+            )
+            Timber.i("Running shell command " + Arrays.toString(shellCommandArray))
+            val process: Process = Runtime.getRuntime().exec(shellCommandArray, shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
+            val reader = BufferedReader(InputStreamReader(process.getInputStream()))
+            val errorReader = BufferedReader(InputStreamReader(process.getErrorStream()))
+            while ((reader.readLine().also { line = it }) != null) {
+                output.append(line).append("\n")
+            }
+            while ((errorReader.readLine().also { line = it }) != null) {
+                output.append(line).append("\n")
+                if (line?.contains("no driver could be loaded") == true) {
+                    onError?.invoke("Wine error: No driver could be loaded. This may be a graphics driver issue.")
+                }
+            }
+            process.waitFor()
+            Timber.i("Result of shell command " + output)
+        } catch (e: Exception) {
+            Timber.e("Error running Steamless: $e")
+            onError?.invoke("Error running Steamless: ${e.message}")
+        }
+
+        val exe = File(imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:").replace('\\', '/'))
+        val unpackedExe = File(
+            imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:")
+                .replace('\\', '/') + ".unpacked.exe",
+        )
+        val originalExe = File(
+            imageFs.wineprefix + "/dosdevices/" + executableFile.replace("A:", "a:")
+                .replace('\\', '/') + ".original.exe",
+        )
+        Timber.i("Moving " + unpackedExe + " to " + exe)
+        try {
+            if (exe.exists() && unpackedExe.exists()) {
+                Files.copy(exe.toPath(), originalExe.toPath())
+                Files.copy(unpackedExe.toPath(), exe.toPath(), REPLACE_EXISTING)
+            } else {
+                val errorMsg = "Either original exe or unpacked exe does not exist. Original: ${exe.exists()}, Unpacked: ${unpackedExe.exists()}"
+                Timber.w(errorMsg)
+                onError?.invoke(errorMsg)
+            }
+        } catch (e: IOException) {
+            Timber.e("Could not move files: $e")
+            onError?.invoke("Could not move files: ${e.message}")
+        }
+
+        output = StringBuilder()
+        try {
+            val wineserverProcess = Runtime.getRuntime().exec(arrayOf(rootDir.getPath() + "/usr/local/bin/box64", "wineserver",
+                "-w"), shellCommandEnvVars.toStringArray(), imageFs.getRootDir())
+            val reader = BufferedReader(InputStreamReader(wineserverProcess.getInputStream()))
+            val errorReader = BufferedReader(InputStreamReader(wineserverProcess.getErrorStream()))
+            while ((reader.readLine().also { line = it }) != null) {
+                output.append(line).append("\n")
+            }
+            while ((errorReader.readLine().also { line = it }) != null) {
+                output.append(line).append("\n")
+                if (line?.contains("no driver could be loaded") == true) {
+                    onError?.invoke("Wine error: No driver could be loaded. This may be a graphics driver issue.")
+                }
+            }
+            wineserverProcess.waitFor()
+            Timber.i("Result of wineserver -w command " + output)
+        } catch (e: Exception) {
+            Timber.e("Error running wineserver: $e")
+            onError?.invoke("Error running wineserver: ${e.message}")
+        }
+
+        container.setNeedsUnpacking(false)
+        Timber.d("Setting needs unpacking to false")
+        container.saveData()
+    } catch (e: Exception) {
+        Timber.e("Error during unpacking: $e")
+        onError?.invoke("Error during unpacking: ${e.message}")
+    } finally {
+        shellCommandEnvVars.put("DISPLAY", ":0")
     }
-    while ((errorReader.readLine().also { line = it }) != null) {
-        output.append(line).append("\n")
-    }
-    wineserverProcess.waitFor()
-    Timber.i("Result of wineserver -w command " + output)
-    container.setNeedsUnpacking(false)
-    Timber.d("Setting needs unpacking to false")
-    container.saveData()
-    shellCommandEnvVars.put("DISPLAY", ":0");
 }
 
 private fun setupWineSystemFiles(
