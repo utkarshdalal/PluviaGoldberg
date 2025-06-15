@@ -21,7 +21,7 @@ This is a fork of the Pluvia Steam emulator for Android. This version specifical
 
 Pluvia is a lightweight unofficial Steam client for Android with the ability to play DRM-Free games from your account and chat with friends.
 
-[Playing Balatro (DRM protected game)](https://github.com/user-attachments/assets/cbeab580-f537-4c88-b908-9510f1c27053)
+[Playing Stray on Poco F6](https://github.com/user-attachments/assets/1870fd14-7de9-4054-ba92-d3a5c73686b5)
 
 > NOTE: This project is **NOT** affilated, endorsed, sponsored, or developed by __Valve Corporation__. Do not report any bugs found in this project to them.
 > Steam is a trademark of the Valve Corporation
