@@ -48,6 +48,8 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         this.wineProfile = wineProfile;
     }
 
+    private Runnable preUnpack;
+    public void setPreUnpack(Runnable r) { this.preUnpack = r; }
     @Override
     public void start() {
         Log.d("GlibcProgramLauncherComponent", "Starting...");
@@ -70,6 +72,7 @@ public class GlibcProgramLauncherComponent extends GuestProgramLauncherComponent
         synchronized (lock) {
             stop();
             extractBox86_64Files();
+            if (preUnpack != null) preUnpack.run();
             pid = execGuestProgram();
             Log.d("GlibcProgramLauncherComponent", "Process " + pid + " started");
         }

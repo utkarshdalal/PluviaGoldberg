@@ -53,6 +53,44 @@ object SteamUtils {
      */
     fun removeSpecialChars(s: String): String = s.replace(Regex("[^\\u0000-\\u007F]"), "")
 
+    private fun generateInterfacesFile(dllPath: Path) {
+        val outFile = dllPath.parent.resolve("steam_interfaces.txt")
+        if (Files.exists(outFile)) return          // already generated on a previous boot
+
+        // -------- read DLL into memory ----------------------------------------
+        val bytes = Files.readAllBytes(dllPath)
+        val strings = mutableSetOf<String>()
+
+        val sb = StringBuilder()
+        fun flush() {
+            if (sb.length >= 10) {                 // only consider reasonably long strings
+                val candidate = sb.toString()
+                if (candidate.matches(Regex("^Steam[A-Za-z]+[0-9]{3}\$")))
+                    strings += candidate
+            }
+            sb.setLength(0)
+        }
+
+        for (b in bytes) {
+            val ch = b.toInt() and 0xFF
+            if (ch in 0x20..0x7E) {                // printable ASCII
+                sb.append(ch.toChar())
+            } else {
+                flush()
+            }
+        }
+        flush()                                    // catch trailing string
+
+        if (strings.isEmpty()) {
+            Timber.w("No Steam interface strings found in ${dllPath.fileName}")
+            return
+        }
+
+        val sorted = strings.sorted()
+        Files.write(outFile, sorted)
+        Timber.i("Generated steam_interfaces.txt (${sorted.size} interfaces)")
+    }
+
     /**
      * Replaces any existing `steam_api.dll` or `steam_api64.dll` in the app directory
      * with our pipe dll stored in assets
@@ -66,6 +104,7 @@ object SteamUtils {
         FileUtils.walkThroughPath(Paths.get(appDirPath), -1) {
             if (it.name == "steam_api.dll" && it.exists()) {
                 Timber.i("Found steam_api.dll at ${it.absolutePathString()}, replacing...")
+                generateInterfacesFile(it)
                 Files.delete(it)
                 Files.createFile(it)
                 FileOutputStream(it.absolutePathString()).use { fos ->
@@ -79,6 +118,7 @@ object SteamUtils {
             }
             if (it.name == "steam_api64.dll" && it.exists()) {
                 Timber.i("Found steam_api64.dll at ${it.absolutePathString()}, replacing...")
+                generateInterfacesFile(it)
                 Files.delete(it)
                 Files.createFile(it)
                 FileOutputStream(it.absolutePathString()).use { fos ->

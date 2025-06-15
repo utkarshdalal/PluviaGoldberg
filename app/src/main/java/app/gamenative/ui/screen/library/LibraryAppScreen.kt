@@ -232,7 +232,10 @@ fun AppScreen(
 
         DialogType.DELETE_APP -> {
             onConfirmClick = {
+                // Delete the Steam app data
                 SteamService.deleteApp(appId)
+                // Also delete the associated container so it will be recreated on next launch
+                ContainerUtils.deleteContainer(context, appId)
                 msgDialogState = MessageDialogState(false)
 
                 isInstalled = SteamService.isAppInstalled(appId)

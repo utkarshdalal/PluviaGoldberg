@@ -17,4 +17,5 @@ data class MainState(
     val isSteamConnected: Boolean = false,
     val launchedAppId: Int = 0,
     val bootToContainer: Boolean = false,
+    val showBootingSplash: Boolean = false,
 )
