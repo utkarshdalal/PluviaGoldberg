@@ -75,8 +75,8 @@
         <item>0.3.7</item>
     </string-array>
     <string-array name="box64_version_entries">
-        <item>0.3.4 (Default)</item>
-        <item>0.2.8</item>
+        <item>0.3.6 (Default)</item>
+        <item>0.3.4</item>
     </string-array>
     <string-array name="dinput_mapper_type_entries">
         <item>Standard (Old Gamepads)</item>
