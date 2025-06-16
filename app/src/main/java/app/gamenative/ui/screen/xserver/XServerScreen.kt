@@ -1074,6 +1074,7 @@ private fun unpackExecutableFile(
                 output.append(line).append("\n")
             }
             process.waitFor()
+            Timber.i("Result of Steamless command " + output)
         } catch (e: Exception) {
             Timber.e("Error running Steamless: $e")
         }
@@ -1122,7 +1123,6 @@ private fun unpackExecutableFile(
         } catch (e: Exception) {
             Timber.e("Error running wineserver: $e")
         }
-
         container.setNeedsUnpacking(false)
         Timber.d("Setting needs unpacking to false")
         container.saveData()

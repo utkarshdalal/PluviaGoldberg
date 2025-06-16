@@ -686,36 +686,49 @@ class SteamService : Service(), IChallengeUrlChanged {
             if (downloadJobs.contains(appId)) return getAppDownloadInfo(appId)
             if (depotIds.isEmpty()) return null
 
+            val steamApps = instance!!.steamClient!!.getHandler(SteamApps::class.java)!!
+            val entitledDepotIds = runBlocking {
+                depotIds.map { depotId ->
+                    async(Dispatchers.IO) {
+                        val res = steamApps.getDepotDecryptionKey(depotId, appId).await()
+                        depotId to (res.result == EResult.OK)
+                    }
+                }.awaitAll()
+                    .filter { it.second }
+                    .map { it.first }
+            }
+
+            if (entitledDepotIds.isEmpty()) return null
+
             Timber.i("Starting download for $appId")
 
-            val info = DownloadInfo(depotIds.size).also { di ->
+            val info = DownloadInfo(entitledDepotIds.size).also { di ->
                 di.setDownloadJob(CoroutineScope(Dispatchers.IO).launch {
 
                     coroutineScope {
-                        depotIds.mapIndexed { idx, depotId ->
+                        entitledDepotIds.mapIndexed { idx, depotId ->
                             async {
                                 depotGate.acquire()               // ── enter gate
                                 var success = false
                                 try {
-                                    success = ContentDownloader(instance!!.steamClient!!)
-                                        .downloadApp(
-                                            appId         = appId,
-                                            depotId       = depotId,
-                                            installPath   = PrefManager.appInstallPath,
-                                            stagingPath   = PrefManager.appStagingPath,
-                                            branch        = branch,
-                                            maxDownloads  = CHUNKS_PER_DEPOT,
-                                            onDownloadProgress = { p ->
-                                                di.setProgress(p, idx)
-                                            },
-                                            parentScope   = this,
-                                        ).await()
-                                } catch (e: Exception) {
-                                    Timber.w(e, "Skipping depot $depotId – probably no entitlement")
-                                } finally {
-                                    if (!success) {
-                                        di.setProgress(1f, idx)
+                                    success = retry(times = 3, backoffMs = 2_000) {
+                                        ContentDownloader(instance!!.steamClient!!)
+                                            .downloadApp(
+                                                appId         = appId,
+                                                depotId       = depotId,
+                                                installPath   = PrefManager.appInstallPath,
+                                                stagingPath   = PrefManager.appStagingPath,
+                                                branch        = branch,
+                                                maxDownloads  = CHUNKS_PER_DEPOT,
+                                                onDownloadProgress = { p ->
+                                                    di.setProgress(p, idx)
+                                                },
+                                                parentScope   = this,
+                                            ).await()
                                     }
+                                    if (success) di.setProgress(1f, idx)      // finished depot
+                                    else    Timber.w("Depot $depotId skipped after retries")
+                                } finally {
                                     depotGate.release()           // ── leave gate
                                 }
                             }
@@ -744,6 +757,20 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
             return info
         }
+
+
+        private suspend fun retry(
+            times: Int,
+            backoffMs: Long = 0,
+            block: suspend () -> Boolean,
+        ): Boolean {
+            repeat(times - 1) { attempt ->
+                if (block()) return true
+                if (backoffMs > 0) delay(backoffMs * (attempt + 1))
+            }
+            return block()
+        }
+
 
         fun getWindowsLaunchInfos(appId: Int): List<LaunchInfo> {
             return getAppInfoOf(appId)?.let { appInfo ->
