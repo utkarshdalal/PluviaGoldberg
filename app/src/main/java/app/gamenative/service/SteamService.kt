@@ -569,7 +569,9 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             /* 4️⃣ last resort */
             Timber.w("No executable found; falling back to install dir")
-            return getAppDirPath(appId)
+            return (getAppInfoOf(appId)?.let { appInfo ->
+                getWindowsLaunchInfos(appId).firstOrNull()
+            })?.executable ?: ""
         }
 
         fun deleteApp(appId: Int): Boolean {
