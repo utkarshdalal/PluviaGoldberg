@@ -9,6 +9,7 @@ import com.winlator.container.ContainerManager
 import com.winlator.core.FileUtils
 import com.winlator.core.WineRegistryEditor
 import com.winlator.core.WineThemeManager
+import com.winlator.winhandler.WinHandler
 import java.io.File
 import kotlin.Boolean
 import org.json.JSONArray
@@ -153,6 +154,9 @@ object ContainerUtils {
             strictShaderMath = strictShaderMath,
             videoMemorySize = videoMemorySize,
             mouseWarpOverride = mouseWarpOverride,
+            enableXInput = (container.inputType and WinHandler.FLAG_INPUT_TYPE_XINPUT.toInt()) != 0,
+            enableDInput = (container.inputType and WinHandler.FLAG_INPUT_TYPE_DINPUT.toInt()) != 0,
+            dinputMapperType = container.inputType and (WinHandler.FLAG_DINPUT_MAPPER_STANDARD.toInt() or WinHandler.FLAG_DINPUT_MAPPER_XINPUT.toInt()),
         )
     }
 
@@ -205,6 +209,11 @@ object ContainerUtils {
         container.box86Preset = containerData.box86Preset
         container.box64Preset = containerData.box64Preset
         container.desktopTheme = containerData.desktopTheme
+        // Input settings: combine XInput, DInput and mapper flags
+        val inputType = containerData.getInputType()
+        Timber.d("ContainerUtils.applyToContainer: enableXInput=%s, enableDInput=%s, dinputMapperType=%d, inputType=%d", 
+            containerData.enableXInput, containerData.enableDInput, containerData.dinputMapperType, inputType)
+        container.setInputType(inputType)
         container.saveData()
         Timber.d("Set container.execArgs to '${containerData.execArgs}'")
     }

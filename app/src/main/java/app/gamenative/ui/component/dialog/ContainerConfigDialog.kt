@@ -76,6 +76,7 @@ import com.winlator.core.StringUtils
 import com.winlator.core.envvars.EnvVarInfo
 import com.winlator.core.envvars.EnvVars
 import com.winlator.core.envvars.EnvVarSelectionType
+import com.winlator.winhandler.WinHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -181,6 +182,11 @@ fun ContainerConfigDialog(
             mutableStateOf(MessageDialogState(visible = false))
         }
         var showEnvVarCreateDialog by rememberSaveable { mutableStateOf(false) }
+        // Input settings state
+        var enableXInput by rememberSaveable { mutableStateOf(config.enableXInput) }
+        var enableDInput by rememberSaveable { mutableStateOf(config.enableDInput) }
+        val dinputMapperOptions = stringArrayResource(R.array.dinput_mapper_type_entries).toList()
+        var dinputMapperIndex by rememberSaveable { mutableIntStateOf(if (config.dinputMapperType == WinHandler.FLAG_DINPUT_MAPPER_XINPUT.toInt()) 1 else 0) }
 
         val applyScreenSizeToConfig: () -> Unit = {
             val screenSize = if (screenSizeIndex == 0) {
@@ -483,12 +489,47 @@ fun ContainerConfigDialog(
                                     config = config.copy(audioDriver = StringUtils.parseIdentifier(audioDrivers[it]))
                                 },
                             )
+                            // Restore Show FPS toggle
                             SettingsSwitch(
                                 colors = settingsTileColorsAlt(),
                                 title = { Text(text = "Show FPS") },
                                 state = config.showFPS,
-                                onCheckedChange = {
-                                    config = config.copy(showFPS = it)
+                                onCheckedChange = { config = config.copy(showFPS = it) },
+                            )
+                            // Enable XInput toggle
+                            SettingsSwitch(
+                                colors = settingsTileColorsAlt(),
+                                title = { Text(text = stringResource(R.string.enable_xinput)) },
+                                state = enableXInput,
+                                onCheckedChange = { value ->
+                                    enableXInput = value
+                                    config = config.copy(enableXInput = value)
+                                    if (value && enableDInput) {
+                                        Toast.makeText(context, context.getString(R.string.enable_xinput_and_dinput_same_time), Toast.LENGTH_LONG).show()
+                                    }
+                                },
+                            )
+                            SettingsSwitch(
+                                colors = settingsTileColorsAlt(),
+                                title = { Text(text = stringResource(R.string.enable_dinput)) },
+                                state = enableDInput,
+                                onCheckedChange = { value ->
+                                    enableDInput = value
+                                    config = config.copy(enableDInput = value)
+                                    if (value && enableXInput) {
+                                        Toast.makeText(context, context.getString(R.string.enable_xinput_and_dinput_same_time), Toast.LENGTH_LONG).show()
+                                    }
+                                },
+                            )
+                            SettingsListDropdown(
+                                colors = settingsTileColors(),
+                                title = { Text(text = stringResource(R.string.directinput_mapper_type)) },
+                                value = dinputMapperIndex,
+                                items = dinputMapperOptions,
+                                onItemSelected = { index ->
+                                    dinputMapperIndex = index
+                                    val mapperType = if (index == 0) WinHandler.FLAG_DINPUT_MAPPER_STANDARD.toInt() else WinHandler.FLAG_DINPUT_MAPPER_XINPUT.toInt()
+                                    config = config.copy(dinputMapperType = mapperType)
                                 },
                             )
                         }

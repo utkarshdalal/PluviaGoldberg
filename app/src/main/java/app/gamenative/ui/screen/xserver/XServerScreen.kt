@@ -515,6 +515,7 @@ fun XServerScreen(
                         xServerView!!.getxServer(),
                         onGameLaunchError,
                     )
+                    xServerView!!.getxServer().winHandler.inputType = container.inputType.toByte()
                 }
             }
             PluviaApp.xServerView = xServerView;

@@ -30,9 +30,13 @@ public class ExternalController {
     public static final byte IDX_BUTTON_R3 = 9;
     public static final byte IDX_BUTTON_L2 = 10;
     public static final byte IDX_BUTTON_R2 = 11;
+    public static final byte TRIGGER_IS_BUTTON = 0;
+    public static final byte TRIGGER_IS_AXIS = 1;
+    public static final byte TRIGGER_IS_BOTH = 2;
     private String name;
     private String id;
     private int deviceId = -1;
+    private byte triggerType = TRIGGER_IS_AXIS;
     private final ArrayList<ExternalControllerBinding> controllerBindings = new ArrayList<>();
     public final GamepadState state = new GamepadState();
 
@@ -146,13 +150,29 @@ public class ExternalController {
     }
 
     private void processTriggerButton(MotionEvent event) {
-        state.setPressed(IDX_BUTTON_L2, event.getAxisValue(MotionEvent.AXIS_LTRIGGER) > 0.33f || event.getAxisValue(MotionEvent.AXIS_BRAKE) > 0.33f);
-        state.setPressed(IDX_BUTTON_R2, event.getAxisValue(MotionEvent.AXIS_RTRIGGER) > 0.33f || event.getAxisValue(MotionEvent.AXIS_GAS) > 0.33f);
+        // Get left trigger value, fallback to brake if LTRIGGER is 0
+        float l = event.getAxisValue(MotionEvent.AXIS_LTRIGGER);
+        if (l == 0f) l = event.getAxisValue(MotionEvent.AXIS_BRAKE);
+        
+        // Get right trigger value, fallback to gas if RTRIGGER is 0
+        float r = event.getAxisValue(MotionEvent.AXIS_RTRIGGER);
+        if (r == 0f) r = event.getAxisValue(MotionEvent.AXIS_GAS);
+        
+        // Store the analog values
+        state.triggerL = l;
+        state.triggerR = r;
+        
+        // Set button pressed state based on full press (1.0f)
+        state.setPressed(IDX_BUTTON_L2, l > 0.9f);
+        state.setPressed(IDX_BUTTON_R2, r > 0.9f);
     }
 
     public boolean updateStateFromMotionEvent(MotionEvent event) {
         if (isJoystickDevice(event)) {
-            processTriggerButton(event);
+            // Only process triggers as axes if configured to do so
+            if (triggerType == TRIGGER_IS_AXIS || triggerType == TRIGGER_IS_BOTH) {
+                processTriggerButton(event);
+            }
             int historySize = event.getHistorySize();
             for (int i = 0; i < historySize; i++) processJoystickInput(event, i);
             processJoystickInput(event, -1);
@@ -166,7 +186,24 @@ public class ExternalController {
         int keyCode = event.getKeyCode();
         int buttonIdx = getButtonIdxByKeyCode(keyCode);
         if (buttonIdx != -1) {
-            state.setPressed(buttonIdx, pressed);
+            // Special handling for L2/R2 buttons based on trigger type
+            if (buttonIdx == IDX_BUTTON_L2) {
+                if (triggerType == TRIGGER_IS_BUTTON || triggerType == TRIGGER_IS_BOTH) {
+                    state.triggerL = pressed ? 1.0f : 0f;
+                    state.setPressed(buttonIdx, pressed);
+                } else {
+                    return false; // Don't handle as button if configured as axis only
+                }
+            } else if (buttonIdx == IDX_BUTTON_R2) {
+                if (triggerType == TRIGGER_IS_BUTTON || triggerType == TRIGGER_IS_BOTH) {
+                    state.triggerR = pressed ? 1.0f : 0f;
+                    state.setPressed(buttonIdx, pressed);
+                } else {
+                    return false; // Don't handle as button if configured as axis only
+                }
+            } else {
+                state.setPressed(buttonIdx, pressed);
+            }
             return true;
         }
 
@@ -231,59 +268,13 @@ public class ExternalController {
                 (sources & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK);
     }
 
-    // the below two static event functions do not work because the `getController` function
-    // returns a fresh object so any updateState calls do not stick
-    // public static boolean onMotionEvent(WinHandler winHandler, MotionEvent event) {
-    //     boolean handled = false;
-    //     ExternalController controller = getController(event.getDeviceId());
-    //     if (controller != null) {
-    //         handled = controller.updateStateFromMotionEvent(event);
-    //         if (handled) winHandler.sendGamepadState();
-    //     }
-    //     return handled;
-    // }
-    // public static boolean onKeyEvent(WinHandler winHandler, KeyEvent event) {
-    //     boolean handled = false;
-    //     Log.d("ExternalController", "onKeyEvent");
-    //     if (event.getRepeatCount() == 0) {
-    //         Log.d("ExternalController", "onKeyEvent repeat count is 0");
-    //         ExternalController controller = getController(event.getDeviceId());
-    //         if (controller != null) {
-    //             Log.d("ExternalController", "onKeyEvent controller found");
-    //             int action = event.getAction();
-    //
-    //             if (action == KeyEvent.ACTION_DOWN) {
-    //                 handled = controller.updateStateFromKeyEvent(event);
-    //             }
-    //             else if (action == KeyEvent.ACTION_UP) {
-    //                 handled = controller.updateStateFromKeyEvent(event);
-    //             }
-    //
-    //             if (handled) winHandler.sendGamepadState();
-    //         }
-    //     }
-    //     return handled;
-    // }
-    // public boolean onKeyEvent(KeyEvent event) {
-    //     if (profile != null && event.getRepeatCount() == 0) {
-    //         ExternalController controller = profile.getController(event.getDeviceId());
-    //         if (controller != null) {
-    //             ExternalControllerBinding controllerBinding = controller.getControllerBinding(event.getKeyCode());
-    //             if (controllerBinding != null) {
-    //                 int action = event.getAction();
-    //
-    //                 if (action == KeyEvent.ACTION_DOWN) {
-    //                     handleInputEvent(controllerBinding.getBinding(), true);
-    //                 }
-    //                 else if (action == KeyEvent.ACTION_UP) {
-    //                     handleInputEvent(controllerBinding.getBinding(), false);
-    //                 }
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    //     return false;
-    // }
+    public byte getTriggerType() {
+        return triggerType;
+    }
+
+    public void setTriggerType(byte triggerType) {
+        this.triggerType = triggerType;
+    }
 
     public static float getCenteredAxis(MotionEvent event, int axis, int historyPos) {
         if (axis == MotionEvent.AXIS_HAT_X || axis == MotionEvent.AXIS_HAT_Y) {

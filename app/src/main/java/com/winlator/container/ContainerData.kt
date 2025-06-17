@@ -4,7 +4,8 @@ import androidx.compose.runtime.saveable.mapSaver
 import com.winlator.box86_64.Box86_64Preset
 import com.winlator.core.DefaultVersion
 import com.winlator.core.WineThemeManager
-import kotlin.String
+import com.winlator.winhandler.WinHandler
+import timber.log.Timber
 
 data class ContainerData(
     val name: String = "",
@@ -36,6 +37,10 @@ data class ContainerData(
     val mouseWarpOverride: String = "disable",
     val shaderBackend: String = "glsl",
     val useGLSL: String = "enabled",
+    // Input settings for XInput and DirectInput
+    val enableXInput: Boolean = (WinHandler.DEFAULT_INPUT_TYPE.toInt() and WinHandler.FLAG_INPUT_TYPE_XINPUT.toInt()) != 0,
+    val enableDInput: Boolean = (WinHandler.DEFAULT_INPUT_TYPE.toInt() and WinHandler.FLAG_INPUT_TYPE_DINPUT.toInt()) != 0,
+    val dinputMapperType: Int = WinHandler.FLAG_DINPUT_MAPPER_STANDARD.toInt(),
 ) {
     companion object {
         val Saver = mapSaver(
@@ -61,6 +66,9 @@ data class ContainerData(
                     "box86Preset" to state.box86Preset,
                     "box64Preset" to state.box64Preset,
                     "desktopTheme" to state.desktopTheme,
+                    "enableXInput" to state.enableXInput,
+                    "enableDInput" to state.enableDInput,
+                    "dinputMapperType" to state.dinputMapperType,
                 )
             },
             restore = { savedMap ->
@@ -85,8 +93,25 @@ data class ContainerData(
                     box86Preset = savedMap["box86Preset"] as String,
                     box64Preset = savedMap["box64Preset"] as String,
                     desktopTheme = savedMap["desktopTheme"] as String,
+                    enableXInput = savedMap["enableXInput"] as Boolean,
+                    enableDInput = savedMap["enableDInput"] as Boolean,
+                    dinputMapperType = savedMap["dinputMapperType"] as Int,
                 )
             },
         )
+    }
+    /**
+     * Compute the combined inputType flag based on XInput, DInput, and mapper settings.
+     */
+    fun getInputType(): Int {
+        var finalInputType = 0
+        if (enableXInput) finalInputType = finalInputType or WinHandler.FLAG_INPUT_TYPE_XINPUT.toInt()
+        if (enableDInput) finalInputType = finalInputType or WinHandler.FLAG_INPUT_TYPE_DINPUT.toInt()
+        finalInputType = finalInputType or if (dinputMapperType == WinHandler.FLAG_DINPUT_MAPPER_STANDARD.toInt())
+            WinHandler.FLAG_DINPUT_MAPPER_STANDARD.toInt()
+        else
+            WinHandler.FLAG_DINPUT_MAPPER_XINPUT.toInt()
+        Timber.d("ContainerData.getInputType: enableXInput=%s, enableDInput=%s, dinputMapperType=%d, inputType=%d", enableXInput, enableDInput, dinputMapperType, finalInputType)
+        return finalInputType
     }
 }

@@ -254,7 +254,7 @@ public class WinHandler {
     }
 
     private void handleRequest(byte requestCode, final int port) {
-        // Log.d("WinHandler", "Handling request: " + requestCode);
+         Log.d("WinHandler", "Handling request: " + requestCode);
         switch (requestCode) {
             case RequestCodes.INIT: {
                 Log.d("WinHandler", "Request was init");
@@ -287,6 +287,7 @@ public class WinHandler {
                 Timber.tag("WinHandler").d("Request was get gamepad on port " + port);
                 boolean isXInput = receiveData.get() == 1;
                 boolean notify = receiveData.get() == 1;
+                Timber.tag("WinHandler").d("GET_GAMEPAD request: isXInput=" + isXInput + ", notify=" + notify + ", configured inputType=" + inputType);
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
                 final boolean useVirtualGamepad = inputControlsView != null &&
                         inputControlsView.getProfile() != null &&
@@ -299,12 +300,16 @@ public class WinHandler {
                 if (!useVirtualGamepad && (currentController == null || !currentController.isConnected())) {
                     currentController = ExternalController.getController(0);
                     Log.d("WinHandler", "Setting current external controller to " + currentController);
+                    // Set the appropriate trigger type based on input type
+                    if (currentController != null) {
+                        updateTriggerTypeForController();
+                    }
                 }
 
-                final boolean enabled = currentController != null || useVirtualGamepad;;
+                final boolean enabled = currentController != null || useVirtualGamepad;
 
                 if (enabled && notify) {
-                    // Log.d("WinHandler", "Creating gamepad client on port " + port + " if not already existing");
+                     Log.d("WinHandler", "Creating gamepad client on port " + port + " if not already existing");
                     if (!gamepadClients.contains(port)) gamepadClients.add(port);
                 }
                 else gamepadClients.remove(Integer.valueOf(port));
@@ -315,7 +320,16 @@ public class WinHandler {
 
                     if (enabled) {
                         sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : inputControlsView.getProfile().id);
-                        sendData.put(inputType);
+                        // If client specifically requests XInput and we have DInput configured, we need to respect the client's request
+                        // This ensures compatibility with games that only work with a specific input type
+                        byte effectiveInputType = inputType;
+                        if (isXInput && (inputType & FLAG_INPUT_TYPE_XINPUT) == 0) {
+                            // Client wants XInput but we have DInput configured - force XInput for this client
+                            Timber.tag("WinHandler").d("Client requested XInput but DInput is configured - forcing XInput for compatibility");
+                            effectiveInputType = FLAG_INPUT_TYPE_XINPUT;
+                        }
+                        sendData.put(effectiveInputType);
+                        Timber.tag("WinHandler").d("Sending gamepad response with inputType=" + effectiveInputType + " (configured=" + inputType + ")");
                         byte[] bytes = (useVirtualGamepad ? inputControlsView.getProfile().getName() : currentController.getName()).getBytes();
                         sendData.putInt(bytes.length);
                         sendData.put(bytes);
@@ -327,7 +341,9 @@ public class WinHandler {
                 break;
             }
             case RequestCodes.GET_GAMEPAD_STATE: {
-                Log.d("WinHandler", "Request was get gamepad state");
+                Timber.tag("WinHandler").d("Request was get gamepad state for gamepadId=" + receiveData.getInt());
+                // Reset position after reading
+                receiveData.position(receiveData.position() - 4);
                 int gamepadId = receiveData.getInt();
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
                 boolean useVirtualGamepad = inputControlsView != null && inputControlsView.getProfile() != null && inputControlsView.getProfile().isVirtualGamepad();
@@ -342,6 +358,7 @@ public class WinHandler {
 
                     if (enabled) {
                         sendData.putInt(gamepadId);
+                        Timber.tag("WinHandler").d("Sending gamepad state for gamepadId=" + gamepadId);
                         if (useVirtualGamepad) {
                          inputControlsView.getProfile().getGamepadState().writeTo(sendData);
                         }
@@ -395,9 +412,9 @@ public class WinHandler {
                 socket.bind(new InetSocketAddress((InetAddress)null, SERVER_PORT));
 
                 while (running) {
-                    // Log.d("WinHandler", "Waiting for packet...");
+                     Log.d("WinHandler", "Waiting for packet...");
                     socket.receive(receivePacket);
-                    // Log.d("WinHandler", "Received packet, handling request...");
+                     Log.d("WinHandler", "Received packet, handling request...");
 
                     synchronized (actions) {
                         receiveData.rewind();
@@ -415,14 +432,14 @@ public class WinHandler {
     }
 
     public void sendGamepadState() {
-        // Log.d("WinHandler", "Setting up send gamepad state packet");
+        Timber.tag("WinHandler").d("Setting up send gamepad state packet, clients: " + gamepadClients.size());
         if (!initReceived || gamepadClients.isEmpty()) return;
         // final ControlsProfile profile = activity.getInputControlsView().getProfile();
         final boolean useVirtualGamepad = inputControlsView != null && inputControlsView.getProfile() != null && inputControlsView.getProfile().isVirtualGamepad();
         final boolean enabled = currentController != null || useVirtualGamepad;
 
         for (final int port : gamepadClients) {
-            // Log.d("WinHandler", "Creating send gamepad state packet action for gamepad client on port " + port);
+            Timber.tag("WinHandler").d("Creating send gamepad state packet action for gamepad client on port " + port);
             addAction(() -> {
                 sendData.rewind();
                 sendData.put(RequestCodes.GET_GAMEPAD_STATE);
@@ -436,7 +453,7 @@ public class WinHandler {
                      else currentController.state.writeTo(sendData);
                 }
 
-                // Log.d("WinHandler", "Sending gamepad state packet");
+                Timber.tag("WinHandler").d("Sending gamepad state packet to port " + port);
                 sendPacket(port);
             });
         }
@@ -466,6 +483,35 @@ public class WinHandler {
             if (handled) sendGamepadState();
         }
         return handled;
+    }
+
+    public byte getInputType() {
+        return inputType;
+    }
+
+    public void setInputType(byte inputType) {
+        Log.d("WinHandler", "Setting input type to " + inputType);
+        this.inputType = inputType;
+        updateTriggerTypeForController();
+    }
+
+    /**
+     * Updates the trigger type on the current controller based on the current input type.
+     * For DInput, we use button-based triggers.
+     * For XInput, we use axis-based triggers.
+     */
+    private void updateTriggerTypeForController() {
+        if (currentController != null) {
+            if ((inputType & FLAG_INPUT_TYPE_DINPUT) != 0) {
+                // For DInput, use button-based triggers
+                currentController.setTriggerType(ExternalController.TRIGGER_IS_BUTTON);
+                Timber.tag("WinHandler").d("Setting trigger type to TRIGGER_IS_BUTTON for DInput");
+            } else if ((inputType & FLAG_INPUT_TYPE_XINPUT) != 0) {
+                // For XInput, use axis-based triggers
+                currentController.setTriggerType(ExternalController.TRIGGER_IS_AXIS);
+                Timber.tag("WinHandler").d("Setting trigger type to TRIGGER_IS_AXIS for XInput");
+            }
+        }
     }
 
     public ExternalController getCurrentController() {

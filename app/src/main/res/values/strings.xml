@@ -82,6 +82,10 @@
     <string name="keyboard">Keyboard</string>
     <string name="input_controls">On-screen Controller</string>
     <string name="touchpad_help">Touchpad Help</string>
+    <string name="enable_xinput">Enable XInput</string>
+    <string name="enable_dinput">Enable DInput</string>
+    <string name="enable_xinput_and_dinput_same_time">Enabling both XInput and DInput simultaneously in some games may cause control issues, as seen in titles like The Binding of Isaac and the Resident Evil series.</string>
+    <string name="directinput_mapper_type">DInput Mapper Type</string>
 
 
     <string name="box86_64_env_var_help__dynarec_safeflags"><![CDATA[
