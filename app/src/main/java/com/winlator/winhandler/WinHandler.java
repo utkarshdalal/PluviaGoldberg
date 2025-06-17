@@ -41,8 +41,8 @@ public class WinHandler {
     public static final byte FLAG_DINPUT_MAPPER_XINPUT = 0x02;
     public static final byte FLAG_INPUT_TYPE_XINPUT = 0x04;
     public static final byte FLAG_INPUT_TYPE_DINPUT = 0x08;
-    public static final byte DEFAULT_INPUT_TYPE = FLAG_INPUT_TYPE_XINPUT;
     public static final byte INPUT_TYPE_MIXED = 2;
+    public static final byte DEFAULT_INPUT_TYPE = INPUT_TYPE_MIXED;
     private DatagramSocket socket;
     private final ByteBuffer sendData = ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN);
     private final ByteBuffer receiveData = ByteBuffer.allocate(64).order(ByteOrder.LITTLE_ENDIAN);
@@ -225,10 +225,10 @@ public class WinHandler {
         Executors.newSingleThreadExecutor().execute(() -> {
             while (running) {
                 synchronized (actions) {
-                    // Log.d("WinHandler", "Running actions until empty");
+                     Log.d("WinHandler", "Running actions until empty");
                     while (initReceived && !actions.isEmpty()) actions.poll().run();
                     try {
-                        // Log.d("WinHandler", "Waiting for actions");
+                         Log.d("WinHandler", "Waiting for actions");
                         actions.wait();
                     }
                     catch (InterruptedException e) {
@@ -254,7 +254,7 @@ public class WinHandler {
     }
 
     private void handleRequest(byte requestCode, final int port) {
-        // Log.d("WinHandler", "Handling request: " + requestCode);
+         Log.d("WinHandler", "Handling request: " + requestCode);
         switch (requestCode) {
             case RequestCodes.INIT: {
                 Log.d("WinHandler", "Request was init");
@@ -286,6 +286,9 @@ public class WinHandler {
             case RequestCodes.GET_GAMEPAD: {
                 Timber.tag("WinHandler").d("Request was get gamepad on port " + port);
                 boolean isXInput = receiveData.get() == 1;
+                byte thisInputType = (byte)(isXInput
+                        ? FLAG_INPUT_TYPE_XINPUT
+                        : FLAG_INPUT_TYPE_DINPUT);
                 boolean notify = receiveData.get() == 1;
                 // final ControlsProfile profile = activity.getInputControlsView().getProfile();
                 final boolean useVirtualGamepad = inputControlsView != null &&
@@ -304,7 +307,7 @@ public class WinHandler {
                 final boolean enabled = currentController != null || useVirtualGamepad;;
 
                 if (enabled && notify) {
-                    // Log.d("WinHandler", "Creating gamepad client on port " + port + " if not already existing");
+                    Log.d("WinHandler", "Creating gamepad client on port " + port + " if not already existing");
                     if (!gamepadClients.contains(port)) gamepadClients.add(port);
                 }
                 else gamepadClients.remove(Integer.valueOf(port));
@@ -314,8 +317,11 @@ public class WinHandler {
                     sendData.put(RequestCodes.GET_GAMEPAD);
 
                     if (enabled) {
-                        sendData.putInt(!useVirtualGamepad ? currentController.getDeviceId() : inputControlsView.getProfile().id);
-                        sendData.put(inputType);
+                        sendData.putInt(isXInput ? 0
+                                : (!useVirtualGamepad
+                                ? currentController.getDeviceId()
+                                : inputControlsView.getProfile().id));
+                        sendData.put(thisInputType);
                         byte[] bytes = (useVirtualGamepad ? inputControlsView.getProfile().getName() : currentController.getName()).getBytes();
                         sendData.putInt(bytes.length);
                         sendData.put(bytes);
@@ -323,6 +329,7 @@ public class WinHandler {
                     else sendData.putInt(0);
 
                     sendPacket(port);
+                    inputType = thisInputType;
                 });
                 break;
             }
@@ -395,9 +402,9 @@ public class WinHandler {
                 socket.bind(new InetSocketAddress((InetAddress)null, SERVER_PORT));
 
                 while (running) {
-                    // Log.d("WinHandler", "Waiting for packet...");
+                     Log.d("WinHandler", "Waiting for packet...");
                     socket.receive(receivePacket);
-                    // Log.d("WinHandler", "Received packet, handling request...");
+                     Log.d("WinHandler", "Received packet, handling request...");
 
                     synchronized (actions) {
                         receiveData.rewind();
@@ -415,14 +422,14 @@ public class WinHandler {
     }
 
     public void sendGamepadState() {
-        // Log.d("WinHandler", "Setting up send gamepad state packet");
+         Log.d("WinHandler", "Setting up send gamepad state packet");
         if (!initReceived || gamepadClients.isEmpty()) return;
         // final ControlsProfile profile = activity.getInputControlsView().getProfile();
         final boolean useVirtualGamepad = inputControlsView != null && inputControlsView.getProfile() != null && inputControlsView.getProfile().isVirtualGamepad();
         final boolean enabled = currentController != null || useVirtualGamepad;
 
         for (final int port : gamepadClients) {
-            // Log.d("WinHandler", "Creating send gamepad state packet action for gamepad client on port " + port);
+             Log.d("WinHandler", "Creating send gamepad state packet action for gamepad client on port " + port);
             addAction(() -> {
                 sendData.rewind();
                 sendData.put(RequestCodes.GET_GAMEPAD_STATE);
@@ -436,7 +443,7 @@ public class WinHandler {
                      else currentController.state.writeTo(sendData);
                 }
 
-                // Log.d("WinHandler", "Sending gamepad state packet");
+                 Log.d("WinHandler", "Sending gamepad state packet");
                 sendPacket(port);
             });
         }
