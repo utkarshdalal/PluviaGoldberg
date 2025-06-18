@@ -275,6 +275,9 @@ class SteamService : Service(), IChallengeUrlChanged {
         val familyMembers: List<Int>
             get() = instance!!.familyGroupMembers
 
+        val isLoginInProgress: Boolean
+            get() = instance!!._loginResult == LoginResult.InProgress
+
         private const val MAX_PARALLEL_DEPOTS   = 4     // instead of all 38
         private const val CHUNKS_PER_DEPOT      = 8     // was 16
         private const val CHUNK_TIMEOUT_MS      = 90_000   // was library default 15 s
@@ -375,7 +378,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         fun getOwnedAppDlc(appId: Int): Map<Int, DepotInfo> = getAppDlc(appId).filter {
             getPkgInfoOf(it.value.dlcAppId)?.let { pkg ->
                 instance?.steamClient?.let { steamClient ->
-                    pkg.ownerAccountId.contains(steamClient.steamID.accountID.toInt())
+                    pkg.ownerAccountId.contains(steamClient.steamID?.accountID?.toInt())
                 }
             } == true
         }
@@ -1024,7 +1027,8 @@ class SteamService : Service(), IChallengeUrlChanged {
         ) = withContext(Dispatchers.IO) {
             try {
                 Timber.i("Logging in via credentials.")
-
+                instance!!._loginResult = LoginResult.InProgress
+                Timber.i("Set login result to InProgress.")
                 instance!!.steamClient?.let { steamClient ->
                     val authDetails = AuthSessionDetails().apply {
                         this.username = username.trim()
@@ -1451,7 +1455,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 Timber.w("Failed to connect to Steam, marking endpoint bad and force disconnecting")
 
                 try {
-                    steamClient!!.servers.tryMark(steamClient!!.currentEndpoint, PROTOCOL_TYPES, ServerQuality.BAD)
+                    steamClient!!.servers.tryMark(steamClient!!.currentEndPoint, PROTOCOL_TYPES, ServerQuality.BAD)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to mark endpoint as bad:")
                 }
