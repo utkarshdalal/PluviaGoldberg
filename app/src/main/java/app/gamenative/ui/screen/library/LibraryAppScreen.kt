@@ -448,6 +448,14 @@ fun AppScreen(
                                 },
                             ),
                             AppMenuOption(
+                                AppOptionMenuType.ResetDrm,
+                                onClick = {
+                                    val container = ContainerUtils.getOrCreateContainer(context, appId)
+                                    container.isNeedsUnpacking = true
+                                    container.saveData()
+                                },
+                            ),
+                            AppMenuOption(
                                 AppOptionMenuType.Uninstall,
                                 onClick = {
                                     val sizeOnDisk = StorageUtils.formatBinarySize(

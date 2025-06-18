@@ -10,6 +10,9 @@ data class DownloadInfo(
     private val downloadProgressListeners = mutableListOf<((Float) -> Unit)>()
     private val progresses: Array<Float> = Array(jobCount) { 0f }
 
+    private val weights    = FloatArray(jobCount) { 1f }     // ⇐ new
+    private var weightSum  = jobCount.toFloat()
+
     fun cancel() {
         downloadJob?.cancel(CancellationException("Cancelled by user"))
     }
@@ -19,12 +22,22 @@ data class DownloadInfo(
     }
 
     fun getProgress(): Float {
-        return progresses.sum() / jobCount
+        var total = 0f
+        for (i in progresses.indices) {
+            total += progresses[i] * weights[i]   // weight each depot
+        }
+        return if (weightSum == 0f) 0f else total / weightSum
     }
+
 
     fun setProgress(amount: Float, jobIndex: Int = 0) {
         progresses[jobIndex] = amount
         emitProgressChange()
+    }
+
+    fun setWeight(jobIndex: Int, weightBytes: Long) {        // tiny helper
+        weights[jobIndex] = weightBytes.toFloat()
+        weightSum = weights.sum()
     }
 
     fun addProgressListener(listener: (Float) -> Unit) {
