@@ -676,9 +676,6 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
 
-        fun DepotInfo.needsKey(branch: String = "public"): Boolean =
-            !manifests.containsKey(branch) && encryptedManifests.containsKey(branch)
-
         fun downloadApp(
             appId: Int,
             depotIds: List<Int>,
@@ -747,12 +744,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                                     }
                                     if (success) di.setProgress(1f, idx)      // finished depot
                                     else    Timber.w("Depot $depotId skipped after retries")
-                                } catch (e: Exception) {
-                                    if (e.message?.contains("AccessDenied") ?: false){
-                                        di.setProgress(1f, idx)
-                                    }
-                                }
-                                finally {
+                                } finally {
                                     depotGate.release()           // ── leave gate
                                 }
                             }
