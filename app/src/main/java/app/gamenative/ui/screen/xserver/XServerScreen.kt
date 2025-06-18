@@ -1030,6 +1030,7 @@ private fun unpackExecutableFile(
         if ((File(imageFs.getGlibc64Dir(), "libandroid-sysvshm.so")).exists() ||
             (File(imageFs.getGlibc32Dir(), "libandroid-sysvshm.so")).exists()
         ) shellCommandEnvVars.put("LD_PRELOAD", "libredirect.so libandroid-sysvshm.so")
+        if (!shellCommandEnvVars.has("WINEESYNC")) shellCommandEnvVars.put("WINEESYNC", "1")
         shellCommandEnvVars.put("WINEESYNC_WINLATOR", "1")
         val rootDir: File = imageFs.getRootDir()
         val executableFile = getSteamlessTarget(appId, container, appLaunchInfo)

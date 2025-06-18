@@ -141,6 +141,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
@@ -675,31 +676,43 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         }
 
-
         fun downloadApp(
             appId: Int,
             depotIds: List<Int>,
             branch: String,
         ): DownloadInfo? {
+            Timber.d("Attempting to download " + appId + " with depotIds " + depotIds)
             // Enforce Wi-Fi-only downloads
             if (PrefManager.downloadOnWifiOnly && instance?.isWifiConnected == false) {
                 instance?.notificationHelper?.notify("Not connected to Wi-Fi")
                 return null
             }
             if (downloadJobs.contains(appId)) return getAppDownloadInfo(appId)
+            Timber.d("depotIds is empty? " + depotIds.isEmpty())
             if (depotIds.isEmpty()) return null
 
             val steamApps = instance!!.steamClient!!.getHandler(SteamApps::class.java)!!
             val entitledDepotIds = runBlocking {
                 depotIds.map { depotId ->
                     async(Dispatchers.IO) {
-                        val res = steamApps.getDepotDecryptionKey(depotId, appId).await()
-                        depotId to (res.result == EResult.OK)
+                        val result = try {
+                            withTimeout(3_000) {          // 5 s is enough for a normal reply
+                                steamApps.getDepotDecryptionKey(depotId, appId)
+                                    .await()
+                                    .result
+                            }
+                        } catch (e: Exception) {
+                            // No reply at all → assume key not required (HL-2 edge-case)
+                            EResult.OK
+                        }
+                        depotId to (result == EResult.OK)
                     }
                 }.awaitAll()
                     .filter { it.second }
                     .map { it.first }
             }
+
+            Timber.i("entitledDepotIds is empty? " + entitledDepotIds.isEmpty())
 
             if (entitledDepotIds.isEmpty()) return null
 
@@ -751,6 +764,16 @@ class SteamService : Service(), IChallengeUrlChanged {
 
             downloadJobs[appId] = info
             var lastPercent = -1
+            val sizes = entitledDepotIds.map { depotId ->
+                val depot = getAppInfoOf(appId)!!.depots[depotId]!!
+
+                val mInfo   = depot.manifests[branch]
+                    ?: depot.encryptedManifests[branch]
+                    ?: return@map 1L
+
+                (mInfo.size ?: 1).toLong()         // Steam’s VDF exposes this
+            }
+            sizes.forEachIndexed { i, bytes -> info.setWeight(i, bytes) }
             info.addProgressListener { p ->
                 val percent = (p * 100).toInt()
                 if (percent != lastPercent) {          // only when it really changed
