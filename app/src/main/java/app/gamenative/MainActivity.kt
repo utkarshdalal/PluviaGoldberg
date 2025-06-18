@@ -184,7 +184,7 @@ class MainActivity : ComponentActivity() {
         SteamService.autoStopWhenIdle = true
 
         // stop SteamService only if no downloads or sync are in progress
-        if (!isChangingConfigurations && SteamService.isConnected && !SteamService.hasActiveOperations()) {
+        if (!isChangingConfigurations && SteamService.isConnected && !SteamService.hasActiveOperations() && !SteamService.isLoginInProgress) {
             Timber.i("Stopping SteamService - no active operations")
             SteamService.stop()
         }
