@@ -15,6 +15,10 @@ This is a fork of [Pluvia](https://github.com/oxters168/Pluvia), a Steam client 
 4. Install your game
 5. Hit play and enjoy!
 
+## Building
+1. I use a normal build in Android studio. Hit me up if you can't figure out how to build.
+2. You will need to download [imagefs_gamenative](https://drive.google.com/file/d/1IfPTwHKcGbhrRBFd0JLBVvIdeA9bFocE/view?usp=sharing) and [imagefs_patches_gamenative](https://drive.google.com/file/d/1RJb204kybzigEcjHegh7y1T8lcXb_6wG/view?usp=drive_link) for this to work and place them in the `src/main/assets` folder.
+
 ## Community
 
 Join our [Discord server](https://discord.gg/2hKv4VfZfE) for support and updates.
