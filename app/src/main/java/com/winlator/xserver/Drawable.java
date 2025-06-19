@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class Drawable extends XResource {
+    private boolean blank;
     public final short width;
     public final short height;
     public final Visual visual;
@@ -26,6 +27,7 @@ public class Drawable extends XResource {
 
     public Drawable(int id, int width, int height, Visual visual) {
         super(id);
+        this.blank = true;
         this.width = (short)width;
         this.height = (short)height;
         this.visual = visual;
@@ -35,7 +37,12 @@ public class Drawable extends XResource {
     public static Drawable fromBitmap(Bitmap bitmap) {
         Drawable drawable = new Drawable(0, bitmap.getWidth(), bitmap.getHeight(), null);
         fromBitmap(bitmap, drawable.data);
+        drawable.blank = false;
         return drawable;
+    }
+
+    public boolean isBlank() {
+        return this.blank;
     }
 
     public Texture getTexture() {
@@ -53,6 +60,7 @@ public class Drawable extends XResource {
 
     public void setData(ByteBuffer data) {
         this.data = data;
+        this.blank = false;
     }
 
     private short getStride() {
@@ -175,6 +183,15 @@ public class Drawable extends XResource {
 
         texture.setNeedsUpdate(true);
         if (onDrawListener != null) onDrawListener.run();
+    }
+
+    public void forceUpdate() {
+        this.texture.setNeedsUpdate(true);
+        this.blank = false;
+        Runnable runnable = this.onDrawListener;
+        if (runnable != null) {
+            runnable.run();
+        }
     }
 
     private static native void drawBitmap(short width, short height, ByteBuffer srcData, ByteBuffer dstData);

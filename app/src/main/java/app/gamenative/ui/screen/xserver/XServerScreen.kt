@@ -77,6 +77,7 @@ import com.winlator.xenvironment.components.PulseAudioComponent
 import com.winlator.xenvironment.components.SteamClientComponent
 import com.winlator.xenvironment.components.SysVSharedMemoryComponent
 import com.winlator.xenvironment.components.VirGLRendererComponent
+import com.winlator.xenvironment.components.VortekRendererComponent
 import com.winlator.xenvironment.components.XServerComponent
 import com.winlator.xserver.Keyboard
 import com.winlator.xserver.Property
@@ -863,7 +864,13 @@ private fun setupXEnvironment(
                 UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VIRGL_SERVER_PATH),
             ),
         )
+    } else if (xServerState.value.graphicsDriver == "vortek") {
+        val options2: VortekRendererComponent.Options? = VortekRendererComponent.Options.fromKeyValueSet(null)
+        val vortekRendererComponent: VortekRendererComponent =
+            VortekRendererComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VORTEK_SERVER_PATH), options2)
+        environment.addComponent(vortekRendererComponent)
     }
+
     val manager: RCManager = RCManager(context)
     manager.loadRCFiles()
     val rcfileId: Int = container.getRCFileId()
@@ -1435,6 +1442,8 @@ private fun extractGraphicsDriverFiles(
         cacheId += "-" + DefaultVersion.TURNIP + "-" + DefaultVersion.ZINK
     } else if (graphicsDriver == "virgl") {
         cacheId += "-" + DefaultVersion.VIRGL
+    } else if (graphicsDriver == "vortek") {
+        cacheId += "-" + DefaultVersion.VORTEK
     }
 
     val changed = cacheId != container.getExtra("graphicsDriver")
@@ -1444,6 +1453,8 @@ private fun extractGraphicsDriverFiles(
     if (changed) {
         FileUtils.delete(File(imageFs.lib32Dir, "libvulkan_freedreno.so"))
         FileUtils.delete(File(imageFs.lib64Dir, "libvulkan_freedreno.so"))
+        FileUtils.delete(File(imageFs.lib64Dir, "libvulkan_vortek.so"))
+        FileUtils.delete(File(imageFs.lib32Dir, "libvulkan_vortek.so"))
         FileUtils.delete(File(imageFs.lib32Dir, "libGL.so.1.7.0"))
         FileUtils.delete(File(imageFs.lib64Dir, "libGL.so.1.7.0"))
         container.putExtra("graphicsDriver", cacheId)
@@ -1502,7 +1513,21 @@ private fun extractGraphicsDriverFiles(
                 "graphics_driver/virgl-" + DefaultVersion.VIRGL + ".tzst", rootDir,
             )
         }
+    } else if (graphicsDriver == "vortek") {
+        envVars.put("GALLIUM_DRIVER", "zink")
+        envVars.put("ZINK_CONTEXT_THREADED", "1")
+        envVars.put("MESA_GL_VERSION_OVERRIDE", "3.3")
+        envVars.put("WINEVKUSEPLACEDADDR", "1")
+        envVars.put("VORTEK_SERVER_PATH", UnixSocketConfig.VORTEK_SERVER_PATH)
+        if (dxwrapper.equals("dxvk")) {
+            dxwrapperConfig.put("constantBufferRangeCheck", "1")
+        }
+        if (changed) {
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/vortek-1.0.tzst", rootDir)
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/zink-22.2.5.tzst", rootDir)
+        }
     }
+
 }
 private fun changeWineAudioDriver(audioDriver: String, container: Container, imageFs: ImageFs) {
     if (audioDriver != container.getExtra("audioDriver")) {

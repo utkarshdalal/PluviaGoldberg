@@ -33,8 +33,59 @@ public class KeyValueSet implements Iterable<String[]> {
     }
 
     public String get(String key) {
-        for (String[] keyValue : this) if (keyValue[0].equals(key)) return keyValue[1];
-        return "";
+        return get(key, "");
+    }
+
+    public String get(String key, String fallback) {
+        if (this.data.isEmpty()) {
+            return fallback;
+        }
+        Iterator<String[]> it = iterator();
+        while (it.hasNext()) {
+            String[] keyValue = it.next();
+            if (keyValue[0].equals(key)) {
+                return keyValue[1];
+            }
+        }
+        return fallback;
+    }
+
+    public float getFloat(String key, float fallback) {
+        try {
+            String value = get(key);
+            return !value.isEmpty() ? Float.parseFloat(value) : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    public int getInt(String key, int fallback) {
+        try {
+            String value = get(key);
+            return !value.isEmpty() ? Integer.parseInt(value) : fallback;
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    public String getHexString(String key, int fallback) {
+        int result;
+        try {
+            String value = get(key);
+            result = !value.isEmpty() ? Integer.parseInt(value) : fallback;
+        } catch (NumberFormatException e) {
+            result = fallback;
+        }
+        return "0x" + String.format("%08x", Integer.valueOf(result));
+    }
+
+    public boolean getBoolean(String key) {
+        return getBoolean(key, false);
+    }
+
+    public boolean getBoolean(String key, boolean fallback) {
+        String value = get(key);
+        return !value.isEmpty() ? value.equals("1") || value.equals("t") || value.equals("true") : fallback;
     }
 
     public void put(String key, Object value) {
@@ -76,5 +127,9 @@ public class KeyValueSet implements Iterable<String[]> {
     @Override
     public String toString() {
         return data;
+    }
+
+    public boolean isEmpty() {
+        return this.data.isEmpty();
     }
 }
