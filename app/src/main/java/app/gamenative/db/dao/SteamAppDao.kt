@@ -16,7 +16,7 @@ interface SteamAppDao {
     suspend fun insert(apps: SteamApp)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(apps: List<SteamApp>)
+    suspend fun insertAll(apps: List<SteamApp>)
 
     @Update
     suspend fun update(app: SteamApp)

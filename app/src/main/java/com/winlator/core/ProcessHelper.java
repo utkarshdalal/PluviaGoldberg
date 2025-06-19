@@ -68,8 +68,8 @@ public abstract class ProcessHelper {
                 createDebugThread(process.getErrorStream());
             }
 //            Uncomment the following lines to see logs from wine
-//            createDebugThread(process.getInputStream(), "STDOUT", pid);
-//            createDebugThread(process.getErrorStream(), "STDERR", pid);
+            createDebugThread(process.getInputStream(), "STDOUT", pid);
+            createDebugThread(process.getErrorStream(), "STDERR", pid);
 
             if (terminationCallback != null) createWaitForThread(process, terminationCallback);
         }
