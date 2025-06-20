@@ -696,7 +696,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 depotIds.map { depotId ->
                     async(Dispatchers.IO) {
                         val result = try {
-                            withTimeout(3_000) {          // 5 s is enough for a normal reply
+                            withTimeout(1_000) {          // 5 s is enough for a normal reply
                                 steamApps.getDepotDecryptionKey(depotId, appId)
                                     .await()
                                     .result
