@@ -106,6 +106,9 @@ fun ContainerConfigDialog(
         val box64Versions = stringArrayResource(R.array.box64_version_entries).toList()
         val box64Presets = Box86_64PresetManager.getPresets("box64", context)
         val startupSelectionEntries = stringArrayResource(R.array.startup_selection_entries).toList()
+        val turnipVersions = stringArrayResource(R.array.turnip_version_entries).toList()
+        val virglVersions = stringArrayResource(R.array.virgl_version_entries).toList()
+        val zinkVersions = stringArrayResource(R.array.zink_version_entries).toList()
 
         var screenSizeIndex by rememberSaveable {
             val searchIndex = screenSizes.indexOfFirst { it.contains(config.screenSize) }
@@ -122,6 +125,29 @@ fun ContainerConfigDialog(
         var graphicsDriverIndex by rememberSaveable {
             val driverIndex = graphicsDrivers.indexOfFirst { StringUtils.parseIdentifier(it) == config.graphicsDriver }
             mutableIntStateOf(if (driverIndex >= 0) driverIndex else 0)
+        }
+        
+        // Function to get the appropriate version list based on the selected graphics driver
+        fun getVersionsForDriver(): List<String> {
+            val driverType = StringUtils.parseIdentifier(graphicsDrivers[graphicsDriverIndex])
+            return when (driverType) {
+                "turnip" -> turnipVersions
+                "virgl" -> virglVersions
+                else -> zinkVersions
+            }
+        }
+        
+        var graphicsDriverVersionIndex by rememberSaveable {
+            // Find the version in the list that matches the configured version
+            val version = config.graphicsDriverVersion
+            val driverIndex = if (version.isEmpty()) {
+                0 // Default
+            } else {
+                // Try to find the version in the list
+                val index = getVersionsForDriver().indexOfFirst { it == version }
+                if (index >= 0) index else 0
+            }
+            mutableIntStateOf(driverIndex)
         }
         var dxWrapperIndex by rememberSaveable {
             val driverIndex = dxWrappers.indexOfFirst { StringUtils.parseIdentifier(it) == config.dxwrapper }
@@ -433,6 +459,25 @@ fun ContainerConfigDialog(
                                 onItemSelected = {
                                     graphicsDriverIndex = it
                                     config = config.copy(graphicsDriver = StringUtils.parseIdentifier(graphicsDrivers[it]))
+                                    // Reset version index when driver changes
+                                    graphicsDriverVersionIndex = 0
+                                    config = config.copy(graphicsDriverVersion = "")
+                                },
+                            )
+                            SettingsListDropdown(
+                                colors = settingsTileColors(),
+                                title = { Text(text = "Graphics Driver Version") },
+                                value = graphicsDriverVersionIndex,
+                                items = getVersionsForDriver(),
+                                onItemSelected = {
+                                    graphicsDriverVersionIndex = it
+                                    // Get the version directly from the selected item
+                                    val selectedVersion = if (it == 0) {
+                                        "" // Default
+                                    } else {
+                                        getVersionsForDriver()[it]
+                                    }
+                                    config = config.copy(graphicsDriverVersion = selectedVersion)
                                 },
                             )
                             // TODO: add way to pick DXVK version

@@ -96,6 +96,7 @@ import java.io.IOException
 import java.io.InputStreamReader
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.util.Arrays
 import kotlin.io.path.name
@@ -138,6 +139,7 @@ fun XServerScreen(
             mutableStateOf(
                 XServerState(
                     graphicsDriver = container.graphicsDriver,
+                    graphicsDriverVersion = container.graphicsDriverVersion,
                     audioDriver = container.audioDriver,
                     dxwrapper = container.dxWrapper,
                     dxwrapperConfig = DXVKHelper.parseConfig(container.dxWrapperConfig),
@@ -1038,6 +1040,65 @@ private fun unpackExecutableFile(
         var output = StringBuilder()
 
         try {
+            // a:/.../GameDir/orig_dll_path.txt  (same dir as the EXE inside A:)
+            val origTxtFile  = File("${imageFs.wineprefix}/dosdevices/a:/orig_dll_path.txt")
+
+            if (origTxtFile.exists()) {
+                val relDllPath = origTxtFile.readText().trim()
+                if (relDllPath.isNotBlank()) {
+                    val origDll = File("${imageFs.wineprefix}/dosdevices/a:/$relDllPath")
+                    if (origDll.exists()) {
+                        val shellCommandArray = arrayOf(
+                            rootDir.path + "/usr/local/bin/box64",
+                            "wine",
+                            "z:\\\\generate_interfaces_file.exe",
+                            "A:\\" + relDllPath.replace('/', '\\')
+                        )
+                        Timber.i("Running generate_interfaces_file " + Arrays.toString(shellCommandArray))
+
+                        var line: String?
+                        val genOutput = StringBuilder()
+                        val genProc = Runtime.getRuntime().exec(
+                            shellCommandArray,
+                            shellCommandEnvVars.toStringArray(),
+                            imageFs.getRootDir()
+                        )
+                        val genReader     = BufferedReader(InputStreamReader(genProc.inputStream))
+                        val genErrReader  = BufferedReader(InputStreamReader(genProc.errorStream))
+                        while (genReader.readLine().also { line = it } != null)     genOutput.append(line).append('\n')
+                        while (genErrReader.readLine().also { line = it } != null)  genOutput.append(line).append('\n')
+                        genProc.waitFor()
+
+                        val origSteamInterfaces = File("${imageFs.wineprefix}/dosdevices/z:/steam_interfaces.txt")
+                        if (origSteamInterfaces.exists()) {
+                            val finalSteamInterfaces = File(origDll.parent, "steam_interfaces.txt")
+                            try {
+                                Files.copy(
+                                    origSteamInterfaces.toPath(),
+                                    finalSteamInterfaces.toPath(),
+                                    StandardCopyOption.REPLACE_EXISTING
+                                )
+                                Timber.i("Copied steam_interfaces.txt to ${finalSteamInterfaces.absolutePath}")
+                            } catch (ioe: IOException) {
+                                Timber.w(ioe, "Failed to copy steam_interfaces.txt")
+                            }
+                        } else {
+                            Timber.w("steam_interfaces.txt not found at $origSteamInterfaces")
+                        }
+
+                        Timber.i("Result of generate_interfaces_file command $genOutput")
+                    } else {
+                        Timber.w("DLL specified in orig_dll_path.txt not found: $origDll")
+                    }
+                }
+            } else {
+                Timber.i("orig_dll_path.txt not present; skipping interface generation")
+            }
+        } catch (e: Exception) {
+            Timber.e("Error running generate_interfaces_file: $e")
+        }
+
+        try {
             val installMonoArray = arrayOf(
                 rootDir.getPath() + "/usr/local/bin/box64", "wine", "msiexec", "/i",
                 "Z:\\opt\\mono-gecko-offline\\wine-mono-9.0.0-x86.msi",
@@ -1430,11 +1491,16 @@ private fun extractGraphicsDriverFiles(
     container: Container,
     envVars: EnvVars,
 ) {
+    // Get the configured driver version or use default
+    val turnipVersion = container.graphicsDriverVersion.takeIf { it.isNotEmpty() && graphicsDriver == "turnip" } ?: DefaultVersion.TURNIP
+    val virglVersion = container.graphicsDriverVersion.takeIf { it.isNotEmpty() && graphicsDriver == "virgl" } ?: DefaultVersion.VIRGL
+    val zinkVersion = container.graphicsDriverVersion.takeIf { it.isNotEmpty() && graphicsDriver == "zink" } ?: DefaultVersion.ZINK
+    
     var cacheId = graphicsDriver
     if (graphicsDriver == "turnip") {
-        cacheId += "-" + DefaultVersion.TURNIP + "-" + DefaultVersion.ZINK
+        cacheId += "-" + turnipVersion + "-" + zinkVersion
     } else if (graphicsDriver == "virgl") {
-        cacheId += "-" + DefaultVersion.VIRGL
+        cacheId += "-" + virglVersion
     }
 
     val changed = cacheId != container.getExtra("graphicsDriver")
@@ -1479,13 +1545,13 @@ private fun extractGraphicsDriverFiles(
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD,
                 context.assets,
-                "graphics_driver/turnip-${DefaultVersion.TURNIP}.tzst",
+                "graphics_driver/turnip-${turnipVersion}.tzst",
                 rootDir,
             )
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD,
                 context.assets,
-                "graphics_driver/zink-${DefaultVersion.ZINK}.tzst",
+                "graphics_driver/zink-${zinkVersion}.tzst",
                 rootDir,
             )
         }
@@ -1499,7 +1565,7 @@ private fun extractGraphicsDriverFiles(
         if (changed) {
             TarCompressorUtils.extract(
                 TarCompressorUtils.Type.ZSTD, context.assets,
-                "graphics_driver/virgl-" + DefaultVersion.VIRGL + ".tzst", rootDir,
+                "graphics_driver/virgl-${virglVersion}.tzst", rootDir,
             )
         }
     }
