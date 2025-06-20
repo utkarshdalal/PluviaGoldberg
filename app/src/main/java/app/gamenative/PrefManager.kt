@@ -142,6 +142,13 @@ object PrefManager {
             setPref(GRAPHICS_DRIVER, value)
         }
 
+    private val GRAPHICS_DRIVER_VERSION = stringPreferencesKey("graphics_driver_version")
+    var graphicsDriverVersion: String
+        get() = getPref(GRAPHICS_DRIVER_VERSION, "")
+        set(value) {
+            setPref(GRAPHICS_DRIVER_VERSION, value)
+        }
+
     private val DXWRAPPER = stringPreferencesKey("dxwrapper")
     var dxWrapper: String
         get() = getPref(DXWRAPPER, Container.DEFAULT_DXWRAPPER)

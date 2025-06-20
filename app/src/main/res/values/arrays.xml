@@ -20,6 +20,17 @@
         <item>Turnip (Adreno)</item>
         <item>VirGL (Universal)</item>
     </string-array>
+    <string-array name="turnip_version_entries">
+        <item>25.1.0</item>
+        <item>25.0.0</item>
+        <item>24.1.0</item>
+    </string-array>
+    <string-array name="virgl_version_entries">
+        <item>23.1.9</item>
+    </string-array>
+    <string-array name="zink_version_entries">
+        <item>22.2.5</item>
+    </string-array>
     <string-array name="audio_driver_entries">
         <item>ALSA</item>
         <item>PulseAudio</item>
@@ -59,6 +70,10 @@
         <item>1024 MB</item>
         <item>2048 MB</item>
         <item>4096 MB</item>
+        <item>6144 MB</item>
+        <item>8192 MB</item>
+        <item>10240 MB</item>
+        <item>12288 MB</item>
     </string-array>
     <string-array name="dxvk_framerate_entries">
         <item>0 (Default)</item>

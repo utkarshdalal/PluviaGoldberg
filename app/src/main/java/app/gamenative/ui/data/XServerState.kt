@@ -13,6 +13,7 @@ data class XServerState(
     val screenSize: String = Container.DEFAULT_SCREEN_SIZE,
     val wineInfo: WineInfo = WineInfo.MAIN_WINE_VERSION,
     val graphicsDriver: String = Container.DEFAULT_GRAPHICS_DRIVER,
+    val graphicsDriverVersion: String = "",
     val audioDriver: String = Container.DEFAULT_AUDIO_DRIVER,
 ) {
     companion object {
@@ -25,6 +26,7 @@ data class XServerState(
                     "screenSize" to state.screenSize,
                     "wineInfo" to state.wineInfo,
                     "graphicsDriver" to state.graphicsDriver,
+                    "graphicsDriverVersion" to state.graphicsDriverVersion,
                     "audioDriver" to state.audioDriver,
                 )
             },
@@ -36,6 +38,7 @@ data class XServerState(
                     screenSize = map["screenSize"] as String,
                     wineInfo = map["wineInfo"] as WineInfo,
                     graphicsDriver = map["graphicsDriver"] as String,
+                    graphicsDriverVersion = map["graphicsDriverVersion"] as String? ?: "",
                     audioDriver = map["audioDriver"] as String,
                 )
             },

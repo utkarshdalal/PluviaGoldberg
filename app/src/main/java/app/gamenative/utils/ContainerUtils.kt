@@ -42,6 +42,7 @@ object ContainerUtils {
             screenSize = PrefManager.screenSize,
             envVars = PrefManager.envVars,
             graphicsDriver = PrefManager.graphicsDriver,
+            graphicsDriverVersion = PrefManager.graphicsDriverVersion,
             dxwrapper = PrefManager.dxWrapper,
             dxwrapperConfig = PrefManager.dxWrapperConfig,
             audioDriver = PrefManager.audioDriver,
@@ -71,6 +72,7 @@ object ContainerUtils {
         PrefManager.screenSize = containerData.screenSize
         PrefManager.envVars = containerData.envVars
         PrefManager.graphicsDriver = containerData.graphicsDriver
+        PrefManager.graphicsDriverVersion = containerData.graphicsDriverVersion
         PrefManager.dxWrapper = containerData.dxwrapper
         PrefManager.dxWrapperConfig = containerData.dxwrapperConfig
         PrefManager.audioDriver = containerData.audioDriver
@@ -130,6 +132,7 @@ object ContainerUtils {
             screenSize = container.screenSize,
             envVars = container.envVars,
             graphicsDriver = container.graphicsDriver,
+            graphicsDriverVersion = container.graphicsDriverVersion,
             dxwrapper = container.dxWrapper,
             dxwrapperConfig = container.dxWrapperConfig,
             audioDriver = container.audioDriver,
@@ -205,6 +208,7 @@ object ContainerUtils {
         container.box86Preset = containerData.box86Preset
         container.box64Preset = containerData.box64Preset
         container.desktopTheme = containerData.desktopTheme
+        container.graphicsDriverVersion = containerData.graphicsDriverVersion
         container.saveData()
         Timber.d("Set container.execArgs to '${containerData.execArgs}'")
     }
@@ -255,6 +259,7 @@ object ContainerUtils {
                 cpuList = PrefManager.cpuList,
                 cpuListWoW64 = PrefManager.cpuListWoW64,
                 graphicsDriver = PrefManager.graphicsDriver,
+                graphicsDriverVersion = PrefManager.graphicsDriverVersion,
                 dxwrapper = PrefManager.dxWrapper,
                 dxwrapperConfig = PrefManager.dxWrapperConfig,
                 audioDriver = PrefManager.audioDriver,
