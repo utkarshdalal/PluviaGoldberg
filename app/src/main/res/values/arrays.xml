@@ -19,6 +19,7 @@
     <string-array name="graphics_driver_entries">
         <item>Turnip (Adreno)</item>
         <item>VirGL (Universal)</item>
+        <item>Vortek (Universal)</item>
     </string-array>
     <string-array name="audio_driver_entries">
         <item>ALSA</item>
