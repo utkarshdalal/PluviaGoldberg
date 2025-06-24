@@ -721,8 +721,11 @@ private fun AppScreenContent(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(16.dp)
                     ) {
-                        val text = if (isInstalled) stringResource(R.string.run_app)
-                                   else stringResource(R.string.install_app)
+                        val text = when {
+                            isInstalled -> stringResource(R.string.run_app)
+                            !installEnabled && isInstall -> "Install only over WiFi enabled"
+                            else -> stringResource(R.string.install_app)
+                        }
                         Text(
                             text = text,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
