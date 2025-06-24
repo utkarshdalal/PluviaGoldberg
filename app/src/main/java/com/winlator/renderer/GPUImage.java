@@ -20,7 +20,7 @@ public class GPUImage extends Texture {
     }
 
     public GPUImage(short width, short height) {
-        hardwareBufferPtr = createHardwareBuffer(width, height);
+        hardwareBufferPtr = createHardwareBuffer(width, height, true, true);
         if (hardwareBufferPtr != 0) virtualData = lockHardwareBuffer(hardwareBufferPtr);
     }
 
@@ -30,7 +30,7 @@ public class GPUImage extends Texture {
 
     public GPUImage(short width, short height, boolean cpuAccess, boolean useHALPixelFormatBGRA8888) {
         this.locked = false;
-        long createHardwareBuffer = createHardwareBuffer(width, height);
+        long createHardwareBuffer = createHardwareBuffer(width, height, cpuAccess, useHALPixelFormatBGRA8888);
         this.hardwareBufferPtr = createHardwareBuffer;
         if (cpuAccess && createHardwareBuffer != 0) {
             this.virtualData = lockHardwareBuffer(createHardwareBuffer);
@@ -76,7 +76,7 @@ public class GPUImage extends Texture {
     @Override
     public void destroy() {
         destroyImageKHR(imageKHRPtr);
-        destroyHardwareBuffer(hardwareBufferPtr);
+        destroyHardwareBuffer(hardwareBufferPtr, this.locked);
         virtualData = null;
         imageKHRPtr = 0;
         hardwareBufferPtr = 0;
@@ -99,9 +99,9 @@ public class GPUImage extends Texture {
         gpuImage.destroy();
     }
 
-    private native long createHardwareBuffer(short width, short height);
+    private native long createHardwareBuffer(short width, short height, boolean cpuAccess, boolean useHALPixelFormatBGRA8888);
 
-    private native void destroyHardwareBuffer(long hardwareBufferPtr);
+    private native void destroyHardwareBuffer(long hardwareBufferPtr, boolean locked);
 
     private native ByteBuffer lockHardwareBuffer(long hardwareBufferPtr);
 

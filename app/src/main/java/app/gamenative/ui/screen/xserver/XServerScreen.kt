@@ -34,6 +34,7 @@ import app.gamenative.service.SteamService
 import app.gamenative.ui.data.XServerState
 import app.gamenative.utils.ContainerUtils
 import com.posthog.PostHog
+import com.winlator.alsaserver.ALSAClient
 import com.winlator.box86_64.rc.RCFile
 import com.winlator.box86_64.rc.RCManager
 import com.winlator.container.Container
@@ -777,6 +778,8 @@ private fun setupXEnvironment(
     envVars.put("MESA_DEBUG", "silent")
     envVars.put("MESA_NO_ERROR", "1")
     envVars.put("WINEPREFIX", imageFs.wineprefix)
+    envVars.put("WINE_DO_NOT_UPDATE_IF_TABLE", "1")
+    envVars.put("WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER", "1")
     if (container.isShowFPS){
         envVars.put("DXVK_HUD", "fps,frametimes")
         envVars.put("VK_INSTANCE_LAYERS", "VK_LAYER_MESA_overlay")
@@ -851,7 +854,8 @@ private fun setupXEnvironment(
     if (xServerState.value.audioDriver == "alsa") {
         envVars.put("ANDROID_ALSA_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.ALSA_SERVER_PATH)
         envVars.put("ANDROID_ASERVER_USE_SHM", "true")
-        environment.addComponent(ALSAServerComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.ALSA_SERVER_PATH)))
+        val options = ALSAClient.Options.fromKeyValueSet(null)
+        environment.addComponent(ALSAServerComponent(UnixSocketConfig.createSocket(imageFs.getRootDir().getPath(), UnixSocketConfig.ALSA_SERVER_PATH), options))
     } else if (xServerState.value.audioDriver == "pulseaudio") {
         envVars.put("PULSE_SERVER", imageFs.getRootDir().getPath() + UnixSocketConfig.PULSE_SERVER_PATH)
         environment.addComponent(PulseAudioComponent(UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.PULSE_SERVER_PATH)))
@@ -865,7 +869,8 @@ private fun setupXEnvironment(
             ),
         )
     } else if (xServerState.value.graphicsDriver == "vortek") {
-        val options2: VortekRendererComponent.Options? = VortekRendererComponent.Options.fromKeyValueSet(null)
+        Timber.i("Adding VortekRendererComponent to Environment")
+        val options2: VortekRendererComponent.Options? = VortekRendererComponent.Options.fromKeyValueSet(KeyValueSet(container.getGraphicsDriverConfig()))
         val vortekRendererComponent: VortekRendererComponent =
             VortekRendererComponent(xServer, UnixSocketConfig.createSocket(rootPath, UnixSocketConfig.VORTEK_SERVER_PATH), options2)
         environment.addComponent(vortekRendererComponent)
@@ -1449,6 +1454,7 @@ private fun extractGraphicsDriverFiles(
     val changed = cacheId != container.getExtra("graphicsDriver")
     val imageFs = ImageFs.find(context)
     val rootDir = imageFs.rootDir
+    envVars.put("vblank_mode", "0")
 
     if (changed) {
         FileUtils.delete(File(imageFs.lib32Dir, "libvulkan_freedreno.so"))
@@ -1457,14 +1463,17 @@ private fun extractGraphicsDriverFiles(
         FileUtils.delete(File(imageFs.lib32Dir, "libvulkan_vortek.so"))
         FileUtils.delete(File(imageFs.lib32Dir, "libGL.so.1.7.0"))
         FileUtils.delete(File(imageFs.lib64Dir, "libGL.so.1.7.0"))
+        val vulkanICDDir = File(rootDir, "/usr/share/vulkan/icd.d")
+        FileUtils.delete(vulkanICDDir)
+        vulkanICDDir.mkdirs()
         container.putExtra("graphicsDriver", cacheId)
         container.saveData()
     }
 
     if (graphicsDriver == "turnip") {
-        if (dxwrapper == "dxvk") {
+        if (dxwrapper.contains("dxvk")) {
             DXVKHelper.setEnvVars(context, dxwrapperConfig, envVars)
-        } else if (dxwrapper == "vkd3d") {
+        } else if (dxwrapper.contains("vkd3d")) {
             envVars.put("VKD3D_FEATURE_LEVEL", "12_2")
         }
 
@@ -1514,13 +1523,16 @@ private fun extractGraphicsDriverFiles(
             )
         }
     } else if (graphicsDriver == "vortek") {
+        Timber.i("Setting Vortek env vars")
         envVars.put("GALLIUM_DRIVER", "zink")
         envVars.put("ZINK_CONTEXT_THREADED", "1")
         envVars.put("MESA_GL_VERSION_OVERRIDE", "3.3")
         envVars.put("WINEVKUSEPLACEDADDR", "1")
-        envVars.put("VORTEK_SERVER_PATH", UnixSocketConfig.VORTEK_SERVER_PATH)
-        if (dxwrapper.equals("dxvk")) {
+        envVars.put("VORTEK_SERVER_PATH", imageFs.getRootDir().getPath() + UnixSocketConfig.VORTEK_SERVER_PATH)
+        Timber.i("dxwrapper is " + dxwrapper)
+        if (dxwrapper.contains("dxvk")) {
             dxwrapperConfig.put("constantBufferRangeCheck", "1")
+            DXVKHelper.setEnvVars(context, dxwrapperConfig, envVars)
         }
         if (changed) {
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/vortek-1.0.tzst", rootDir)

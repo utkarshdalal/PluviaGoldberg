@@ -27,7 +27,7 @@ public class Container {
 
     public static final String DEFAULT_ENV_VARS = "ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=1 MESA_VK_WSI_PRESENT_MODE=mailbox TU_DEBUG=noconform";
     public static final String DEFAULT_SCREEN_SIZE = "854x480";
-    public static final String DEFAULT_GRAPHICS_DRIVER = "turnip";
+    public static final String DEFAULT_GRAPHICS_DRIVER = "vortek";
     public static final String DEFAULT_AUDIO_DRIVER = "alsa";
     public static final String DEFAULT_DXWRAPPER = "dxvk";
     public static final String DEFAULT_WINCOMPONENTS = "direct3d=1,directsound=1,directmusic=0,directshow=0,directplay=0,vcrun2010=1,wmdecoder=1";
@@ -44,6 +44,7 @@ public class Container {
     private String graphicsDriver = DEFAULT_GRAPHICS_DRIVER;
     private String dxwrapper = DEFAULT_DXWRAPPER;
     private String dxwrapperConfig = "";
+    private String graphicsDriverConfig = "";
     private String wincomponents = DEFAULT_WINCOMPONENTS;
     private String audioDriver = DEFAULT_AUDIO_DRIVER;
     private String drives = DEFAULT_DRIVES;
@@ -64,7 +65,7 @@ public class Container {
     private int rcfileId = 0;
     private String midiSoundFont = "";
     private int inputType = WinHandler.DEFAULT_INPUT_TYPE;
-    private String lc_all = "";
+    private String lc_all = "en_US.utf8";
     private int primaryController = 1;
     private String controllerMapping = new String(new char[XrControllerMapping.values().length]);
 
@@ -135,6 +136,14 @@ public class Container {
 
     public void setDXWrapper(String dxwrapper) {
         this.dxwrapper = dxwrapper;
+    }
+
+    public String getGraphicsDriverConfig() {
+        return this.graphicsDriverConfig;
+    }
+
+    public void setGraphicsDriverConfig(String graphicsDriverConfig) {
+        this.graphicsDriverConfig = graphicsDriverConfig != null ? graphicsDriverConfig : "";
     }
 
     public String getDXWrapperConfig() {
