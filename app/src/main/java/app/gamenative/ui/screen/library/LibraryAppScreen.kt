@@ -733,22 +733,6 @@ private fun AppScreenContent(
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
-                    // Helper text below the button
-                    if (!installEnabled && isInstall) {
-                        val helperText = when {
-                            !hasInternet -> "You're offline. Connect to the internet to install this app."
-                            !wifiConnected && PrefManager.downloadOnWifiOnly -> "You're on mobile data. Connect to Wi-Fi or change your download settings in phone settings."
-                            else -> null
-                        }
-                        if (helperText != null) {
-                            Text(
-                                text = helperText,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                    }
                     // Uninstall if already installed
                     if (isInstalled) {
                         OutlinedButton(
