@@ -1,6 +1,7 @@
 package app.gamenative.ui.screen.library.components
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -34,7 +35,9 @@ fun LibraryBottomSheet(
     ) {
         Text(text = "App Type", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(8.dp))
-        FlowRow {
+        FlowRow(
+           verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             AppFilter.entries.forEach { appFilter ->
                 // TODO properly fix this (and the one below)
                 if (appFilter.code !in listOf(0x01, 0x20)) {
@@ -47,6 +50,8 @@ fun LibraryBottomSheet(
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Text(text = "App Status", style = MaterialTheme.typography.titleLarge)
         Spacer(modifier = Modifier.height(8.dp))
