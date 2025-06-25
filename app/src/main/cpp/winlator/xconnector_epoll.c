@@ -114,6 +114,11 @@ Java_com_winlator_xconnector_XConnectorEpoll_createEpollFd(JNIEnv *env, jobject 
     return fd;
 }
 
+JNIEXPORT jint JNICALL
+Java_com_winlator_xconnector_XConnectorEpoll_closeFd(JNIEnv *env, jobject obj, jint fd) {
+    return close(fd);        // direct close, matches stub
+}
+
 JNIEXPORT void JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_closeFd(JNIEnv *env, jobject obj, jint fd) {
     closeFd(fd);
@@ -124,17 +129,14 @@ Java_com_winlator_xconnector_XConnectorEpoll_closeFd(JNIEnv *env, jobject obj, j
 
 JNIEXPORT jboolean JNICALL
 Java_com_winlator_xconnector_XConnectorEpoll_doEpollIndefinitely(JNIEnv *env, jobject obj,
-                                                                 jint epollFd, jint serverFd,
+                                                                 jint epollFd,
+                                                                 jint serverFd,
                                                                  jboolean addClientToEpoll) {
-    int auto fdsan_level = android_fdsan_get_error_level();
-    if (fdsan_level != ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS) {
-        printf("Setting fdsan error level")
-        android_fdsan_set_error_level(ANDROID_FDSAN_ERROR_LEVEL_WARN_ALWAYS);
-    }
-
     jclass cls = (*env)->GetObjectClass(env, obj);
-    jmethodID handleNewConnection = (*env)->GetMethodID(env, cls, "handleNewConnection", "(I)V");
-    jmethodID handleExistingConnection = (*env)->GetMethodID(env, cls, "handleExistingConnection", "(I)V");
+    jmethodID handleNewConnection =
+            (*env)->GetMethodID(env, cls, "handleNewConnection", "(I)V");
+    jmethodID handleExistingConnection =
+            (*env)->GetMethodID(env, cls, "handleExistingConnection", "(I)V");
 
     int numFds = epoll_wait(epollFd, events, MAX_EVENTS, -1);
     for (int i = 0; i < numFds; i++) {
@@ -144,22 +146,18 @@ Java_com_winlator_xconnector_XConnectorEpoll_doEpollIndefinitely(JNIEnv *env, jo
             if (clientFd >= 0) {
                 trackFd(clientFd);
                 if (addClientToEpoll) {
-                    struct epoll_event event;
-                    event.data.fd = clientFd;
-                    event.events = EPOLLIN;
-
-                    if (epoll_ctl(epollFd, EPOLL_CTL_ADD, clientFd, &event) >= 0) {
+                    struct epoll_event ev = {.data.fd = clientFd, .events = EPOLLIN};
+                    if (epoll_ctl(epollFd, EPOLL_CTL_ADD, clientFd, &ev) >= 0) {
                         (*env)->CallVoidMethod(env, obj, handleNewConnection, clientFd);
                     }
+                } else {
+                    (*env)->CallVoidMethod(env, obj, handleNewConnection, clientFd);
                 }
-                else (*env)->CallVoidMethod(env, obj, handleNewConnection, clientFd);
             }
-        }
-        else if (events[i].events & EPOLLIN) {
+        } else if (events[i].events & EPOLLIN) {
             (*env)->CallVoidMethod(env, obj, handleExistingConnection, events[i].data.fd);
         }
     }
-
     return numFds >= 0;
 }
 

@@ -6,9 +6,11 @@ import android.util.SparseArray;
 
 import com.winlator.renderer.GPUImage;
 import com.winlator.renderer.Texture;
+import com.winlator.widget.XServerView;
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xconnector.XStreamLock;
+import com.winlator.xenvironment.components.VortekRendererComponent;
 import com.winlator.xserver.Bitmask;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.Pixmap;
@@ -25,6 +27,7 @@ import com.winlator.xserver.events.PresentCompleteNotify;
 import com.winlator.xserver.events.PresentIdleNotify;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class PresentExtension implements Extension {
     public static final byte MAJOR_OPCODE = -103;
@@ -146,7 +149,9 @@ public class PresentExtension implements Extension {
         if (GPUImage.isSupported() && !mask.isEmpty()) {
             Drawable content = window.getContent();
             final Texture oldTexture = content.getTexture();
-            client.xServer.getRenderer().xServerView.queueEvent(oldTexture::destroy);
+            XServerView xServerView = client.xServer.getRenderer().xServerView;
+            Objects.requireNonNull(oldTexture);
+            xServerView.queueEvent(() -> VortekRendererComponent.destroyTexture(oldTexture));
             content.setTexture(new GPUImage(content.width, content.height));
         }
 

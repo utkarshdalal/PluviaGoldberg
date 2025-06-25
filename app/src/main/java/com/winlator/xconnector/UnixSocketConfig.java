@@ -11,6 +11,8 @@ public class UnixSocketConfig {
     public static final String XSERVER_PATH = "/tmp/.X11-unix/X0";
     public static final String VIRGL_SERVER_PATH = "/tmp/.virgl/V0";
     public static final String STEAM_PIPE_PATH = "/tmp/.steam/steam_pipe";
+
+    public static final String VORTEK_SERVER_PATH = "/tmp/.vortek/V0";
     public final String path;
 
     private UnixSocketConfig(String path) {

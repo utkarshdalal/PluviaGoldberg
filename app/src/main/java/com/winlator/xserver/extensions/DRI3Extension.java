@@ -3,11 +3,15 @@ package com.winlator.xserver.extensions;
 import static com.winlator.xserver.XClientRequestHandler.RESPONSE_CODE_SUCCESS;
 
 import com.winlator.core.Callback;
+import com.winlator.renderer.GPUImage;
+import com.winlator.renderer.Texture;
 import com.winlator.sysvshm.SysVSharedMemory;
+import com.winlator.widget.XServerView;
 import com.winlator.xconnector.XConnectorEpoll;
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xconnector.XStreamLock;
+import com.winlator.xenvironment.components.VortekRendererComponent;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.Pixmap;
 import com.winlator.xserver.Window;
@@ -18,11 +22,13 @@ import com.winlator.xserver.errors.BadAlloc;
 import com.winlator.xserver.errors.BadDrawable;
 import com.winlator.xserver.errors.BadIdChoice;
 import com.winlator.xserver.errors.BadImplementation;
+import com.winlator.xserver.errors.BadPixmap;
 import com.winlator.xserver.errors.BadWindow;
 import com.winlator.xserver.errors.XRequestError;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public class DRI3Extension implements Extension {
     public static final byte MAJOR_OPCODE = -102;
@@ -106,6 +112,55 @@ public class DRI3Extension implements Extension {
 
         int fd = inputStream.getAncillaryFd();
         pixmapFromFd(client, pixmapId, width, height, stride, 0, depth, fd, size);
+    }
+
+    private void bufferFromPixmap(XClient client, XInputStream inputStream, XOutputStream outputStream) throws IOException, XRequestError {
+        int windowId = inputStream.readInt();
+        Window window = client.xServer.windowManager.getWindow(windowId);
+        if (window == null || !GPUImage.isSupported()) {
+            throw new BadPixmap(windowId);
+        }
+        Drawable content = window.getContent();
+        if (content.width % 2 > 0 || content.height % 2 > 0) {
+            throw new BadPixmap(windowId);
+        }
+        Texture texture = content.getTexture();
+        if (!(texture instanceof GPUImage)) {
+            XServerView xServerView = client.xServer.getRenderer().xServerView;
+            Objects.requireNonNull(texture);
+            xServerView.queueEvent(() -> VortekRendererComponent.destroyTexture(texture));
+            content.setTexture(new GPUImage(content.width, content.height, false));
+        }
+        GPUImage gpuImage = (GPUImage) content.getTexture();
+        short stride = gpuImage.getStride();
+        int nativeHandle = gpuImage.getNativeHandle();
+        XStreamLock lock = outputStream.lock();
+        try {
+            outputStream.writeByte((byte) 1);
+            outputStream.writeByte((byte) 1);
+            outputStream.writeShort(client.getSequenceNumber());
+            outputStream.writeInt(0);
+            outputStream.writeInt(content.height * stride * 4);
+            outputStream.writeShort(content.width);
+            outputStream.writeShort(content.height);
+            outputStream.writeShort(stride);
+            outputStream.writeByte((byte) 32);
+            outputStream.writeByte((byte) 32);
+            outputStream.writePad(12);
+            outputStream.setAncillaryFd(nativeHandle);
+            if (lock != null) {
+                lock.close();
+            }
+        } catch (Throwable th) {
+            if (lock != null) {
+                try {
+                    lock.close();
+                } catch (Throwable th2) {
+                    th.addSuppressed(th2);
+                }
+            }
+            throw th;
+        }
     }
 
     private void pixmapFromBuffers(XClient client, XInputStream inputStream, XOutputStream outputStream) throws IOException, XRequestError {

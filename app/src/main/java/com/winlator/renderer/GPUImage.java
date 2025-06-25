@@ -9,6 +9,8 @@ import java.nio.ByteBuffer;
 public class GPUImage extends Texture {
     private long hardwareBufferPtr;
     private long imageKHRPtr;
+    private boolean locked;
+    private int nativeHandle;
     private ByteBuffer virtualData;
     private short stride;
     private static boolean supported = false;
@@ -18,8 +20,22 @@ public class GPUImage extends Texture {
     }
 
     public GPUImage(short width, short height) {
-        hardwareBufferPtr = createHardwareBuffer(width, height);
+        hardwareBufferPtr = createHardwareBuffer(width, height, true, true);
         if (hardwareBufferPtr != 0) virtualData = lockHardwareBuffer(hardwareBufferPtr);
+    }
+
+    public GPUImage(short width, short height, boolean cpuAccess) {
+        this(width, height, cpuAccess, true);
+    }
+
+    public GPUImage(short width, short height, boolean cpuAccess, boolean useHALPixelFormatBGRA8888) {
+        this.locked = false;
+        long createHardwareBuffer = createHardwareBuffer(width, height, cpuAccess, useHALPixelFormatBGRA8888);
+        this.hardwareBufferPtr = createHardwareBuffer;
+        if (cpuAccess && createHardwareBuffer != 0) {
+            this.virtualData = lockHardwareBuffer(createHardwareBuffer);
+            this.locked = true;
+        }
     }
 
     @Override
@@ -44,6 +60,15 @@ public class GPUImage extends Texture {
         this.stride = stride;
     }
 
+    public int getNativeHandle() {
+        return this.nativeHandle;
+    }
+
+    @Keep
+    private void setNativeHandle(int nativeHandle) {
+        this.nativeHandle = nativeHandle;
+    }
+
     public ByteBuffer getVirtualData() {
         return virtualData;
     }
@@ -51,7 +76,7 @@ public class GPUImage extends Texture {
     @Override
     public void destroy() {
         destroyImageKHR(imageKHRPtr);
-        destroyHardwareBuffer(hardwareBufferPtr);
+        destroyHardwareBuffer(hardwareBufferPtr, this.locked);
         virtualData = null;
         imageKHRPtr = 0;
         hardwareBufferPtr = 0;
@@ -62,6 +87,10 @@ public class GPUImage extends Texture {
         return supported;
     }
 
+    public long getHardwareBufferPtr() {
+        return this.hardwareBufferPtr;
+    }
+
     public static void checkIsSupported() {
         final short size = 8;
         GPUImage gpuImage = new GPUImage(size, size);
@@ -70,9 +99,9 @@ public class GPUImage extends Texture {
         gpuImage.destroy();
     }
 
-    private native long createHardwareBuffer(short width, short height);
+    private native long createHardwareBuffer(short width, short height, boolean cpuAccess, boolean useHALPixelFormatBGRA8888);
 
-    private native void destroyHardwareBuffer(long hardwareBufferPtr);
+    private native void destroyHardwareBuffer(long hardwareBufferPtr, boolean locked);
 
     private native ByteBuffer lockHardwareBuffer(long hardwareBufferPtr);
 

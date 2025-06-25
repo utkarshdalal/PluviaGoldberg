@@ -17,6 +17,7 @@
         <item>1920x1080 (16:9)</item>
     </string-array>
     <string-array name="graphics_driver_entries">
+        <item>Vortek (Universal)</item>
         <item>Turnip (Adreno)</item>
         <item>VirGL (Universal)</item>
     </string-array>

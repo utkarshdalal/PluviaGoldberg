@@ -9,4 +9,5 @@ public abstract class RequestCodes {
     public static final byte WRITE = 5;
     public static final byte DRAIN = 6;
     public static final byte POINTER = 7;
+    public static final byte MIN_BUFFER_SIZE = 8;
 }

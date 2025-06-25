@@ -14,7 +14,7 @@
 enum GCFunction {GCF_CLEAR, GCF_AND, GCF_AND_REVERSE, GCF_COPY, GCF_AND_INVERTED, GCF_NO_OP, GCF_XOR, GCF_OR, GCF_NOR, GCF_EQUIV, GCF_INVERT, GCF_OR_REVERSE, GCF_COPY_INVERTED, GCF_OR_INVERTED, GCF_NAND, GCF_SET};
 
 static int packColor(int8_t r, int8_t g, int8_t b) {
-    return ((r & 0xff00) << 8) | (g & 0xff00) | (b >> 8);
+    return ((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF);
 }
 
 static void unpackColor(int color, uint8_t *rgba) {
@@ -105,16 +105,22 @@ Java_com_winlator_xserver_Drawable_copyArea(JNIEnv *env, jclass obj, jshort srcX
         return;
     }
 
-    jlong srcLength = (*env)->GetDirectBufferCapacity(env, srcData);
-    jlong dstLength = (*env)->GetDirectBufferCapacity(env, dstData);
-
-    if (srcX != 0 || srcY != 0 || dstX != 0 || dstY != 0 || srcLength != dstLength) {
-        int copyAmount = width * 4;
-        for (int16_t y = 0; y < height; y++) {
-            memcpy(dstDataAddr + (dstX + (y + dstY) * dstStride) * 4, srcDataAddr + (srcX + (y + srcY) * srcStride) * 4, copyAmount);
-        }
+    /* Fast path when the image is tightly packed (width == stride on both buffers) */
+    if (width == srcStride && width == dstStride) {
+        size_t bytes = (size_t)height * dstStride * 4;
+        memcpy(dstDataAddr + (dstX + dstY * dstStride) * 4,
+        srcDataAddr + (srcX + srcY * srcStride) * 4,
+        bytes);
+        return;
     }
-    else memcpy(dstDataAddr, srcDataAddr, dstLength);
+
+    /* General case: row-by-row copy */
+    size_t rowBytes = (size_t)width * 4;
+    for (int16_t y = 0; y < height; y++) {
+        memcpy(dstDataAddr + (dstX + (y + dstY) * dstStride) * 4,
+        srcDataAddr + (srcX + (y + srcY) * srcStride) * 4,
+        rowBytes);
+    }
 }
 
 JNIEXPORT void JNICALL
@@ -252,12 +258,12 @@ Java_com_winlator_xserver_Drawable_drawAlphaMaskedBitmap(JNIEnv *env, jclass obj
     }
 }
 
+/* replace the whole JNI body */
 JNIEXPORT void JNICALL
-Java_com_winlator_xserver_Drawable_fromBitmap(JNIEnv *env, jclass obj, jobject bitmap,
-                                              jobject data) {
-    char *dataAddr = (*env)->GetDirectBufferAddress(env, data);
-
-    if (!dataAddr) {
+Java_com_winlator_xserver_Drawable_fromBitmap(JNIEnv *env, jclass obj,
+        jobject bitmap, jobject data) {
+    uint8_t *dst = (*env)->GetDirectBufferAddress(env, data);
+    if (!dst) {
         printf("Error: NULL buffer address in fromBitmap\n");
         return;
     }
@@ -265,18 +271,10 @@ Java_com_winlator_xserver_Drawable_fromBitmap(JNIEnv *env, jclass obj, jobject b
     AndroidBitmapInfo info;
     uint8_t *pixels;
 
-    if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {
-        printf("Error: Failed to get bitmap info in fromBitmap\n");
-        return;
-    }
-    if (AndroidBitmap_lockPixels(env, bitmap, (void**)&pixels) < 0) {
-        printf("Error: Failed to lock bitmap pixels in fromBitmap\n");
-        return;
-    }
+    if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) return;
+    if (AndroidBitmap_lockPixels(env, bitmap, (void **)&pixels) < 0) return;
 
-    for (int i = 0, size = info.width * info.height * 4; i < size; i++) {
-        memcpy(dataAddr + i, pixels + i, 4);
-    }
+    memcpy(dst, pixels, (size_t)info.width * info.height * 4);
 
     AndroidBitmap_unlockPixels(env, bitmap);
 }
