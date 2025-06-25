@@ -4,12 +4,6 @@ Project(Pluvia)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O2 -Wno-unused-function -Wimplicit-function-declaration")
 
-# Add JNI and Vulkan include paths for Android NDK
-if(DEFINED CMAKE_ANDROID_NDK)
-    include_directories(${CMAKE_ANDROID_NDK}/sysroot/usr/include)
-    include_directories(${CMAKE_ANDROID_NDK}/sysroot/usr/include/vulkan)
-endif()
-
 #add_subdirectory(proot)
 add_subdirectory(virglrenderer)
 add_subdirectory(patchelf)
