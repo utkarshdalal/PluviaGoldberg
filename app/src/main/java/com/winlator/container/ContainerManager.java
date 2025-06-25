@@ -14,6 +14,8 @@ import com.winlator.core.TarCompressorUtils;
 import com.winlator.core.WineInfo;
 import com.winlator.core.WineThemeManager;
 import com.winlator.xenvironment.ImageFs;
+import com.winlator.core.GPUInformation;
+import com.winlator.core.DefaultVersion;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -33,6 +35,16 @@ public class ContainerManager {
 
     public ContainerManager(Context context) {
         this.context = context;
+        // Override default driver and DXVK version based on Turnip capability
+        if (GPUInformation.isTurnipCapable(context)) {
+            Container.DEFAULT_GRAPHICS_DRIVER = "turnip";
+            DefaultVersion.DXVK = "2.6.1-gplasync";
+            Log.d("ContainerManager", "Setting default graphics to turnip and dxvk version to 2.6.1-gplasync");
+        } else {
+            Container.DEFAULT_GRAPHICS_DRIVER = "vortek";
+            DefaultVersion.DXVK = "1.10.3";
+            Log.d("ContainerManager", "Setting default graphics to vortek and dxvk version to 1.10.3");
+        }
         File rootDir = ImageFs.find(context).getRootDir();
         homeDir = new File(rootDir, "home");
         loadContainers();

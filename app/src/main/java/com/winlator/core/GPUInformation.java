@@ -109,4 +109,10 @@ public abstract class GPUInformation {
     public static boolean isAdreno6xx(Context context) {
         return getRenderer(context).toLowerCase(Locale.ENGLISH).matches(".*adreno[^6]+6[0-9]{2}.*");
     }
+
+    public static boolean isTurnipCapable(Context context) {
+        String r = getRenderer(context).toLowerCase(Locale.ENGLISH);
+        // match “adreno 610…699” or “adreno 710…799”
+        return r.contains("adreno") && r.matches(".*\\b[67][0-9]{2}\\b.*");
+    }
 }

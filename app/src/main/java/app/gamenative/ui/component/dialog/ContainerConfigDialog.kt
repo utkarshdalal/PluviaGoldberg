@@ -76,6 +76,7 @@ import com.winlator.core.StringUtils
 import com.winlator.core.envvars.EnvVarInfo
 import com.winlator.core.envvars.EnvVars
 import com.winlator.core.envvars.EnvVarSelectionType
+import com.winlator.core.DefaultVersion
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -166,8 +167,11 @@ fun ContainerConfigDialog(
                 match
             }
 
-            // Use found index, or fallback to default entry index, or 0 if default isn't found
-            val defaultIndex = dxvkVersions.indexOfFirst { it.contains("(Default)") }.coerceAtLeast(0)
+            // Use found index, or fallback to the app's default DXVK version, or 0 if not found
+            val defaultVersion = DefaultVersion.DXVK
+            val defaultIndex = dxvkVersions.indexOfFirst {
+                StringUtils.parseIdentifier(it) == defaultVersion
+            }.coerceAtLeast(0)
             val finalIndex = if (foundIndex >= 0) foundIndex else defaultIndex
             mutableIntStateOf(finalIndex)
         }
