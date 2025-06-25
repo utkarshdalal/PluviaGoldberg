@@ -499,6 +499,7 @@ private fun AppScreenContent(
     val context = LocalContext.current
     val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+    val hasInternet = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     val wifiConnected = capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
     val wifiAllowed = !PrefManager.downloadOnWifiOnly || wifiConnected
     val scrollState = rememberScrollState()
@@ -711,7 +712,7 @@ private fun AppScreenContent(
                 } else {
                     // Disable install when Wi-Fi only is enabled and there's no Wi-Fi
                     val isInstall = !isInstalled
-                    val installEnabled = if (isInstall) wifiAllowed else true
+                    val installEnabled = if (isInstall) wifiAllowed && hasInternet else true
                     // Install or Play button
                     Button(
                         enabled = installEnabled,
@@ -721,8 +722,12 @@ private fun AppScreenContent(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(16.dp)
                     ) {
-                        val text = if (isInstalled) stringResource(R.string.run_app)
-                                   else stringResource(R.string.install_app)
+                        val text = when {
+                            isInstalled -> stringResource(R.string.run_app)
+                            !hasInternet -> "Need internet to install"
+                            !wifiConnected && PrefManager.downloadOnWifiOnly -> "Install over WiFi only enabled"
+                            else -> stringResource(R.string.install_app)
+                        }
                         Text(
                             text = text,
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)

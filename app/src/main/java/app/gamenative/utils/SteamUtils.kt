@@ -15,7 +15,9 @@ import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.io.path.name
 import timber.log.Timber
+import java.io.IOException
 import java.nio.file.Path
+import java.nio.file.StandardOpenOption
 
 object SteamUtils {
 
@@ -65,7 +67,7 @@ object SteamUtils {
         fun flush() {
             if (sb.length >= 10) {                 // only consider reasonably long strings
                 val candidate = sb.toString()
-                if (candidate.matches(Regex("^Steam[A-Za-z]+[0-9]{3}\$")))
+                if (candidate.matches(Regex("^Steam[A-Za-z]+[0-9]{3}\$", RegexOption.IGNORE_CASE)))
                     strings += candidate
             }
             sb.setLength(0)
@@ -91,6 +93,28 @@ object SteamUtils {
         Timber.i("Generated steam_interfaces.txt (${sorted.size} interfaces)")
     }
 
+    private fun copyOriginalSteamDll(dllPath: Path, appDirPath: String) {
+        // 1️⃣  back-up next to the original DLL
+        val backup = dllPath.parent.resolve("${dllPath.fileName}.orig")
+        if (Files.notExists(backup)) {
+            try {
+                Files.copy(dllPath, backup)
+                Timber.i("Copied original ${dllPath.fileName} to $backup")
+
+                // 2️⃣  record the relative path inside the app directory
+                val relPath = Paths.get(appDirPath).relativize(backup)
+                Files.write(
+                    Paths.get(appDirPath).resolve("orig_dll_path.txt"),
+                    listOf(relPath.toString()),
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING
+                )
+            } catch (e: IOException) {
+                Timber.w(e, "Failed to back up ${dllPath.fileName}")
+            }
+        }
+    }
+
     /**
      * Replaces any existing `steam_api.dll` or `steam_api64.dll` in the app directory
      * with our pipe dll stored in assets
@@ -105,6 +129,7 @@ object SteamUtils {
             if (it.name == "steam_api.dll" && it.exists()) {
                 Timber.i("Found steam_api.dll at ${it.absolutePathString()}, replacing...")
                 generateInterfacesFile(it)
+                copyOriginalSteamDll(it, appDirPath)
                 Files.delete(it)
                 Files.createFile(it)
                 FileOutputStream(it.absolutePathString()).use { fos ->
@@ -119,6 +144,7 @@ object SteamUtils {
             if (it.name == "steam_api64.dll" && it.exists()) {
                 Timber.i("Found steam_api64.dll at ${it.absolutePathString()}, replacing...")
                 generateInterfacesFile(it)
+                copyOriginalSteamDll(it, appDirPath)
                 Files.delete(it)
                 Files.createFile(it)
                 FileOutputStream(it.absolutePathString()).use { fos ->

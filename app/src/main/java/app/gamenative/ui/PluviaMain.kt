@@ -570,7 +570,7 @@ fun preLaunchApp(
                         visible = true,
                         type = DialogType.SYNC_FAIL,
                         title = "Sync Error",
-                        message = "Failed to sync save files: ${postSyncInfo.syncResult}",
+                        message = "Failed to sync save files: ${postSyncInfo.syncResult}. Please restart app.",
                         dismissBtnText = "Ok",
                     ),
                 )
@@ -653,7 +653,7 @@ fun preLaunchApp(
                                     visible = true,
                                     type = DialogType.APP_SESSION_SUSPENDED,
                                     title = "Sync Error",
-                                    message = "App session suspended",
+                                    message = "App session suspended. Please restart app.",
                                     dismissBtnText = "Ok",
                                 ),
                             )
@@ -666,7 +666,7 @@ fun preLaunchApp(
                                     visible = true,
                                     type = DialogType.PENDING_OPERATION_NONE,
                                     title = "Sync Error",
-                                    message = "Received pending remote operations whose operation was 'none'",
+                                    message = "Received pending remote operations whose operation was 'none'. Please restart app.",
                                     dismissBtnText = "Ok",
                                 ),
                             )
@@ -679,7 +679,7 @@ fun preLaunchApp(
                             visible = true,
                             type = DialogType.MULTIPLE_PENDING_OPERATIONS,
                             title = "Sync Error",
-                            message = "Multiple pending remote operations, try again later",
+                            message = "Multiple pending remote operations, try again later. Please restart app.",
                             dismissBtnText = "Ok",
                         ),
                     )
