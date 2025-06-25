@@ -21,7 +21,7 @@ public class ExternalControllerBinding {
     private Binding binding = Binding.NONE;
 
     public int getKeyCodeForAxis() {
-        return keyCode;
+        return this.keyCode;
     }
 
     public void setKeyCode(int keyCode) {
@@ -29,7 +29,7 @@ public class ExternalControllerBinding {
     }
 
     public Binding getBinding() {
-        return binding;
+        return this.binding;
     }
 
     public void setBinding(Binding binding) {
@@ -39,11 +39,10 @@ public class ExternalControllerBinding {
     public JSONObject toJSONObject() {
         try {
             JSONObject controllerBindingJSONObject = new JSONObject();
-            controllerBindingJSONObject.put("keyCode", keyCode);
-            controllerBindingJSONObject.put("binding", binding.name());
+            controllerBindingJSONObject.put("keyCode", (int) this.keyCode);
+            controllerBindingJSONObject.put("binding", this.binding.name());
             return controllerBindingJSONObject;
-        }
-        catch (JSONException e) {
+        } catch (JSONException e) {
             return null;
         }
     }
@@ -51,25 +50,26 @@ public class ExternalControllerBinding {
     @NonNull
     @Override
     public String toString() {
-        switch (keyCode) {
-            case AXIS_X_NEGATIVE:
-                return "AXIS X-";
-            case AXIS_X_POSITIVE:
-                return "AXIS X+";
-            case AXIS_Y_NEGATIVE:
-                return "AXIS Y-";
-            case AXIS_Y_POSITIVE:
-                return "AXIS Y+";
-            case AXIS_Z_NEGATIVE:
-                return "AXIS Z-";
-            case AXIS_Z_POSITIVE:
-                return "AXIS Z+";
-            case AXIS_RZ_NEGATIVE:
-                return "AXIS RZ-";
+        short s = this.keyCode;
+        switch (s) {
             case AXIS_RZ_POSITIVE:
                 return "AXIS RZ+";
+            case AXIS_RZ_NEGATIVE:
+                return "AXIS RZ-";
+            case AXIS_Z_POSITIVE:
+                return "AXIS Z+";
+            case AXIS_Z_NEGATIVE:
+                return "AXIS Z-";
+            case AXIS_Y_POSITIVE:
+                return "AXIS Y+";
+            case AXIS_Y_NEGATIVE:
+                return "AXIS Y-";
+            case AXIS_X_POSITIVE:
+                return "AXIS X+";
+            case AXIS_X_NEGATIVE:
+                return "AXIS X-";
             default:
-                return KeyEvent.keyCodeToString(keyCode).replace("KEYCODE_", "").replace("_", " ");
+                return KeyEvent.keyCodeToString(s).replace("KEYCODE_", "").replace("_", " ");
         }
     }
 

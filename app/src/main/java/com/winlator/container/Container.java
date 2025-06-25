@@ -64,7 +64,7 @@ public class Container {
     private JSONObject extraData;
     private int rcfileId = 0;
     private String midiSoundFont = "";
-    private int inputType = WinHandler.DEFAULT_INPUT_TYPE;
+    private int inputType = WinHandler.PreferredInputApi.BOTH.ordinal();
     private String lc_all = "en_US.utf8";
     private int primaryController = 1;
     private String controllerMapping = new String(new char[XrControllerMapping.values().length]);
