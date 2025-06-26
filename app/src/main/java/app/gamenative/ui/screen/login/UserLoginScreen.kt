@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -93,6 +94,7 @@ import app.gamenative.ui.enums.Orientation
 import app.gamenative.PluviaApp
 import app.gamenative.events.AndroidEvent
 import java.util.EnumSet
+import android.content.Context
 
 @Composable
 fun UserLoginScreen(
@@ -123,6 +125,7 @@ fun UserLoginScreen(
         onTwoFactorLogin = viewModel::submit,
         onQrRetry = viewModel::onQrRetry,
         onSetTwoFactor = viewModel::setTwoFactorCode,
+        onRetryConnection = viewModel::retryConnection,
     )
 }
 
@@ -139,7 +142,9 @@ private fun UserLoginScreenContent(
     onTwoFactorLogin: () -> Unit,
     onQrRetry: () -> Unit,
     onSetTwoFactor: (String) -> Unit,
+    onRetryConnection: (Context) -> Unit,
 ) {
+    val context = LocalContext.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
@@ -342,6 +347,8 @@ private fun UserLoginScreenContent(
                                                 rememberSession = userLoginState.rememberSession,
                                                 onRememberSession = onRememberSession,
                                                 onLoginBtnClick = onCredentialLogin,
+                                                onRetryConnection = onRetryConnection,
+                                                context = context,
                                             )
                                         }
 
@@ -384,7 +391,18 @@ private fun UserLoginScreenContent(
                         }
                     }
                 } else {
-                    LoadingScreen()
+                    if (!userLoginState.isSteamConnected) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator()
+                            Text("Waiting for Steam connection...")
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { onRetryConnection(context) }) {
+                                Text("Retry Connection")
+                            }
+                        }
+                    } else {
+                        LoadingScreen()
+                    }
                 }
             }
         }
@@ -401,6 +419,8 @@ private fun ModernUsernamePassword(
     rememberSession: Boolean,
     onRememberSession: (Boolean) -> Unit,
     onLoginBtnClick: () -> Unit,
+    onRetryConnection: (Context) -> Unit,
+    context: Context,
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -560,7 +580,7 @@ private fun ModernUsernamePassword(
                 keyboardController?.hide()
                 onLoginBtnClick()
             },
-            enabled = username.isNotEmpty() && password.isNotEmpty() && isSteamConnected,
+            enabled = isSteamConnected && username.isNotEmpty() && password.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -575,6 +595,14 @@ private fun ModernUsernamePassword(
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onPrimary
             )
+        }
+
+        if (!isSteamConnected) {
+            // CircularProgressIndicator()
+            // Text(text = "Connecting to Steam...", color = MaterialTheme.colorScheme.onPrimary)
+            Button(onClick = { onRetryConnection(context) }) {
+                Text(text = "Retry Steam Connection", color = MaterialTheme.colorScheme.onPrimary)
+            }
         }
     }
 }
@@ -701,6 +729,7 @@ private fun Preview_UserLoginScreen(
                 onQrRetry = { },
                 onSetTwoFactor = { },
                 onShowLoginScreen = { },
+                onRetryConnection = { context -> }
             )
         }
     }
