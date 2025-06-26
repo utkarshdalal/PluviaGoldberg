@@ -28,7 +28,7 @@ public class ALSAServerComponent extends EnvironmentComponent {
         ALSAClient.assignFramesPerBuffer(this.environment.getContext());
         XConnectorEpoll xConnectorEpoll = new XConnectorEpoll(this.socketConfig, new ALSAClientConnectionHandler(this.options), new ALSARequestHandler());
         this.connector = xConnectorEpoll;
-        xConnectorEpoll.setMultithreadedClients(false);
+        xConnectorEpoll.setMultithreadedClients(true);
         this.connector.start();
     }
 
