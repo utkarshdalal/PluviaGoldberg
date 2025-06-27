@@ -72,6 +72,7 @@ public class Container {
     private String graphicsDriverVersion = "25.1.0"; // Default version or fallback
 
     private String execArgs = ""; // Default exec arguments
+    private boolean sdlControllerAPI;
 
     private ContainerManager containerManager;
 
@@ -208,6 +209,14 @@ public class Container {
 
     public void setShowFPS(boolean showFPS) {
         this.showFPS = showFPS;
+    }
+
+    public boolean isSdlControllerAPI() {
+        return sdlControllerAPI;
+    }
+
+    public void setSdlControllerAPI(boolean sdlControllerAPI) {
+        this.sdlControllerAPI = sdlControllerAPI;
     }
 
     public boolean isWoW64Mode() {
@@ -443,6 +452,7 @@ public class Container {
             data.put("controllerMapping", controllerMapping);
             data.put("execArgs", execArgs);
             data.put("needsUnpacking", needsUnpacking);
+            data.put("sdlControllerAPI", sdlControllerAPI);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -553,6 +563,9 @@ public class Container {
                     break;
                 case "needsUnpacking" :
                     setNeedsUnpacking(data.getBoolean(key));
+                    break;
+                case "sdlControllerAPI" :
+                    setSdlControllerAPI(data.getBoolean(key));
                     break;
             }
         }

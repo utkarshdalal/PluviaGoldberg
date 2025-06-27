@@ -115,4 +115,15 @@ public abstract class GPUInformation {
         // match “adreno 610…699” or “adreno 710…799”
         return r.contains("adreno") && r.matches(".*\\b[67][0-9]{2}\\b.*");
     }
+
+    /**
+     * Detects Adreno 710-, 720-, or 732-class GPUs.
+     *
+     * @return true if the renderer string contains “adreno” and the exact model
+     *         number 710, or 720; false otherwise.
+     */
+    public static boolean isAdreno710_720(Context context) {
+        String r = getRenderer(context).toLowerCase(Locale.ENGLISH);
+        return r.contains("adreno") && r.matches(".*\\b(710|720)\\b.*");
+    }
 }

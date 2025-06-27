@@ -37,6 +37,7 @@ data class ContainerData(
     val mouseWarpOverride: String = "disable",
     val shaderBackend: String = "glsl",
     val useGLSL: String = "enabled",
+    val sdlControllerAPI: Boolean = false,
 ) {
     companion object {
         val Saver = mapSaver(
@@ -63,6 +64,7 @@ data class ContainerData(
                     "box86Preset" to state.box86Preset,
                     "box64Preset" to state.box64Preset,
                     "desktopTheme" to state.desktopTheme,
+                    "sdlControllerAPI" to state.sdlControllerAPI,
                 )
             },
             restore = { savedMap ->
@@ -88,6 +90,7 @@ data class ContainerData(
                     box86Preset = savedMap["box86Preset"] as String,
                     box64Preset = savedMap["box64Preset"] as String,
                     desktopTheme = savedMap["desktopTheme"] as String,
+                    sdlControllerAPI = savedMap["sdlControllerAPI"] as Boolean,
                 )
             },
         )

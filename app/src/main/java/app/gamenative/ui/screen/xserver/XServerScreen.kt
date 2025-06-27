@@ -787,6 +787,17 @@ private fun setupXEnvironment(
         envVars.put("VK_INSTANCE_LAYERS", "VK_LAYER_MESA_overlay")
         envVars.put("MESA_OVERLAY_SHOW_FPS", 1)
     }
+    if (container.isSdlControllerAPI){
+        envVars.put("SDL_JOYSTICK_WGI", "0")
+        envVars.put("SDL_XINPUT_ENABLED", "1")
+        envVars.put("SDL_JOYSTICK_RAWINPUT", "0")
+        envVars.put("SDL_JOYSTICK_HIDAPI", "1")
+        envVars.put("SDL_DIRECTINPUT_ENABLED", "0")
+        envVars.put("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1")
+        envVars.put("SDL_HINT_FORCE_RAISEWINDOW", "0")
+        envVars.put("SDL_ALLOW_TOPMOST", "0")
+        envVars.put("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1")
+    }
 
     val enableWineDebug = true // preferences.getBoolean("enable_wine_debug", false)
     val wineDebugChannels = PrefManager.getString("wine_debug_channels", Constants.XServer.DEFAULT_WINE_DEBUG_CHANNELS)
@@ -1511,6 +1522,13 @@ private fun extractGraphicsDriverFiles(
     var cacheId = graphicsDriver
     if (graphicsDriver == "turnip") {
         cacheId += "-" + turnipVersion + "-" + zinkVersion
+        if (turnipVersion == "25.2.0"){
+            if (GPUInformation.isAdreno710_720(context)) {
+                envVars.put("TU_DEBUG", "gmem");
+            } else {
+                envVars.put("TU_DEBUG", "sysmem");
+            }
+        }
     } else if (graphicsDriver == "virgl") {
         cacheId += "-" + DefaultVersion.VIRGL
     } else if (graphicsDriver == "vortek") {

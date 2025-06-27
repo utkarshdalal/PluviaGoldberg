@@ -82,6 +82,7 @@ import com.winlator.core.DefaultVersion
 @Composable
 fun ContainerConfigDialog(
     visible: Boolean = true,
+    default: Boolean = false,
     title: String,
     initialConfig: ContainerData = ContainerData(),
     onDismissRequest: () -> Unit,
@@ -127,7 +128,7 @@ fun ContainerConfigDialog(
             val driverIndex = graphicsDrivers.indexOfFirst { StringUtils.parseIdentifier(it) == config.graphicsDriver }
             mutableIntStateOf(if (driverIndex >= 0) driverIndex else 0)
         }
-        
+
         // Function to get the appropriate version list based on the selected graphics driver
         fun getVersionsForDriver(): List<String> {
             val driverType = StringUtils.parseIdentifier(graphicsDrivers[graphicsDriverIndex])
@@ -137,7 +138,7 @@ fun ContainerConfigDialog(
                 else -> zinkVersions
             }
         }
-        
+
         var graphicsDriverVersionIndex by rememberSaveable {
             // Find the version in the list that matches the configured version
             val version = config.graphicsDriverVersion
@@ -540,6 +541,18 @@ fun ContainerConfigDialog(
                                     config = config.copy(showFPS = it)
                                 },
                             )
+                        }
+                        SettingsGroup(title = { Text(text = "Controller") }) {
+                            if (!default) {
+                                SettingsSwitch(
+                                    colors = settingsTileColorsAlt(),
+                                    title = { Text(text = "Use SDL API") },
+                                    state = config.sdlControllerAPI,
+                                    onCheckedChange = {
+                                        config = config.copy(sdlControllerAPI = it)
+                                    },
+                                )
+                            }
                         }
                         SettingsGroup(title = { Text(text = "Wine Configuration") }) {
                             // TODO: add desktop settings

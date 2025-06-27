@@ -29,6 +29,7 @@ fun SettingsGroupEmulation() {
         ContainerConfigDialog(
             visible = showConfigDialog,
             title = "Default Container Config",
+            default = true,
             initialConfig = ContainerUtils.getDefaultContainerData(),
             onDismissRequest = { showConfigDialog = false },
             onSave = {
