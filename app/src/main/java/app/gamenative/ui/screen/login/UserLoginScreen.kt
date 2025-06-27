@@ -394,11 +394,6 @@ private fun UserLoginScreenContent(
                     if (!userLoginState.isSteamConnected) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             CircularProgressIndicator()
-                            Text("Waiting for Steam connection...")
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = { onRetryConnection(context) }) {
-                                Text("Retry Connection")
-                            }
                         }
                     } else {
                         LoadingScreen()
@@ -439,6 +434,33 @@ private fun ModernUsernamePassword(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         ) {
+            if (!isSteamConnected) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .border(
+                                BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .padding(24.dp) // Padding inside the border
+                    ) {
+                        Text("No connection to Steam", color = Color.White)
+                        Box(contentAlignment = Alignment.Center) {
+                            Button(onClick = { onRetryConnection(context) }) {
+                                Text("Retry Steam Connection")
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             Text(
                 text = "Username",
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
@@ -596,15 +618,8 @@ private fun ModernUsernamePassword(
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
-
-        if (!isSteamConnected) {
-            // CircularProgressIndicator()
-            // Text(text = "Connecting to Steam...", color = MaterialTheme.colorScheme.onPrimary)
-            Button(onClick = { onRetryConnection(context) }) {
-                Text(text = "Retry Steam Connection", color = MaterialTheme.colorScheme.onPrimary)
-            }
-        }
-    }
+            
+    } 
 }
 
 @Composable
