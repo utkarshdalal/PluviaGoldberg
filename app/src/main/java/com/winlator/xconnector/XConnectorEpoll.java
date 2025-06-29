@@ -154,7 +154,6 @@ public class XConnectorEpoll implements Runnable {
 
     public void killConnection(Client client) {
         client.connected = false;
-        this.connectionHandler.handleConnectionShutdown(client);
         if (this.multithreadedClients) {
             if (Thread.currentThread() != client.pollThread) {
                 client.requestShutdown();
@@ -164,10 +163,12 @@ public class XConnectorEpoll implements Runnable {
                     } catch (InterruptedException e) {
                     }
                 }
+                this.connectionHandler.handleConnectionShutdown(client);
                 client.pollThread = null;
             }
             closeFd(client.shutdownFd);
         } else {
+            this.connectionHandler.handleConnectionShutdown(client);
             removeFdFromEpoll(this.epollFd, client.clientSocket.fd);
         }
         closeFd(client.clientSocket.fd);

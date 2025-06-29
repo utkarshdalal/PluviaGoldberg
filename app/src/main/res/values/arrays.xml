@@ -23,6 +23,7 @@
     </string-array>
     <string-array name="turnip_version_entries">
         <item>25.1.0</item>
+        <item>25.2.0</item>
         <item>25.0.0</item>
         <item>24.1.0</item>
     </string-array>
@@ -50,6 +51,7 @@
     <string-array name="dxvk_version_entries">
         <item>2.6.1-gplasync</item>
         <item>1.10.3</item>
+        <item>1.10.9-sarek</item>
         <item>1.9.2</item>
         <item>2.3.1</item>
         <item>2.4-gplasync</item>

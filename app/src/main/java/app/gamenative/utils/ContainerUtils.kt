@@ -149,6 +149,7 @@ object ContainerUtils {
             box86Preset = container.box86Preset,
             box64Preset = container.box64Preset,
             desktopTheme = container.desktopTheme,
+            sdlControllerAPI = container.isSdlControllerAPI,
 
             csmt = csmt,
             videoPciDeviceID = videoPciDeviceID,
@@ -207,6 +208,7 @@ object ContainerUtils {
         container.box64Version = containerData.box64Version
         container.box86Preset = containerData.box86Preset
         container.box64Preset = containerData.box64Preset
+        container.isSdlControllerAPI = containerData.sdlControllerAPI
         container.desktopTheme = containerData.desktopTheme
         container.graphicsDriverVersion = containerData.graphicsDriverVersion
         container.saveData()
