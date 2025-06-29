@@ -122,8 +122,8 @@ public abstract class GPUInformation {
      * @return true if the renderer string contains “adreno” and the exact model
      *         number 710, or 720; false otherwise.
      */
-    public static boolean isAdreno710_720(Context context) {
+    public static boolean isAdreno710_720_732(Context context) {
         String r = getRenderer(context).toLowerCase(Locale.ENGLISH);
-        return r.contains("adreno") && r.matches(".*\\b(710|720)\\b.*");
+        return r.contains("adreno") && r.matches(".*\\b(710|720|732)\\b.*");
     }
 }

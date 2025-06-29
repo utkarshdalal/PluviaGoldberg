@@ -1523,7 +1523,7 @@ private fun extractGraphicsDriverFiles(
     if (graphicsDriver == "turnip") {
         cacheId += "-" + turnipVersion + "-" + zinkVersion
         if (turnipVersion == "25.2.0"){
-            if (GPUInformation.isAdreno710_720(context)) {
+            if (GPUInformation.isAdreno710_720_732(context)) {
                 envVars.put("TU_DEBUG", "gmem");
             } else {
                 envVars.put("TU_DEBUG", "sysmem");
