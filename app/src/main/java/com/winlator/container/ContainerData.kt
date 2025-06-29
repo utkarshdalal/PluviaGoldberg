@@ -38,6 +38,14 @@ data class ContainerData(
     val shaderBackend: String = "glsl",
     val useGLSL: String = "enabled",
     val sdlControllerAPI: Boolean = false,
+    /** Enable XInput API **/
+    val enableXInput: Boolean = true,
+    /** Enable DirectInput API **/
+    val enableDInput: Boolean = true,
+    /** DirectInput mapper type: 1=standard, 2=XInput mapper **/
+    val dinputMapperType: Byte = 1,
+    /** Disable external mouse input **/
+    val disableMouseInput: Boolean = false,
 ) {
     companion object {
         val Saver = mapSaver(
@@ -65,6 +73,10 @@ data class ContainerData(
                     "box64Preset" to state.box64Preset,
                     "desktopTheme" to state.desktopTheme,
                     "sdlControllerAPI" to state.sdlControllerAPI,
+                    "enableXInput" to state.enableXInput,
+                    "enableDInput" to state.enableDInput,
+                    "dinputMapperType" to state.dinputMapperType,
+                    "disableMouseInput" to state.disableMouseInput,
                 )
             },
             restore = { savedMap ->
@@ -91,6 +103,10 @@ data class ContainerData(
                     box64Preset = savedMap["box64Preset"] as String,
                     desktopTheme = savedMap["desktopTheme"] as String,
                     sdlControllerAPI = savedMap["sdlControllerAPI"] as Boolean,
+                    enableXInput = savedMap["enableXInput"] as Boolean,
+                    enableDInput = savedMap["enableDInput"] as Boolean,
+                    dinputMapperType = savedMap["dinputMapperType"] as Byte,
+                    disableMouseInput = savedMap["disableMouseInput"] as Boolean,
                 )
             },
         )

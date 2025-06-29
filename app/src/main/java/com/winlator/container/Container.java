@@ -76,6 +76,9 @@ public class Container {
 
     private ContainerManager containerManager;
 
+    private byte dinputMapperType = 1;  // 1=standard, 2=XInput mapper
+    // Disable external mouse input
+    private boolean disableMouseInput = false;
 
     public String getGraphicsDriverVersion() {
         return graphicsDriverVersion;
@@ -385,6 +388,20 @@ public class Container {
         this.inputType = inputType;
     }
 
+    /**
+     * Gets the DirectInput mapper type: 1=standard, 2=XInput mapper
+     */
+    public byte getDinputMapperType() {
+        return dinputMapperType;
+    }
+
+    /**
+     * Sets the DirectInput mapper type: 1=standard, 2=XInput mapper
+     */
+    public void setDinputMapperType(byte dinputMapperType) {
+        this.dinputMapperType = dinputMapperType;
+    }
+
     public Iterable<String[]> drivesIterator() {
         return drivesIterator(drives);
     }
@@ -437,6 +454,7 @@ public class Container {
             data.put("drives", drives);
             data.put("showFPS", showFPS);
             data.put("inputType", inputType);
+            data.put("dinputMapperType", dinputMapperType);
             data.put("wow64Mode", wow64Mode);
             data.put("startupSelection", startupSelection);
             data.put("box86Version", box86Version);
@@ -453,6 +471,8 @@ public class Container {
             data.put("execArgs", execArgs);
             data.put("needsUnpacking", needsUnpacking);
             data.put("sdlControllerAPI", sdlControllerAPI);
+            // Disable mouse input flag
+            data.put("disableMouseInput", disableMouseInput);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -510,6 +530,9 @@ public class Container {
                 case "inputType" :
                     setInputType(data.getInt(key));
                     break;
+                case "dinputMapperType" :
+                    setDinputMapperType((byte) data.getInt(key));
+                    break;
                 case "wow64Mode" :
                     setWoW64Mode(data.getBoolean(key));
                     break;
@@ -566,6 +589,9 @@ public class Container {
                     break;
                 case "sdlControllerAPI" :
                     setSdlControllerAPI(data.getBoolean(key));
+                    break;
+                case "disableMouseInput" :
+                    setDisableMouseInput(data.getBoolean(key));
                     break;
             }
         }
@@ -646,5 +672,14 @@ public class Container {
 //        for (int i = numProcessors / 2; i < numProcessors; i++) cpuList += (!cpuList.isEmpty() ? "," : "")+i;
 //        return cpuList;
         return getFallbackCPUList();
+    }
+
+    // Disable external mouse input
+    public boolean isDisableMouseInput() {
+        return disableMouseInput;
+    }
+
+    public void setDisableMouseInput(boolean disableMouseInput) {
+        this.disableMouseInput = disableMouseInput;
     }
 }

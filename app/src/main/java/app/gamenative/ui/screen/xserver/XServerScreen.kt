@@ -62,11 +62,13 @@ import com.winlator.inputcontrols.ControlsProfile
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.inputcontrols.TouchMouse
+import com.winlator.renderer.GLRenderer
 import com.winlator.widget.FrameRating
 import com.winlator.widget.InputControlsView
 import com.winlator.widget.TouchpadView
 import com.winlator.widget.XServerView
 import com.winlator.winhandler.WinHandler
+import com.winlator.winhandler.WinHandler.PreferredInputApi
 import com.winlator.xconnector.UnixSocketConfig
 import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.XEnvironment
@@ -445,6 +447,17 @@ fun XServerScreen(
                 } else {
                     val containerManager = ContainerManager(context)
                     val container = ContainerUtils.getContainer(context, appId)
+                    // Configure WinHandler with container's input API settings
+                    val handler = getxServer().winHandler
+                    handler.setPreferredInputApi(PreferredInputApi.values()[container.inputType])
+                    handler.setDInputMapperType(container.dinputMapperType)
+                    val renderer: GLRenderer = xServerView!!.getRenderer()
+                    if (container.isDisableMouseInput()) {
+                        renderer.setCursorVisible(false)
+                    } else {
+                        renderer.setCursorVisible(true)
+                    }
+                    Timber.d("WinHandler configured: preferredInputApi=%s, dinputMapperType=0x%02x", PreferredInputApi.values()[container.inputType], container.dinputMapperType)
                     // Timber.d("1 Container drives: ${container.drives}")
                     containerManager.activateContainer(container)
                     // Timber.d("2 Container drives: ${container.drives}")

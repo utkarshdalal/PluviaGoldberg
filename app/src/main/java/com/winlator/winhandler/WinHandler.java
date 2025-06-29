@@ -360,10 +360,10 @@ public class WinHandler {
                             }
                             break;
                         case BOTH:
-                            // if (!isXInput) {
-                            //     enabled = false;
-                            //     break;
-                            // }
+                            if (!isXInput) {
+                                enabled = false;
+                                break;
+                            }
                             break;
                     }
                     if (!enabled && notify) {

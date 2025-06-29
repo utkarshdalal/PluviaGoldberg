@@ -14,6 +14,7 @@ import kotlin.Boolean
 import org.json.JSONArray
 import org.json.JSONObject
 import timber.log.Timber
+import com.winlator.winhandler.WinHandler.PreferredInputApi
 
 object ContainerUtils {
     data class GpuInfo(
@@ -65,6 +66,7 @@ object ContainerUtils {
             strictShaderMath = PrefManager.strictShaderMath,
             videoMemorySize = PrefManager.videoMemorySize,
             mouseWarpOverride = PrefManager.mouseWarpOverride,
+            disableMouseInput = PrefManager.disableMouseInput,
         )
     }
 
@@ -95,6 +97,7 @@ object ContainerUtils {
         PrefManager.strictShaderMath = containerData.strictShaderMath
         PrefManager.videoMemorySize = containerData.videoMemorySize
         PrefManager.mouseWarpOverride = containerData.mouseWarpOverride
+        PrefManager.disableMouseInput = containerData.disableMouseInput
     }
 
     fun toContainerData(container: Container): ContainerData {
@@ -127,6 +130,14 @@ object ContainerUtils {
                 registryEditor.getStringValue("Software\\Wine\\DirectInput", "MouseWarpOverride", PrefManager.mouseWarpOverride)
         }
 
+        // Read controller API settings from container
+        val apiOrdinal = container.getInputType()
+        val enableX = apiOrdinal == PreferredInputApi.XINPUT.ordinal || apiOrdinal == PreferredInputApi.BOTH.ordinal
+        val enableD = apiOrdinal == PreferredInputApi.DINPUT.ordinal || apiOrdinal == PreferredInputApi.BOTH.ordinal
+        val mapperType = container.getDinputMapperType()
+        // Read disable-mouse flag from container
+        val disableMouse = container.isDisableMouseInput()
+
         return ContainerData(
             name = container.name,
             screenSize = container.screenSize,
@@ -150,7 +161,10 @@ object ContainerUtils {
             box64Preset = container.box64Preset,
             desktopTheme = container.desktopTheme,
             sdlControllerAPI = container.isSdlControllerAPI,
-
+            enableXInput = enableX,
+            enableDInput = enableD,
+            dinputMapperType = mapperType,
+            disableMouseInput = disableMouse,
             csmt = csmt,
             videoPciDeviceID = videoPciDeviceID,
             offScreenRenderingMode = offScreenRenderingMode,
@@ -211,6 +225,19 @@ object ContainerUtils {
         container.isSdlControllerAPI = containerData.sdlControllerAPI
         container.desktopTheme = containerData.desktopTheme
         container.graphicsDriverVersion = containerData.graphicsDriverVersion
+        container.setDisableMouseInput(containerData.disableMouseInput)
+        container.saveData()
+
+        // Apply controller settings to container
+        val api = when {
+            containerData.enableXInput && containerData.enableDInput -> PreferredInputApi.BOTH
+            containerData.enableXInput -> PreferredInputApi.XINPUT
+            containerData.enableDInput -> PreferredInputApi.DINPUT
+            else -> PreferredInputApi.AUTO
+        }
+        container.setInputType(api.ordinal)
+        container.setDinputMapperType(containerData.dinputMapperType)
+        Timber.d("Container set: preferredInputApi=%s, dinputMapperType=0x%02x", api, containerData.dinputMapperType)
         container.saveData()
         Timber.d("Set container.execArgs to '${containerData.execArgs}'")
     }
@@ -283,6 +310,7 @@ object ContainerUtils {
                 strictShaderMath = PrefManager.strictShaderMath,
                 videoMemorySize = PrefManager.videoMemorySize,
                 mouseWarpOverride = PrefManager.mouseWarpOverride,
+                disableMouseInput = PrefManager.disableMouseInput,
             )
             applyToContainer(context, container, containerData)
 
