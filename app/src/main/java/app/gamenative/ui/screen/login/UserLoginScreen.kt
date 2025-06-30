@@ -66,7 +66,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -94,7 +93,6 @@ import app.gamenative.ui.enums.Orientation
 import app.gamenative.PluviaApp
 import app.gamenative.events.AndroidEvent
 import java.util.EnumSet
-import android.content.Context
 
 @Composable
 fun UserLoginScreen(
@@ -125,7 +123,6 @@ fun UserLoginScreen(
         onTwoFactorLogin = viewModel::submit,
         onQrRetry = viewModel::onQrRetry,
         onSetTwoFactor = viewModel::setTwoFactorCode,
-        onRetryConnection = viewModel::retryConnection,
     )
 }
 
@@ -142,9 +139,7 @@ private fun UserLoginScreenContent(
     onTwoFactorLogin: () -> Unit,
     onQrRetry: () -> Unit,
     onSetTwoFactor: (String) -> Unit,
-    onRetryConnection: (Context) -> Unit,
 ) {
-    val context = LocalContext.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val tertiaryColor = MaterialTheme.colorScheme.tertiary
 
@@ -347,8 +342,6 @@ private fun UserLoginScreenContent(
                                                 rememberSession = userLoginState.rememberSession,
                                                 onRememberSession = onRememberSession,
                                                 onLoginBtnClick = onCredentialLogin,
-                                                onRetryConnection = onRetryConnection,
-                                                context = context,
                                             )
                                         }
 
@@ -391,13 +384,7 @@ private fun UserLoginScreenContent(
                         }
                     }
                 } else {
-                    if (!userLoginState.isSteamConnected) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator()
-                        }
-                    } else {
-                        LoadingScreen()
-                    }
+                    LoadingScreen()
                 }
             }
         }
@@ -414,8 +401,6 @@ private fun ModernUsernamePassword(
     rememberSession: Boolean,
     onRememberSession: (Boolean) -> Unit,
     onLoginBtnClick: () -> Unit,
-    onRetryConnection: (Context) -> Unit,
-    context: Context,
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -434,33 +419,6 @@ private fun ModernUsernamePassword(
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         ) {
-            if (!isSteamConnected) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .border(
-                                BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
-                                shape = RoundedCornerShape(16.dp)
-                            )
-                            .padding(24.dp) // Padding inside the border
-                    ) {
-                        Text("No connection to Steam", color = Color.White)
-                        Box(contentAlignment = Alignment.Center) {
-                            Button(onClick = { onRetryConnection(context) }) {
-                                Text("Retry Steam Connection")
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
             Text(
                 text = "Username",
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
@@ -602,7 +560,7 @@ private fun ModernUsernamePassword(
                 keyboardController?.hide()
                 onLoginBtnClick()
             },
-            enabled = isSteamConnected && username.isNotEmpty() && password.isNotEmpty(),
+            enabled = username.isNotEmpty() && password.isNotEmpty() && isSteamConnected,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
@@ -618,8 +576,7 @@ private fun ModernUsernamePassword(
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
-            
-    } 
+    }
 }
 
 @Composable
@@ -744,7 +701,6 @@ private fun Preview_UserLoginScreen(
                 onQrRetry = { },
                 onSetTwoFactor = { },
                 onShowLoginScreen = { },
-                onRetryConnection = { context -> }
             )
         }
     }
