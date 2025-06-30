@@ -1,5 +1,6 @@
 package app.gamenative.ui.model
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.gamenative.PluviaApp
@@ -282,6 +283,29 @@ class UserLoginViewModel : ViewModel() {
     fun setTwoFactorCode(twoFactorCode: String) {
         _loginState.update { currentState ->
             currentState.copy(twoFactorCode = twoFactorCode)
+        }
+    }
+
+    fun retryConnection(context: Context) {
+        // Reset error/login state if needed
+        _loginState.update { currentState ->
+            currentState.copy(
+                isLoggingIn = false,
+                loginResult = LoginResult.Failed,
+                isSteamConnected = false,
+                isQrFailed = false,
+                qrCode = null
+            )
+        }
+        // Restart the SteamService
+        viewModelScope.launch {
+            try {
+                val intent = android.content.Intent(context, app.gamenative.service.SteamService::class.java)
+                context.startForegroundService(intent)
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to restart SteamService in retryConnection")
+                showSnack("Failed to restart Steam connection: ${e.localizedMessage}")
+            }
         }
     }
 }
