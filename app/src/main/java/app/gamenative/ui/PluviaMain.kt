@@ -37,6 +37,7 @@ import app.gamenative.enums.SaveLocation
 import app.gamenative.enums.SyncResult
 import app.gamenative.events.AndroidEvent
 import app.gamenative.service.SteamService
+import app.gamenative.ui.component.LoadingScreen
 import app.gamenative.ui.component.dialog.LoadingDialog
 import app.gamenative.ui.component.dialog.MessageDialog
 import app.gamenative.ui.component.dialog.state.MessageDialogState
@@ -60,6 +61,7 @@ import java.util.Date
 import java.util.EnumSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import kotlin.reflect.KFunction2
@@ -81,6 +83,8 @@ fun PluviaMain(
     val setMessageDialogState: (MessageDialogState) -> Unit = { msgDialogState = it }
 
     var hasBack by rememberSaveable { mutableStateOf(navController.previousBackStackEntry?.destination?.route != null) }
+
+    var isConnecting by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.uiEvent.collect { event ->
@@ -189,14 +193,41 @@ fun PluviaMain(
     }
 
     LaunchedEffect(lifecycleOwner) {
-        if (!state.isSteamConnected) {
+        if (!state.isSteamConnected && !isConnecting) {
+            isConnecting = true
             val intent = Intent(context, SteamService::class.java)
             context.startForegroundService(intent)
         }
-
         // Go to the Home screen if we're already logged in.
         if (SteamService.isLoggedIn && state.currentScreen == PluviaScreen.LoginUser) {
             navController.navigate(PluviaScreen.Home.route)
+        }
+    }
+
+    // Listen for connection state changes
+    LaunchedEffect(state.isSteamConnected) {
+        if (state.isSteamConnected) {
+            isConnecting = false
+        }
+    }
+
+    // Timeout if stuck in connecting state for 10 seconds so that its not in loading state forever
+    LaunchedEffect(isConnecting) {
+        if (isConnecting) {
+            Timber.d("Started connecting, will timeout in 10s")
+            kotlinx.coroutines.delay(10000)
+            Timber.d("Timeout reached, isSteamConnected=${state.isSteamConnected}")
+            if (!state.isSteamConnected) {
+                isConnecting = false
+            }
+        }
+    }
+
+    // Show loading or error UI as appropriate
+    when {
+        isConnecting -> {
+            LoadingScreen()
+            return
         }
     }
 
