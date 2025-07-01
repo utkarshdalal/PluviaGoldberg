@@ -334,7 +334,6 @@ public class WinHandler {
                 final ControlsProfile profile = inputControlsView.getProfile();
                 final boolean useVirtualGamepad = inputControlsView != null && profile != null && profile.isVirtualGamepad();
                 int processId = this.receiveData.getInt();
-                Log.d("WinHandler", String.format("GET_GAMEPAD port=%d  isXInput=%s  notify=%s  pid=%d  prefApi=%s  mapperType=0x%02x", port, isXInput, notify, processId, this.preferredInputApi, this.dinputMapperType));
                 if (!useVirtualGamepad && ((externalController = this.currentController) == null || !externalController.isConnected())) {
                     this.currentController = ExternalController.getController(0);
                 }
@@ -423,7 +422,6 @@ public class WinHandler {
                 if (externalController2 != null && externalController2.getDeviceId() != gamepadId) {
                     this.currentController = null;
                 }
-                Log.d("WinHandler", String.format("GET_GAMEPAD_STATE  gamepadId=%d  hasController=%s  useVirtual=%s", gamepadId, (this.currentController != null), (profile2 != null && profile2.isVirtualGamepad())));
                 addAction(() -> {
                     sendData.rewind();
                     sendData.put(RequestCodes.GET_GAMEPAD_STATE);
@@ -488,17 +486,14 @@ public class WinHandler {
 
     public void sendGamepadState() {
         if (!this.initReceived || this.gamepadClients.isEmpty()) {
-            Log.d("WinHandler", "sendGamepadState skipping: initReceived=" + initReceived + " gamepadClients=" + gamepadClients);
             return;
         }
-        Log.d("WinHandler", "sendGamepadState: clients=" + gamepadClients);
         final ControlsProfile profile = inputControlsView.getProfile();
         final boolean useVirtualGamepad = profile != null && profile.isVirtualGamepad();
         final boolean enabled = this.currentController != null || useVirtualGamepad;
         Iterator<Integer> it = this.gamepadClients.iterator();
         while (it.hasNext()) {
             final int port = it.next().intValue();
-            Log.d("WinHandler", "sendGamepadState sending to port=" + port);
             addAction(() -> {
                 this.sendData.rewind();
                 sendData.put(RequestCodes.GET_GAMEPAD_STATE);
@@ -517,22 +512,17 @@ public class WinHandler {
     }
 
     public boolean onGenericMotionEvent(MotionEvent event) {
-        Log.d("WinHandler", "onGenericMotionEvent entry: dev=" + event.getDeviceId() + " currentController=" + (currentController != null ? currentController.getDeviceId() : -1));
         boolean handled = false;
         ExternalController externalController = this.currentController;
         if (externalController != null && externalController.getDeviceId() == event.getDeviceId() && (handled = this.currentController.updateStateFromMotionEvent(event))) {
-            Log.d("WinHandler", "onGenericMotionEvent updateStateFromMotionEvent returned " + handled);
             if (handled) {
-                Log.d("WinHandler", "onGenericMotionEvent sending gamepad state");
                 sendGamepadState();
             }
         }
-        Log.d("WinHandler", "onGenericMotionEvent exit: handled=" + handled);
         return handled;
     }
 
     public boolean onKeyEvent(KeyEvent event) {
-        Log.d("WinHandler", "onKeyEvent entry: dev=" + event.getDeviceId() + " keyCode=" + event.getKeyCode());
         boolean handled = false;
         ExternalController externalController = this.currentController;
         if (externalController != null && externalController.getDeviceId() == event.getDeviceId() && event.getRepeatCount() == 0) {
@@ -543,11 +533,9 @@ public class WinHandler {
                 handled = this.currentController.updateStateFromKeyEvent(event);
             }
             if (handled) {
-                Log.d("WinHandler", "onKeyEvent handled, sending gamepad state");
                 sendGamepadState();
             }
         }
-        Log.d("WinHandler", "onKeyEvent exit: handled=" + handled);
         return handled;
     }
 

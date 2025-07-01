@@ -58,7 +58,7 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         this.scrolling = false;
         this.xform = XForm.getInstance();
         this.xServer = xServer;
-        setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
+        setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setBackground(createTransparentBackground());
         setClickable(true);
         setFocusable(true);
@@ -435,11 +435,11 @@ public class TouchpadView extends View implements View.OnCapturedPointerListener
         if (event.getAction() == 2) {
             float dx = event.getX() * this.sensitivity;
             if (Math.abs(dx) > 6.0f) {
-                dx *= 1.5f;
+                dx *= CURSOR_ACCELERATION;
             }
             float dy = event.getY() * this.sensitivity;
             if (Math.abs(dy) > 6.0f) {
-                dy *= 1.5f;
+                dy *= CURSOR_ACCELERATION;
             }
             this.xServer.injectPointerMoveDelta(Mathf.roundPoint(dx), Mathf.roundPoint(dy));
             return true;

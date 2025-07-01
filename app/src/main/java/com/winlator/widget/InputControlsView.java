@@ -327,11 +327,9 @@ public class InputControlsView extends View {
                 if (controllerBinding != null) handleInputEvent(controllerBinding.getBinding(), controller.state.isPressed(ExternalController.IDX_BUTTON_R2));
 
                 processJoystickInput(controller);
-                Log.d("InputControlsView", "onGenericMotionEvent: dev=" + event.getDeviceId() + " profile=" + (profile != null) + " handled=true");
                 return true;
             }
         }
-        Log.d("InputControlsView", "onGenericMotionEvent: dev=" + event.getDeviceId() + " profile=" + (profile != null) + " handled=false");
         return super.onGenericMotionEvent(event);
     }
 
