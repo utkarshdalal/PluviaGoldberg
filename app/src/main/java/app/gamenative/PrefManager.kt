@@ -275,6 +275,28 @@ object PrefManager {
             setPref(MOUSE_WARP_OVERRIDE, value)
         }
 
+    // Controller Input Defaults
+    private val XINPUT_ENABLED = booleanPreferencesKey("xinput_enabled")
+    var xinputEnabled: Boolean
+        get() = getPref(XINPUT_ENABLED, true)
+        set(value) { setPref(XINPUT_ENABLED, value) }
+
+    private val DINPUT_ENABLED = booleanPreferencesKey("dinput_enabled")
+    var dinputEnabled: Boolean
+        get() = getPref(DINPUT_ENABLED, true)
+        set(value) { setPref(DINPUT_ENABLED, value) }
+
+    private val DINPUT_MAPPER_TYPE = intPreferencesKey("dinput_mapper_type")
+    var dinputMapperType: Int
+        get() = getPref(DINPUT_MAPPER_TYPE, 1)
+        set(value) { setPref(DINPUT_MAPPER_TYPE, value) }
+
+    // Disable Mouse Input (prevents external mouse events)
+    private val DISABLE_MOUSE_INPUT = booleanPreferencesKey("disable_mouse_input")
+    var disableMouseInput: Boolean
+        get() = getPref(DISABLE_MOUSE_INPUT, false)
+        set(value) { setPref(DISABLE_MOUSE_INPUT, value) }
+
     private val BOX_86_VERSION = stringPreferencesKey("box86_version")
     var box86Version: String
         get() = getPref(BOX_86_VERSION, DefaultVersion.BOX86)

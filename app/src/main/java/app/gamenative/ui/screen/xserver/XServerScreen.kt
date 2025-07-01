@@ -62,11 +62,13 @@ import com.winlator.inputcontrols.ControlsProfile
 import com.winlator.inputcontrols.ExternalController
 import com.winlator.inputcontrols.InputControlsManager
 import com.winlator.inputcontrols.TouchMouse
+import com.winlator.renderer.GLRenderer
 import com.winlator.widget.FrameRating
 import com.winlator.widget.InputControlsView
 import com.winlator.widget.TouchpadView
 import com.winlator.widget.XServerView
 import com.winlator.winhandler.WinHandler
+import com.winlator.winhandler.WinHandler.PreferredInputApi
 import com.winlator.xconnector.UnixSocketConfig
 import com.winlator.xenvironment.ImageFs
 import com.winlator.xenvironment.XEnvironment
@@ -255,17 +257,14 @@ fun XServerScreen(
             handled
         }
         val onMotionEvent: (AndroidEvent.MotionEvent) -> Boolean = {
-            val isMouse = TouchMouse.isMouseDevice(it.event?.device)
             val isGamepad = ExternalController.isGameController(it.event?.device)
-            // logD("onMotionEvent(${it.event?.device?.sources})\n\tisGamepad: $isGamepad\n\tisMouse: $isMouse\n\t${it.event}")
 
             var handled = false
             if (isGamepad) {
                 handled = xServerView!!.getxServer().winHandler.onGenericMotionEvent(it.event)
-                // handled = ExternalController.onMotionEvent(xServer.winHandler, it.event)
             }
-            if (!handled && isMouse) {
-                handled = touchMouse?.onExternalMouseEvent(it.event) == true
+            if (!handled) {
+                handled = PluviaApp.touchpadView?.onExternalMouseEvent(it.event) == true
             }
             handled
         }
@@ -363,8 +362,9 @@ fun XServerScreen(
                 val renderer = this.renderer
                 renderer.isCursorVisible = false
                 getxServer().renderer = renderer
-                PluviaApp.touchpadView = TouchpadView(context, getxServer())
+                PluviaApp.touchpadView = TouchpadView(context, getxServer(), PrefManager.getBoolean("capture_pointer_on_external_mouse", true))
                 frameLayout.addView(PluviaApp.touchpadView)
+                PluviaApp.touchpadView?.setMoveCursorToTouchpoint(PrefManager.getBoolean("move_cursor_to_touchpoint", false))
                 getxServer().winHandler = WinHandler(getxServer(), this)
                 touchMouse = TouchMouse(getxServer())
                 keyboard = Keyboard(getxServer())
@@ -445,6 +445,19 @@ fun XServerScreen(
                 } else {
                     val containerManager = ContainerManager(context)
                     val container = ContainerUtils.getContainer(context, appId)
+                    // Configure WinHandler with container's input API settings
+                    val handler = getxServer().winHandler
+                    handler.setPreferredInputApi(PreferredInputApi.values()[container.inputType])
+                    handler.setDInputMapperType(container.dinputMapperType)
+                    val renderer: GLRenderer = xServerView!!.getRenderer()
+                    if (container.isDisableMouseInput()) {
+                        renderer.setCursorVisible(false)
+                        PluviaApp.touchpadView?.setEnabled(false)
+                    } else {
+                        renderer.setCursorVisible(true)
+                        PluviaApp.touchpadView?.setEnabled(true)
+                    }
+                    Timber.d("WinHandler configured: preferredInputApi=%s, dinputMapperType=0x%02x", PreferredInputApi.values()[container.inputType], container.dinputMapperType)
                     // Timber.d("1 Container drives: ${container.drives}")
                     containerManager.activateContainer(container)
                     // Timber.d("2 Container drives: ${container.drives}")
@@ -611,7 +624,12 @@ private fun hideInputControls() {
     PluviaApp.touchpadView?.setSensitivity(1.0f)
     PluviaApp.touchpadView?.setPointerButtonLeftEnabled(true)
     PluviaApp.touchpadView?.setPointerButtonRightEnabled(true)
-
+    PluviaApp.touchpadView?.isEnabled()?.let {
+        if (!it) {
+            PluviaApp.touchpadView?.setEnabled(true)
+            PluviaApp.xServerView?.getRenderer()?.setCursorVisible(true)
+        }
+    }
     PluviaApp.inputControlsView?.invalidate()
 }
 
@@ -788,11 +806,21 @@ private fun setupXEnvironment(
         envVars.put("MESA_OVERLAY_SHOW_FPS", 1)
     }
     if (container.isSdlControllerAPI){
+        if (container.inputType == PreferredInputApi.XINPUT.ordinal || container.inputType == PreferredInputApi.AUTO.ordinal){
+            envVars.put("SDL_XINPUT_ENABLED", "1")
+            envVars.put("SDL_DIRECTINPUT_ENABLED", "0")
+            envVars.put("SDL_JOYSTICK_HIDAPI", "1")
+        } else if (container.inputType == PreferredInputApi.DINPUT.ordinal) {
+            envVars.put("SDL_XINPUT_ENABLED", "0")
+            envVars.put("SDL_DIRECTINPUT_ENABLED", "1")
+            envVars.put("SDL_JOYSTICK_HIDAPI", "0")
+        } else if (container.inputType == PreferredInputApi.BOTH.ordinal) {
+            envVars.put("SDL_XINPUT_ENABLED", "1")
+            envVars.put("SDL_DIRECTINPUT_ENABLED", "1")
+            envVars.put("SDL_JOYSTICK_HIDAPI", "1")
+        }
         envVars.put("SDL_JOYSTICK_WGI", "0")
-        envVars.put("SDL_XINPUT_ENABLED", "1")
         envVars.put("SDL_JOYSTICK_RAWINPUT", "0")
-        envVars.put("SDL_JOYSTICK_HIDAPI", "1")
-        envVars.put("SDL_DIRECTINPUT_ENABLED", "0")
         envVars.put("SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS", "1")
         envVars.put("SDL_HINT_FORCE_RAISEWINDOW", "0")
         envVars.put("SDL_ALLOW_TOPMOST", "0")

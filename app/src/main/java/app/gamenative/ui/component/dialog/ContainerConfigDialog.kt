@@ -553,6 +553,41 @@ fun ContainerConfigDialog(
                                     },
                                 )
                             }
+                            // Enable XInput API
+                            SettingsSwitch(
+                                colors = settingsTileColorsAlt(),
+                                title = { Text(text = "Enable XInput API") },
+                                state = config.enableXInput,
+                                onCheckedChange = {
+                                    config = config.copy(enableXInput = it)
+                                }
+                            )
+                            // Enable DirectInput API
+                            SettingsSwitch(
+                                colors = settingsTileColorsAlt(),
+                                title = { Text(text = "Enable DirectInput API") },
+                                state = config.enableDInput,
+                                onCheckedChange = {
+                                    config = config.copy(enableDInput = it)
+                                }
+                            )
+                            // DirectInput Mapper Type
+                            SettingsListDropdown(
+                                colors = settingsTileColors(),
+                                title = { Text(text = "DirectInput Mapper Type") },
+                                value = if (config.dinputMapperType == 1.toByte()) 0 else 1,
+                                items = listOf("Standard", "XInput Mapper"),
+                                onItemSelected = { index ->
+                                    config = config.copy(dinputMapperType = if (index == 0) 1 else 2)
+                                }
+                            )
+                            // Disable external mouse input
+                            SettingsSwitch(
+                                colors = settingsTileColorsAlt(),
+                                title = { Text(text = "Disable Mouse Input") },
+                                state = config.disableMouseInput,
+                                onCheckedChange = { config = config.copy(disableMouseInput = it) }
+                            )
                         }
                         SettingsGroup(title = { Text(text = "Wine Configuration") }) {
                             // TODO: add desktop settings

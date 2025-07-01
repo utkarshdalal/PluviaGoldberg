@@ -21,6 +21,7 @@ import android.view.PointerIcon;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.util.Log;
 
 import app.gamenative.R;
 import com.winlator.inputcontrols.Binding;
