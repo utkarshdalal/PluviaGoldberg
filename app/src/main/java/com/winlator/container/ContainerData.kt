@@ -37,7 +37,7 @@ data class ContainerData(
     val mouseWarpOverride: String = "disable",
     val shaderBackend: String = "glsl",
     val useGLSL: String = "enabled",
-    val sdlControllerAPI: Boolean = false,
+    val sdlControllerAPI: Boolean = true,
     /** Enable XInput API **/
     val enableXInput: Boolean = true,
     /** Enable DirectInput API **/
