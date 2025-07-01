@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import com.posthog.PostHog
 
 class UserLoginViewModel : ViewModel() {
     private val _loginState = MutableStateFlow(UserLoginState())
@@ -39,6 +40,7 @@ class UserLoginViewModel : ViewModel() {
                     loginResult = LoginResult.DeviceConfirm,
                     loginScreen = LoginScreen.TWO_FACTOR,
                     isLoggingIn = false,
+                    lastTwoFactorMethod = "steam_guard"
                 )
             }
 
@@ -54,6 +56,7 @@ class UserLoginViewModel : ViewModel() {
                     loginScreen = LoginScreen.TWO_FACTOR,
                     isLoggingIn = false,
                     previousCodeIncorrect = previousCodeWasIncorrect,
+                    lastTwoFactorMethod = "authenticator_code"
                 )
             }
 
@@ -78,6 +81,7 @@ class UserLoginViewModel : ViewModel() {
                     isLoggingIn = false,
                     email = email,
                     previousCodeIncorrect = previousCodeWasIncorrect,
+                    lastTwoFactorMethod = "email_code"
                 )
             }
 
@@ -121,11 +125,28 @@ class UserLoginViewModel : ViewModel() {
 
     private val onLogonEnded: (SteamEvent.LogonEnded) -> Unit = {
         Timber.i("Received login result: ${it.loginResult}")
+        val prevState = _loginState.value
         _loginState.update { currentState ->
             currentState.copy(
                 isLoggingIn = false,
                 loginResult = it.loginResult,
             )
+        }
+
+        // PostHog logging
+        val method = when (prevState.loginScreen) {
+            LoginScreen.QR -> "qr"
+            else -> "credentials"
+        }
+
+        val twoFactorMethod = prevState.lastTwoFactorMethod
+        val eventProps = mutableMapOf("method" to method)
+        twoFactorMethod?.let { eventProps["2fa_method"] = it }
+        
+        if (it.loginResult == LoginResult.Success) {
+            PostHog.capture(event = "login_success", properties = eventProps)
+        } else if (it.loginResult == LoginResult.Failed) {
+            PostHog.capture(event = "login_failed", properties = eventProps)
         }
 
         it.message?.let(::showSnack)

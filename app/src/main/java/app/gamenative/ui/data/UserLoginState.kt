@@ -21,6 +21,7 @@ data class UserLoginState(
 
     val qrCode: String? = null,
     val isQrFailed: Boolean = false,
+    val lastTwoFactorMethod: String? = null,
 ) {
     override fun toString(): String {
         return "UserLoginState(" +
@@ -35,7 +36,8 @@ data class UserLoginState(
             "previousCodeIncorrect=$previousCodeIncorrect, " +
             "email=$email, " +
             "qrCode=$qrCode, " +
-            "isQrFailed=$isQrFailed" +
+            "isQrFailed=$isQrFailed, " +
+            "lastTwoFactorMethod=$lastTwoFactorMethod" +
             ")"
     }
 }
