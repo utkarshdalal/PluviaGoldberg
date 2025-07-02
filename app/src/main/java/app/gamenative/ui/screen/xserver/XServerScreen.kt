@@ -564,6 +564,14 @@ fun XServerScreen(
             // Add InputControlsView on top of XServerView
             frameLayout.addView(icView)
             hideInputControls()
+            // Show on-screen controls if no physical controller is connected
+            if (ExternalController.getController(0) == null) {
+                val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
+                if (profiles.size > 2) {
+                    showInputControls(profiles[2])
+                    areControlsVisible = true
+                }
+            }
             val container = ContainerUtils.getContainer(context, appId)
 
             if (container.isShowFPS()) {
