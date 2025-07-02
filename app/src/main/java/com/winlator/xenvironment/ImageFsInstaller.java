@@ -11,6 +11,7 @@ import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 // import com.winlator.core.DownloadProgressDialog;
 import com.winlator.core.Callback;
+import com.winlator.core.DefaultVersion;
 import com.winlator.core.FileUtils;
 // import com.winlator.core.PreloaderDialog;
 import com.winlator.core.TarCompressorUtils;
@@ -27,7 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 public abstract class ImageFsInstaller {
-    public static final byte LATEST_VERSION = 17;
+    public static final byte LATEST_VERSION = 18;
 
     private static void resetContainerImgVersions(Context context) {
         ContainerManager manager = new ContainerManager(context);
@@ -71,6 +72,13 @@ public abstract class ImageFsInstaller {
 
             if (success) {
                 Log.d("ImageFsInstaller", "Successfully installed system files");
+                TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.getAssets(), "box86_64/box64-" + DefaultVersion.BOX64 + ".tzst", rootDir);
+                ContainerManager containerManager = new ContainerManager(context);
+                File homeDir = new File(rootDir, "home");
+                for (Container container : containerManager.getContainers()) {
+                    File containerDir = new File(homeDir, ImageFs.USER + "-" + container.id);
+                    containerManager.extractContainerPatternFile(container.getWineVersion(), containerDir, null);
+                }
                 imageFs.createImgVersionFile(LATEST_VERSION);
                 resetContainerImgVersions(context);
             }

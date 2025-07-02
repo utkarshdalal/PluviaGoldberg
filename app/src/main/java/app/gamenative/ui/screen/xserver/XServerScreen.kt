@@ -564,6 +564,14 @@ fun XServerScreen(
             // Add InputControlsView on top of XServerView
             frameLayout.addView(icView)
             hideInputControls()
+            // Show on-screen controls if no physical controller is connected
+            if (ExternalController.getController(0) == null) {
+                val profiles = PluviaApp.inputControlsManager?.getProfiles(false) ?: listOf()
+                if (profiles.size > 2) {
+                    showInputControls(profiles[2])
+                    areControlsVisible = true
+                }
+            }
             val container = ContainerUtils.getContainer(context, appId)
 
             if (container.isShowFPS()) {
@@ -1594,7 +1602,7 @@ private fun extractGraphicsDriverFiles(
         if (!envVars.has("MESA_VK_WSI_PRESENT_MODE")) envVars.put("MESA_VK_WSI_PRESENT_MODE", "mailbox")
         envVars.put("vblank_mode", "0")
 
-        if (!GPUInformation.isAdreno6xx(context)) {
+        if (!GPUInformation.isAdreno6xx(context) && !GPUInformation.isAdreno710_720_732(context)) {
             val userEnvVars = EnvVars(container.envVars)
             val tuDebug = userEnvVars.get("TU_DEBUG")
             if (!tuDebug.contains("sysmem")) userEnvVars.put("TU_DEBUG", (if (!tuDebug.isEmpty()) "$tuDebug," else "") + "sysmem")

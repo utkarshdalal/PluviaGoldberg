@@ -365,7 +365,7 @@ public class WinHandler {
                             }
                             break;
                     }
-                    if (enabled && notify) {
+                    if (notify) {
                         if (!this.gamepadClients.contains(Integer.valueOf(port))) {
                             this.gamepadClients.add(Integer.valueOf(port));
                         }
