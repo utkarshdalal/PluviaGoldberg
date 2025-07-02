@@ -22,6 +22,9 @@ interface SteamFriendDao {
     @Update
     suspend fun update(friend: SteamFriend)
 
+    @Update
+    suspend fun updateAll(friend: List<SteamFriend>)
+
     @Transaction
     suspend fun updateNicknames(nickname: List<PlayerNickname>) {
         nickname.forEach {
