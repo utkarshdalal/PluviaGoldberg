@@ -121,6 +121,10 @@ fun AppScreen(
         PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.PORTRAIT)))
     }
 
+    val appInfo by remember(appId) {
+        mutableStateOf(SteamService.getAppInfoOf(appId)!!)
+    }
+
     var downloadInfo by remember(appId) {
         mutableStateOf(SteamService.getAppDownloadInfo(appId))
     }
@@ -131,14 +135,14 @@ fun AppScreen(
         mutableStateOf(SteamService.isAppInstalled(appId))
     }
 
+    val isValidToDownload by remember(appId) {
+        mutableStateOf(appInfo.branches.isNotEmpty() && appInfo.depots.isNotEmpty())
+    }
+
     val isDownloading: () -> Boolean = { downloadInfo != null && downloadProgress < 1f }
 
     var loadingDialogVisible by rememberSaveable { mutableStateOf(false) }
     var loadingProgress by rememberSaveable { mutableFloatStateOf(0f) }
-
-    val appInfo by remember(appId) {
-        mutableStateOf(SteamService.getAppInfoOf(appId)!!)
-    }
 
     var msgDialogState by rememberSaveable(stateSaver = MessageDialogState.Saver) {
         mutableStateOf(MessageDialogState(false))
@@ -310,6 +314,7 @@ fun AppScreen(
             modifier = Modifier.padding(it),
             appInfo = appInfo,
             isInstalled = isInstalled,
+            isValidToDownload = isValidToDownload,
             isDownloading = isDownloading(),
             downloadProgress = downloadProgress,
             onDownloadInstallClick = {
@@ -487,6 +492,7 @@ private fun AppScreenContent(
     modifier: Modifier = Modifier,
     appInfo: SteamApp,
     isInstalled: Boolean,
+    isValidToDownload: Boolean,
     isDownloading: Boolean,
     downloadProgress: Float,
     onDownloadInstallClick: () -> Unit,
@@ -715,7 +721,7 @@ private fun AppScreenContent(
                     val installEnabled = if (isInstall) wifiAllowed && hasInternet else true
                     // Install or Play button
                     Button(
-                        enabled = installEnabled,
+                        enabled = installEnabled && isValidToDownload,
                         modifier = Modifier.weight(1f),
                         onClick = onDownloadInstallClick,
                         shape = RoundedCornerShape(16.dp),
@@ -995,6 +1001,7 @@ private fun Preview_AppScreen() {
             AppScreenContent(
                 appInfo = fakeAppInfo(1),
                 isInstalled = false,
+                isValidToDownload = true,
                 isDownloading = isDownloading,
                 downloadProgress = .50f,
                 onDownloadInstallClick = { isDownloading = !isDownloading },
