@@ -447,6 +447,10 @@ fun XServerScreen(
                     val container = ContainerUtils.getContainer(context, appId)
                     // Configure WinHandler with container's input API settings
                     val handler = getxServer().winHandler
+                    if (container.inputType !in 0..3) {
+                        container.inputType = PreferredInputApi.BOTH.ordinal
+                        container.saveData()
+                    }
                     handler.setPreferredInputApi(PreferredInputApi.values()[container.inputType])
                     handler.setDInputMapperType(container.dinputMapperType)
                     val renderer: GLRenderer = xServerView!!.getRenderer()
