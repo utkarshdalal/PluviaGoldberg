@@ -20,7 +20,8 @@ To report issues or receive support, join the [Discord server](https://discord.g
 
 ## Building
 1. I use a normal build in Android studio. Hit me up if you can't figure out how to build.
-2. You will need to download [imagefs_gamenative](https://drive.google.com/file/d/1IfPTwHKcGbhrRBFd0JLBVvIdeA9bFocE/view?usp=sharing) and [imagefs_patches_gamenative](https://drive.google.com/file/d/1RJb204kybzigEcjHegh7y1T8lcXb_6wG/view?usp=drive_link) for this to work and place them in the `src/main/assets` folder. These files are available on request for legitimate development purposes. Google Drive has blocked public access to them as they are compressed archives.
+2. You will need to download [imagefs_gamenative](https://drive.google.com/file/d/1IfPTwHKcGbhrRBFd0JLBVvIdeA9bFocE/view?usp=sharing) and [imagefs_patches_gamenative](https://drive.google.com/file/d/1RJb204kybzigEcjHegh7y1T8lcXb_6wG/view?usp=drive_link) for this to work and place them in the `src/main/assets` folder.
+These files are available on request for legitimate development purposes. Google Drive has blocked access to them as they are compressed archives. Please write to me on Discord and I can share them with you there.
 
 ## Community
 
