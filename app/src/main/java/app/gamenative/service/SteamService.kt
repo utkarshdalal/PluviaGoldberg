@@ -144,6 +144,7 @@ import okhttp3.ConnectionPool
 import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import timber.log.Timber
+import java.lang.NullPointerException
 import java.util.concurrent.TimeUnit
 
 @AndroidEntryPoint
@@ -291,7 +292,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         val isLoginInProgress: Boolean
             get() = instance!!._loginResult == LoginResult.InProgress
 
-        private const val MAX_PARALLEL_DEPOTS   = 4     // instead of all 38
+        private const val MAX_PARALLEL_DEPOTS   = 2     // instead of all 38
         private const val CHUNKS_PER_DEPOT      = 8     // was 16
         private const val CHUNK_TIMEOUT_MS      = 90_000   // was library default 15 s
 
@@ -795,7 +796,6 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val percent = (p * 100).toInt()
                 if (percent != lastPercent) {          // only when it really changed
                     lastPercent = percent
-                    instance?.notificationHelper?.notify("Downloading: $percent%")
                 }
             }
             return info
@@ -1322,6 +1322,36 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         // Should service auto-stop when idle (backgrounded)?
         var autoStopWhenIdle: Boolean = false
+
+        suspend fun isUpdatePending(
+            appId: Int,
+            branch: String = "public",
+        ): Boolean = withContext(Dispatchers.IO) {
+            val steamApps = instance?._steamApps ?: return@withContext false
+
+            // ── 1. Fetch the latest app header from Steam (PICS).
+            val pics = steamApps.picsGetProductInfo(
+                apps = listOf(PICSRequest(id = appId)),
+                packages = emptyList(),
+            ).await()
+
+            val remoteAppInfo = pics.results
+                .firstOrNull()
+                ?.apps
+                ?.values
+                ?.firstOrNull()
+                ?: return@withContext false          // nothing returned ⇒ treat as up-to-date
+
+            val remoteSteamApp = remoteAppInfo.keyValues.generateSteamApp()
+            val localSteamApp  = getAppInfoOf(appId) ?: return@withContext true // not cached yet
+
+            // ── 2. Compare manifest IDs of the depots we actually install.
+            getDownloadableDepots(appId).keys.any { depotId ->
+                val remoteManifest = remoteSteamApp.depots[depotId]?.manifests?.get(branch)
+                val localManifest  =  localSteamApp .depots[depotId]?.manifests?.get(branch)
+                remoteManifest?.gid != localManifest?.gid
+            }
+        }
     }
 
     override fun onCreate() {
@@ -1936,71 +1966,76 @@ class SteamService : Service(), IChallengeUrlChanged {
             // Initial delay before each check
             delay(60.seconds)
 
-            val changesSince = _steamApps!!.picsGetChangesSince(
-                lastChangeNumber = PrefManager.lastPICSChangeNumber,
-                sendAppChangeList = true,
-                sendPackageChangelist = true,
-            ).await()
+            try {
+                val changesSince = _steamApps!!.picsGetChangesSince(
+                    lastChangeNumber = PrefManager.lastPICSChangeNumber,
+                    sendAppChangeList = true,
+                    sendPackageChangelist = true,
+                ).await()
 
-            if (PrefManager.lastPICSChangeNumber == changesSince.currentChangeNumber) {
-                Timber.w("Change number was the same as last change number, skipping")
-                continue
-            }
+                if (PrefManager.lastPICSChangeNumber == changesSince.currentChangeNumber) {
+                    Timber.w("Change number was the same as last change number, skipping")
+                    continue
+                }
 
-            // Set our last change number
-            PrefManager.lastPICSChangeNumber = changesSince.currentChangeNumber
+                // Set our last change number
+                PrefManager.lastPICSChangeNumber = changesSince.currentChangeNumber
 
-            Timber.d(
-                "picsGetChangesSince:" +
-                        "\n\tlastChangeNumber: ${changesSince.lastChangeNumber}" +
-                        "\n\tcurrentChangeNumber: ${changesSince.currentChangeNumber}" +
-                        "\n\tisRequiresFullUpdate: ${changesSince.isRequiresFullUpdate}" +
-                        "\n\tisRequiresFullAppUpdate: ${changesSince.isRequiresFullAppUpdate}" +
-                        "\n\tisRequiresFullPackageUpdate: ${changesSince.isRequiresFullPackageUpdate}" +
-                        "\n\tappChangesCount: ${changesSince.appChanges.size}" +
-                        "\n\tpkgChangesCount: ${changesSince.packageChanges.size}",
+                Timber.d(
+                    "picsGetChangesSince:" +
+                            "\n\tlastChangeNumber: ${changesSince.lastChangeNumber}" +
+                            "\n\tcurrentChangeNumber: ${changesSince.currentChangeNumber}" +
+                            "\n\tisRequiresFullUpdate: ${changesSince.isRequiresFullUpdate}" +
+                            "\n\tisRequiresFullAppUpdate: ${changesSince.isRequiresFullAppUpdate}" +
+                            "\n\tisRequiresFullPackageUpdate: ${changesSince.isRequiresFullPackageUpdate}" +
+                            "\n\tappChangesCount: ${changesSince.appChanges.size}" +
+                            "\n\tpkgChangesCount: ${changesSince.packageChanges.size}",
 
-                )
+                    )
 
-            // Process any app changes
-            launch {
-                changesSince.appChanges.values
-                    .filter { changeData ->
-                        // only queue PICS requests for apps existing in the db that have changed
-                        val app = appDao.findApp(changeData.id) ?: return@filter false
-                        changeData.changeNumber != app.lastChangeNumber
-                    }
-                    .map { PICSRequest(id = it.id) }
-                    .chunked(MAX_PICS_BUFFER)
-                    .forEach { chunk ->
-                        Timber.d("onPicsChanges: Queueing ${chunk.size} app(s) for PICS")
-                        appPicsChannel.send(chunk)
-                    }
-            }
-
-            // Process any package changes
-            launch {
-                val pkgsWithChanges = changesSince.packageChanges.values
-                    .filter { changeData ->
-                        // only queue PICS requests for pkgs existing in the db that have changed
-                        val pkg = licenseDao.findLicense(changeData.id) ?: return@filter false
-                        changeData.changeNumber != pkg.lastChangeNumber
-                    }
-
-                if (pkgsWithChanges.isNotEmpty()) {
-                    val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
-
-                    val accessTokens = _steamApps?.picsGetAccessTokens(emptyList(), pkgsForAccessTokens)
-                        ?.await()?.packageTokens ?: emptyMap()
-
-                    pkgsWithChanges
-                        .map { PICSRequest(it.id, accessTokens[it.id] ?: 0) }
+                // Process any app changes
+                launch {
+                    changesSince.appChanges.values
+                        .filter { changeData ->
+                            // only queue PICS requests for apps existing in the db that have changed
+                            val app = appDao.findApp(changeData.id) ?: return@filter false
+                            changeData.changeNumber != app.lastChangeNumber
+                        }
+                        .map { PICSRequest(id = it.id) }
                         .chunked(MAX_PICS_BUFFER)
                         .forEach { chunk ->
-                            Timber.d("onPicsChanges: Queueing ${chunk.size} package(s) for PICS")
-                            packagePicsChannel.send(chunk)
+                            Timber.d("onPicsChanges: Queueing ${chunk.size} app(s) for PICS")
+                            appPicsChannel.send(chunk)
                         }
                 }
+
+                // Process any package changes
+                launch {
+                    val pkgsWithChanges = changesSince.packageChanges.values
+                        .filter { changeData ->
+                            // only queue PICS requests for pkgs existing in the db that have changed
+                            val pkg = licenseDao.findLicense(changeData.id) ?: return@filter false
+                            changeData.changeNumber != pkg.lastChangeNumber
+                        }
+
+                    if (pkgsWithChanges.isNotEmpty()) {
+                        val pkgsForAccessTokens = pkgsWithChanges.filter { it.isNeedsToken }.map { it.id }
+
+                        val accessTokens = _steamApps?.picsGetAccessTokens(emptyList(), pkgsForAccessTokens)
+                            ?.await()?.packageTokens ?: emptyMap()
+
+                        pkgsWithChanges
+                            .map { PICSRequest(it.id, accessTokens[it.id] ?: 0) }
+                            .chunked(MAX_PICS_BUFFER)
+                            .forEach { chunk ->
+                                Timber.d("onPicsChanges: Queueing ${chunk.size} package(s) for PICS")
+                                packagePicsChannel.send(chunk)
+                            }
+                    }
+                }
+            } catch (e: NullPointerException) {
+                Timber.w("No lastPICSChangeNumber, skipping")
+                continue
             }
         }
     }
