@@ -518,4 +518,11 @@ object PrefManager {
         set(value) {
             setPref(DOWNLOAD_ON_WIFI_ONLY, value)
         }
+
+    private val USE_EXTERNAL_STORAGE = booleanPreferencesKey("use_external_storage")
+    var useExternalStorage: Boolean
+        get() = getPref(USE_EXTERNAL_STORAGE, false)
+        set(value) {
+            setPref(USE_EXTERNAL_STORAGE, value)
+        }
 }

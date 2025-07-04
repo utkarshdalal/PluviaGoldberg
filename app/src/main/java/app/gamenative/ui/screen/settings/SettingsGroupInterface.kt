@@ -84,6 +84,17 @@ fun SettingsGroupInterface(
                 PrefManager.downloadOnWifiOnly = it
             },
         )
+        var useExternalStorage by rememberSaveable { mutableStateOf(PrefManager.useExternalStorage) }
+        SettingsSwitch(
+            colors = settingsTileColorsAlt(),
+            title = { Text(text = "Write to external storage") },
+            subtitle = { Text(text = "Save games to external storage") },
+            state = useExternalStorage,
+            onCheckedChange = {
+                useExternalStorage = it
+                PrefManager.useExternalStorage = it
+            },
+        )
         // Steam download server selection
         SettingsMenuLink(
             colors = settingsTileColorsAlt(),

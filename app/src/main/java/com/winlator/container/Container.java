@@ -61,6 +61,7 @@ public class Container {
     private String box86Preset = Box86_64Preset.COMPATIBILITY;
     private String box64Preset = Box86_64Preset.COMPATIBILITY;
     private File rootDir;
+    private String installPath = "";
     private JSONObject extraData;
     private int rcfileId = 0;
     private String midiSoundFont = "";
@@ -311,6 +312,14 @@ public class Container {
         this.rootDir = rootDir;
     }
 
+    public String getInstallPath() {
+        return installPath;
+    }
+
+    public void setInstallPath(String installPath) {
+        this.installPath = installPath != null ? installPath : "";
+    }
+
     public void setExtraData(JSONObject extraData) {
         this.extraData = extraData;
     }
@@ -483,6 +492,7 @@ public class Container {
             data.put("sdlControllerAPI", sdlControllerAPI);
             // Disable mouse input flag
             data.put("disableMouseInput", disableMouseInput);
+            data.put("installPath", installPath);
 
             if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -605,6 +615,9 @@ public class Container {
                     break;
                 case "disableMouseInput" :
                     setDisableMouseInput(data.getBoolean(key));
+                    break;
+                case "installPath":
+                    setInstallPath(data.getString(key));
                     break;
             }
         }

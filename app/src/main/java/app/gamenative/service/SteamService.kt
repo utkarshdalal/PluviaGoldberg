@@ -146,6 +146,7 @@ import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.lang.NullPointerException
 import java.util.concurrent.TimeUnit
+import android.os.Environment
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -278,10 +279,24 @@ class SteamService : Service(), IChallengeUrlChanged {
             get() = Paths.get(instance!!.dataDir.path, "Steam", "depot_manifests.zip").pathString
 
         val defaultAppInstallPath: String
-            get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+            get() {
+                return if (PrefManager.useExternalStorage) {
+                    Timber.i("Using external storage")
+                    Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "common").pathString
+                } else {
+                    Timber.i("Using internal storage")
+                    Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+                }
+            }
 
         val defaultAppStagingPath: String
-            get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
+            get() {
+                return if (PrefManager.useExternalStorage) {
+                    Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "staging").pathString
+                } else {
+                    Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
+                }
+            }
 
         val userSteamId: SteamID?
             get() = instance?.steamClient?.steamID
@@ -410,13 +425,27 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun getAppDirPath(appId: Int): String {
-            var appName = getAppInfoOf(appId)?.config?.installDir.orEmpty()
+            // Determine the install directory name
+            val appName = getAppInfoOf(appId)?.config?.installDir.takeIf { !it.isNullOrEmpty() }
+                ?: getAppInfoOf(appId)?.name.orEmpty()
 
-            if (appName.isEmpty()) {
-                appName = getAppInfoOf(appId)?.name.orEmpty()
+            // Define base paths for internal and external storage
+            val internalBase = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common")
+            val externalBase = Paths.get(
+                Environment.getExternalStorageDirectory().absolutePath,
+                "GameNative", "Steam", "steamapps", "common"
+            )
+
+            val internalDir = internalBase.resolve(appName).pathString
+            val externalDir = externalBase.resolve(appName).pathString
+
+            // If using external storage, prefer external dir if it exists, else fallback
+            return if (PrefManager.useExternalStorage) {
+                if (File(externalDir).exists()) externalDir else internalDir
+            } else {
+                // If not external, prefer internal dir if it exists, else external
+                if (File(internalDir).exists()) internalDir else externalDir
             }
-
-            return Paths.get(PrefManager.appInstallPath, appName).pathString
         }
 
         private fun isExecutable(flags: Any): Boolean = when (flags) {
