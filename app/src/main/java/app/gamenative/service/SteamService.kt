@@ -390,13 +390,18 @@ class SteamService : Service(), IChallengeUrlChanged {
             return appInfo.depots
                 .asSequence()
                 .filter { (_, depot) ->
+                    if (depot.manifests.isEmpty() && depot.encryptedManifests.isNotEmpty())
+                        return@filter false
                     // 1. Has something to download
-                    if (depot.manifests.isEmpty() && !depot.sharedInstall)        return@filter false
+                    if (depot.manifests.isEmpty() && !depot.sharedInstall)
+                        return@filter false
                     // 2. Supported OS
                     if (!(depot.osList.contains(OS.windows) ||
-                                (!depot.osList.contains(OS.linux) && !depot.osList.contains(OS.macos)))) return@filter false
+                                (!depot.osList.contains(OS.linux) && !depot.osList.contains(OS.macos))))
+                        return@filter false
                     // 3. 64-bit or indeterminate
-                    if (!(depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown))         return@filter false
+                    if (!(depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown || depot.osArch == OSArch.Arch32))
+                        return@filter false
                     // 4. DLC you actually own
                     depot.dlcAppId == INVALID_APP_ID || ownedDlc.containsKey(depot.dlcAppId)
                 }
@@ -431,7 +436,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         /* 1. Extra patterns & word lists                                             */
         /* -------------------------------------------------------------------------- */
 
-        // Unreal Engine “Shipping” binaries (e.g. Stray-Win64-Shipping.exe)
+        // Unreal Engine "Shipping" binaries (e.g. Stray-Win64-Shipping.exe)
         private val UE_SHIPPING = Regex(""".*-win(32|64)(-shipping)?\.exe$""",
             RegexOption.IGNORE_CASE)
 
@@ -507,7 +512,7 @@ class SteamService : Service(), IChallengeUrlChanged {
          * ❶ try the dev-supplied launch entry (skip obvious stubs)
          * ❷ else score all manifest-flagged EXEs and keep the best
          * ❸ else fall back to the largest flagged EXE in the biggest depot
-         * If everything fails, return the game’s install directory.
+         * If everything fails, return the game's install directory.
          */
         fun getInstalledExe(appId: Int): String {
             val appInfo = getAppInfoOf(appId) ?: return ""
@@ -550,7 +555,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 val man = provider.fetchManifest(depot.depotId, mi.gid) ?: continue
                 Timber.d("Fetched manifest for depot ${depot.depotId}  size=${mi.size}")
 
-                /* 1️⃣ exact launch entry that isn’t a stub */
+                /* 1️⃣ exact launch entry that isn't a stub */
                 man.files.firstOrNull { f ->
                     f.fileName.lowercase() in launchTargets && !f.isStub()
                 }?.let {
@@ -750,10 +755,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                                                 parentScope   = this,
                                             ).await()
                                     }
-                                    if (success) di.setProgress(1f, idx)      // finished depot
-                                    else    Timber.w("Depot $depotId skipped after retries")
+                                    if (success) di.setProgress(1f, idx)
+                                    else {
+                                        Timber.w("Depot $depotId skipped after retries")
+                                        di.setWeight(idx, 0)
+                                        di.setProgress(1f, idx)
+                                    }
                                 } finally {
-                                    depotGate.release()           // ── leave gate
+                                    depotGate.release()
                                 }
                             }
                         }.awaitAll()
@@ -779,7 +788,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                     ?: depot.encryptedManifests[branch]
                     ?: return@map 1L
 
-                (mInfo.size ?: 1).toLong()         // Steam’s VDF exposes this
+                (mInfo.size ?: 1).toLong()         // Steam's VDF exposes this
             }
             sizes.forEachIndexed { i, bytes -> info.setWeight(i, bytes) }
             info.addProgressListener { p ->
@@ -1619,7 +1628,9 @@ class SteamService : Service(), IChallengeUrlChanged {
             EResult.OK -> {
                 // save the current cellid somewhere. if we lose our saved server list, we can use this when retrieving
                 // servers from the Steam Directory.
-                PrefManager.cellId = callback.cellID
+                if (!PrefManager.cellIdManuallySet) {
+                    PrefManager.cellId = callback.cellID
+                }
 
                 // retrieve persona data of logged in user
                 scope.launch { requestUserPersona() }

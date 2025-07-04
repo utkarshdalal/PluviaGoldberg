@@ -329,10 +329,21 @@ object PrefManager {
 
     /* Login Info */
     private val CELL_ID = intPreferencesKey("cell_id")
+    private val CELL_ID_MANUALLY_SET = booleanPreferencesKey("cell_id_manually_set")
+
     var cellId: Int
         get() = getPref(CELL_ID, 0)
         set(value) {
             setPref(CELL_ID, value)
+            if (value == 0) {
+                setPref(CELL_ID_MANUALLY_SET, false)
+            }
+        }
+
+    var cellIdManuallySet: Boolean
+        get() = getPref(CELL_ID_MANUALLY_SET, false)
+        set(value) {
+            setPref(CELL_ID_MANUALLY_SET, value)
         }
 
     private val USER_NAME = stringPreferencesKey("user_name")
