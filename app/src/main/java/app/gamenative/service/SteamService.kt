@@ -383,15 +383,25 @@ class SteamService : Service(), IChallengeUrlChanged {
             } == true
         }
 
-        fun getDownloadableDepots(appId: Int): Map<Int, DepotInfo> = getAppInfoOf(appId)?.depots?.filter { depotEntry ->
-            val depot = depotEntry.value
+        fun getDownloadableDepots(appId: Int): Map<Int, DepotInfo> {
+            val appInfo   = getAppInfoOf(appId) ?: return emptyMap()
+            val ownedDlc  = getOwnedAppDlc(appId)
 
-            (depot.manifests.isNotEmpty() || depot.sharedInstall) &&
-                (depot.osList.contains(OS.windows) || (!depot.osList.contains(OS.linux) && !depot.osList.contains(
-                    OS.macos))) &&
-                (depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown) &&
-                (depot.dlcAppId == INVALID_APP_ID || getOwnedAppDlc(appId).containsKey(depot.dlcAppId))
-        }.orEmpty()
+            return appInfo.depots
+                .asSequence()
+                .filter { (_, depot) ->
+                    // 1. Has something to download
+                    if (depot.manifests.isEmpty() && !depot.sharedInstall)        return@filter false
+                    // 2. Supported OS
+                    if (!(depot.osList.contains(OS.windows) ||
+                                (!depot.osList.contains(OS.linux) && !depot.osList.contains(OS.macos)))) return@filter false
+                    // 3. 64-bit or indeterminate
+                    if (!(depot.osArch == OSArch.Arch64 || depot.osArch == OSArch.Unknown))         return@filter false
+                    // 4. DLC you actually own
+                    depot.dlcAppId == INVALID_APP_ID || ownedDlc.containsKey(depot.dlcAppId)
+                }
+                .associate { it.toPair() }
+        }
 
         fun getAppDirPath(appId: Int): String {
             var appName = getAppInfoOf(appId)?.config?.installDir.orEmpty()
