@@ -6,4 +6,6 @@ enum class AppOptionMenuType(val text: String) {
     EditContainer("Edit container"),
     ResetDrm("Reset DRM"),
     Uninstall("Uninstall"),
+    VerifyFiles("Verify Files"),
+    Update("Update"),
 }

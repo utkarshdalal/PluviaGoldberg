@@ -1006,7 +1006,15 @@ private fun getWineStartCommand(
         "\"wfm.exe\""
     } else {
         val appDirPath = SteamService.getAppDirPath(appId)
-        val executablePath = SteamService.getInstalledExe(appId)
+        var executablePath = ""
+        if (container.executablePath.isNotEmpty()) {
+            executablePath = container.executablePath
+        } else {
+            executablePath = SteamService.getInstalledExe(appId)
+            container.executablePath = executablePath
+            container.saveData()
+        }
+
         Timber.i("Final exe path is " + executablePath)
         val drives = container.drives
         val driveIndex = drives.indexOf(appDirPath)

@@ -72,6 +72,7 @@ public class Container {
     private String graphicsDriverVersion = "25.1.0"; // Default version or fallback
 
     private String execArgs = ""; // Default exec arguments
+    private String executablePath = ""; // Executable path for container
     private boolean sdlControllerAPI;
 
     private ContainerManager containerManager;
@@ -95,6 +96,14 @@ public class Container {
 
     public void setExecArgs(String execArgs) {
         this.execArgs = execArgs != null ? execArgs : "";
+    }
+
+    public String getExecutablePath() {
+        return executablePath;
+    }
+
+    public void setExecutablePath(String executablePath) {
+        this.executablePath = executablePath != null ? executablePath : "";
     }
 
     public Container(int id) {
@@ -469,6 +478,7 @@ public class Container {
             data.put("primaryController", primaryController);
             data.put("controllerMapping", controllerMapping);
             data.put("execArgs", execArgs);
+            data.put("executablePath", executablePath);
             data.put("needsUnpacking", needsUnpacking);
             data.put("sdlControllerAPI", sdlControllerAPI);
             // Disable mouse input flag
@@ -583,6 +593,9 @@ public class Container {
                     break;
                 case "execArgs" :
                     setExecArgs(data.getString(key));
+                    break;
+                case "executablePath" :
+                    setExecutablePath(data.getString(key));
                     break;
                 case "needsUnpacking" :
                     setNeedsUnpacking(data.getBoolean(key));

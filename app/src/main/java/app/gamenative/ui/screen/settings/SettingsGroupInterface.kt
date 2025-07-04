@@ -21,6 +21,9 @@ import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSwitch
 import com.materialkolor.PaletteStyle
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import androidx.compose.runtime.remember
 
 @Composable
 fun SettingsGroupInterface(
@@ -38,6 +41,22 @@ fun SettingsGroupInterface(
 
     var openStartScreenDialog by rememberSaveable { mutableStateOf(false) }
     var startScreenOption by rememberSaveable(openStartScreenDialog) { mutableStateOf(PrefManager.startScreen) }
+
+    // Load Steam regions from assets
+    val steamRegionsMap: Map<Int, String> = remember {
+        val jsonString = context.assets.open("steam_regions.json").bufferedReader().use { it.readText() }
+        Json.decodeFromString<Map<String, String>>(jsonString).mapKeys { it.key.toInt() }
+    }
+    val steamRegionsList = remember {
+        // Always put 'Automatic' (id 0) first, then sort the rest alphabetically
+        val entries = steamRegionsMap.toList()
+        val (autoEntries, otherEntries) = entries.partition { it.first == 0 }
+        autoEntries + otherEntries.sortedBy { it.second }
+    }
+    var openRegionDialog by rememberSaveable { mutableStateOf(false) }
+    var selectedRegionIndex by rememberSaveable { mutableStateOf(
+        steamRegionsList.indexOfFirst { it.first == PrefManager.cellId }.takeIf { it >= 0 } ?: 0
+    ) }
 
     SettingsGroup(title = { Text(text = "Interface") }) {
         SettingsSwitch(
@@ -65,5 +84,29 @@ fun SettingsGroupInterface(
                 PrefManager.downloadOnWifiOnly = it
             },
         )
+        // Steam download server selection
+        SettingsMenuLink(
+            colors = settingsTileColorsAlt(),
+            title = { Text(text = "Steam Download Server") },
+            subtitle = { Text(text = steamRegionsList.getOrNull(selectedRegionIndex)?.second ?: "Default") },
+            onClick = { openRegionDialog = true }
+        )
     }
+
+    // Steam Download Server choice dialog
+    SingleChoiceDialog(
+        openDialog = openRegionDialog,
+        icon = Icons.Default.Map,
+        iconDescription = "Steam Download Server",
+        title = "Steam Download Server",
+        items = steamRegionsList.map { it.second },
+        currentItem = selectedRegionIndex,
+        onSelected = { index ->
+            selectedRegionIndex = index
+            val selectedId = steamRegionsList[index].first
+            PrefManager.cellId = selectedId
+            PrefManager.cellIdManuallySet = selectedId != 0
+        },
+        onDismiss = { openRegionDialog = false }
+    )
 }

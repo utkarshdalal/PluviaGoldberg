@@ -61,6 +61,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import app.gamenative.Constants
 import app.gamenative.R
@@ -103,6 +104,7 @@ import java.io.File
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import androidx.compose.foundation.border
 import app.gamenative.PrefManager
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
@@ -393,6 +395,7 @@ fun AppScreen(
                     dismissBtnText = context.getString(R.string.no)
                 )
             },
+            onUpdateClick = { CoroutineScope(Dispatchers.IO).launch { downloadInfo = SteamService.downloadApp(appId) } },
             onBack = onBack,
             optionsMenu = arrayOf(
                 AppMenuOption(
@@ -461,6 +464,22 @@ fun AppScreen(
                                 },
                             ),
                             AppMenuOption(
+                                AppOptionMenuType.VerifyFiles,
+                                onClick = {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        downloadInfo = SteamService.downloadApp(appId)
+                                    }
+                                },
+                            ),
+                            AppMenuOption(
+                                AppOptionMenuType.Update,
+                                onClick = {
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        downloadInfo = SteamService.downloadApp(appId)
+                                    }
+                                },
+                            ),
+                            AppMenuOption(
                                 AppOptionMenuType.Uninstall,
                                 onClick = {
                                     val sizeOnDisk = StorageUtils.formatBinarySize(
@@ -498,6 +517,7 @@ private fun AppScreenContent(
     onDownloadInstallClick: () -> Unit,
     onPauseResumeClick: () -> Unit,
     onDeleteDownloadClick: () -> Unit,
+    onUpdateClick: () -> Unit,
     onBack: () -> Unit = {},
     vararg optionsMenu: AppMenuOption,
 ) {
@@ -543,6 +563,12 @@ private fun AppScreenContent(
 
     LaunchedEffect(appInfo.id) {
         scrollState.animateScrollTo(0)
+    }
+
+    // Check if an update is pending
+    var isUpdatePending by remember(appInfo.id) { mutableStateOf(false) }
+    LaunchedEffect(appInfo.id) {
+        isUpdatePending = SteamService.isUpdatePending(appInfo.id)
     }
 
     Column(
@@ -836,6 +862,62 @@ private fun AppScreenContent(
                 }
             }
 
+            if (isUpdatePending) {
+                // Update banner
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0x1A06B6D4),
+                                    Color(0x1AA21CAF)
+                                ),
+                                start = Offset(0f, 0f),
+                                end = Offset(1000f, 1000f)
+                            )
+                        )
+                        .border(1.dp, MaterialTheme.colorScheme.tertiary, RoundedCornerShape(16.dp))
+                        .padding(20.dp)
+                ) {
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .background(MaterialTheme.colorScheme.tertiary, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("↑", color = MaterialTheme.colorScheme.onTertiary, fontSize = 14.sp)
+                            }
+                            Text(
+                                "Update Available",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = onUpdateClick,
+                            modifier = Modifier.align(Alignment.Start),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary,
+                                contentColor = MaterialTheme.colorScheme.onTertiary
+                            ),
+                            contentPadding = PaddingValues(12.dp)
+                        ) {
+                            Text("Update Now", color = MaterialTheme.colorScheme.onTertiary)
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
             // Game information card
             Surface(
                 modifier = Modifier.fillMaxWidth(),
@@ -1007,6 +1089,7 @@ private fun Preview_AppScreen() {
                 onDownloadInstallClick = { isDownloading = !isDownloading },
                 onPauseResumeClick = { },
                 onDeleteDownloadClick = { },
+                onUpdateClick = { },
                 optionsMenu = AppOptionMenuType.entries.map {
                     AppMenuOption(
                         optionType = it,

@@ -150,6 +150,7 @@ object ContainerUtils {
             wincomponents = container.winComponents,
             drives = container.drives,
             execArgs = container.execArgs,
+            executablePath = container.executablePath,
             showFPS = container.isShowFPS,
             cpuList = container.cpuList,
             cpuListWoW64 = container.cpuListWoW64,
@@ -213,6 +214,10 @@ object ContainerUtils {
         container.winComponents = containerData.wincomponents
         container.drives = containerData.drives
         container.execArgs = containerData.execArgs
+        if (container.executablePath != containerData.executablePath && container.executablePath != "") {
+            container.setNeedsUnpacking(true)
+        }
+        container.executablePath = containerData.executablePath
         container.isShowFPS = containerData.showFPS
         container.cpuList = containerData.cpuList
         container.cpuListWoW64 = containerData.cpuListWoW64
