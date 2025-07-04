@@ -405,6 +405,13 @@ fun ContainerConfigDialog(
                         ) {
                             OutlinedTextField(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                value = config.executablePath,
+                                onValueChange = { config = config.copy(executablePath = it) },
+                                label = { Text(text = "Executable Path") },
+                                placeholder = { Text(text = "e.g., path\\to\\exe") },
+                            )
+                            OutlinedTextField(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                                 value = config.execArgs,
                                 onValueChange = { config = config.copy(execArgs = it) },
                                 label = { Text(text = "Exec Arguments") },
