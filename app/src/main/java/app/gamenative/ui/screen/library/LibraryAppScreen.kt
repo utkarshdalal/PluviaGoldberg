@@ -1,7 +1,12 @@
 package app.gamenative.ui.screen.library
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +29,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -62,6 +68,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import app.gamenative.Constants
 import app.gamenative.R
@@ -104,8 +111,16 @@ import java.io.File
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.os.Environment
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.border
 import app.gamenative.PrefManager
+import java.nio.file.Paths
+import kotlin.io.path.pathString
+import kotlin.math.roundToInt
 
 // https://partner.steamgames.com/doc/store/assets/libraryassets#4
 
@@ -117,6 +132,7 @@ fun AppScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     // Force portrait orientation for this screen
     LaunchedEffect(Unit) {
@@ -191,7 +207,134 @@ fun AppScreen(
         Timber.d("Selected app $appId")
     }
 
+    val oldGamesDirectory by remember {
+        val path = Paths.get(context.dataDir.path, "Steam")
+        mutableStateOf(path)
+    }
+    var showMoveDialog by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0f) }
+    var current by remember { mutableStateOf("") }
+    var total by remember { mutableIntStateOf(0) }
+    var moved by remember { mutableIntStateOf(0) }
+
+    val permissionMovingExternalLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permission ->
+            scope.launch {
+                showMoveDialog = true
+                StorageUtils.moveGamesFromOldPath(
+                    oldGamesDirectory.pathString,
+                    Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam").pathString,
+                    onProgressUpdate = { currentFile, fileProgress, movedFiles, totalFiles ->
+                        current = currentFile
+                        progress = fileProgress
+                        moved = movedFiles
+                        total = totalFiles
+                    },
+                    onComplete = {
+                        showMoveDialog = false
+                    },
+                )
+            }
+        },
+    )
+
+    val permissionMovingInternalLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permission ->
+            scope.launch {
+                showMoveDialog = true
+                StorageUtils.moveGamesFromOldPath(
+                    Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam").pathString,
+                    oldGamesDirectory.pathString,
+                    onProgressUpdate = { currentFile, fileProgress, movedFiles, totalFiles ->
+                        current = currentFile
+                        progress = fileProgress
+                        moved = movedFiles
+                        total = totalFiles
+                    },
+                    onComplete = {
+                        showMoveDialog = false
+                    },
+                )
+            }
+        },
+    )
+
+    if (showMoveDialog) {
+        GameMigrationDialog(
+            progress = progress,
+            currentFile = current,
+            movedFiles = moved,
+            totalFiles = total,
+        )
+    }
+
+
+
     val windowWidth = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+
+    /** Storage Permission **/
+    var hasStoragePermission by remember(appId) {
+        val result = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        ) == PackageManager.PERMISSION_GRANTED
+
+        mutableStateOf(result)
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissions ->
+            val writePermissionGranted = permissions[Manifest.permission.WRITE_EXTERNAL_STORAGE] ?: false
+            val readPermissionGranted = permissions[Manifest.permission.READ_EXTERNAL_STORAGE] ?: false
+
+            if (writePermissionGranted && readPermissionGranted) {
+                hasStoragePermission = true
+
+                val depots = SteamService.getDownloadableDepots(appId)
+                Timber.i("There are ${depots.size} depots belonging to $appId")
+                // TODO: get space available based on where user wants to install
+                val availableBytes = StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
+                val availableSpace = StorageUtils.formatBinarySize(availableBytes)
+                // TODO: un-hardcode "public" branch
+                val downloadSize = StorageUtils.formatBinarySize(
+                    depots.values.sumOf {
+                        it.manifests["public"]?.download ?: 0
+                    },
+                )
+                val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0 }
+                val installSize = StorageUtils.formatBinarySize(installBytes)
+                if (availableBytes < installBytes) {
+                    msgDialogState = MessageDialogState(
+                        visible = true,
+                        type = DialogType.NOT_ENOUGH_SPACE,
+                        title = context.getString(R.string.not_enough_space),
+                        message = "The app being installed needs $installSize of space but " +
+                                "there is only $availableSpace left on this device",
+                        confirmBtnText = context.getString(R.string.acknowledge),
+                    )
+                } else {
+                    msgDialogState = MessageDialogState(
+                        visible = true,
+                        type = DialogType.INSTALL_APP,
+                        title = context.getString(R.string.download_prompt_title),
+                        message = "The app being installed has the following space requirements. Would you like to proceed?" +
+                                "\n\n\tDownload Size: $downloadSize" +
+                                "\n\tSize on Disk: $installSize" +
+                                "\n\tAvailable Space: $availableSpace",
+                        confirmBtnText = context.getString(R.string.proceed),
+                        dismissBtnText = context.getString(R.string.cancel),
+                    )
+                }
+            } else {
+                // Snack bar this?
+                Toast.makeText(context, "Storage permission required", Toast.LENGTH_SHORT).show()
+            }
+        },
+    )
+
 
     val onDismissRequest: (() -> Unit)?
     val onDismissClick: (() -> Unit)?
@@ -336,38 +479,12 @@ fun AppScreen(
                         downloadInfo = SteamService.downloadApp(appId)
                     }
                 } else if (!isInstalled) {
-                    // New install: check available space
-                    val depots = SteamService.getDownloadableDepots(appInfo.id)
-                    Timber.d("There are ${depots.size} depots belonging to $appId")
-                    val availableBytes = StorageUtils.getAvailableSpace(context.filesDir.absolutePath)
-                    val availableSpace = StorageUtils.formatBinarySize(availableBytes)
-                    val downloadSize = StorageUtils.formatBinarySize(
-                        depots.values.sumOf { it.manifests["public"]?.download ?: 0 }
-                    )
-                    val installBytes = depots.values.sumOf { it.manifests["public"]?.size ?: 0 }
-                    val installSize = StorageUtils.formatBinarySize(installBytes)
-                    if (availableBytes < installBytes) {
-                        msgDialogState = MessageDialogState(
-                            visible = true,
-                            type = DialogType.NOT_ENOUGH_SPACE,
-                            title = context.getString(R.string.not_enough_space),
-                            message = "The app being installed needs $installSize of space but " +
-                                "there is only $availableSpace left on this device",
-                            confirmBtnText = context.getString(R.string.acknowledge),
+                    permissionLauncher.launch(
+                        arrayOf(
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                            ),
                         )
-                    } else {
-                        msgDialogState = MessageDialogState(
-                            visible = true,
-                            type = DialogType.INSTALL_APP,
-                            title = context.getString(R.string.download_prompt_title),
-                            message = "The app being installed has the following space requirements. Would you like to proceed?" +
-                                "\n\n\tDownload Size: $downloadSize" +
-                                "\n\tSize on Disk: $installSize" +
-                                "\n\tAvailable Space: $availableSpace",
-                            confirmBtnText = context.getString(R.string.proceed),
-                            dismissBtnText = context.getString(R.string.cancel),
-                        )
-                    }
                 } else {
                     // Already installed: launch app
                     PostHog.capture(event = "game_launched",
@@ -479,6 +596,37 @@ fun AppScreen(
                                     }
                                 },
                             ),
+//                            *(
+//                                    if(File(context.dataDir, "Steam").exists()) {
+//                                        arrayOf(
+//                                            AppMenuOption(
+//                                                AppOptionMenuType.MoveToExternalStorage,
+//                                                onClick = {
+//                                                    permissionMovingExternalLauncher.launch(
+//                                                        arrayOf(
+//                                                            Manifest.permission.READ_EXTERNAL_STORAGE,
+//                                                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//                                                        ),
+//                                                    )
+//                                                },
+//                                            ),
+//                                        )
+//                                    } else {
+//                                        arrayOf(
+//                                            AppMenuOption(
+//                                                AppOptionMenuType.MoveToInternalStorage,
+//                                                onClick = {
+//                                                    permissionMovingInternalLauncher.launch(
+//                                                        arrayOf(
+//                                                            Manifest.permission.READ_EXTERNAL_STORAGE,
+//                                                            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//                                                        ),
+//                                                    )
+//                                                },
+//                                            ),
+//                                        )
+//                                    }
+//                            ),
                             AppMenuOption(
                                 AppOptionMenuType.Uninstall,
                                 onClick = {
@@ -1062,6 +1210,59 @@ private fun AppScreenContent(
         }
     }
 }
+
+@Composable
+internal fun GameMigrationDialog(
+    progress: Float,
+    currentFile: String,
+    movedFiles: Int,
+    totalFiles: Int,
+) {
+    AlertDialog(
+        onDismissRequest = {
+            // We don't allow dismissal during move.
+        },
+        icon = { Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null) },
+        title = { Text(text = "Moving Files") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "File ${movedFiles + 1} of $totalFiles",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = currentFile,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    progress = { progress },
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "${(progress * 100).roundToInt()}%",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        },
+        confirmButton = {},
+    )
+}
+
 
 /***********
  * PREVIEW *

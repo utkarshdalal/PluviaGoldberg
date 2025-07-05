@@ -14,7 +14,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.gamenative.enums.AppTheme
-import app.gamenative.service.SteamService
 import app.gamenative.ui.enums.AppFilter
 import app.gamenative.ui.enums.HomeDestination
 import app.gamenative.ui.enums.Orientation
@@ -353,20 +352,6 @@ object PrefManager {
             setPref(USER_NAME, value)
         }
 
-    private val APP_INSTALL_PATH = stringPreferencesKey("app_install_path")
-    var appInstallPath: String
-        get() = getPref(APP_INSTALL_PATH, SteamService.defaultAppInstallPath)
-        set(value) {
-            setPref(APP_INSTALL_PATH, value)
-        }
-
-    private val APP_STAGING_PATH = stringPreferencesKey("app_staging_path")
-    var appStagingPath: String
-        get() = getPref(APP_STAGING_PATH, SteamService.defaultAppStagingPath)
-        set(value) {
-            setPref(APP_STAGING_PATH, value)
-        }
-
     private val ACCESS_TOKEN_ENC = byteArrayPreferencesKey("access_token_enc")
     var accessToken: String
         get() {
@@ -517,5 +502,12 @@ object PrefManager {
         get() = getPref(DOWNLOAD_ON_WIFI_ONLY, true)
         set(value) {
             setPref(DOWNLOAD_ON_WIFI_ONLY, value)
+        }
+
+    private val USE_EXTERNAL_STORAGE = booleanPreferencesKey("use_external_storage")
+    var useExternalStorage: Boolean
+        get() = getPref(USE_EXTERNAL_STORAGE, false)
+        set(value) {
+            setPref(USE_EXTERNAL_STORAGE, value)
         }
 }

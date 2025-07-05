@@ -146,6 +146,7 @@ import okhttp3.OkHttpClient
 import timber.log.Timber
 import java.lang.NullPointerException
 import java.util.concurrent.TimeUnit
+import android.os.Environment
 
 @AndroidEntryPoint
 class SteamService : Service(), IChallengeUrlChanged {
@@ -277,11 +278,44 @@ class SteamService : Service(), IChallengeUrlChanged {
         private val depotManifestsPath: String
             get() = Paths.get(instance!!.dataDir.path, "Steam", "depot_manifests.zip").pathString
 
+        private val internalAppInstallPath: String
+            get() {
+                return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+            }
+        private val externalAppInstallPath: String
+            get() {
+                return Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "common").pathString
+            }
+
+        private val internalAppStagingPath: String
+            get() {
+                return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
+            }
+        private val externalAppStagingPath: String
+            get() {
+                return Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "staging").pathString
+            }
+
         val defaultAppInstallPath: String
-            get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+            get() {
+                return if (PrefManager.useExternalStorage) {
+                    Timber.i("Using external storage")
+                    Timber.i("install path for external storage is " + externalAppInstallPath)
+                    externalAppInstallPath
+                } else {
+                    Timber.i("Using internal storage")
+                    internalAppInstallPath
+                }
+            }
 
         val defaultAppStagingPath: String
-            get() = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
+            get() {
+                return if (PrefManager.useExternalStorage) {
+                    externalAppStagingPath
+                } else {
+                    internalAppStagingPath
+                }
+            }
 
         val userSteamId: SteamID?
             get() = instance?.steamClient?.steamID
@@ -411,12 +445,18 @@ class SteamService : Service(), IChallengeUrlChanged {
 
         fun getAppDirPath(appId: Int): String {
             var appName = getAppInfoOf(appId)?.config?.installDir.orEmpty()
-
             if (appName.isEmpty()) {
                 appName = getAppInfoOf(appId)?.name.orEmpty()
             }
+            // Internal first (legacy installs), external second
+            val internalPath = Paths.get(internalAppInstallPath, appName)
+            if (Files.exists(internalPath)) return internalPath.pathString
 
-            return Paths.get(PrefManager.appInstallPath, appName).pathString
+            val externalPath = Paths.get(externalAppInstallPath, appName)
+            if (Files.exists(externalPath)) return externalPath.pathString
+
+            // Nothing on disk yet – default to whatever location you want new installs to use
+            return internalPath.pathString      // or externalPath.pathString
         }
 
         private fun isExecutable(flags: Any): Boolean = when (flags) {
@@ -519,7 +559,6 @@ class SteamService : Service(), IChallengeUrlChanged {
             val appInfo = getAppInfoOf(appId) ?: return ""
 
             val installDir = appInfo.config.installDir.ifEmpty { appInfo.name }
-            val root       = Paths.get(PrefManager.appInstallPath, installDir)
 
             val depots = appInfo.depots.values.filter { d ->
                 !d.sharedInstall && (d.osList.isEmpty() ||
@@ -741,13 +780,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 depotGate.acquire()               // ── enter gate
                                 var success = false
                                 try {
+                                    Timber.i("Downloading game to " + defaultAppInstallPath)
                                     success = retry(times = 3, backoffMs = 2_000) {
                                         ContentDownloader(instance!!.steamClient!!)
                                             .downloadApp(
                                                 appId         = appId,
                                                 depotId       = depotId,
-                                                installPath   = PrefManager.appInstallPath,
-                                                stagingPath   = PrefManager.appStagingPath,
+                                                installPath   = defaultAppInstallPath,
+                                                stagingPath   = defaultAppStagingPath,
                                                 branch        = branch,
                                                 maxDownloads  = CHUNKS_PER_DEPOT,
                                                 onDownloadProgress = { p ->
@@ -1358,6 +1398,16 @@ class SteamService : Service(), IChallengeUrlChanged {
         super.onCreate()
         instance = this
 
+        // JavaSteam logger CME hot-fix
+        runCatching {
+            val clazz = Class.forName("in.dragonbra.javasteam.util.log.LogManager")
+            val field = clazz.getDeclaredField("LOGGERS").apply { isAccessible = true }
+            field.set(
+                /* obj = */ null,
+                java.util.concurrent.ConcurrentHashMap<Any, Any>()   // replaces the HashMap
+            )
+        }
+
         PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
         notificationHelper = NotificationHelper(applicationContext)
@@ -1561,9 +1611,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         isConnected = false
         isLoggingOut = false
         isWaitingForQRAuth = false
-
-        PrefManager.appInstallPath = defaultAppInstallPath
-        PrefManager.appStagingPath = defaultAppStagingPath
 
         steamClient = null
         _steamUser = null
