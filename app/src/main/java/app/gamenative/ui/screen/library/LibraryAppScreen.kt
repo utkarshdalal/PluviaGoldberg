@@ -116,6 +116,7 @@ import androidx.compose.foundation.border
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.border
 import app.gamenative.PrefManager
 import java.nio.file.Paths
 import kotlin.io.path.pathString
