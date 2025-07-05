@@ -278,23 +278,42 @@ class SteamService : Service(), IChallengeUrlChanged {
         private val depotManifestsPath: String
             get() = Paths.get(instance!!.dataDir.path, "Steam", "depot_manifests.zip").pathString
 
+        private val internalAppInstallPath: String
+            get() {
+                return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+            }
+        private val externalAppInstallPath: String
+            get() {
+                return Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "common").pathString
+            }
+
+        private val internalAppStagingPath: String
+            get() {
+                return Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
+            }
+        private val externalAppStagingPath: String
+            get() {
+                return Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "staging").pathString
+            }
+
         val defaultAppInstallPath: String
             get() {
                 return if (PrefManager.useExternalStorage) {
                     Timber.i("Using external storage")
-                    Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "common").pathString
+                    Timber.i("install path for external storage is " + externalAppInstallPath)
+                    externalAppInstallPath
                 } else {
                     Timber.i("Using internal storage")
-                    Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common").pathString
+                    internalAppInstallPath
                 }
             }
 
         val defaultAppStagingPath: String
             get() {
                 return if (PrefManager.useExternalStorage) {
-                    Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "staging").pathString
+                    externalAppStagingPath
                 } else {
-                    Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "staging").pathString
+                    internalAppStagingPath
                 }
             }
 
@@ -307,7 +326,7 @@ class SteamService : Service(), IChallengeUrlChanged {
         val isLoginInProgress: Boolean
             get() = instance!!._loginResult == LoginResult.InProgress
 
-        private const val MAX_PARALLEL_DEPOTS   = 2     // instead of all 38
+        private const val MAX_PARALLEL_DEPOTS   = 4     // instead of all 38
         private const val CHUNKS_PER_DEPOT      = 8     // was 16
         private const val CHUNK_TIMEOUT_MS      = 90_000   // was library default 15 s
 
@@ -425,27 +444,19 @@ class SteamService : Service(), IChallengeUrlChanged {
         }
 
         fun getAppDirPath(appId: Int): String {
-            // Determine the install directory name
-            val appName = getAppInfoOf(appId)?.config?.installDir.takeIf { !it.isNullOrEmpty() }
-                ?: getAppInfoOf(appId)?.name.orEmpty()
-
-            // Define base paths for internal and external storage
-            val internalBase = Paths.get(instance!!.dataDir.path, "Steam", "steamapps", "common")
-            val externalBase = Paths.get(
-                Environment.getExternalStorageDirectory().absolutePath,
-                "GameNative", "Steam", "steamapps", "common"
-            )
-
-            val internalDir = internalBase.resolve(appName).pathString
-            val externalDir = externalBase.resolve(appName).pathString
-
-            // If using external storage, prefer external dir if it exists, else fallback
-            return if (PrefManager.useExternalStorage) {
-                if (File(externalDir).exists()) externalDir else internalDir
-            } else {
-                // If not external, prefer internal dir if it exists, else external
-                if (File(internalDir).exists()) internalDir else externalDir
+            var appName = getAppInfoOf(appId)?.config?.installDir.orEmpty()
+            if (appName.isEmpty()) {
+                appName = getAppInfoOf(appId)?.name.orEmpty()
             }
+            // Internal first (legacy installs), external second
+            val internalPath = Paths.get(internalAppInstallPath, appName)
+            if (Files.exists(internalPath)) return internalPath.pathString
+
+            val externalPath = Paths.get(externalAppInstallPath, appName)
+            if (Files.exists(externalPath)) return externalPath.pathString
+
+            // Nothing on disk yet – default to whatever location you want new installs to use
+            return internalPath.pathString      // or externalPath.pathString
         }
 
         private fun isExecutable(flags: Any): Boolean = when (flags) {
@@ -548,7 +559,6 @@ class SteamService : Service(), IChallengeUrlChanged {
             val appInfo = getAppInfoOf(appId) ?: return ""
 
             val installDir = appInfo.config.installDir.ifEmpty { appInfo.name }
-            val root       = Paths.get(PrefManager.appInstallPath, installDir)
 
             val depots = appInfo.depots.values.filter { d ->
                 !d.sharedInstall && (d.osList.isEmpty() ||
@@ -770,13 +780,14 @@ class SteamService : Service(), IChallengeUrlChanged {
                                 depotGate.acquire()               // ── enter gate
                                 var success = false
                                 try {
+                                    Timber.i("Downloading game to " + defaultAppInstallPath)
                                     success = retry(times = 3, backoffMs = 2_000) {
                                         ContentDownloader(instance!!.steamClient!!)
                                             .downloadApp(
                                                 appId         = appId,
                                                 depotId       = depotId,
-                                                installPath   = PrefManager.appInstallPath,
-                                                stagingPath   = PrefManager.appStagingPath,
+                                                installPath   = defaultAppInstallPath,
+                                                stagingPath   = defaultAppStagingPath,
                                                 branch        = branch,
                                                 maxDownloads  = CHUNKS_PER_DEPOT,
                                                 onDownloadProgress = { p ->
@@ -1387,6 +1398,16 @@ class SteamService : Service(), IChallengeUrlChanged {
         super.onCreate()
         instance = this
 
+        // JavaSteam logger CME hot-fix
+        runCatching {
+            val clazz = Class.forName("in.dragonbra.javasteam.util.log.LogManager")
+            val field = clazz.getDeclaredField("LOGGERS").apply { isAccessible = true }
+            field.set(
+                /* obj = */ null,
+                java.util.concurrent.ConcurrentHashMap<Any, Any>()   // replaces the HashMap
+            )
+        }
+
         PluviaApp.events.on<AndroidEvent.EndProcess, Unit>(onEndProcess)
 
         notificationHelper = NotificationHelper(applicationContext)
@@ -1590,9 +1611,6 @@ class SteamService : Service(), IChallengeUrlChanged {
         isConnected = false
         isLoggingOut = false
         isWaitingForQRAuth = false
-
-        PrefManager.appInstallPath = defaultAppInstallPath
-        PrefManager.appStagingPath = defaultAppStagingPath
 
         steamClient = null
         _steamUser = null
