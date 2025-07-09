@@ -360,7 +360,7 @@ fun XServerScreen(
                 // this.requestPointerCapture()
                 // this.background = ColorDrawable(Color.Green.toArgb())
                 val renderer = this.renderer
-                renderer.isCursorVisible = false
+                renderer.setCursorVisible(false)
                 getxServer().renderer = renderer
                 PluviaApp.touchpadView = TouchpadView(context, getxServer(), PrefManager.getBoolean("capture_pointer_on_external_mouse", true))
                 frameLayout.addView(PluviaApp.touchpadView)
@@ -1123,7 +1123,7 @@ private fun unpackExecutableFile(
                             rootDir.path + "/usr/local/bin/box64",
                             "wine",
                             "z:\\\\generate_interfaces_file.exe",
-                            "A:\\" + relDllPath.replace('/', '\\')
+                            "A:\\" + relDllPath.replace('/', '\\'),
                         )
                         Timber.i("Running generate_interfaces_file " + Arrays.toString(shellCommandArray))
 
@@ -1132,7 +1132,7 @@ private fun unpackExecutableFile(
                         val genProc = Runtime.getRuntime().exec(
                             shellCommandArray,
                             shellCommandEnvVars.toStringArray(),
-                            imageFs.getRootDir()
+                            imageFs.getRootDir(),
                         )
                         val genReader     = BufferedReader(InputStreamReader(genProc.inputStream))
                         val genErrReader  = BufferedReader(InputStreamReader(genProc.errorStream))
@@ -1147,7 +1147,7 @@ private fun unpackExecutableFile(
                                 Files.copy(
                                     origSteamInterfaces.toPath(),
                                     finalSteamInterfaces.toPath(),
-                                    StandardCopyOption.REPLACE_EXISTING
+                                    StandardCopyOption.REPLACE_EXISTING,
                                 )
                                 Timber.i("Copied steam_interfaces.txt to ${finalSteamInterfaces.absolutePath}")
                             } catch (ioe: IOException) {

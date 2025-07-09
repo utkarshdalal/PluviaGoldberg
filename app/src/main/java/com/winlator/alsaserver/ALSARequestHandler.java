@@ -2,15 +2,13 @@ package com.winlator.alsaserver;
 
 import android.util.Log;
 import com.winlator.alsaserver.ALSAClient;
-
 import com.winlator.sysvshm.SysVSharedMemory;
-import com.winlator.xconnector.Client;
+import com.winlator.xconnector.ConnectedClient;
 import com.winlator.xconnector.RequestHandler;
 import com.winlator.xconnector.XConnectorEpoll;
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xconnector.XStreamLock;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -18,7 +16,7 @@ public class ALSARequestHandler implements RequestHandler {
     private int maxSHMemoryId = 0;
 
     @Override // com.winlator.xconnector.RequestHandler
-    public boolean handleRequest(Client client) throws IOException {
+    public boolean handleRequest(ConnectedClient client) throws IllegalStateException, UnsupportedOperationException, IOException {
         XStreamLock lock;
         ALSAClient alsaClient = (ALSAClient) client.getTag();
         XInputStream inputStream = client.getInputStream();

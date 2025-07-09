@@ -1,14 +1,12 @@
 package com.winlator.xenvironment.components;
 
 import android.util.Log;
-
+import com.winlator.alsaserver.ALSAClient;
 import com.winlator.alsaserver.ALSAClientConnectionHandler;
 import com.winlator.alsaserver.ALSARequestHandler;
-import com.winlator.core.KeyValueSet;
 import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xconnector.XConnectorEpoll;
 import com.winlator.xenvironment.EnvironmentComponent;
-import com.winlator.alsaserver.ALSAClient;
 
 public class ALSAServerComponent extends EnvironmentComponent {
     private XConnectorEpoll connector;
@@ -21,7 +19,7 @@ public class ALSAServerComponent extends EnvironmentComponent {
     }
 
     @Override // com.winlator.xenvironment.EnvironmentComponent
-    public void start() {
+    public void start() throws NumberFormatException {
         if (this.connector != null) {
             return;
         }
@@ -36,7 +34,7 @@ public class ALSAServerComponent extends EnvironmentComponent {
     public void stop() {
         XConnectorEpoll xConnectorEpoll = this.connector;
         if (xConnectorEpoll != null) {
-            xConnectorEpoll.stop();
+            xConnectorEpoll.destroy();
             this.connector = null;
         }
     }

@@ -5,13 +5,16 @@ public abstract class ClientOpcodes {
     public static final byte CHANGE_WINDOW_ATTRIBUTES = 2;
     public static final byte GET_WINDOW_ATTRIBUTES = 3;
     public static final byte DESTROY_WINDOW = 4;
+    public static final byte DESTROY_SUB_WINDOWS = 5;
     public static final byte REPARENT_WINDOW = 7;
     public static final byte MAP_WINDOW = 8;
+    public static final byte MAP_SUB_WINDOWS = 9;
     public static final byte UNMAP_WINDOW = 10;
     public static final byte CONFIGURE_WINDOW = 12;
     public static final byte GET_GEOMETRY = 14;
     public static final byte QUERY_TREE = 15;
     public static final byte INTERN_ATOM = 16;
+    public static final byte GET_ATOM_NAME = 17;
     public static final byte CHANGE_PROPERTY = 18;
     public static final byte DELETE_PROPERTY = 19;
     public static final byte GET_PROPERTY = 20;
@@ -31,6 +34,7 @@ public abstract class ClientOpcodes {
     public static final byte FREE_PIXMAP = 54;
     public static final byte CREATE_GC = 55;
     public static final byte CHANGE_GC = 56;
+    public static final byte SET_DASHES = 58;
     public static final byte SET_CLIP_RECTANGLES = 59;
     public static final byte FREE_GC = 60;
     public static final byte COPY_AREA = 62;
@@ -51,6 +55,7 @@ public abstract class ClientOpcodes {
     public static final byte SET_SCREEN_SAVER = 107;
     public static final byte GET_SCREEN_SAVER = 108;
     public static final byte FORCE_SCREEN_SAVER = 115;
+    public static final byte GET_POINTER_MAPPING = 117;
     public static final byte GET_MODIFIER_MAPPING = 119;
     public static final byte NO_OPERATION = 127;
 }

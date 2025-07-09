@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.winlator.core.FileUtils;
 import com.winlator.steampipeserver.SteamPipeServer;
-import com.winlator.xconnector.Client;
+import com.winlator.xconnector.ConnectedClient;
 import com.winlator.xconnector.ConnectionHandler;
 import com.winlator.xconnector.RequestHandler;
 import com.winlator.xconnector.UnixSocketConfig;
@@ -56,20 +56,20 @@ public class SteamClientComponent extends EnvironmentComponent implements Connec
     }
 
     @Override
-    public void handleNewConnection(Client client) {
+    public void handleNewConnection(ConnectedClient client) {
         Log.d("SteamClientComponent", "New connection");
-        client.createIOStreams();
+//        client.createIOStreams();
         // client.setTag(new ALSAClient());
     }
 
     @Override
-    public void handleConnectionShutdown(Client client) {
+    public void handleConnectionShutdown(ConnectedClient client) {
         Log.d("SteamClientComponent", "Connection shutdown");
         // ((ALSAClient)client.getTag()).release();
     }
 
     @Override
-    public boolean handleRequest(Client client) {
+    public boolean handleRequest(ConnectedClient client) {
         // XInputStream input = client.getInputStream();
         // if (input == null) return false;
         //

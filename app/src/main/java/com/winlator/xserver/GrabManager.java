@@ -1,5 +1,6 @@
 package com.winlator.xserver;
 
+import com.winlator.core.Bitmask;
 import com.winlator.xserver.events.Event;
 import com.winlator.xserver.events.PointerWindowEvent;
 

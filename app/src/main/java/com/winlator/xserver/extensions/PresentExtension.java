@@ -4,6 +4,7 @@ import static com.winlator.xserver.XClientRequestHandler.RESPONSE_CODE_SUCCESS;
 
 import android.util.SparseArray;
 
+import com.winlator.core.Bitmask;
 import com.winlator.renderer.GPUImage;
 import com.winlator.renderer.Texture;
 import com.winlator.widget.XServerView;
@@ -11,7 +12,6 @@ import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xconnector.XStreamLock;
 import com.winlator.xenvironment.components.VortekRendererComponent;
-import com.winlator.xserver.Bitmask;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.Pixmap;
 import com.winlator.xserver.Window;

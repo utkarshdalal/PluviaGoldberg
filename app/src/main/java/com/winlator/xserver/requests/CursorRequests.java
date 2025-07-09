@@ -4,11 +4,13 @@ import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xserver.Cursor;
 import com.winlator.xserver.Pixmap;
+import com.winlator.xconnector.XStreamLock;
 import com.winlator.xserver.XClient;
 import com.winlator.xserver.errors.BadIdChoice;
 import com.winlator.xserver.errors.BadMatch;
 import com.winlator.xserver.errors.BadPixmap;
 import com.winlator.xserver.errors.XRequestError;
+import java.io.IOException;
 
 public abstract class CursorRequests {
     public static void createCursor(XClient client, XInputStream inputStream, XOutputStream outputStream) throws XRequestError {
@@ -46,5 +48,32 @@ public abstract class CursorRequests {
 
     public static void freeCursor(XClient client, XInputStream inputStream, XOutputStream outputStream) throws XRequestError {
         client.xServer.cursorManager.freeCursor(inputStream.readInt());
+    }
+
+    public static void getPointerMapping(XClient client, XInputStream inputStream, XOutputStream outputStream) throws XRequestError, IOException {
+        XStreamLock lock = outputStream.lock();
+        try {
+            byte[] buttonsMap = {1, 2, 3};
+            byte length = (byte) buttonsMap.length;
+            outputStream.writeByte((byte) 1);
+            outputStream.writeByte(length);
+            outputStream.writeShort(client.getSequenceNumber());
+            outputStream.writeInt((length + 3) / 4);
+            outputStream.writePad(24);
+            outputStream.write(buttonsMap);
+            outputStream.writePad(3 & (-length));
+            if (lock != null) {
+                lock.close();
+            }
+        } catch (Throwable th) {
+            if (lock != null) {
+                try {
+                    lock.close();
+                } catch (Throwable th2) {
+                    th.addSuppressed(th2);
+                }
+            }
+            throw th;
+        }
     }
 }

@@ -1,8 +1,8 @@
 package com.winlator.xserver.events;
 
+import com.winlator.core.Bitmask;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xconnector.XStreamLock;
-import com.winlator.xserver.Bitmask;
 import com.winlator.xserver.Window;
 
 import java.io.IOException;

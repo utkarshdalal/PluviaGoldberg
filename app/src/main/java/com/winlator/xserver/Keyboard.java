@@ -8,6 +8,8 @@ import androidx.collection.ArraySet;
 
 // import com.winlator.inputcontrols.ExternalController;
 
+import com.winlator.core.Bitmask;
+
 import java.util.ArrayList;
 
 public class Keyboard {

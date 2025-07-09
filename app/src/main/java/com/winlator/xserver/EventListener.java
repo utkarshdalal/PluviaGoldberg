@@ -1,5 +1,6 @@
 package com.winlator.xserver;
 
+import com.winlator.core.Bitmask;
 import com.winlator.xserver.events.Event;
 
 import java.io.IOException;
@@ -14,7 +15,7 @@ public class EventListener {
     }
 
     public boolean isInterestedIn(int eventId) {
-        return eventMask.isSet(eventId);
+        return this.eventMask.isSet(eventId);
     }
 
     public boolean isInterestedIn(Bitmask mask) {
@@ -23,9 +24,8 @@ public class EventListener {
 
     public void sendEvent(Event event) {
         try {
-            event.send(client.getSequenceNumber(), client.getOutputStream());
-        }
-        catch (IOException e) {
+            event.send(this.client.getSequenceNumber(), this.client.getOutputStream());
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

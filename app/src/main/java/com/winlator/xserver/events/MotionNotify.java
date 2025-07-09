@@ -1,6 +1,6 @@
 package com.winlator.xserver.events;
 
-import com.winlator.xserver.Bitmask;
+import com.winlator.core.Bitmask;
 import com.winlator.xserver.Window;
 
 public class MotionNotify extends InputDeviceEvent {

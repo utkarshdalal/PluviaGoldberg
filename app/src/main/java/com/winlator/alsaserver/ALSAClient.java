@@ -42,7 +42,7 @@ public class ALSAClient {
     }
 
     public static class Options {
-        public short latencyMillis = 40;
+        public short latencyMillis = 16;
         public byte performanceMode = 1;
         public float volume = 1.0f;
 
@@ -64,7 +64,7 @@ public class ALSAClient {
                     break;
             }
             options.volume = config.getFloat("volume", 1.0f);
-            options.latencyMillis = (short) config.getInt("latencyMillis", 40);
+            options.latencyMillis = (short) config.getInt("latencyMillis", 16);
             return options;
         }
     }
@@ -73,7 +73,7 @@ public class ALSAClient {
         this.options = options;
     }
 
-    public void release() {
+    public void release() throws IllegalStateException {
         ByteBuffer byteBuffer = this.sharedBuffer;
         if (byteBuffer != null) {
             SysVSharedMemory.unmapSHMSegment(byteBuffer, byteBuffer.capacity());
@@ -112,16 +112,16 @@ public class ALSAClient {
                 : 12; // AudioFormat.CHANNEL_OUT_STEREO | FRONT_LEFT/RIGHT
     }
 
-    public void prepare() {
+    public void prepare() throws IllegalStateException, UnsupportedOperationException {
         this.position = 0;
         this.previousUnderrunCount = (short) 0;
         this.frameBytes = (byte) (this.channels * this.dataType.byteCount);
         release();
         if (isValidBufferSize()) {
             AudioFormat format = new AudioFormat.Builder().setEncoding(getPCMEncoding(this.dataType)).setSampleRate(this.sampleRate).setChannelMask(getChannelConfig(this.channels)).build();
-            AudioTrack build = new AudioTrack.Builder().setPerformanceMode(this.options.performanceMode).setAudioFormat(format).setBufferSizeInBytes(getBufferSizeInBytes()).build();
-            this.audioTrack = build;
-            this.bufferCapacity = build.getBufferCapacityInFrames();
+            AudioTrack audioTrackBuild = new AudioTrack.Builder().setPerformanceMode(this.options.performanceMode).setAudioFormat(format).setBufferSizeInBytes(getBufferSizeInBytes()).build();
+            this.audioTrack = audioTrackBuild;
+            this.bufferCapacity = audioTrackBuild.getBufferCapacityInFrames();
             float f = this.options.volume;
             if (f != 1.0f) {
                 this.audioTrack.setVolume(f);
@@ -130,14 +130,14 @@ public class ALSAClient {
         }
     }
 
-    public void start() {
+    public void start() throws IllegalStateException {
         AudioTrack audioTrack = this.audioTrack;
         if (audioTrack != null && audioTrack.getPlayState() != 3) {
             this.audioTrack.play();
         }
     }
 
-    public void stop() {
+    public void stop() throws IllegalStateException {
         AudioTrack audioTrack = this.audioTrack;
         if (audioTrack != null) {
             audioTrack.stop();
@@ -145,7 +145,7 @@ public class ALSAClient {
         }
     }
 
-    public void pause() {
+    public void pause() throws IllegalStateException {
         AudioTrack audioTrack = this.audioTrack;
         if (audioTrack != null) {
             audioTrack.pause();
@@ -224,9 +224,9 @@ public class ALSAClient {
 
     public void setSharedBuffer(ByteBuffer sharedBuffer) {
         if (sharedBuffer != null) {
-            ByteBuffer allocateDirect = ByteBuffer.allocateDirect(getBufferSizeInBytes());
+            ByteBuffer byteBufferAllocateDirect = ByteBuffer.allocateDirect(getBufferSizeInBytes());
             ByteOrder byteOrder = ByteOrder.LITTLE_ENDIAN;
-            this.auxBuffer = allocateDirect.order(byteOrder);
+            this.auxBuffer = byteBufferAllocateDirect.order(byteOrder);
             this.sharedBuffer = sharedBuffer.order(byteOrder);
             return;
         }
@@ -253,13 +253,13 @@ public class ALSAClient {
         return i % this.frameBytes == 0 && i > 0;
     }
 
-    public static void assignFramesPerBuffer(Context context) {
+    public static void assignFramesPerBuffer(Context context) throws NumberFormatException {
         try {
             AudioManager am = (AudioManager) context.getSystemService("audio");
             String framesPerBufferStr = am.getProperty("android.media.property.OUTPUT_FRAMES_PER_BUFFER");
-            short parseShort = Short.parseShort(framesPerBufferStr);
-            framesPerBuffer = parseShort;
-            if (parseShort == 0) {
+            short s = Short.parseShort(framesPerBufferStr);
+            framesPerBuffer = s;
+            if (s == 0) {
                 framesPerBuffer = (short) 256;
             }
         } catch (Exception e) {

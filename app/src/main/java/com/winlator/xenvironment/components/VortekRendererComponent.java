@@ -7,7 +7,7 @@ import com.winlator.core.KeyValueSet;
 import com.winlator.renderer.GPUImage;
 import com.winlator.renderer.Texture;
 import com.winlator.widget.XServerView;
-import com.winlator.xconnector.Client;
+import com.winlator.xconnector.ConnectedClient;
 import com.winlator.xconnector.ConnectionHandler;
 import com.winlator.xconnector.RequestHandler;
 import com.winlator.xconnector.UnixSocketConfig;
@@ -37,7 +37,8 @@ public class VortekRendererComponent extends EnvironmentComponent implements Con
 
     public static class Options {
         public int vkMaxVersion = VortekRendererComponent.VK_MAX_VERSION;
-        public int maxDeviceMemory = 4096;
+        public short maxDeviceMemory = 4096;
+        public short imageCacheSize = 256;
         public String[] exposedDeviceExtensions = null;
 
         public static Options fromKeyValueSet(KeyValueSet config) {
@@ -55,7 +56,8 @@ public class VortekRendererComponent extends EnvironmentComponent implements Con
                 String[] parts = vkMaxVersion.split("\\.");
                 options.vkMaxVersion = GPUHelper.vkMakeVersion(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), 128);
             }
-            options.maxDeviceMemory = config.getInt("maxDeviceMemory", 4096);
+            options.maxDeviceMemory = (short) config.getInt("maxDeviceMemory", 4096);
+            options.imageCacheSize = (short) config.getInt("imageCacheSize", 256);
             return options;
         }
     }
@@ -82,7 +84,7 @@ public class VortekRendererComponent extends EnvironmentComponent implements Con
     public void stop() {
         XConnectorEpoll xConnectorEpoll = this.connector;
         if (xConnectorEpoll != null) {
-            xConnectorEpoll.stop();
+            xConnectorEpoll.destroy();
             this.connector = null;
         }
     }
@@ -134,7 +136,7 @@ public class VortekRendererComponent extends EnvironmentComponent implements Con
     }
 
     @Override // com.winlator.xconnector.ConnectionHandler
-    public void handleConnectionShutdown(Client client) {
+    public void handleConnectionShutdown(ConnectedClient client) {
         if (client.getTag() != null) {
             long contextPtr = ((Long) client.getTag()).longValue();
             destroyVkContext(contextPtr);
@@ -142,19 +144,18 @@ public class VortekRendererComponent extends EnvironmentComponent implements Con
     }
 
     @Override // com.winlator.xconnector.ConnectionHandler
-    public void handleNewConnection(Client client) {
-        client.createIOStreams();
+    public void handleNewConnection(ConnectedClient client) {
     }
 
     @Override // com.winlator.xconnector.RequestHandler
-    public boolean handleRequest(Client client) throws IOException {
+    public boolean handleRequest(ConnectedClient client) throws IOException {
         XInputStream inputStream = client.getInputStream();
         if (inputStream.available() < 1) {
             return false;
         }
         byte requestCode = inputStream.readByte();
         if (requestCode == 1) {
-            long contextPtr = createVkContext(client.clientSocket.fd, this.options);
+            long contextPtr = createVkContext(client.fd, this.options);
             if (contextPtr > 0) {
                 client.setTag(Long.valueOf(contextPtr));
             } else {

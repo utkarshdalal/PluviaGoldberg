@@ -2,6 +2,7 @@ package com.winlator.xserver;
 
 import android.util.SparseArray;
 
+import com.winlator.core.Bitmask;
 import com.winlator.xconnector.XInputStream;
 
 public class GraphicsContextManager extends XResourceManager {

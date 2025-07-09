@@ -2,6 +2,7 @@ package com.winlator.xserver;
 
 import androidx.collection.ArrayMap;
 
+import com.winlator.core.Bitmask;
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xserver.events.Event;

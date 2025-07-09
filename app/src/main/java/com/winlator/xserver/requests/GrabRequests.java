@@ -1,35 +1,39 @@
 package com.winlator.xserver.requests;
 
 import static com.winlator.xserver.XClientRequestHandler.RESPONSE_CODE_SUCCESS;
-
-import com.winlator.core.CursorLocker;
+import com.winlator.core.Bitmask;
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xconnector.XStreamLock;
-import com.winlator.xserver.Bitmask;
 import com.winlator.xserver.Window;
 import com.winlator.xserver.XClient;
 import com.winlator.xserver.errors.BadWindow;
 import com.winlator.xserver.errors.XRequestError;
-
 import java.io.IOException;
 
 public abstract class GrabRequests {
     private enum Status {SUCCESS, ALREADY_GRABBED, INVALID_TIME, NOT_VIEWABLE, FROZEN}
 
     public static void grabPointer(XClient client, XInputStream inputStream, XOutputStream outputStream) throws IOException, XRequestError {
+        Status status;
+        XStreamLock lock;
         if (client.xServer.isRelativeMouseMovement()) {
             client.skipRequest();
-            try (XStreamLock lock = outputStream.lock()) {
+            lock = outputStream.lock();
+            try {
                 outputStream.writeByte(RESPONSE_CODE_SUCCESS);
                 outputStream.writeByte((byte)Status.ALREADY_GRABBED.ordinal());
                 outputStream.writeShort(client.getSequenceNumber());
                 outputStream.writeInt(0);
                 outputStream.writePad(24);
+                if (lock != null) {
+                    lock.close();
+                    return;
             }
             return;
+            } finally {
         }
-
+        }
         boolean ownerEvents = client.getRequestData() == 1;
         int windowId = inputStream.readInt();
         Window window = client.xServer.windowManager.getWindow(windowId);
@@ -37,8 +41,6 @@ public abstract class GrabRequests {
 
         Bitmask eventMask = new Bitmask(inputStream.readShort());
         inputStream.skip(14);
-
-        Status status;
         if (client.xServer.grabManager.getWindow() != null && client.xServer.grabManager.getClient() != client) {
             status = Status.ALREADY_GRABBED;
         }
@@ -49,13 +51,17 @@ public abstract class GrabRequests {
             status = Status.SUCCESS;
             client.xServer.grabManager.activatePointerGrab(window, ownerEvents, eventMask, client);
         }
-
-        try (XStreamLock lock = outputStream.lock()) {
-            outputStream.writeByte(RESPONSE_CODE_SUCCESS);
+        lock = outputStream.lock();
+        try {
+            outputStream.writeByte((byte) RESPONSE_CODE_SUCCESS);
             outputStream.writeByte((byte)status.ordinal());
             outputStream.writeShort(client.getSequenceNumber());
             outputStream.writeInt(0);
             outputStream.writePad(24);
+            if (lock != null) {
+                lock.close();
+            }
+        } finally {
         }
     }
 

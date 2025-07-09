@@ -1,10 +1,10 @@
 package com.winlator.xserver.requests;
 
+import com.winlator.core.Bitmask;
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xserver.Drawable;
 import com.winlator.xserver.GraphicsContext;
-import com.winlator.xserver.Bitmask;
 import com.winlator.xserver.XClient;
 import com.winlator.xserver.errors.BadDrawable;
 import com.winlator.xserver.errors.BadGraphicsContext;

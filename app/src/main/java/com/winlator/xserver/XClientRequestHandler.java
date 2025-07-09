@@ -1,10 +1,11 @@
 package com.winlator.xserver;
 
-import com.winlator.xconnector.Client;
+import com.winlator.xconnector.ConnectedClient;
 import com.winlator.xconnector.RequestHandler;
 import com.winlator.xconnector.XInputStream;
 import com.winlator.xconnector.XOutputStream;
 import com.winlator.xconnector.XStreamLock;
+import com.winlator.xserver.XServer;
 import com.winlator.xserver.errors.XRequestError;
 import com.winlator.xserver.extensions.Extension;
 import com.winlator.xserver.requests.AtomRequests;
@@ -21,6 +22,7 @@ import com.winlator.xserver.requests.WindowRequests;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.util.Objects;
 
 public class XClientRequestHandler implements RequestHandler {
     public static final byte RESPONSE_CODE_ERROR = 0;
@@ -28,15 +30,14 @@ public class XClientRequestHandler implements RequestHandler {
     public static final int MAX_REQUEST_LENGTH = 65535;
 
     @Override
-    public boolean handleRequest(Client client) throws IOException {
+    public boolean handleRequest(ConnectedClient client) throws IOException {
         XClient xClient = (XClient)client.getTag();
         XInputStream inputStream = client.getInputStream();
         XOutputStream outputStream = client.getOutputStream();
-
         if (xClient.isAuthenticated()) {
             return handleNormalRequest(xClient, inputStream, outputStream);
         }
-        else return handleAuthRequest(xClient, inputStream, outputStream);
+        return handleAuthRequest(xClient, inputStream, outputStream);
     }
 
     private void sendServerInformation(XClient client, XOutputStream outputStream) throws IOException {
@@ -51,11 +52,11 @@ public class XClientRequestHandler implements RequestHandler {
             outputStream.writeShort((short)0);
             outputStream.writeShort(additionalDataLength);
             outputStream.writeInt(1);
-            outputStream.writeInt(client.resourceIDBase);
+            outputStream.writeInt(client.resourceIDBase.intValue());
             outputStream.writeInt(client.xServer.resourceIDs.idMask);
             outputStream.writeInt(256);
             outputStream.writeShort(vendorNameLength);
-            outputStream.writeShort((short)MAX_REQUEST_LENGTH);
+            outputStream.writeShort((short) -1);
             outputStream.writeByte((byte)1);
             outputStream.writeByte(pixmapFormatCount);
             outputStream.writeByte((byte)0);
@@ -63,19 +64,16 @@ public class XClientRequestHandler implements RequestHandler {
             outputStream.writeByte((byte)32);
             outputStream.writeByte((byte)32);
             outputStream.writeByte((byte)Keyboard.MIN_KEYCODE);
-            outputStream.writeByte((byte)Keyboard.MAX_KEYCODE);
+            outputStream.writeByte((byte)-1);
             outputStream.writeInt(0);
             outputStream.writeString8(XServer.VENDOR_NAME);
-
             for (PixmapFormat pixmapFormat : client.xServer.pixmapManager.supportedPixmapFormats) {
                 outputStream.writeByte(pixmapFormat.depth);
                 outputStream.writeByte(pixmapFormat.bitsPerPixel);
                 outputStream.writeByte(pixmapFormat.scanlinePad);
                 outputStream.writePad(5);
             }
-
             Visual rootVisual = client.xServer.windowManager.rootWindow.getContent().visual;
-
             outputStream.writeInt(client.xServer.windowManager.rootWindow.id);
             outputStream.writeInt(0);
             outputStream.writeInt(0xffffff);
@@ -92,17 +90,16 @@ public class XClientRequestHandler implements RequestHandler {
             outputStream.writeByte((byte)0);
             outputStream.writeByte(rootVisual.depth);
             outputStream.writeByte((byte)client.xServer.pixmapManager.supportedVisuals.length);
-
             for (Visual visual : client.xServer.pixmapManager.supportedVisuals) {
                 outputStream.writeByte(visual.depth);
                 outputStream.writeByte((byte)0);
                 outputStream.writeShort((short)(visual.displayable ? 1 : 0));
                 outputStream.writeInt(0);
-
                 if (visual.displayable) {
                     outputStream.writeInt(visual.id);
-                    outputStream.writeByte(visual.visualClass);
+                    outputStream.writeByte((byte) visual.type.ordinal());
                     outputStream.writeByte(visual.bitsPerRGBValue);
+                    Objects.requireNonNull(visual);
                     outputStream.writeShort(visual.colormapEntries);
                     outputStream.writeInt(visual.redMask);
                     outputStream.writeInt(visual.greenMask);
@@ -114,23 +111,14 @@ public class XClientRequestHandler implements RequestHandler {
     }
 
     private boolean handleAuthRequest(XClient client, XInputStream inputStream, XOutputStream outputStream) throws IOException {
-        if (inputStream.available() < 12) return false;
-
-        byte byteOrder = inputStream.readByte();
-        if (byteOrder == 66) {
-            inputStream.setByteOrder(ByteOrder.BIG_ENDIAN);
-            outputStream.setByteOrder(ByteOrder.BIG_ENDIAN);
+        if (inputStream.available() < 12) {
+            return false;
         }
-        else if (byteOrder == 108) {
-            inputStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
-            outputStream.setByteOrder(ByteOrder.LITTLE_ENDIAN);
-        }
-
-        inputStream.skip(1);
-
+        inputStream.skip(2);
         short majorVersion = inputStream.readShort();
-        if (majorVersion != 11) throw new UnsupportedOperationException("Unsupported major X protocol version "+majorVersion+".");
-
+        if (majorVersion != 11) {
+            throw new UnsupportedOperationException("Unsupported major X protocol version " + ((int) majorVersion) + ".");
+        }
         inputStream.skip(2);
         int nameLength = inputStream.readShort();
         int dataLength = inputStream.readShort();
@@ -167,6 +155,12 @@ public class XClientRequestHandler implements RequestHandler {
         client.setRequestLength(requestLength);
 
         try {
+            if (opcode < 0) {
+                Extension extension = client.xServer.extensions.get(opcode);
+                if (extension != null) {
+                    extension.handleRequest(client, inputStream, outputStream);
+                }
+            } else {
             switch (opcode) {
                 case ClientOpcodes.CREATE_WINDOW:
                     try (XLock lock = client.xServer.lock(XServer.Lockable.WINDOW_MANAGER, XServer.Lockable.DRAWABLE_MANAGER, XServer.Lockable.INPUT_DEVICE, XServer.Lockable.CURSOR_MANAGER)) {
@@ -188,6 +182,11 @@ public class XClientRequestHandler implements RequestHandler {
                         WindowRequests.destroyWindow(client, inputStream, outputStream);
                     }
                     break;
+                case ClientOpcodes.DESTROY_SUB_WINDOWS:
+                    try (XLock lock = client.xServer.lock(XServer.Lockable.WINDOW_MANAGER, XServer.Lockable.DRAWABLE_MANAGER, XServer.Lockable.INPUT_DEVICE)){
+                        WindowRequests.destroySubWindows(client, inputStream, outputStream);
+                    }
+                    break;
                 case ClientOpcodes.REPARENT_WINDOW:
                     try (XLock lock = client.xServer.lock(XServer.Lockable.WINDOW_MANAGER)) {
                         WindowRequests.reparentWindow(client, inputStream, outputStream);
@@ -196,6 +195,11 @@ public class XClientRequestHandler implements RequestHandler {
                 case ClientOpcodes.MAP_WINDOW:
                     try (XLock lock = client.xServer.lock(XServer.Lockable.WINDOW_MANAGER, XServer.Lockable.INPUT_DEVICE)) {
                         WindowRequests.mapWindow(client, inputStream, outputStream);
+                    }
+                    break;
+                case ClientOpcodes.MAP_SUB_WINDOWS:
+                    try (XLock lock = client.xServer.lock(XServer.Lockable.WINDOW_MANAGER, XServer.Lockable.INPUT_DEVICE)){
+                        WindowRequests.mapSubWindows(client, inputStream, outputStream);
                     }
                     break;
                 case ClientOpcodes.UNMAP_WINDOW:
@@ -220,6 +224,9 @@ public class XClientRequestHandler implements RequestHandler {
                     break;
                 case ClientOpcodes.INTERN_ATOM:
                     AtomRequests.internAtom(client, inputStream, outputStream);
+                    break;
+                case ClientOpcodes.GET_ATOM_NAME:
+                    AtomRequests.getAtomName(client, inputStream, outputStream);
                     break;
                 case ClientOpcodes.CHANGE_PROPERTY:
                     try (XLock lock = client.xServer.lock(XServer.Lockable.WINDOW_MANAGER)) {
@@ -312,6 +319,9 @@ public class XClientRequestHandler implements RequestHandler {
                         GraphicsContextRequests.changeGC(client, inputStream, outputStream);
                     }
                     break;
+                case ClientOpcodes.SET_DASHES:
+                    client.skipRequest();
+                    break;
                 case ClientOpcodes.SET_CLIP_RECTANGLES:
                     client.skipRequest();
                     break;
@@ -390,6 +400,9 @@ public class XClientRequestHandler implements RequestHandler {
                 case ClientOpcodes.FORCE_SCREEN_SAVER:
                     client.skipRequest();
                     break;
+                case ClientOpcodes.GET_POINTER_MAPPING:
+                    CursorRequests.getPointerMapping(client, inputStream, outputStream);
+                    break;
                 case ClientOpcodes.GET_MODIFIER_MAPPING:
                     KeyboardRequests.getModifierMapping(client, inputStream, outputStream);
                     break;
@@ -397,19 +410,13 @@ public class XClientRequestHandler implements RequestHandler {
                     client.skipRequest();
                     break;
                 default:
-                    if (opcode < 0) {
-                        Extension extension = client.xServer.extensions.get(opcode);
-                        if (extension != null) extension.handleRequest(client, inputStream, outputStream);
-                    }
-                    else throw new UnsupportedOperationException("Unsupported opcode "+opcode+".");
-                    break;
+                    throw new UnsupportedOperationException("Unsupported opcode " + ((int) opcode) + ".");
+                }
             }
-        }
-        catch (XRequestError e) {
+        } catch (XRequestError e) {
             client.skipRequest();
             e.sendError(client, opcode);
         }
-
         return true;
     }
 }

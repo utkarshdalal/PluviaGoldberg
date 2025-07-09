@@ -65,6 +65,16 @@ public class XConnectorEpoll {
     }
 
     @Keep
+    private void handleConnectionShutdown(Object tag) {
+        ConnectedClient client = (ConnectedClient) tag;
+        this.connectionHandler.handleConnectionShutdown(client);
+        client.destroy();
+        synchronized (this.connectedClients) {
+            this.connectedClients.remove(client);
+        }
+    }
+
+    @Keep
     private Object handleNewConnection(long clientPtr, int fd) {
         ConnectedClient client = new ConnectedClient(clientPtr, fd);
         client.createInputStream(this.initialInputBufferCapacity);

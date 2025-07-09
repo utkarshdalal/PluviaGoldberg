@@ -6,56 +6,68 @@ import android.util.SparseArray;
 import com.winlator.core.CursorLocker;
 import com.winlator.renderer.GLRenderer;
 import com.winlator.winhandler.WinHandler;
+import com.winlator.xserver.Pointer;
 import com.winlator.xserver.extensions.BigReqExtension;
 import com.winlator.xserver.extensions.DRI3Extension;
 import com.winlator.xserver.extensions.Extension;
 import com.winlator.xserver.extensions.MITSHMExtension;
 import com.winlator.xserver.extensions.PresentExtension;
 import com.winlator.xserver.extensions.SyncExtension;
-
+import com.winlator.xserver.extensions.XComposite;
 import java.nio.charset.Charset;
 import java.util.EnumMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class XServer {
-    public enum Lockable {WINDOW_MANAGER, PIXMAP_MANAGER, DRAWABLE_MANAGER, GRAPHIC_CONTEXT_MANAGER, INPUT_DEVICE, CURSOR_MANAGER, SHMSEGMENT_MANAGER}
     public static final short VERSION = 11;
     public static final String VENDOR_NAME = "Elbrus Technologies, LLC";
     public static final Charset LATIN1_CHARSET = Charset.forName("latin1");
-    public final SparseArray<Extension> extensions = new SparseArray<>();
-    public final ScreenInfo screenInfo;
+    public final CursorManager cursorManager;
+    public final DrawableManager drawableManager;
+    public final GrabManager grabManager;
+    public final InputDeviceManager inputDeviceManager;
     public final PixmapManager pixmapManager;
+    private GLRenderer renderer;
+    public final ScreenInfo screenInfo;
+    public final SelectionManager selectionManager;
+    private SHMSegmentManager shmSegmentManager;
+    private WinHandler winHandler;
+    public final WindowManager windowManager;
+    public final SparseArray<Extension> extensions = new SparseArray<>();
     public final ResourceIDs resourceIDs = new ResourceIDs(128);
     public final GraphicsContextManager graphicsContextManager = new GraphicsContextManager();
-    public final SelectionManager selectionManager;
-    public final DrawableManager drawableManager;
-    public final WindowManager windowManager;
-    public final CursorManager cursorManager;
     public final Keyboard keyboard = Keyboard.createKeyboard(this);
     public final Pointer pointer = new Pointer(this);
-    public final InputDeviceManager inputDeviceManager;
-    public final GrabManager grabManager;
-    public final CursorLocker cursorLocker;
-    private SHMSegmentManager shmSegmentManager;
-    private GLRenderer renderer;
-    private WinHandler winHandler;
     private final EnumMap<Lockable, ReentrantLock> locks = new EnumMap<>(Lockable.class);
     private boolean relativeMouseMovement = false;
+    public final CursorLocker cursorLocker;
+
+    public enum Lockable {
+        WINDOW_MANAGER,
+        PIXMAP_MANAGER,
+        DRAWABLE_MANAGER,
+        GRAPHIC_CONTEXT_MANAGER,
+        INPUT_DEVICE,
+        CURSOR_MANAGER,
+        SHMSEGMENT_MANAGER
+    }
 
     public XServer(ScreenInfo screenInfo) {
         Log.d("XServer", "Creating xServer " + screenInfo);
         this.screenInfo = screenInfo;
         cursorLocker = new CursorLocker(this);
-        for (Lockable lockable : Lockable.values()) locks.put(lockable, new ReentrantLock());
-
-        pixmapManager = new PixmapManager();
-        drawableManager = new DrawableManager(this);
-        cursorManager = new CursorManager(drawableManager);
-        windowManager = new WindowManager(screenInfo, drawableManager);
-        selectionManager = new SelectionManager(windowManager);
-        inputDeviceManager = new InputDeviceManager(this);
-        grabManager = new GrabManager(this);
-
+        for (Lockable lockable : Lockable.values()) {
+            locks.put(lockable, new ReentrantLock());
+        }
+        this.pixmapManager = new PixmapManager();
+        DrawableManager drawableManager = new DrawableManager(this);
+        this.drawableManager = drawableManager;
+        this.cursorManager = new CursorManager(drawableManager);
+        WindowManager windowManager = new WindowManager(screenInfo, drawableManager);
+        this.windowManager = windowManager;
+        this.selectionManager = new SelectionManager(windowManager);
+        this.inputDeviceManager = new InputDeviceManager(this);
+        this.grabManager = new GrabManager(this);
         DesktopHelper.attachTo(this);
         setupExtensions();
     }
@@ -97,13 +109,14 @@ public class XServer {
         private final ReentrantLock lock;
 
         private SingleXLock(Lockable lockable) {
-            this.lock = locks.get(lockable);
-            lock.lock();
+            ReentrantLock reentrantLock = (ReentrantLock) XServer.this.locks.get(lockable);
+            this.lock = reentrantLock;
+            reentrantLock.lock();
         }
 
         @Override
         public void close() {
-            lock.unlock();
+            this.lock.unlock();
         }
     }
 
@@ -112,13 +125,15 @@ public class XServer {
 
         private MultiXLock(Lockable[] lockables) {
             this.lockables = lockables;
-            for (Lockable lockable : lockables) locks.get(lockable).lock();
+            for (Lockable lockable : lockables) {
+                ((ReentrantLock) XServer.this.locks.get(lockable)).lock();
+            }
         }
 
         @Override
         public void close() {
-            for (int i = lockables.length - 1; i >= 0; i--) {
-                locks.get(lockables[i]).unlock();
+            for (int i = this.lockables.length - 1; i >= 0; i--) {
+                ((ReentrantLock) XServer.this.locks.get(this.lockables[i])).unlock();
             }
         }
     }
@@ -136,9 +151,11 @@ public class XServer {
     }
 
     public Extension getExtensionByName(String name) {
-        for (int i = 0; i < extensions.size(); i++) {
-            Extension extension = extensions.valueAt(i);
-            if (extension.getName().equals(name)) return extension;
+        for (int i = 0; i < this.extensions.size(); i++) {
+            Extension extension = this.extensions.valueAt(i);
+            if (extension.getName().equals(name)) {
+                return extension;
+            }
         }
         return null;
     }
@@ -189,6 +206,7 @@ public class XServer {
         extensions.put(DRI3Extension.MAJOR_OPCODE, new DRI3Extension());
         extensions.put(PresentExtension.MAJOR_OPCODE, new PresentExtension());
         extensions.put(SyncExtension.MAJOR_OPCODE, new SyncExtension());
+        extensions.put(XComposite.MAJOR_OPCODE, new XComposite());
     }
 
     public <T extends Extension> T getExtension(int opcode) {

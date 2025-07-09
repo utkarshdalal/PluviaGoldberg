@@ -9,9 +9,9 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class CursorLocker extends TimerTask {
+    private short maxDistance;
     private final XServer xServer;
     private float damping = 0.25f;
-    private short maxDistance;
     private boolean enabled = true;
     private final Object pauseLock = new Object();
 
@@ -19,27 +19,7 @@ public class CursorLocker extends TimerTask {
         this.xServer = xServer;
         maxDistance = (short)(xServer.screenInfo.width * 0.05f);
         Timer timer = new Timer();
-        timer.scheduleAtFixedRate(this, 0, 1000 / 60);
-    }
-
-    public short getMaxDistance() {
-        return maxDistance;
-    }
-
-    public void setMaxDistance(short maxDistance) {
-        this.maxDistance = maxDistance;
-    }
-
-    public float getDamping() {
-        return damping;
-    }
-
-    public void setDamping(float damping) {
-        this.damping = damping;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
+        timer.scheduleAtFixedRate(this, 0L, 16L);
     }
 
     public void setEnabled(boolean enabled) {

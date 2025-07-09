@@ -10,6 +10,16 @@ public class Visual {
     public final int blueMask;
     public final int greenMask;
     public final int redMask;
+    public final Type type = Type.TRUE_COLOR;
+
+    public enum Type {
+        STATIC_GRAY,
+        GRAYSCALE,
+        STATIC_COLOR,
+        PSEUDO_COLOR,
+        TRUE_COLOR,
+        DIRECT_COLOR
+    }
 
     public Visual(int id, boolean displayable, int depth, int bitsPerRGBValue, int redMask, int greenMask, int blueMask) {
         this.id = id;

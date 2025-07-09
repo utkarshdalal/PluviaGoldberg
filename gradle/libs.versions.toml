@@ -33,7 +33,8 @@ timber = "5.0.1" # https://mvnrepository.com/artifact/com.jakewharton.timber/tim
 zstd-jni = "1.5.6-9" # https://mvnrepository.com/artifact/com.github.luben/zstd-jni
 zxing = "3.5.3"
 material = "1.12.0"
-constraintlayoutComposeAndroid = "1.1.1" # https://mvnrepository.com/artifact/com.google.zxing/core
+constraintlayoutComposeAndroid = "1.1.1"
+filamentAndroid = "1.17.1" # https://mvnrepository.com/artifact/com.google.zxing/core
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
@@ -91,7 +92,8 @@ commons-validator = { module = "commons-validator:commons-validator", version = 
 ktor-engine = { module = "io.ktor:ktor-client-cio", version = "3.0.3" } # https://mvnrepository.com/artifact/io.ktor/ktor-client-cio
 xz = { module = "org.tukaani:xz", version = "1.10" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-androidx-constraintlayout-compose-android = { group = "androidx.constraintlayout", name = "constraintlayout-compose-android", version.ref = "constraintlayoutComposeAndroid" } # https://mvnrepository.com/artifact/org.tukaani/xz
+androidx-constraintlayout-compose-android = { group = "androidx.constraintlayout", name = "constraintlayout-compose-android", version.ref = "constraintlayoutComposeAndroid" }
+filament-android = { group = "com.google.ar.sceneform", name = "filament-android", version.ref = "filamentAndroid" } # https://mvnrepository.com/artifact/org.tukaani/xz
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

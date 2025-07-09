@@ -1,6 +1,6 @@
 package com.winlator.alsaserver;
 
-import com.winlator.xconnector.Client;
+import com.winlator.xconnector.ConnectedClient;
 import com.winlator.xconnector.ConnectionHandler;
 
 public class ALSAClientConnectionHandler implements ConnectionHandler {
@@ -11,13 +11,14 @@ public class ALSAClientConnectionHandler implements ConnectionHandler {
     }
 
     @Override
-    public void handleNewConnection(Client client) {
-        client.createIOStreams();
+    public void handleNewConnection(ConnectedClient client) {
         client.setTag(new ALSAClient(this.options));
     }
 
     @Override
-    public void handleConnectionShutdown(Client client) {
-        ((ALSAClient)client.getTag()).release();
+    public void handleConnectionShutdown(ConnectedClient client) throws IllegalStateException {
+        if (client.getTag() != null) {
+            ((ALSAClient) client.getTag()).release();
+        }
     }
 }

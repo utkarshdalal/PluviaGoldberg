@@ -25,22 +25,22 @@ public class SysVSharedMemoryComponent extends EnvironmentComponent {
     @Override
     public void start() {
         Log.d("SysVSharedMemoryComponent", "Starting...");
-        if (connector != null) return;
-        sysVSharedMemory = new SysVSharedMemory();
-        connector = new XConnectorEpoll(socketConfig, new SysVSHMConnectionHandler(sysVSharedMemory), new SysVSHMRequestHandler());
-        connector.start();
-
-        xServer.setSHMSegmentManager(new SHMSegmentManager(sysVSharedMemory));
+        if (this.connector != null) return;
+        this.sysVSharedMemory = new SysVSharedMemory();
+        XConnectorEpoll xConnectorEpoll = new XConnectorEpoll(this.socketConfig, new SysVSHMConnectionHandler(this.sysVSharedMemory), new SysVSHMRequestHandler());
+        this.connector = xConnectorEpoll;
+        xConnectorEpoll.start();
+        this.xServer.setSHMSegmentManager(new SHMSegmentManager(this.sysVSharedMemory));
     }
 
     @Override
     public void stop() {
         Log.d("SysVSharedMemoryComponent", "Stopping...");
-        if (connector != null) {
-            connector.stop();
-            connector = null;
+        XConnectorEpoll xConnectorEpoll = this.connector;
+        if (xConnectorEpoll != null) {
+            xConnectorEpoll.destroy();
+            this.connector = null;
         }
-
-        sysVSharedMemory.deleteAll();
+        this.sysVSharedMemory.deleteAll();
     }
 }
