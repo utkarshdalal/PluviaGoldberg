@@ -21,6 +21,10 @@
         <item>Turnip (Adreno)</item>
         <item>VirGL (Universal)</item>
     </string-array>
+    <string-array name="vortek_version_entries">
+        <item>1.0</item>
+        <item>2.0</item>
+    </string-array>
     <string-array name="turnip_version_entries">
         <item>25.1.0</item>
         <item>25.2.0</item>
