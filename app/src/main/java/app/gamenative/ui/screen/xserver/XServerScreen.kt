@@ -1566,6 +1566,7 @@ private fun extractGraphicsDriverFiles(
     val turnipVersion = container.graphicsDriverVersion.takeIf { it.isNotEmpty() && graphicsDriver == "turnip" } ?: DefaultVersion.TURNIP
     val virglVersion = container.graphicsDriverVersion.takeIf { it.isNotEmpty() && graphicsDriver == "virgl" } ?: DefaultVersion.VIRGL
     val zinkVersion = container.graphicsDriverVersion.takeIf { it.isNotEmpty() && graphicsDriver == "zink" } ?: DefaultVersion.ZINK
+    val vortekVersion = container.graphicsDriverVersion.takeIf { it.isNotEmpty() && graphicsDriver == "vortek" } ?: DefaultVersion.VORTEK
 
     var cacheId = graphicsDriver
     if (graphicsDriver == "turnip") {
@@ -1580,7 +1581,7 @@ private fun extractGraphicsDriverFiles(
     } else if (graphicsDriver == "virgl") {
         cacheId += "-" + DefaultVersion.VIRGL
     } else if (graphicsDriver == "vortek") {
-        cacheId += "-" + DefaultVersion.VORTEK
+        cacheId += "-" + vortekVersion + "-" + zinkVersion
     }
 
     val changed = cacheId != container.getExtra("graphicsDriver")
@@ -1667,7 +1668,7 @@ private fun extractGraphicsDriverFiles(
             DXVKHelper.setEnvVars(context, dxwrapperConfig, envVars)
         }
         if (changed) {
-            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/vortek-1.0.tzst", rootDir)
+            TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/vortek-${vortekVersion}.tzst", rootDir)
             TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context.assets, "graphics_driver/zink-22.2.5.tzst", rootDir)
         }
     }
