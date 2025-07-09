@@ -37,7 +37,8 @@ public class VortekRendererComponent extends EnvironmentComponent implements Con
 
     public static class Options {
         public int vkMaxVersion = VortekRendererComponent.VK_MAX_VERSION;
-        public int maxDeviceMemory = 4096;
+        public short maxDeviceMemory = 4096;
+        public short imageCacheSize = 256;
         public String[] exposedDeviceExtensions = null;
 
         public static Options fromKeyValueSet(KeyValueSet config) {
@@ -55,7 +56,8 @@ public class VortekRendererComponent extends EnvironmentComponent implements Con
                 String[] parts = vkMaxVersion.split("\\.");
                 options.vkMaxVersion = GPUHelper.vkMakeVersion(Integer.parseInt(parts[0]), Integer.parseInt(parts[1]), 128);
             }
-            options.maxDeviceMemory = config.getInt("maxDeviceMemory", 4096);
+            options.maxDeviceMemory = (short) config.getInt("maxDeviceMemory", 4096);
+            options.imageCacheSize = (short) config.getInt("imageCacheSize", 256);
             return options;
         }
     }
