@@ -1,128 +1,122 @@
 package com.winlator.xconnector;
 
 import com.winlator.xserver.XServer;
-
-import java.io.IOException;
+import dalvik.annotation.optimization.CriticalNative;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
+/* loaded from: classes.dex */
 public class XInputStream {
-    private ByteBuffer activeBuffer;
-    private ByteBuffer buffer;
-    public final ClientSocket clientSocket;
+    private final long nativePtr;
 
-    public XInputStream(int initialCapacity) {
-        this(null, initialCapacity);
+    @CriticalNative
+    private static native int available(long j);
+
+    private static native void destroy(long j);
+
+    @CriticalNative
+    private static native int getActivePosition(long j);
+
+    @CriticalNative
+    private static native int getAncillaryFd(long j);
+
+    private native long nativeAllocate(int i, int i2);
+
+    @CriticalNative
+    private static native byte readByte(long j);
+
+    private static native ByteBuffer readByteBuffer(long j, int i);
+
+    @CriticalNative
+    private static native int readInt(long j);
+
+    private static native int readMoreData(long j, boolean z);
+
+    @CriticalNative
+    private static native short readShort(long j);
+
+    @CriticalNative
+    private static native void setActivePosition(long j, int i);
+
+    @CriticalNative
+    private static native void skip(long j, int i);
+
+    static {
+        System.loadLibrary("winlator");
     }
 
-    public XInputStream(ClientSocket clientSocket, int initialCapacity) {
-        this.clientSocket = clientSocket;
-        this.buffer = ByteBuffer.allocateDirect(initialCapacity);
+    public XInputStream(int clientFd, int initialCapacity) {
+        this.nativePtr = nativeAllocate(clientFd, initialCapacity);
     }
 
-    public int readMoreData(boolean canReceiveAncillaryMessages) throws IOException {
-        if (activeBuffer != null) {
-            if (!activeBuffer.hasRemaining()) {
-                buffer.clear();
-            }
-            else if (activeBuffer.position() > 0) {
-                int newLimit = buffer.position();
-                buffer.position(activeBuffer.position()).limit(newLimit);
-                buffer.compact();
-            }
-            activeBuffer = null;
-        }
-
-        growInputBufferIfNecessary();
-        int bytesRead = canReceiveAncillaryMessages ? clientSocket.recvAncillaryMsg(buffer) : clientSocket.read(buffer);
-
-        if (bytesRead > 0) {
-            int position = buffer.position();
-            buffer.flip();
-            activeBuffer = buffer.slice().order(buffer.order());
-            buffer.limit(buffer.capacity()).position(position);
-        }
-        return bytesRead;
+    public int readMoreData(boolean canReceiveAncillaryMessages) {
+        return readMoreData(this.nativePtr, canReceiveAncillaryMessages);
     }
 
     public int getAncillaryFd() {
-        return clientSocket.getAncillaryFd();
-    }
-
-    private void growInputBufferIfNecessary() {
-        if (buffer.position() == buffer.capacity()) {
-            ByteBuffer newBuffer = ByteBuffer.allocateDirect(buffer.capacity() * 2).order(buffer.order());
-            buffer.rewind();
-            newBuffer.put(buffer);
-            buffer = newBuffer;
-        }
-    }
-
-    public void setByteOrder(ByteOrder byteOrder) {
-        buffer.order(byteOrder);
-        if (activeBuffer != null) activeBuffer.order(byteOrder);
+        return getAncillaryFd(this.nativePtr);
     }
 
     public int getActivePosition() {
-        return activeBuffer.position();
+        return getActivePosition(this.nativePtr);
     }
 
     public void setActivePosition(int activePosition) {
-        activeBuffer.position(activePosition);
+        setActivePosition(this.nativePtr, activePosition);
     }
 
     public int available() {
-        return activeBuffer.remaining();
+        return available(this.nativePtr);
     }
 
     public byte readByte() {
-        return activeBuffer.get();
+        return readByte(this.nativePtr);
     }
 
     public int readUnsignedByte() {
-        return Byte.toUnsignedInt(activeBuffer.get());
+        return Byte.toUnsignedInt(readByte(this.nativePtr));
     }
 
     public short readShort() {
-        return activeBuffer.getShort();
+        return readShort(this.nativePtr);
     }
 
     public int readUnsignedShort() {
-        return Short.toUnsignedInt(activeBuffer.getShort());
+        return Short.toUnsignedInt(readShort(this.nativePtr));
     }
 
     public int readInt() {
-        return activeBuffer.getInt();
+        return readInt(this.nativePtr);
     }
 
     public long readUnsignedInt() {
-        return Integer.toUnsignedLong(activeBuffer.getInt());
-    }
-
-    public long readLong() {
-        return activeBuffer.getLong();
+        return Integer.toUnsignedLong(readInt(this.nativePtr));
     }
 
     public void read(byte[] result) {
-        activeBuffer.get(result);
+        for (int i = 0; i < result.length; i++) {
+            result[i] = readByte();
+        }
     }
 
     public ByteBuffer readByteBuffer(int length) {
-        ByteBuffer newBuffer = activeBuffer.slice().order(activeBuffer.order());
-        newBuffer.limit(length);
-        activeBuffer.position(activeBuffer.position() + length);
-        return newBuffer;
+        return readByteBuffer(this.nativePtr, length);
     }
 
     public String readString8(int length) {
         byte[] bytes = new byte[length];
         read(bytes);
         String str = new String(bytes, XServer.LATIN1_CHARSET);
-        if ((-length & 3) > 0) skip(-length & 3);
+        if (((-length) & 3) > 0) {
+            skip((-length) & 3);
+        }
         return str;
     }
 
     public void skip(int length) {
-        activeBuffer.position(activeBuffer.position() + length);
+        skip(this.nativePtr, length);
+    }
+
+    public void destroy() {
+        destroy(this.nativePtr);
     }
 }

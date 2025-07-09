@@ -1,7 +1,7 @@
 package com.winlator.xconnector;
 
 public interface ConnectionHandler {
-    void handleConnectionShutdown(Client client);
+    void handleConnectionShutdown(ConnectedClient connectedClient);
 
-    void handleNewConnection(Client client);
+    void handleNewConnection(ConnectedClient connectedClient);
 }
