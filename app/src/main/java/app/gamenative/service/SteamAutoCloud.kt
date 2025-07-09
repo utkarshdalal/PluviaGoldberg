@@ -49,6 +49,9 @@ object SteamAutoCloud {
 
     private const val MAX_USER_FILE_RETRIES = 3
 
+    private fun findPlaceholderWithin(aString: String): Sequence<MatchResult> =
+        Regex("%\\w+%").findAll(aString)
+
     fun syncUserFiles(
         appInfo: SteamApp,
         clientId: Long,
@@ -65,10 +68,14 @@ object SteamAutoCloud {
         val getPathTypePairs: (AppFileChangeList) -> List<Pair<String, String>> = { fileList ->
             fileList.pathPrefixes
                 .map {
-                    val matchResults = Regex("%\\w+%").findAll(it).map { it.value }.toList()
+                    var matchResults = findPlaceholderWithin(it).map { it.value }.toList()
                     val bare = if (it.startsWith("ROOT_MOD")) listOf("ROOT_MOD") else emptyList()
 
                     Timber.i("Mapping prefix $it and found $matchResults")
+
+                    if (matchResults.isEmpty()) {
+                        matchResults = List(1) { PathType.DEFAULT.name }
+                    }
 
                     matchResults + bare
                 }
@@ -83,6 +90,12 @@ object SteamAutoCloud {
             fileList.pathPrefixes.map { prefix ->
                 var modified = prefix
 
+                val prefixContainsNoPlaceholder = findPlaceholderWithin(prefix).none()
+
+                if (prefixContainsNoPlaceholder) {
+                    modified = Paths.get(PathType.DEFAULT.name, prefix).pathString
+                }
+
                 pathTypePairs.forEach {
                     modified = modified.replace(it.first, it.second)
                 }
@@ -95,7 +108,7 @@ object SteamAutoCloud {
             if (file.pathPrefixIndex < fileList.pathPrefixes.size) {
                 Paths.get(fileList.pathPrefixes[file.pathPrefixIndex]).pathString
             } else {
-                Paths.get("%${PathType.GameInstall.name}%").pathString
+                Paths.get("%${PathType.DEFAULT.name}%").pathString
             }
         }
 

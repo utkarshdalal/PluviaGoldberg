@@ -186,6 +186,11 @@ object SteamUtils {
             Files.createFile(appIdFile)
             appIdFile.toFile().writeText(appId.toString())
         }
+        val steamIdFile = settingsDir.resolve("force_steamid.txt")
+        if (Files.notExists(steamIdFile)) {
+            Files.createFile(steamIdFile)
+            steamIdFile.toFile().writeText(SteamService.userSteamId?.convertToUInt64().toString())
+        }
     }
 
     /**
