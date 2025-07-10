@@ -1581,7 +1581,7 @@ private fun extractGraphicsDriverFiles(
     } else if (graphicsDriver == "virgl") {
         cacheId += "-" + DefaultVersion.VIRGL
     } else if (graphicsDriver == "vortek") {
-        cacheId += "-" + vortekVersion
+        cacheId += "-" + vortekVersion + "-" + zinkVersion
     }
 
     val changed = cacheId != container.getExtra("graphicsDriver")
