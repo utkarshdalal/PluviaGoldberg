@@ -1573,7 +1573,7 @@ class SteamService : Service(), IChallengeUrlChanged {
                 Timber.w("Failed to connect to Steam, marking endpoint bad and force disconnecting")
 
                 try {
-                    steamClient!!.servers.tryMark(steamClient!!.currentEndPoint, PROTOCOL_TYPES, ServerQuality.BAD)
+                    steamClient!!.servers.tryMark(steamClient!!.currentEndpoint, PROTOCOL_TYPES, ServerQuality.BAD)
                 } catch (e: Exception) {
                     Timber.e(e, "Failed to mark endpoint as bad:")
                 }
