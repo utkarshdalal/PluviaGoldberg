@@ -2,10 +2,15 @@ package app.gamenative.ui.screen.library
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.displayCutoutPadding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.AnimatedPane
@@ -52,11 +57,6 @@ fun HomeLibraryScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    // Force portrait orientation for this screen
-    LaunchedEffect(Unit) {
-        PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.PORTRAIT)))
-    }
-
     LibraryScreenContent(
         state = state,
         listState = viewModel.listState,
@@ -85,52 +85,39 @@ private fun LibraryScreenContent(
     onSettings: () -> Unit,
     onLogout: () -> Unit,
 ) {
-    val navigator = rememberListDetailPaneScaffoldNavigator<Int>()
+    var selectedAppId by remember { mutableStateOf<Int?>(null) }
 
-    // Pretty much the same as 'NavigableListDetailPaneScaffold'
-    BackHandler(navigator.canNavigateBack(BackNavigationBehavior.PopUntilContentChange)) {
-        navigator.navigateBack(BackNavigationBehavior.PopUntilContentChange)
+    BackHandler(selectedAppId != null) { selectedAppId = null }
+    val safePaddingModifier =
+        if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT)
+            Modifier.displayCutoutPadding()
+        else
+            Modifier
+
+    Box(
+        Modifier.background(MaterialTheme.colorScheme.background)
+        .then(safePaddingModifier)) {
+        if (selectedAppId == null) {
+            LibraryListPane(
+                state = state,
+                listState = listState,
+                sheetState = sheetState,
+                onFilterChanged = onFilterChanged,
+                onModalBottomSheet = onModalBottomSheet,
+                onIsSearching = onIsSearching,
+                onSearchQuery = onSearchQuery,
+                onSettings = onSettings,
+                onLogout = onLogout,
+                onNavigate = { appId -> selectedAppId = appId }
+            )
+        } else {
+            LibraryDetailPane(
+                appId = selectedAppId ?: SteamService.INVALID_APP_ID,
+                onBack = { selectedAppId = null },
+                onClickPlay = { onClickPlay(selectedAppId!!, it) },
+            )
+        }
     }
-
-    ListDetailPaneScaffold(
-        modifier = Modifier.displayCutoutPadding(),
-        directive = navigator.scaffoldDirective,
-        value = navigator.scaffoldValue,
-        listPane = {
-            AnimatedPane {
-                LibraryListPane(
-                    state = state,
-                    listState = listState,
-                    sheetState = sheetState,
-                    onFilterChanged = onFilterChanged,
-                    onModalBottomSheet = onModalBottomSheet,
-                    onIsSearching = onIsSearching,
-                    onSearchQuery = onSearchQuery,
-                    onSettings = onSettings,
-                    onLogout = onLogout,
-                    onNavigate = { item ->
-                        navigator.navigateTo(
-                            pane = ListDetailPaneScaffoldRole.Detail,
-                            content = item,
-                        )
-                    },
-                )
-            }
-        },
-        detailPane = {
-            val appId = (navigator.currentDestination?.content ?: SteamService.INVALID_APP_ID)
-            AnimatedPane {
-                LibraryDetailPane(
-                    appId = appId,
-                    onBack = {
-                        // We're still in Adaptive navigation.
-                        navigator.navigateBack()
-                    },
-                    onClickPlay = { onClickPlay(appId, it) },
-                )
-            }
-        },
-    )
 }
 
 /***********

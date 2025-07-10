@@ -134,11 +134,6 @@ fun AppScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Force portrait orientation for this screen
-    LaunchedEffect(Unit) {
-        PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.PORTRAIT)))
-    }
-
     val appInfo by remember(appId) {
         mutableStateOf(SteamService.getAppInfoOf(appId)!!)
     }
