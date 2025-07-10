@@ -95,6 +95,7 @@ import app.gamenative.PluviaApp
 import app.gamenative.events.AndroidEvent
 import java.util.EnumSet
 import android.content.Context
+import app.gamenative.PrefManager
 
 @Composable
 fun UserLoginScreen(
@@ -102,11 +103,6 @@ fun UserLoginScreen(
 ) {
     val snackBarHostState = remember { SnackbarHostState() }
     val userLoginState by viewModel.loginState.collectAsState()
-
-    // Force portrait orientation for this screen
-    LaunchedEffect(Unit) {
-        PluviaApp.events.emit(AndroidEvent.SetAllowedOrientation(EnumSet.of(Orientation.PORTRAIT)))
-    }
 
     LaunchedEffect(Unit) {
         viewModel.snackEvents.collect { message ->
@@ -618,8 +614,8 @@ private fun ModernUsernamePassword(
                 color = MaterialTheme.colorScheme.onPrimary
             )
         }
-            
-    } 
+
+    }
 }
 
 @Composable
