@@ -510,4 +510,11 @@ object PrefManager {
         set(value) {
             setPref(USE_EXTERNAL_STORAGE, value)
         }
+
+    private val EXTERNAL_STORAGE_PATH = stringPreferencesKey("external_storage_path")
+    var externalStoragePath: String
+        get() = getPref(EXTERNAL_STORAGE_PATH, "/storage/emulated/0/Android/data/app.gamenative/files")
+        set(value) {
+            setPref(EXTERNAL_STORAGE_PATH, value)
+        }
 }
