@@ -284,7 +284,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         private val externalAppInstallPath: String
             get() {
-                return Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "common").pathString
+                return Paths.get(PrefManager.externalStoragePath, "Steam", "steamapps", "common").pathString
             }
 
         private val internalAppStagingPath: String
@@ -293,7 +293,7 @@ class SteamService : Service(), IChallengeUrlChanged {
             }
         private val externalAppStagingPath: String
             get() {
-                return Paths.get(Environment.getExternalStorageDirectory().absolutePath, "GameNative", "Steam", "steamapps", "staging").pathString
+                return Paths.get(PrefManager.externalStoragePath, "Steam", "steamapps", "staging").pathString
             }
 
         val defaultAppInstallPath: String
